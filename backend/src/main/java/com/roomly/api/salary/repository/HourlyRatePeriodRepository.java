@@ -1,2 +1,48 @@
-package com.roomly.api.salary.repository; import com.roomly.api.salary.entity.HourlyRatePeriod; import org.springframework.data.jpa.repository.*; import org.springframework.data.repository.query.Param; import java.time.LocalDate; import java.util.*;
-public interface HourlyRatePeriodRepository extends JpaRepository<HourlyRatePeriod,UUID>{@Query("select h from HourlyRatePeriod h where h.user.id=:userId and h.validFrom<=:date and (h.validTo is null or h.validTo>=:date) order by h.validFrom desc") List<HourlyRatePeriod> findValidForDate(@Param("userId") UUID userId,@Param("date") LocalDate date);@Query("select count(h)>0 from HourlyRatePeriod h where h.user.id=:userId and h.validFrom<=coalesce(:to, h.validFrom) and (h.validTo is null or h.validTo>=:from)") boolean existsOverlapping(@Param("userId") UUID userId,@Param("from") LocalDate from,@Param("to") LocalDate to);}
+package com.roomly.api.salary.repository;
+
+import com.roomly.api.salary.entity.HourlyRatePeriod;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface HourlyRatePeriodRepository extends JpaRepository<HourlyRatePeriod, UUID> {
+  @Query(
+      """
+      select h from HourlyRatePeriod h
+      where h.user.id = :userId
+        and h.validFrom <= :date
+        and (h.validTo is null or h.validTo >= :date)
+      """)
+  Optional<HourlyRatePeriod> findValidForDate(
+      @Param("userId") UUID userId, @Param("date") LocalDate date);
+
+  @Query(
+      """
+      select count(h) > 0 from HourlyRatePeriod h
+      where h.user.id = :userId
+        and h.validFrom <= :validTo
+        and (h.validTo is null or h.validTo >= :validFrom)
+      """)
+  boolean existsOverlappingClosed(
+      @Param("userId") UUID userId,
+      @Param("validFrom") LocalDate validFrom,
+      @Param("validTo") LocalDate validTo);
+
+  @Query(
+      """
+      select count(h) > 0 from HourlyRatePeriod h
+      where h.user.id = :userId
+        and (h.validTo is null or h.validTo >= :validFrom)
+      """)
+  boolean existsOverlappingOpenEnded(
+      @Param("userId") UUID userId, @Param("validFrom") LocalDate validFrom);
+
+  default boolean existsOverlapping(UUID userId, LocalDate validFrom, LocalDate validTo) {
+    return validTo == null
+        ? existsOverlappingOpenEnded(userId, validFrom)
+        : existsOverlappingClosed(userId, validFrom, validTo);
+  }
+}

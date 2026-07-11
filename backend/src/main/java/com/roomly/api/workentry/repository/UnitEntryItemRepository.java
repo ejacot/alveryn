@@ -1,1 +1,10 @@
-package com.roomly.api.workentry.repository; import com.roomly.api.workentry.entity.UnitEntryItem; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface UnitEntryItemRepository extends JpaRepository<UnitEntryItem,UUID>{List<UnitEntryItem> findAllByWorkEntryId(UUID workEntryId);}
+package com.roomly.api.workentry.repository;
+
+import com.roomly.api.workentry.entity.UnitEntryItem;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UnitEntryItemRepository extends JpaRepository<UnitEntryItem, UUID> {
+  List<UnitEntryItem> findAllByWorkEntryId(UUID workEntryId);
+}

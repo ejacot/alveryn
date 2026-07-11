@@ -1,1 +1,10 @@
-package com.roomly.api.user.repository; import com.roomly.api.user.entity.UserProfile; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface UserProfileRepository extends JpaRepository<UserProfile,UUID>{Optional<UserProfile> findByUserId(UUID userId);}
+package com.roomly.api.user.repository;
+
+import com.roomly.api.user.entity.UserProfile;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
+  Optional<UserProfile> findByUserId(UUID userId);
+}
