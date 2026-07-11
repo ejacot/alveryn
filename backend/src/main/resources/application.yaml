@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: roomly-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/roomly
+    username: roomly
+    password: roomly
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
