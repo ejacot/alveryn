@@ -1,0 +1,7 @@
+package com.roomly.api.workentry.entity;
+import com.roomly.api.common.persistence.BaseEntity; import com.roomly.api.worktype.entity.UnitType; import jakarta.persistence.*; import lombok.*; import java.math.BigDecimal;
+@Getter @NoArgsConstructor(access=AccessLevel.PROTECTED) @Entity @Table(name="unit_entry_items",uniqueConstraints=@UniqueConstraint(name="uk_unit_entry_items_entry_type",columnNames={"work_entry_id","unit_type_id"}))
+public class UnitEntryItem extends BaseEntity {
+ @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="work_entry_id",nullable=false) private WorkEntry workEntry; @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="unit_type_id",nullable=false) private UnitType unitType; @Column(name="unit_name_snapshot",nullable=false,length=100) private String unitNameSnapshot; @Column(nullable=false,precision=12,scale=2) private BigDecimal quantity; @Column(name="units_per_hour_snapshot",nullable=false,precision=10,scale=4) private BigDecimal unitsPerHourSnapshot; @Column(name="calculated_minutes",nullable=false) private int calculatedMinutes;
+ public UnitEntryItem(WorkEntry e,UnitType u,BigDecimal q,int minutes){if(q==null||q.signum()<=0||minutes<=0)throw new IllegalArgumentException();workEntry=java.util.Objects.requireNonNull(e);unitType=java.util.Objects.requireNonNull(u);unitNameSnapshot=u.getName();unitsPerHourSnapshot=u.getUnitsPerHour();quantity=q;calculatedMinutes=minutes;}
+}

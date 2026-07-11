@@ -42,7 +42,7 @@ CREATE TABLE user_profiles (
                                date_of_birth DATE,
                                phone VARCHAR(30),
 
-                               country_code CHAR(2),
+                               country_code VARCHAR(2),
                                city VARCHAR(100),
                                postal_code VARCHAR(20),
                                street VARCHAR(150),
@@ -79,7 +79,7 @@ CREATE TABLE user_preferences (
 
                                   language VARCHAR(10) NOT NULL DEFAULT 'ro',
                                   timezone VARCHAR(60) NOT NULL DEFAULT 'Europe/Berlin',
-                                  currency CHAR(3) NOT NULL DEFAULT 'EUR',
+                                  currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
 
                                   first_day_of_week VARCHAR(10) NOT NULL DEFAULT 'MONDAY',
                                   date_format VARCHAR(30) NOT NULL DEFAULT 'DD.MM.YYYY',
@@ -126,7 +126,7 @@ CREATE TABLE hourly_rate_periods (
                                      user_id UUID NOT NULL,
 
                                      hourly_rate NUMERIC(10, 2) NOT NULL,
-                                     currency CHAR(3) NOT NULL,
+                                     currency VARCHAR(3) NOT NULL,
 
                                      valid_from DATE NOT NULL,
                                      valid_to DATE,
@@ -225,15 +225,15 @@ CREATE TABLE unit_types (
 CREATE TABLE work_entries (
                               id UUID PRIMARY KEY,
 
-                              user_id BIGINT NOT NULL,
-                              work_type_id BIGINT NOT NULL,
+                              user_id UUID NOT NULL,
+                              work_type_id UUID NOT NULL,
                               work_date DATE NOT NULL,
 
                               work_type_name_snapshot VARCHAR(100) NOT NULL,
                               calculation_method_snapshot VARCHAR(30) NOT NULL,
 
                               hourly_rate_snapshot NUMERIC(10, 2) NOT NULL,
-                              currency_snapshot CHAR(3) NOT NULL,
+                              currency_snapshot VARCHAR(3) NOT NULL,
 
                               calculated_minutes INTEGER NOT NULL,
                               gross_amount NUMERIC(12, 2) NOT NULL,
@@ -303,8 +303,8 @@ CREATE TABLE time_entry_details (
 CREATE TABLE unit_entry_items (
                                   id UUID PRIMARY KEY,
 
-                                  work_entry_id BIGINT NOT NULL,
-                                  unit_type_id BIGINT NOT NULL,
+                                  work_entry_id UUID NOT NULL,
+                                  unit_type_id UUID NOT NULL,
 
                                   unit_name_snapshot VARCHAR(100) NOT NULL,
 
@@ -313,6 +313,7 @@ CREATE TABLE unit_entry_items (
                                   calculated_minutes INTEGER NOT NULL,
 
                                   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
                                   CONSTRAINT fk_unit_entry_items_work_entry
                                       FOREIGN KEY (work_entry_id)

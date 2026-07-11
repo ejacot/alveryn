@@ -1,0 +1,1 @@
+package com.roomly.api.workentry.repository; import com.roomly.api.workentry.entity.WorkEntry; import org.springframework.data.jpa.repository.JpaRepository; import java.time.LocalDate; import java.util.*; public interface WorkEntryRepository extends JpaRepository<WorkEntry,UUID>{List<WorkEntry> findAllByUserIdAndWorkDateOrderByCreatedAt(UUID userId,LocalDate date);}

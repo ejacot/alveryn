@@ -1,0 +1,1 @@
+package com.roomly.api.worktype.repository; import com.roomly.api.worktype.entity.UnitType; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface UnitTypeRepository extends JpaRepository<UnitType,UUID>{List<UnitType> findAllByWorkTypeIdAndActiveTrueOrderByDisplayOrder(UUID workTypeId);}

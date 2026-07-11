@@ -1,0 +1,1 @@
+package com.roomly.api.workentry.repository; import com.roomly.api.workentry.entity.TimeEntryDetails; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface TimeEntryDetailsRepository extends JpaRepository<TimeEntryDetails,UUID>{Optional<TimeEntryDetails> findByWorkEntryId(UUID workEntryId);}
