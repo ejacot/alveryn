@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -44,8 +45,8 @@ public class UnitEntryItem extends BaseEntity {
   @Column(name = "units_per_hour_snapshot", nullable = false, precision = 10, scale = 4)
   private BigDecimal unitsPerHourSnapshot;
 
-  @Column(name = "calculated_minutes", nullable = false)
-  private int calculatedMinutes;
+  @Column(name = "calculated_minutes", nullable = false, precision = 30, scale = 15)
+  private BigDecimal calculatedMinutes;
 
   public UnitEntryItem(WorkEntry workEntry, UnitType unitType, BigDecimal quantity) {
     this.workEntry = Objects.requireNonNull(workEntry, "workEntry is required");
@@ -64,15 +65,15 @@ public class UnitEntryItem extends BaseEntity {
     this.calculatedMinutes = calculateMinutes(quantity, unitsPerHourSnapshot);
   }
 
-  public static int calculateMinutes(BigDecimal quantity, BigDecimal unitsPerHour) {
+  public static BigDecimal calculateMinutes(BigDecimal quantity, BigDecimal unitsPerHour) {
     if (quantity == null
         || quantity.signum() <= 0
         || unitsPerHour == null
         || unitsPerHour.signum() <= 0)
       throw new IllegalArgumentException("values must be positive");
     return quantity
-        .multiply(BigDecimal.valueOf(60))
-        .divide(unitsPerHour, 0, RoundingMode.HALF_UP)
-        .intValueExact();
+        .multiply(BigDecimal.valueOf(60), MathContext.DECIMAL128)
+        .divide(unitsPerHour, MathContext.DECIMAL128)
+        .setScale(15, RoundingMode.HALF_UP);
   }
 }

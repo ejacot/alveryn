@@ -44,8 +44,8 @@ class ApplicationServiceTest {
     var work =
         workTypes.create(
             userId,
-            new WorkTypeDto(
-                null, userId, "Rooms", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0, true));
+            new CreateWorkTypeRequest(
+                "Rooms", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
     assertThat(workTypes.list(userId)).hasSize(1);
     var unit =
         unitTypes.create(
@@ -55,6 +55,23 @@ class ApplicationServiceTest {
     assertThat(unitTypes.list(userId, work.id())).isEmpty();
     workTypes.delete(userId, work.id());
     assertThat(workTypes.list(userId)).isEmpty();
+  }
+
+  @Test
+  void workTypeUpdatePreservesCalculationMethod() {
+    var created =
+        workTypes.create(
+            userId,
+            new CreateWorkTypeRequest(
+                "Units", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
+    var updated =
+        workTypes.update(
+            userId,
+            created.id(),
+            new UpdateWorkTypeRequest("Renamed", "#AABBCC", "icon", 15, 3, true));
+    assertThat(updated.calculationMethod()).isEqualTo(CalculationMethod.UNIT_BASED);
+    assertThat(updated.name()).isEqualTo("Renamed");
+    assertThat(updated.color()).isEqualTo("#AABBCC");
   }
 
   @Test

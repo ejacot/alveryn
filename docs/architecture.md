@@ -10,7 +10,7 @@ The committed V2 development migration originally mixed BIGINT and UUID and coul
 
 From V3 onward, published migrations are immutable and every schema change receives a new version. V3 adds database checks for paired security-code fields, ISO-style currency values, gross calculations, and unit-minute calculations.
 
-`WorkEntry` owns gross calculation: `hourlyRate × calculatedMinutes ÷ 60`, rounded directly to monetary scale 2 with `HALF_UP`. `UnitEntryItem` derives minutes as `quantity × 60 ÷ unitsPerHour`, rounded to a whole minute with `HALF_UP`. A time interval whose end is equal to or earlier than its start crosses midnight into the following day.
+`WorkEntry` owns gross calculation: `hourlyRate × calculatedMinutes ÷ 60`, using the full time precision and rounding only the final monetary result to scale 2 with `HALF_UP`. TIME_BASED work uses exact integer minutes. UNIT_BASED minutes use `MathContext.DECIMAL128` and persistence scale 15. Display precision is presentation-only. A time interval whose end is equal to or earlier than its start crosses midnight into the following day.
 
 Entities deliberately use Java identity semantics and do not generate `equals`/`hashCode` from mutable fields or lazy relationships. Equality policy can be revisited only when detached-entity comparison becomes a concrete requirement.
 
@@ -19,5 +19,7 @@ Hourly-rate overlap is queried with inclusive closed/open-ended interval semanti
 ## Application layer
 
 Application services form the transaction boundary and accept an explicit user ID until authentication is introduced. They enforce ownership, uniqueness, cross-entity rules, and salary-period overlap before mapping entities to immutable DTO records. Entities never leave this layer. MapStruct mappers use Spring component model and constructor injection.
+
+`CalculationMethod` is immutable after WorkType creation. Creation and update use separate request DTOs; the update contract cannot express a method change.
 
 Repositories remain persistence-only. Feature packages own their DTOs, mappers, and services; shared exception and future API-error infrastructure lives under `common`.

@@ -87,10 +87,6 @@ public class WorkType extends BaseEntity {
     displayOrder = value;
   }
 
-  public void changeCalculationMethod(CalculationMethod value) {
-    calculationMethod = Objects.requireNonNull(value);
-  }
-
   public void changeIcon(String value) {
     icon = value;
   }

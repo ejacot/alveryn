@@ -3,8 +3,10 @@ services:
     name: roomly-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
     envVars:
-      - key: SERVER_PORT
+      - key: PORT
         value: 10000
       - key: DB_URL
         sync: false

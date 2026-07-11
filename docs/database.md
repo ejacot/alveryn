@@ -26,7 +26,7 @@ Child rows reference their owner lazily in Java. Database foreign keys cascade o
 
 Money, rates, quantities, and factors use `NUMERIC`/`BigDecimal`. Worked minutes remain integers. Absences produce neither minutes nor gross amounts. Calculation and same-day conflict services are intentionally deferred.
 
-Gross pay is stored at scale 2 and calculated with `HALF_UP` as `hourly_rate_snapshot × calculated_minutes ÷ 60`. Unit-item minutes are rounded to the nearest whole minute with `HALF_UP` from `quantity × 60 ÷ units_per_hour_snapshot`. V3 mirrors both formulas with PostgreSQL checks and requires uppercase three-letter currency snapshots.
+Gross pay is stored at scale 2 and calculated with `HALF_UP` only after using the full `calculated_minutes` precision. V4 stores both work-entry and unit-item calculated minutes as `NUMERIC(30,15)`. TIME_BASED values remain exact integers; UNIT_BASED values derive from `quantity × 60 ÷ units_per_hour_snapshot` and retain 15 fractional digits. No two-decimal display value participates in persistence or salary calculations.
 
 Time intervals are wall-clock intervals: an end later than the start is on the same day; an equal or earlier end is on the next day. Break minutes are subtracted from that interval.
 

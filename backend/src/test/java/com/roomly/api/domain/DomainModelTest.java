@@ -134,9 +134,26 @@ class DomainModelTest {
     var unit = new UnitType(type, "Normal", new BigDecimal("2.4"));
     var entry = new WorkEntry(user, type, LocalDate.now(), new BigDecimal("18"), "EUR", 50);
     assertThat(new UnitEntryItem(entry, unit, new BigDecimal("2")).getCalculatedMinutes())
-        .isEqualTo(50);
+        .isEqualByComparingTo("50.000000000000000");
     assertThatIllegalArgumentException()
         .isThrownBy(() -> new UnitEntryItem(entry, unit, BigDecimal.ZERO));
+  }
+
+  @Test
+  void unitTimeRetainsHighPrecisionAndGrossRoundsOnlyAtMoneyBoundary() {
+    assertThat(UnitEntryItem.calculateMinutes(BigDecimal.ONE, new BigDecimal("7")))
+        .isEqualByComparingTo("8.571428571428571");
+    var type = new WorkType(user, "Precise", CalculationMethod.UNIT_BASED);
+    var entry =
+        new WorkEntry(
+            user,
+            type,
+            LocalDate.now(),
+            new BigDecimal("17.50"),
+            "EUR",
+            new BigDecimal("500.140320000000000"));
+    assertThat(entry.getCalculatedMinutes()).isEqualByComparingTo("500.140320000000000");
+    assertThat(entry.getGrossAmount()).isEqualByComparingTo("145.87");
   }
 
   @Test

@@ -2,6 +2,8 @@ package com.roomly.api.worktype.service;
 
 import com.roomly.api.common.exception.*;
 import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.worktype.dto.CreateWorkTypeRequest;
+import com.roomly.api.worktype.dto.UpdateWorkTypeRequest;
 import com.roomly.api.worktype.dto.WorkTypeDto;
 import com.roomly.api.worktype.entity.WorkType;
 import com.roomly.api.worktype.mapper.WorkTypeMapper;
@@ -22,7 +24,7 @@ public class WorkTypeService {
   private final WorkTypeMapper mapper;
 
   @Transactional
-  public WorkTypeDto create(UUID userId, @Valid WorkTypeDto dto) {
+  public WorkTypeDto create(UUID userId, @Valid CreateWorkTypeRequest dto) {
     var user =
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
     var entity = new WorkType(user, dto.name(), dto.calculationMethod());
@@ -33,7 +35,7 @@ public class WorkTypeService {
   }
 
   @Transactional
-  public WorkTypeDto update(UUID userId, UUID id, @Valid WorkTypeDto dto) {
+  public WorkTypeDto update(UUID userId, UUID id, @Valid UpdateWorkTypeRequest dto) {
     var entity = find(userId, id);
     entity.rename(dto.name());
     if (repository.existsByUserIdAndNormalizedNameAndIdNot(userId, entity.getNormalizedName(), id))
@@ -65,8 +67,14 @@ public class WorkTypeService {
         .orElseThrow(() -> new NotFoundException("WorkType", id));
   }
 
-  private void apply(WorkType e, WorkTypeDto d) {
-    e.changeCalculationMethod(d.calculationMethod());
+  private void apply(WorkType e, CreateWorkTypeRequest d) {
+    e.changeColor(d.color());
+    e.changeIcon(d.icon());
+    e.changeDefaultBreakMinutes(d.defaultBreakMinutes());
+    e.changeDisplayOrder(d.displayOrder());
+  }
+
+  private void apply(WorkType e, UpdateWorkTypeRequest d) {
     e.changeColor(d.color());
     e.changeIcon(d.icon());
     e.changeDefaultBreakMinutes(d.defaultBreakMinutes());

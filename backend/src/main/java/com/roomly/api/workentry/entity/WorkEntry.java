@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Locale;
@@ -28,6 +29,8 @@ import lombok.NoArgsConstructor;
 public class WorkEntry extends BaseEntity {
   public static final int MONEY_SCALE = 2;
   public static final RoundingMode MONEY_ROUNDING = RoundingMode.HALF_UP;
+  public static final MathContext TIME_MATH_CONTEXT = MathContext.DECIMAL128;
+  public static final int TIME_SCALE = 15;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
@@ -53,8 +56,8 @@ public class WorkEntry extends BaseEntity {
   @Column(name = "currency_snapshot", nullable = false, length = 3)
   private String currencySnapshot;
 
-  @Column(name = "calculated_minutes", nullable = false)
-  private int calculatedMinutes;
+  @Column(name = "calculated_minutes", nullable = false, precision = 30, scale = 15)
+  private BigDecimal calculatedMinutes;
 
   @Column(name = "gross_amount", nullable = false, precision = 12, scale = 2)
   private BigDecimal grossAmount;
@@ -69,6 +72,16 @@ public class WorkEntry extends BaseEntity {
       BigDecimal hourlyRate,
       String currency,
       int calculatedMinutes) {
+    this(user, workType, workDate, hourlyRate, currency, BigDecimal.valueOf(calculatedMinutes));
+  }
+
+  public WorkEntry(
+      UserAccount user,
+      WorkType workType,
+      LocalDate workDate,
+      BigDecimal hourlyRate,
+      String currency,
+      BigDecimal calculatedMinutes) {
     this.user = Objects.requireNonNull(user, "user is required");
     this.workType = Objects.requireNonNull(workType, "workType is required");
     if (workType.getUser() != user
@@ -77,22 +90,27 @@ public class WorkEntry extends BaseEntity {
     this.workDate = Objects.requireNonNull(workDate, "workDate is required");
     if (hourlyRate == null || hourlyRate.signum() < 0)
       throw new IllegalArgumentException("hourlyRate must be non-negative");
-    if (calculatedMinutes <= 0)
+    if (calculatedMinutes == null || calculatedMinutes.signum() <= 0)
       throw new IllegalArgumentException("calculatedMinutes must be positive");
     this.workTypeNameSnapshot = workType.getName();
     this.calculationMethodSnapshot = workType.getCalculationMethod();
     this.hourlyRateSnapshot = hourlyRate.setScale(2, MONEY_ROUNDING);
     this.currencySnapshot = normalizeCurrency(currency);
-    this.calculatedMinutes = calculatedMinutes;
+    this.calculatedMinutes = calculatedMinutes.setScale(TIME_SCALE, RoundingMode.UNNECESSARY);
     this.grossAmount = calculateGross(calculatedMinutes, this.hourlyRateSnapshot);
   }
 
   public static BigDecimal calculateGross(int minutes, BigDecimal hourlyRate) {
-    if (minutes <= 0 || hourlyRate == null || hourlyRate.signum() < 0)
+    return calculateGross(BigDecimal.valueOf(minutes), hourlyRate);
+  }
+
+  public static BigDecimal calculateGross(BigDecimal minutes, BigDecimal hourlyRate) {
+    if (minutes == null || minutes.signum() <= 0 || hourlyRate == null || hourlyRate.signum() < 0)
       throw new IllegalArgumentException("invalid calculation inputs");
     return hourlyRate
-        .multiply(BigDecimal.valueOf(minutes))
-        .divide(BigDecimal.valueOf(60), MONEY_SCALE, MONEY_ROUNDING);
+        .multiply(minutes, TIME_MATH_CONTEXT)
+        .divide(BigDecimal.valueOf(60), TIME_MATH_CONTEXT)
+        .setScale(MONEY_SCALE, MONEY_ROUNDING);
   }
 
   public void updateNotes(String value) {
