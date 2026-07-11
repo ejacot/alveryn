@@ -15,3 +15,9 @@ From V3 onward, published migrations are immutable and every schema change recei
 Entities deliberately use Java identity semantics and do not generate `equals`/`hashCode` from mutable fields or lazy relationships. Equality policy can be revisited only when detached-entity comparison becomes a concrete requirement.
 
 Hourly-rate overlap is queried with inclusive closed/open-ended interval semantics. The application service that creates or changes periods must enforce the query result transactionally; database-level exclusion is deferred until the concurrency strategy is designed.
+
+## Application layer
+
+Application services form the transaction boundary and accept an explicit user ID until authentication is introduced. They enforce ownership, uniqueness, cross-entity rules, and salary-period overlap before mapping entities to immutable DTO records. Entities never leave this layer. MapStruct mappers use Spring component model and constructor injection.
+
+Repositories remain persistence-only. Feature packages own their DTOs, mappers, and services; shared exception and future API-error infrastructure lives under `common`.

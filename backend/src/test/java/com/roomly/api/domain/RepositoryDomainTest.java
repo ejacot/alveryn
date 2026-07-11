@@ -62,11 +62,11 @@ class RepositoryDomainTest {
             user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
     assertThat(rates.findValidForDate(user.getId(), LocalDate.of(2025, 1, 31))).isPresent();
     assertThat(
-            rates.existsOverlapping(
+            rates.existsOverlappingClosed(
                 user.getId(), LocalDate.of(2025, 1, 31), LocalDate.of(2025, 2, 2)))
         .isTrue();
     assertThat(
-            rates.existsOverlapping(
+            rates.existsOverlappingClosed(
                 user.getId(), LocalDate.of(2025, 2, 1), LocalDate.of(2025, 2, 28)))
         .isFalse();
   }
@@ -76,10 +76,10 @@ class RepositoryDomainTest {
     var user = users.save(new UserAccount("open-rate@example.com", "hash"));
     rates.saveAndFlush(
         new HourlyRatePeriod(user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 5, 1), null));
-    assertThat(rates.existsOverlapping(user.getId(), LocalDate.of(2025, 6, 1), null)).isTrue();
-    assertThat(rates.existsOverlapping(user.getId(), LocalDate.of(2024, 1, 1), null)).isTrue();
+    assertThat(rates.existsOverlappingOpenEnded(user.getId(), LocalDate.of(2025, 6, 1))).isTrue();
+    assertThat(rates.existsOverlappingOpenEnded(user.getId(), LocalDate.of(2024, 1, 1))).isTrue();
     assertThat(
-            rates.existsOverlapping(
+            rates.existsOverlappingClosed(
                 user.getId(), LocalDate.of(2024, 1, 1), LocalDate.of(2025, 4, 30)))
         .isFalse();
   }

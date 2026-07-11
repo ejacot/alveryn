@@ -74,4 +74,31 @@ public class UserProfile extends BaseEntity {
     employmentStartDate = start;
     employmentEndDate = end;
   }
+
+  public void updateDetails(
+      String firstName,
+      String lastName,
+      String displayName,
+      LocalDate dateOfBirth,
+      String phone,
+      String countryCode,
+      String city,
+      String postalCode,
+      String street,
+      String houseNumber,
+      String apartment,
+      String avatarUrl) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.displayName = displayName;
+    this.dateOfBirth = dateOfBirth;
+    this.phone = phone;
+    this.countryCode = countryCode;
+    this.city = city;
+    this.postalCode = postalCode;
+    this.street = street;
+    this.houseNumber = houseNumber;
+    this.apartment = apartment;
+    this.avatarUrl = avatarUrl;
+  }
 }

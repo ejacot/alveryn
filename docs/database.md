@@ -31,3 +31,5 @@ Gross pay is stored at scale 2 and calculated with `HALF_UP` as `hourly_rate_sna
 Time intervals are wall-clock intervals: an end later than the start is on the same day; an equal or earlier end is on the next day. Break minutes are subtracted from that interval.
 
 Hourly-rate date ranges are inclusive. Open-ended `valid_to` means infinity. Overlap prevention remains an application-service responsibility backed by the repository overlap query; adjacent periods such as January 1–31 and February 1 onward do not overlap.
+
+The application layer performs overlap and ownership validation inside transactions. Database constraints remain the final protection for field-level integrity and uniqueness. Migrations V1–V3 are unchanged by the application-layer milestone.

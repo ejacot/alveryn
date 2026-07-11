@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface HourlyRatePeriodRepository extends JpaRepository<HourlyRatePeriod, UUID> {
+  java.util.List<HourlyRatePeriod> findAllByUserIdOrderByValidFromDesc(UUID userId);
+
+  Optional<HourlyRatePeriod> findByIdAndUserId(UUID id, UUID userId);
+
   @Query(
       """
       select h from HourlyRatePeriod h
@@ -40,9 +44,14 @@ public interface HourlyRatePeriodRepository extends JpaRepository<HourlyRatePeri
   boolean existsOverlappingOpenEnded(
       @Param("userId") UUID userId, @Param("validFrom") LocalDate validFrom);
 
-  default boolean existsOverlapping(UUID userId, LocalDate validFrom, LocalDate validTo) {
-    return validTo == null
-        ? existsOverlappingOpenEnded(userId, validFrom)
-        : existsOverlappingClosed(userId, validFrom, validTo);
-  }
+  @Query(
+      "select count(h)>0 from HourlyRatePeriod h where h.user.id=:userId and h.id<>:excludedId and"
+          + " h.validFrom<=:validTo and (h.validTo is null or h.validTo>=:validFrom)")
+  boolean existsOverlappingClosedExcluding(
+      UUID userId, LocalDate validFrom, LocalDate validTo, UUID excludedId);
+
+  @Query(
+      "select count(h)>0 from HourlyRatePeriod h where h.user.id=:userId and h.id<>:excludedId and"
+          + " (h.validTo is null or h.validTo>=:validFrom)")
+  boolean existsOverlappingOpenEndedExcluding(UUID userId, LocalDate validFrom, UUID excludedId);
 }

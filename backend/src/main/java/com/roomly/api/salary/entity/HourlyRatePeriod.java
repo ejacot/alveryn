@@ -59,6 +59,17 @@ public class HourlyRatePeriod extends BaseEntity {
     return !date.isBefore(validFrom) && (validTo == null || !date.isAfter(validTo));
   }
 
+  public void update(BigDecimal rate, String currency, LocalDate from, LocalDate to) {
+    if (rate == null || rate.signum() < 0)
+      throw new IllegalArgumentException("hourlyRate must be non-negative");
+    if (from == null || to != null && to.isBefore(from))
+      throw new IllegalArgumentException("invalid validity range");
+    hourlyRate = rate;
+    this.currency = normalizeCurrency(currency);
+    validFrom = from;
+    validTo = to;
+  }
+
   private static String normalizeCurrency(String value) {
     if (value == null || !value.trim().matches("[A-Za-z]{3}"))
       throw new IllegalArgumentException("currency must have three letters");

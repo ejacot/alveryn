@@ -90,6 +90,22 @@ public class UserPreferences extends BaseEntity {
     preferredDailyMinutes = value;
   }
 
+  public void changeFirstDayOfWeek(FirstDayOfWeek value) {
+    firstDayOfWeek = Objects.requireNonNull(value);
+  }
+
+  public void changeTimeFormat(TimeFormat value) {
+    timeFormat = Objects.requireNonNull(value);
+  }
+
+  public void changeTheme(ThemePreference value) {
+    theme = Objects.requireNonNull(value);
+  }
+
+  public void completeOnboarding() {
+    onboardingCompleted = true;
+  }
+
   private static String required(String value, String field) {
     if (value == null || value.isBlank())
       throw new IllegalArgumentException(field + " is required");
