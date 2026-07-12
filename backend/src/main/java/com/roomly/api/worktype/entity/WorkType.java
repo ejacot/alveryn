@@ -91,6 +91,10 @@ public class WorkType extends BaseEntity {
     icon = value;
   }
 
+  public void changeCalculationMethod(CalculationMethod value) {
+    calculationMethod = Objects.requireNonNull(value, "calculationMethod is required");
+  }
+
   public void activate() {
     active = true;
   }

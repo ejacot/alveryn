@@ -15,4 +15,6 @@ public interface UnitEntryItemRepository extends JpaRepository<UnitEntryItem, UU
   List<UnitEntryItem> findAllByWorkEntryIdIn(Collection<UUID> workEntryIds);
 
   void deleteAllByWorkEntryId(UUID workEntryId);
+
+  boolean existsByUnitTypeId(UUID unitTypeId);
 }

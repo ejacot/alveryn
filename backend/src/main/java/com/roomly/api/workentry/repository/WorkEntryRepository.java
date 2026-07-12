@@ -34,4 +34,8 @@ public interface WorkEntryRepository extends JpaRepository<WorkEntry, UUID> {
   @EntityGraph(attributePaths = "workType")
   Page<WorkEntry> findAllByUserIdAndWorkTypeIdAndWorkDateBetween(
       UUID userId, UUID workTypeId, LocalDate fromDate, LocalDate toDate, Pageable pageable);
+
+  boolean existsByUserIdAndWorkTypeId(UUID userId, UUID workTypeId);
+
+  boolean existsByUserIdAndWorkDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
 }

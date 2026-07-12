@@ -6,9 +6,8 @@ import org.mapstruct.*;
 
 @Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface WorkTypeMapper {
-  @Mapping(target = "userId", source = "user.id")
-  WorkTypeDto toDto(WorkType e);
+  WorkTypeResponse toWorkTypeResponse(WorkType e);
 
   @Mapping(target = "workTypeId", source = "workType.id")
-  UnitTypeDto toDto(UnitType e);
+  UnitTypeResponse toUnitTypeResponse(UnitType e);
 }

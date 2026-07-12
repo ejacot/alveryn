@@ -6,12 +6,17 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UnitTypeRepository extends JpaRepository<UnitType, UUID> {
-  List<UnitType> findAllByWorkTypeIdAndActiveTrueOrderByDisplayOrder(UUID workTypeId);
+  List<UnitType> findAllByWorkTypeIdOrderByDisplayOrderAscNameAsc(UUID workTypeId);
 
   java.util.Optional<UnitType> findByIdAndWorkTypeUserId(UUID id, UUID userId);
+
+  java.util.Optional<UnitType> findByIdAndWorkTypeIdAndWorkTypeUserId(
+      UUID id, UUID workTypeId, UUID userId);
 
   boolean existsByWorkTypeIdAndNormalizedName(UUID workTypeId, String normalizedName);
 
   boolean existsByWorkTypeIdAndNormalizedNameAndIdNot(
       UUID workTypeId, String normalizedName, UUID id);
+
+  boolean existsByWorkTypeId(UUID workTypeId);
 }
