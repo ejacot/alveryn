@@ -56,7 +56,7 @@ public class TimeEntryDetails extends BaseEntity {
     return totalIntervalMinutes - breakMinutes;
   }
 
-  static int intervalMinutes(LocalTime start, LocalTime end) {
+  public static int intervalMinutes(LocalTime start, LocalTime end) {
     LocalDate day = LocalDate.of(2000, 1, 1);
     LocalDateTime from = LocalDateTime.of(day, start);
     LocalDateTime to = LocalDateTime.of(end.isAfter(start) ? day : day.plusDays(1), end);

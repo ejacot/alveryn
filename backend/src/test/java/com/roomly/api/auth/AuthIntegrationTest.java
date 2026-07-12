@@ -493,7 +493,7 @@ class AuthIntegrationTest {
 
     Integer migrationCount =
         jdbcTemplate.queryForObject(
-            "select count(*) from flyway_schema_history where version = '5'", Integer.class);
+            "select count(*) from flyway_schema_history where version = '6'", Integer.class);
     assertThat(migrationCount).isEqualTo(1);
   }
 

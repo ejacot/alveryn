@@ -140,7 +140,7 @@ class DomainModelTest {
   }
 
   @Test
-  void unitTimeRetainsHighPrecisionAndGrossRoundsOnlyAtMoneyBoundary() {
+  void unitTimeRetainsHighPrecisionForMinutesAndGrossAmount() {
     assertThat(UnitEntryItem.calculateMinutes(BigDecimal.ONE, new BigDecimal("7")))
         .isEqualByComparingTo("8.571428571428571");
     var type = new WorkType(user, "Precise", CalculationMethod.UNIT_BASED);
@@ -153,7 +153,7 @@ class DomainModelTest {
             "EUR",
             new BigDecimal("500.140320000000000"));
     assertThat(entry.getCalculatedMinutes()).isEqualByComparingTo("500.140320000000000");
-    assertThat(entry.getGrossAmount()).isEqualByComparingTo("145.87");
+    assertThat(entry.getGrossAmount()).isEqualByComparingTo("145.874260000000000");
   }
 
   @Test

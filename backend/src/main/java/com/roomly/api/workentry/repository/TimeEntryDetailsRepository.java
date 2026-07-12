@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TimeEntryDetailsRepository extends JpaRepository<TimeEntryDetails, UUID> {
   Optional<TimeEntryDetails> findByWorkEntryId(UUID workEntryId);
+
+  void deleteByWorkEntryId(UUID workEntryId);
 }
