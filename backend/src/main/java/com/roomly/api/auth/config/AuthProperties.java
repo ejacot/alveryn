@@ -18,4 +18,19 @@ public record AuthProperties(
     @Min(1) int loginMaxFailedAttempts,
     Duration loginLockDuration,
     String frontendVerificationUrl,
-    boolean devExposeCodes) {}
+    boolean devExposeCodes) {
+  public AuthProperties {
+    requirePositive(accessTokenLifetime, "accessTokenLifetime");
+    requirePositive(refreshTokenLifetime, "refreshTokenLifetime");
+    requirePositive(emailVerificationCodeLifetime, "emailVerificationCodeLifetime");
+    requirePositive(passwordResetCodeLifetime, "passwordResetCodeLifetime");
+    requirePositive(verificationResendCooldown, "verificationResendCooldown");
+    requirePositive(loginLockDuration, "loginLockDuration");
+  }
+
+  private static void requirePositive(Duration value, String name) {
+    if (value == null || value.isZero() || value.isNegative()) {
+      throw new IllegalArgumentException(name + " must be positive");
+    }
+  }
+}

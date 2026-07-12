@@ -1,0 +1,4 @@
+roomly:
+  auth:
+    jwt-secret: local-development-jwt-secret-32-bytes-minimum
+    dev-expose-codes: ${AUTH_DEV_EXPOSE_CODES:false}

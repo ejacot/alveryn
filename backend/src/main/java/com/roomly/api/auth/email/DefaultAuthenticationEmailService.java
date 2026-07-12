@@ -1,6 +1,5 @@
 package com.roomly.api.auth.email;
 
-import com.roomly.api.auth.config.AuthProperties;
 import com.roomly.api.user.entity.UserAccount;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class DefaultAuthenticationEmailService implements AuthenticationEmailService {
-  private final AuthProperties properties;
   private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
   @Override
@@ -22,8 +20,7 @@ public class DefaultAuthenticationEmailService implements AuthenticationEmailSer
         user.getEmail(),
         "Verify your Roomly email",
         "Your Roomly verification code is: " + code,
-        "Verification email prepared for " + user.getEmail(),
-        code);
+        "Verification email dispatch attempted");
   }
 
   @Override
@@ -32,11 +29,10 @@ public class DefaultAuthenticationEmailService implements AuthenticationEmailSer
         user.getEmail(),
         "Reset your Roomly password",
         "Your Roomly password reset code is: " + code,
-        "Password reset email prepared for " + user.getEmail(),
-        code);
+        "Password reset email dispatch attempted");
   }
 
-  private void send(String to, String subject, String text, String safeLogMessage, String code) {
+  private void send(String to, String subject, String text, String safeLogMessage) {
     try {
       JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
       if (mailSender == null) {
@@ -49,12 +45,7 @@ public class DefaultAuthenticationEmailService implements AuthenticationEmailSer
       mailSender.send(message);
       log.info("{}", safeLogMessage);
     } catch (Exception ex) {
-      if (properties.devExposeCodes()) {
-        log.info("{} [development code output enabled]", safeLogMessage);
-        log.info("Development auth code for {}: {}", to, code);
-      } else {
-        log.warn("{} but email delivery failed", safeLogMessage);
-      }
+      log.warn("{} but email delivery failed", safeLogMessage);
     }
   }
 }
