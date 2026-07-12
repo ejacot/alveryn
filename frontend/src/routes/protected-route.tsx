@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
 
 export function ProtectedRoute() {
@@ -6,13 +7,7 @@ export function ProtectedRoute() {
   const location = useLocation();
 
   if (isHydrating) {
-    return (
-      <div className="screen-shell flex min-h-screen items-center justify-center">
-        <div className="glass-panel rounded-full px-5 py-3 text-sm text-white/68">
-          Warming up Roomly...
-        </div>
-      </div>
-    );
+    return <ScreenMessage title="Warming up Roomly..." />;
   }
 
   if (!isAuthenticated) {

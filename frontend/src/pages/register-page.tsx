@@ -2,6 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
+import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -29,9 +30,21 @@ export function RegisterPage() {
       setServerError("");
       await registerWithPassword(values.email, values.password);
       setServerMessage("Account created. Check your email for the verification code.");
-      navigate("/verify-email", { state: { email: values.email } });
-    } catch {
-      setServerError("Registration failed. Try a different email or try again.");
+      navigate("/verify-email", {
+        state: {
+          email: values.email,
+          message: "Account created. Enter the verification code to continue."
+        }
+      });
+    } catch (error) {
+      const apiError = getApiError(error);
+      setServerError(apiError.message);
+      if (apiError.fieldErrors.email) {
+        form.setError("email", { message: apiError.fieldErrors.email });
+      }
+      if (apiError.fieldErrors.password) {
+        form.setError("password", { message: apiError.fieldErrors.password });
+      }
     }
   }
 
@@ -47,6 +60,7 @@ export function RegisterPage() {
           </Link>
         </span>
       }
+      backLink={{ to: "/login", label: "Back to login" }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getApiError } from "../api/api-errors";
 import { resetPassword } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
@@ -12,6 +13,7 @@ import {
 } from "../features/auth/auth-schemas";
 
 export function ResetPasswordPage() {
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -23,8 +25,26 @@ export function ResetPasswordPage() {
   });
 
   async function onSubmit(values: ResetPasswordValues) {
-    const result = await resetPassword(values);
-    setMessage(result.message);
+    try {
+      const result = await resetPassword(values);
+      setMessage(result.message);
+      navigate("/login", {
+        replace: true,
+        state: { message: "Password reset successfully. Sign in with your new password." }
+      });
+    } catch (error) {
+      const apiError = getApiError(error);
+      if (apiError.fieldErrors.email) {
+        form.setError("email", { message: apiError.fieldErrors.email });
+      }
+      if (apiError.fieldErrors.code) {
+        form.setError("code", { message: apiError.fieldErrors.code });
+      }
+      if (apiError.fieldErrors.newPassword) {
+        form.setError("newPassword", { message: apiError.fieldErrors.newPassword });
+      }
+      setMessage(!Object.keys(apiError.fieldErrors).length ? apiError.message : "");
+    }
   }
 
   return (
@@ -42,6 +62,7 @@ export function ResetPasswordPage() {
           </Link>
         </span>
       }
+      backLink={{ to: "/login", label: "Back to login" }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

@@ -1,5 +1,6 @@
-import type { ApiResponse, PageResponse } from "../types/api";
+import type { ApiMessage, ApiResponse, PageResponse } from "../types/api";
 import type { CurrentUser, AuthTokens, AuthUser } from "../types/auth";
+import type { DashboardResponse, WorkEntrySummary } from "../types/dashboard";
 import { http } from "./http";
 
 export type Credentials = {
@@ -16,10 +17,6 @@ export type ResetPasswordPayload = {
 export type VerifyEmailPayload = {
   email: string;
   code: string;
-};
-
-export type GenericMessage = {
-  message: string;
 };
 
 export async function register(payload: Credentials) {
@@ -39,7 +36,7 @@ export async function login(payload: Credentials) {
 }
 
 export async function forgotPassword(email: string) {
-  const response = await http.post<ApiResponse<GenericMessage>>(
+  const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/forgot-password",
     { email }
   );
@@ -47,7 +44,7 @@ export async function forgotPassword(email: string) {
 }
 
 export async function resetPassword(payload: ResetPasswordPayload) {
-  const response = await http.post<ApiResponse<GenericMessage>>(
+  const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/reset-password",
     payload
   );
@@ -55,7 +52,7 @@ export async function resetPassword(payload: ResetPasswordPayload) {
 }
 
 export async function verifyEmail(payload: VerifyEmailPayload) {
-  const response = await http.post<ApiResponse<GenericMessage>>(
+  const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/verify-email",
     payload
   );
@@ -63,7 +60,7 @@ export async function verifyEmail(payload: VerifyEmailPayload) {
 }
 
 export async function resendVerification(email: string) {
-  const response = await http.post<ApiResponse<GenericMessage>>(
+  const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/resend-verification",
     { email }
   );
@@ -71,7 +68,7 @@ export async function resendVerification(email: string) {
 }
 
 export async function logout(refreshToken: string) {
-  const response = await http.post<ApiResponse<GenericMessage>>(
+  const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/logout",
     { refreshToken }
   );
@@ -84,12 +81,14 @@ export async function getCurrentUser() {
 }
 
 export async function getDashboard() {
-  const response = await http.get<ApiResponse<unknown>>("/api/dashboard");
+  const response = await http.get<ApiResponse<DashboardResponse>>("/api/dashboard");
   return response.data.data;
 }
 
-export async function getWorkEntries() {
+export async function getWorkEntries(params?: { page?: number; size?: number }) {
   const response =
-    await http.get<ApiResponse<PageResponse<unknown>>>("/api/work-entries");
+    await http.get<ApiResponse<PageResponse<WorkEntrySummary>>>("/api/work-entries", {
+      params
+    });
   return response.data.data;
 }

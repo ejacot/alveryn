@@ -2,6 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -15,7 +16,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithPassword } = useAuth();
-  const [serverError, setServerError] = useState("");
+  const [serverError, setServerError] = useState(
+    ((location.state as { message?: string } | null)?.message ?? "")
+  );
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -32,7 +35,8 @@ export function LoginPage() {
         ?.from?.pathname;
       navigate(next ?? "/", { replace: true });
     } catch (error) {
-      setServerError("Unable to log in. Check your credentials and try again.");
+      const apiError = getApiError(error);
+      setServerError(apiError.message);
     }
   }
 

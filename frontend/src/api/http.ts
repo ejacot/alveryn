@@ -1,6 +1,11 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  type AxiosRequestHeaders,
+  type InternalAxiosRequestConfig
+} from "axios";
 import type { ApiErrorResponse, ApiResponse } from "../types/api";
 import type { AuthTokens } from "../types/auth";
+import { API_BASE_URL, buildApiUrl } from "./config";
 import {
   clearTokens,
   getStoredAccessToken,
@@ -8,17 +13,54 @@ import {
   storeTokens
 } from "./auth-storage";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+type PendingRequest = {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+  request: InternalAxiosRequestConfig & { _retry?: boolean };
+};
 
-type PendingSubscriber = (token: string | null) => void;
+type AuthFailureHandler = () => void;
 
 let isRefreshing = false;
-let subscribers: PendingSubscriber[] = [];
+let pendingRequests: PendingRequest[] = [];
+let authFailureHandler: AuthFailureHandler | null = null;
 
-function notifySubscribers(token: string | null) {
-  subscribers.forEach((callback) => callback(token));
-  subscribers = [];
+const REFRESH_EXCLUDED_PATHS = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/verify-email",
+  "/api/auth/resend-verification",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/refresh",
+  "/api/auth/logout"
+];
+
+function resolvePendingRequests(token: string) {
+  pendingRequests.forEach(({ request, resolve, reject }) => {
+    try {
+      request.headers = request.headers ?? ({} as AxiosRequestHeaders);
+      request.headers.Authorization = `Bearer ${token}`;
+      resolve(http(request));
+    } catch (error) {
+      reject(error);
+    }
+  });
+  pendingRequests = [];
+}
+
+function rejectPendingRequests(error: unknown) {
+  pendingRequests.forEach(({ reject }) => reject(error));
+  pendingRequests = [];
+}
+
+function shouldSkipRefresh(url?: string) {
+  return REFRESH_EXCLUDED_PATHS.some((path) => url?.includes(path));
+}
+
+function handleAuthFailure() {
+  clearTokens();
+  authFailureHandler?.();
 }
 
 async function refreshTokens() {
@@ -29,12 +71,16 @@ async function refreshTokens() {
   }
 
   const response = await axios.post<ApiResponse<AuthTokens>>(
-    `${API_BASE_URL}/api/auth/refresh`,
+    buildApiUrl("/api/auth/refresh"),
     { refreshToken }
   );
 
   storeTokens(response.data.data.accessToken, response.data.data.refreshToken);
   return response.data.data.accessToken;
+}
+
+export function setAuthFailureHandler(handler: AuthFailureHandler | null) {
+  authFailureHandler = handler;
 }
 
 export const http = axios.create({
@@ -57,47 +103,60 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 http.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & {
+          _retry?: boolean;
+        })
+      | undefined;
+
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const requestWithRetry = originalRequest as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
     if (
       error.response?.status !== 401 ||
-      originalRequest._retry ||
-      originalRequest.url?.includes("/api/auth/login") ||
-      originalRequest.url?.includes("/api/auth/refresh")
+      requestWithRetry._retry ||
+      shouldSkipRefresh(requestWithRetry.url)
     ) {
+      return Promise.reject(error);
+    }
+
+    if (!getStoredRefreshToken()) {
+      handleAuthFailure();
       return Promise.reject(error);
     }
 
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
-        subscribers.push((token) => {
-          if (!token) {
-            reject(error);
-            return;
-          }
-
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          resolve(http(originalRequest));
-        });
+        pendingRequests.push({ resolve, reject, request: requestWithRetry });
       });
     }
 
-    originalRequest._retry = true;
+    requestWithRetry._retry = true;
     isRefreshing = true;
 
     try {
       const nextToken = await refreshTokens();
-      notifySubscribers(nextToken);
-      originalRequest.headers.Authorization = `Bearer ${nextToken}`;
-      return http(originalRequest);
+      resolvePendingRequests(nextToken);
+      requestWithRetry.headers = requestWithRetry.headers ?? ({} as AxiosRequestHeaders);
+      requestWithRetry.headers.Authorization = `Bearer ${nextToken}`;
+      return http(requestWithRetry);
     } catch (refreshError) {
-      clearTokens();
-      notifySubscribers(null);
+      handleAuthFailure();
+      rejectPendingRequests(refreshError);
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
     }
   }
 );
+
+export function __resetHttpStateForTests() {
+  isRefreshing = false;
+  pendingRequests = [];
+  authFailureHandler = null;
+}

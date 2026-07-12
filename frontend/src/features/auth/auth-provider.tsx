@@ -3,10 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser, login, logout, register } from "../../api/endpoints";
 import {
   clearTokens,
-  getStoredAccessToken,
+  hasStoredSession,
   getStoredRefreshToken,
-  storeTokens
+  storeTokens,
+  subscribeToAuthStorage
 } from "../../api/auth-storage";
+import { setAuthFailureHandler } from "../../api/http";
 import { AuthContext } from "./auth-context";
 import type { CurrentUser } from "../../types/auth";
 
@@ -16,7 +18,7 @@ type Props = {
 
 export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [isHydrating, setIsHydrating] = useState(true);
+  const [isHydrating, setIsHydrating] = useState(() => hasStoredSession());
   const queryClient = useQueryClient();
 
   async function refreshCurrentUser() {
@@ -49,9 +51,14 @@ export function AuthProvider({ children }: Props) {
   }
 
   useEffect(() => {
+    setAuthFailureHandler(() => {
+      queryClient.clear();
+      setUser(null);
+    });
+
     async function hydrate() {
       try {
-        if (getStoredAccessToken()) {
+        if (hasStoredSession()) {
           await refreshCurrentUser();
         }
       } catch {
@@ -63,7 +70,19 @@ export function AuthProvider({ children }: Props) {
     }
 
     void hydrate();
-  }, []);
+
+    const unsubscribe = subscribeToAuthStorage(() => {
+      if (!hasStoredSession()) {
+        queryClient.clear();
+        setUser(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setAuthFailureHandler(null);
+    };
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider

@@ -13,6 +13,7 @@ import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -61,6 +62,15 @@ public class GlobalExceptionHandler {
     return response(HttpStatus.CONFLICT, "Database constraint violated", r, List.of());
   }
 
+  @ExceptionHandler(MailException.class)
+  ResponseEntity<ApiErrorResponse> handleMail(MailException e, HttpServletRequest r) {
+    return response(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "Email delivery is temporarily unavailable",
+        r,
+        List.of());
+  }
+
   @ExceptionHandler({ExpiredCodeException.class})
   ResponseEntity<ApiErrorResponse> handleExpiredCode(ExpiredCodeException e, HttpServletRequest r) {
     return response(HttpStatus.BAD_REQUEST, e.getMessage(), r, List.of());
@@ -73,6 +83,15 @@ public class GlobalExceptionHandler {
   })
   ResponseEntity<ApiErrorResponse> handleUnauthorized(BusinessException e, HttpServletRequest r) {
     return response(HttpStatus.UNAUTHORIZED, e.getMessage(), r, List.of());
+  }
+
+  @ExceptionHandler(Exception.class)
+  ResponseEntity<ApiErrorResponse> handleUnexpected(Exception e, HttpServletRequest r) {
+    return response(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        "Unexpected server error",
+        r,
+        List.of());
   }
 
   private ResponseEntity<ApiErrorResponse> response(

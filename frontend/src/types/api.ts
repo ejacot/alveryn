@@ -10,6 +10,10 @@ export type ApiErrorResponse = {
   errors: string[];
 };
 
+export type ApiMessage = {
+  message: string;
+};
+
 export type PageResponse<T> = {
   content: T[];
   page: number;

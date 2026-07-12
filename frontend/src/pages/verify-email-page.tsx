@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getApiError } from "../api/api-errors";
 import { resendVerification, verifyEmail } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
@@ -13,7 +14,10 @@ import {
 
 export function VerifyEmailPage() {
   const location = useLocation();
-  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const [message, setMessage] = useState(
+    ((location.state as { message?: string } | null)?.message ?? "")
+  );
   const defaultEmail = useMemo(
     () => ((location.state as { email?: string } | null)?.email ?? ""),
     [location.state]
@@ -28,8 +32,23 @@ export function VerifyEmailPage() {
   });
 
   async function onSubmit(values: VerifyEmailValues) {
-    const result = await verifyEmail(values);
-    setMessage(result.message);
+    try {
+      const result = await verifyEmail(values);
+      setMessage(result.message);
+      navigate("/login", {
+        replace: true,
+        state: { message: "Email verified successfully. Sign in to continue." }
+      });
+    } catch (error) {
+      const apiError = getApiError(error);
+      if (apiError.fieldErrors.email) {
+        form.setError("email", { message: apiError.fieldErrors.email });
+      }
+      if (apiError.fieldErrors.code) {
+        form.setError("code", { message: apiError.fieldErrors.code });
+      }
+      setMessage(apiError.message);
+    }
   }
 
   async function handleResend() {
@@ -38,14 +57,19 @@ export function VerifyEmailPage() {
       setMessage("Enter your email before requesting a new verification code.");
       return;
     }
-    const result = await resendVerification(email);
-    setMessage(result.message);
+    try {
+      const result = await resendVerification(email);
+      setMessage(result.message);
+    } catch (error) {
+      setMessage(getApiError(error).message);
+    }
   }
 
   return (
     <AuthCard
       title="Verify your email"
       subtitle="A clean verification step that respects the existing hardened backend flow."
+      backLink={{ to: "/login", label: "Back to login" }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

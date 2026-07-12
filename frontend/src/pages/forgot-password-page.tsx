@@ -2,6 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import { getApiError } from "../api/api-errors";
 import { forgotPassword } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
@@ -19,8 +20,16 @@ export function ForgotPasswordPage() {
   });
 
   async function onSubmit(values: ForgotPasswordValues) {
-    const result = await forgotPassword(values.email);
-    setMessage(result.message);
+    try {
+      const result = await forgotPassword(values.email);
+      setMessage(result.message);
+    } catch (error) {
+      const apiError = getApiError(error);
+      setMessage(apiError.message);
+      if (apiError.fieldErrors.email) {
+        form.setError("email", { message: apiError.fieldErrors.email });
+      }
+    }
   }
 
   return (
@@ -35,6 +44,7 @@ export function ForgotPasswordPage() {
           </Link>
         </span>
       }
+      backLink={{ to: "/login", label: "Back to login" }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

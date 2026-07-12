@@ -1,7 +1,7 @@
 import { createContext } from "react";
 import type { CurrentUser } from "../../types/auth";
 
-type AuthContextValue = {
+export type AuthContextValue = {
   user: CurrentUser | null;
   isAuthenticated: boolean;
   isHydrating: boolean;

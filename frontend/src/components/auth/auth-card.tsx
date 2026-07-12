@@ -6,9 +6,19 @@ type Props = {
   subtitle: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  backLink?: {
+    to: string;
+    label: string;
+  };
 };
 
-export function AuthCard({ title, subtitle, children, footer }: Props) {
+export function AuthCard({
+  title,
+  subtitle,
+  children,
+  footer,
+  backLink
+}: Props) {
   return (
     <div className="screen-shell flex min-h-screen items-center justify-center pb-10">
       <div className="glass-panel w-full rounded-[36px] p-6">
@@ -28,11 +38,16 @@ export function AuthCard({ title, subtitle, children, footer }: Props) {
         <div className="mt-6 text-center text-xs text-white/40">
           By continuing you agree to the Roomly product flow.
         </div>
-        <div className="mt-3 text-center text-xs">
-          <Link to="/login" className="text-white/46 transition hover:text-white/70">
-            Back to login
-          </Link>
-        </div>
+        {backLink ? (
+          <div className="mt-3 text-center text-xs">
+            <Link
+              to={backLink.to}
+              className="text-white/46 transition hover:text-white/70"
+            >
+              {backLink.label}
+            </Link>
+          </div>
+        ) : null}
       </div>
     </div>
   );
