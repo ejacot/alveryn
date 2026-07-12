@@ -1,5 +1,9 @@
 package com.roomly.api.common.exception;
 
+import com.roomly.api.auth.exception.AuthenticationFailureException;
+import com.roomly.api.auth.exception.EmailNotVerifiedException;
+import com.roomly.api.auth.exception.ExpiredCodeException;
+import com.roomly.api.auth.exception.UnauthorizedException;
 import com.roomly.api.common.response.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -31,6 +35,20 @@ public class GlobalExceptionHandler {
                 .toList()
             : List.of(e.getMessage());
     return response(HttpStatus.BAD_REQUEST, "Validation failed", r, errors);
+  }
+
+  @ExceptionHandler({ExpiredCodeException.class})
+  ResponseEntity<ApiErrorResponse> handleExpiredCode(ExpiredCodeException e, HttpServletRequest r) {
+    return response(HttpStatus.BAD_REQUEST, e.getMessage(), r, List.of());
+  }
+
+  @ExceptionHandler({
+    AuthenticationFailureException.class,
+    UnauthorizedException.class,
+    EmailNotVerifiedException.class
+  })
+  ResponseEntity<ApiErrorResponse> handleUnauthorized(BusinessException e, HttpServletRequest r) {
+    return response(HttpStatus.UNAUTHORIZED, e.getMessage(), r, List.of());
   }
 
   private ResponseEntity<ApiErrorResponse> response(

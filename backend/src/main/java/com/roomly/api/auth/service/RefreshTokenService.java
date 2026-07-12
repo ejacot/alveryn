@@ -1,0 +1,62 @@
+package com.roomly.api.auth.service;
+
+import com.roomly.api.auth.config.AuthProperties;
+import com.roomly.api.auth.entity.RefreshToken;
+import com.roomly.api.auth.repository.RefreshTokenRepository;
+import com.roomly.api.auth.util.AuthTokenGenerator;
+import com.roomly.api.auth.util.TokenHashingService;
+import com.roomly.api.user.entity.UserAccount;
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class RefreshTokenService {
+  private final RefreshTokenRepository repository;
+  private final AuthTokenGenerator tokenGenerator;
+  private final TokenHashingService hashingService;
+  private final AuthProperties properties;
+  private final Clock clock;
+
+  @Transactional
+  public IssuedRefreshToken issue(UserAccount user) {
+    String token = tokenGenerator.generateRefreshToken();
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    OffsetDateTime expiresAt = now.plus(properties.refreshTokenLifetime());
+    RefreshToken refreshToken =
+        repository.save(new RefreshToken(user, hashingService.sha256Hex(token), expiresAt));
+    return new IssuedRefreshToken(token, refreshToken);
+  }
+
+  @Transactional(readOnly = true)
+  public RefreshToken findByPlainToken(String token) {
+    return repository.findByTokenHash(hashingService.sha256Hex(token)).orElse(null);
+  }
+
+  @Transactional
+  public IssuedRefreshToken rotate(RefreshToken current) {
+    IssuedRefreshToken replacement = issue(current.getUser());
+    current.revoke(OffsetDateTime.now(clock), replacement.persistedToken().getId());
+    repository.save(current);
+    return replacement;
+  }
+
+  @Transactional
+  public void revokeByPlainToken(String token) {
+    RefreshToken refreshToken = findByPlainToken(token);
+    if (refreshToken != null && refreshToken.getRevokedAt() == null) {
+      refreshToken.revoke(OffsetDateTime.now(clock), refreshToken.getReplacedByTokenId());
+      repository.save(refreshToken);
+    }
+  }
+
+  @Transactional
+  public void revokeAllActiveForUser(UserAccount user) {
+    repository.revokeAllActiveByUserId(user.getId(), OffsetDateTime.now(clock));
+  }
+
+  public record IssuedRefreshToken(String plainToken, RefreshToken persistedToken) {}
+}

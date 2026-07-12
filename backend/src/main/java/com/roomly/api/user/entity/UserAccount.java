@@ -95,6 +95,14 @@ public class UserAccount extends BaseEntity {
     clearSecurityCode();
   }
 
+  public boolean isLockedAt(OffsetDateTime now) {
+    return status == UserStatus.LOCKED && lockedUntil != null && now != null && lockedUntil.isAfter(now);
+  }
+
+  public boolean isDeleted() {
+    return status == UserStatus.DELETED;
+  }
+
   public void registerFailedLogin() {
     failedLoginAttempts++;
   }
