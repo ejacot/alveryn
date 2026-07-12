@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { PREVIEW_ROUTES_ENABLED } from "../api/config";
 import { AppLogo } from "../components/branding/app-logo";
 import { BottomNav } from "../components/navigation/bottom-nav";
 import { WeekSelector } from "../components/navigation/week-selector";
@@ -13,7 +14,7 @@ export function AppLayout() {
     () =>
       location.pathname === "/" ||
       location.pathname === "/calendar" ||
-      location.pathname.startsWith("/preview"),
+      (PREVIEW_ROUTES_ENABLED && location.pathname.startsWith("/preview")),
     [location.pathname]
   );
 

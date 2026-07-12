@@ -5,6 +5,13 @@ export function useScrollDirection(threshold = 8) {
   const lastValue = useRef(0);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("compactNav") === "true") {
+      setDirection("down");
+    }
+
+    lastValue.current = window.scrollY;
+
     function handleScroll() {
       const current = window.scrollY;
       const delta = current - lastValue.current;

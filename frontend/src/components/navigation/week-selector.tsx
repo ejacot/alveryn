@@ -48,11 +48,13 @@ export function WeekSelector({ value, onChange }: Props) {
             <motion.button
               key={day.key}
               type="button"
+              aria-pressed={selected}
+              aria-label={`${day.weekday} ${day.dayNumber}`}
               initial={{ opacity: 0.94, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: index * 0.03 }}
               onClick={() => onChange(day.date)}
-              className="flex flex-col items-center gap-2"
+              className="flex min-h-[60px] flex-col items-center gap-2 rounded-[20px] px-1 focus:outline-none focus:ring-2 focus:ring-white/36 focus:ring-offset-2 focus:ring-offset-[#050505]"
             >
               <span className="text-[11px] font-semibold tracking-[0.18em] text-white/34">
                 {day.weekday}

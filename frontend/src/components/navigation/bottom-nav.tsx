@@ -31,6 +31,7 @@ export function BottomNav() {
 
   return (
     <motion.nav
+      aria-label="Primary navigation"
       animate={{
         scale: compact ? 0.96 : 1,
         y: compact ? 8 : 0,
@@ -38,10 +39,15 @@ export function BottomNav() {
         paddingBottom: compact ? 10 : 12
       }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="glass-panel fixed inset-x-0 bottom-4 z-50 mx-auto flex w-[calc(100%-1.5rem)] max-w-[430px] items-center justify-between rounded-[32px] px-4"
+      className="floating-nav glass-panel fixed inset-x-0 z-50 mx-auto flex w-[calc(100%-1.5rem)] max-w-[430px] items-center justify-between rounded-[32px] px-4"
     >
       {items.map(({ to, icon: Icon, label, prominent }) => (
-        <NavLink key={to} to={to} className="relative flex min-w-0 flex-1 justify-center">
+        <NavLink
+          key={to}
+          to={to}
+          aria-label={label}
+          className="relative flex min-w-0 flex-1 justify-center"
+        >
           {({ isActive }) => (
             <div
               className={cn(
@@ -52,10 +58,9 @@ export function BottomNav() {
                     ? "bg-white/10 text-white"
                     : "text-white/58"
               )}
-              aria-label={label}
               title={label}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" aria-hidden="true" />
             </div>
           )}
         </NavLink>

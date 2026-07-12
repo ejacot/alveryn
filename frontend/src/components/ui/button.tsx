@@ -18,7 +18,7 @@ export function Button({
       whileHover={{ y: -1 }}
       type={type}
       className={cn(
-        "inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-50",
+        "inline-flex min-h-12 items-center justify-center rounded-full px-5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:opacity-50",
         variant === "primary" &&
           "bg-white text-black shadow-soft hover:bg-white/90",
         variant === "secondary" &&
