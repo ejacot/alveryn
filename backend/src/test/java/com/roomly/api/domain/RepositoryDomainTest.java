@@ -17,6 +17,7 @@ import com.roomly.api.worktype.repository.UnitTypeRepository;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,8 +35,8 @@ class RepositoryDomainTest {
 
   @Test
   void workTypeNameIsUniquePerUserButReusableByAnotherUser() {
-    var first = users.save(new UserAccount("first@example.com", "hash"));
-    var second = users.save(new UserAccount("second@example.com", "hash"));
+    var first = users.save(new UserAccount("first-" + UUID.randomUUID() + "@example.com", "hash"));
+    var second = users.save(new UserAccount("second-" + UUID.randomUUID() + "@example.com", "hash"));
     workTypes.saveAndFlush(new WorkType(first, "Checker", CalculationMethod.TIME_BASED));
     workTypes.saveAndFlush(new WorkType(second, "checker", CalculationMethod.TIME_BASED));
     assertThatThrownBy(
@@ -47,7 +48,7 @@ class RepositoryDomainTest {
 
   @Test
   void unitTypeNameIsUniqueWithinWorkType() {
-    var user = users.save(new UserAccount("units@example.com", "hash"));
+    var user = users.save(new UserAccount("units-" + UUID.randomUUID() + "@example.com", "hash"));
     var type = workTypes.save(new WorkType(user, "Rooms", CalculationMethod.UNIT_BASED));
     unitTypes.saveAndFlush(new UnitType(type, "Normal", new BigDecimal("2.4")));
     assertThatThrownBy(() -> unitTypes.saveAndFlush(new UnitType(type, "NORMAL", BigDecimal.ONE)))
@@ -56,7 +57,7 @@ class RepositoryDomainTest {
 
   @Test
   void findsValidRateAndDetectsClosedIntervalOverlap() {
-    var user = users.save(new UserAccount("rate@example.com", "hash"));
+    var user = users.save(new UserAccount("rate-" + UUID.randomUUID() + "@example.com", "hash"));
     rates.saveAndFlush(
         new HourlyRatePeriod(
             user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
@@ -73,7 +74,7 @@ class RepositoryDomainTest {
 
   @Test
   void detectsOverlapWithOpenEndedPeriodsInBothDirections() {
-    var user = users.save(new UserAccount("open-rate@example.com", "hash"));
+    var user = users.save(new UserAccount("open-rate-" + UUID.randomUUID() + "@example.com", "hash"));
     rates.saveAndFlush(
         new HourlyRatePeriod(user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 5, 1), null));
     assertThat(rates.existsOverlappingOpenEnded(user.getId(), LocalDate.of(2025, 6, 1))).isTrue();
@@ -86,7 +87,7 @@ class RepositoryDomainTest {
 
   @Test
   void absenceQueryReturnsRowsWhoseInclusiveRangesOverlap() {
-    var user = users.save(new UserAccount("absence@example.com", "hash"));
+    var user = users.save(new UserAccount("absence-" + UUID.randomUUID() + "@example.com", "hash"));
     absences.saveAndFlush(
         new Absence(
             user, AbsenceType.VACATION, LocalDate.of(2025, 7, 10), LocalDate.of(2025, 7, 15)));

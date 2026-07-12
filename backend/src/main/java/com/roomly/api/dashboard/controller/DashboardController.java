@@ -30,7 +30,7 @@ public class DashboardController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "200",
         description = "Current month dashboard returned successfully",
-        content = @Content(schema = @Schema(implementation = DashboardResponse.class))),
+        content = @Content(schema = @Schema(implementation = DashboardApiResponse.class))),
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "401",
         description = "Authentication required",
@@ -39,4 +39,7 @@ public class DashboardController {
   public ApiResponse<DashboardResponse> dashboard() {
     return ApiResponse.of(dashboardService.getCurrentMonthDashboard());
   }
+
+  @Schema(name = "DashboardApiResponse", description = "Wrapped dashboard response")
+  public record DashboardApiResponse(DashboardResponse data) {}
 }

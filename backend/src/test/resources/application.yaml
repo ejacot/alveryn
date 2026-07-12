@@ -7,6 +7,12 @@ spring:
 server:
   port: 0
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 roomly:
   auth:
     jwt-secret: test-jwt-secret-012345678901234567890123

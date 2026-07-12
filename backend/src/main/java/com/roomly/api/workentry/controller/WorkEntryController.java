@@ -46,7 +46,7 @@ public class WorkEntryController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "201",
         description = "Work entry created",
-        content = @Content(schema = @Schema(implementation = WorkEntryResponse.class))),
+        content = @Content(schema = @Schema(implementation = WorkEntryApiResponse.class))),
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "400",
         description = "Validation failed",
@@ -66,6 +66,10 @@ public class WorkEntryController {
       description =
           "Returns a stable paginated response for the authenticated user. Supports filtering by year, month and work type. Page size must be between 1 and 100.",
       security = @SecurityRequirement(name = "bearerAuth"))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Work entries returned successfully",
+      content = @Content(schema = @Schema(implementation = WorkEntryPageApiResponse.class)))
   public ApiResponse<PageResponse<WorkEntryResponse>> list(
       @Parameter(description = "Filter by year. Required when month is provided.", example = "2026")
           @RequestParam(required = false)
@@ -103,6 +107,10 @@ public class WorkEntryController {
       summary = "Get a work entry",
       description = "Returns one work entry owned by the authenticated user.",
       security = @SecurityRequirement(name = "bearerAuth"))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Work entry returned successfully",
+      content = @Content(schema = @Schema(implementation = WorkEntryApiResponse.class)))
   public ApiResponse<WorkEntryResponse> get(@PathVariable UUID id) {
     return ApiResponse.of(workEntryService.get(id));
   }
@@ -112,6 +120,10 @@ public class WorkEntryController {
       summary = "Update a work entry",
       description = "Recalculates the selected work entry using the submitted payload and the historical salary valid on the work date.",
       security = @SecurityRequirement(name = "bearerAuth"))
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Work entry updated successfully",
+      content = @Content(schema = @Schema(implementation = WorkEntryApiResponse.class)))
   public ApiResponse<WorkEntryResponse> update(
       @PathVariable UUID id, @Valid @RequestBody WorkEntryRequest request) {
     return ApiResponse.of(workEntryService.update(id, request));
@@ -126,4 +138,10 @@ public class WorkEntryController {
   public void delete(@PathVariable UUID id) {
     workEntryService.delete(id);
   }
+
+  @Schema(name = "WorkEntryApiResponse", description = "Wrapped work entry response")
+  public record WorkEntryApiResponse(WorkEntryResponse data) {}
+
+  @Schema(name = "WorkEntryPageApiResponse", description = "Wrapped paginated work entry response")
+  public record WorkEntryPageApiResponse(PageResponse<WorkEntryResponse> data) {}
 }

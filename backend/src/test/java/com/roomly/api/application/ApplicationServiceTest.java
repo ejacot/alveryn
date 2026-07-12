@@ -2,8 +2,9 @@ package com.roomly.api.application;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.roomly.api.auth.security.AuthenticatedUser;
 import com.roomly.api.common.exception.ConflictException;
-import com.roomly.api.salary.dto.HourlyRatePeriodDto;
+import com.roomly.api.salary.dto.HourlyRatePeriodRequest;
 import com.roomly.api.salary.service.HourlyRatePeriodService;
 import com.roomly.api.user.dto.*;
 import com.roomly.api.user.entity.*;
@@ -18,6 +19,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -33,42 +36,48 @@ class ApplicationServiceTest {
 
   @BeforeEach
   void setUp() {
-    userId =
-        users
-            .save(new UserAccount("services-" + UUID.randomUUID() + "@example.com", "hash"))
-            .getId();
+    UserAccount user = users.save(new UserAccount("services-" + UUID.randomUUID() + "@example.com", "hash"));
+    userId = user.getId();
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new UsernamePasswordAuthenticationToken(
+                new AuthenticatedUser(userId, user.getEmail(), false, user.getStatus()),
+                null));
+  }
+
+  @AfterEach
+  void tearDown() {
+    SecurityContextHolder.clearContext();
   }
 
   @Test
   void managesWorkAndUnitTypesWithinOwnership() {
     var work =
         workTypes.create(
-            userId,
             new CreateWorkTypeRequest(
                 "Rooms", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
-    assertThat(workTypes.list(userId)).hasSize(1);
+    assertThat(workTypes.list()).hasSize(1);
     var unit =
         unitTypes.create(
-            userId, new UnitTypeDto(null, work.id(), "Normal", new BigDecimal("2.4"), 0, true));
-    assertThat(unitTypes.get(userId, unit.id()).name()).isEqualTo("Normal");
-    unitTypes.delete(userId, unit.id());
-    assertThat(unitTypes.list(userId, work.id())).isEmpty();
-    workTypes.delete(userId, work.id());
-    assertThat(workTypes.list(userId)).isEmpty();
+            work.id(), new UnitTypeRequest("Normal", new BigDecimal("2.4"), 0, true));
+    assertThat(unitTypes.get(work.id(), unit.id()).name()).isEqualTo("Normal");
+    unitTypes.delete(work.id(), unit.id());
+    assertThat(unitTypes.list(work.id())).allMatch(unitType -> !unitType.active());
+    workTypes.delete(work.id());
+    assertThat(workTypes.list()).allMatch(workType -> !workType.active());
   }
 
   @Test
   void workTypeUpdatePreservesCalculationMethod() {
     var created =
         workTypes.create(
-            userId,
             new CreateWorkTypeRequest(
                 "Units", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
     var updated =
         workTypes.update(
-            userId,
             created.id(),
-            new UpdateWorkTypeRequest("Renamed", "#AABBCC", "icon", 15, 3, true));
+            new UpdateWorkTypeRequest(
+                "Renamed", CalculationMethod.UNIT_BASED, "#AABBCC", "icon", 15, 3, true));
     assertThat(updated.calculationMethod()).isEqualTo(CalculationMethod.UNIT_BASED);
     assertThat(updated.name()).isEqualTo("Renamed");
     assertThat(updated.color()).isEqualTo("#AABBCC");
@@ -77,44 +86,28 @@ class ApplicationServiceTest {
   @Test
   void salaryServiceRejectsOverlappingPeriods() {
     rates.create(
-        userId,
-        new HourlyRatePeriodDto(
-            null,
-            userId,
-            new BigDecimal("15.50"),
-            "EUR",
-            LocalDate.of(2025, 1, 1),
-            LocalDate.of(2025, 1, 31)));
+        new HourlyRatePeriodRequest(
+            new BigDecimal("15.50"), "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
     assertThatThrownBy(
             () ->
                 rates.create(
-                    userId,
-                    new HourlyRatePeriodDto(
-                        null,
-                        userId,
-                        new BigDecimal("17.50"),
-                        "EUR",
-                        LocalDate.of(2025, 1, 31),
-                        null)))
+                    new HourlyRatePeriodRequest(
+                        new BigDecimal("17.50"), "EUR", LocalDate.of(2025, 1, 31), null)))
         .isInstanceOf(ConflictException.class);
-    assertThat(rates.list(userId)).hasSize(1);
+    assertThat(rates.list()).hasSize(1);
   }
 
   @Test
   void createsAndUpdatesProfileAndPreferences() {
     var profile =
-        profiles.createOrUpdate(
-            userId,
-            new UserProfileDto(
-                null, userId, "Ana", "Pop", "Ana", null, null, "RO", null, null, null, null, null,
-                null, null, null));
+        profiles.update(
+            new UserProfileRequest(
+                "Ana", "Pop", "Ana", null, null, "RO", null, null, null, null, null, null, null,
+                null));
     assertThat(profile.firstName()).isEqualTo("Ana");
     var prefs =
-        preferences.createOrUpdate(
-            userId,
-            new UserPreferencesDto(
-                null,
-                userId,
+        preferences.update(
+            new UserPreferencesRequest(
                 "ro",
                 "Europe/Berlin",
                 "EUR",
@@ -123,9 +116,9 @@ class ApplicationServiceTest {
                 TimeFormat.H24,
                 ThemePreference.SYSTEM,
                 30,
-                480,
-                true));
-    assertThat(prefs.onboardingCompleted()).isTrue();
-    assertThat(preferences.get(userId).preferredDailyMinutes()).isEqualTo(480);
+                480));
+    assertThat(prefs.onboardingCompleted()).isFalse();
+    assertThat(preferences.completeOnboarding().isOnboardingCompleted()).isTrue();
+    assertThat(preferences.get().preferredDailyMinutes()).isEqualTo(480);
   }
 }
