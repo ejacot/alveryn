@@ -59,6 +59,7 @@ describe("auth routes", () => {
           <Route path="/login" element={<div>Login</div>} />
         </Route>
         <Route path="/" element={<div>Dashboard</div>} />
+        <Route path="/onboarding" element={<div>Onboarding</div>} />
       </Routes>,
       {
         route: "/login",
@@ -75,6 +76,77 @@ describe("auth routes", () => {
             },
             profile: null,
             preferences: null
+          }
+        }
+      }
+    );
+
+    expect(await screen.findByText("Onboarding")).toBeInTheDocument();
+  });
+
+  it("redirects authenticated users with incomplete setup into onboarding", async () => {
+    renderWithAuth(
+      <Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<div>Dashboard</div>} />
+          <Route path="/onboarding" element={<div>Onboarding</div>} />
+        </Route>
+      </Routes>,
+      {
+        authValue: {
+          ...baseAuthValue,
+          isAuthenticated: true,
+          user: {
+            account: {
+              id: "1",
+              email: "roomly@example.com",
+              emailVerified: true,
+              status: "ACTIVE",
+              lastLoginAt: null
+            },
+            profile: null,
+            preferences: null
+          }
+        }
+      }
+    );
+
+    expect(await screen.findByText("Onboarding")).toBeInTheDocument();
+  });
+
+  it("allows authenticated users with completed onboarding into the app", async () => {
+    renderWithAuth(
+      <Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<div>Dashboard</div>} />
+        </Route>
+      </Routes>,
+      {
+        authValue: {
+          ...baseAuthValue,
+          isAuthenticated: true,
+          user: {
+            account: {
+              id: "1",
+              email: "roomly@example.com",
+              emailVerified: true,
+              status: "ACTIVE",
+              lastLoginAt: null
+            },
+            profile: null,
+            preferences: {
+              id: "pref-1",
+              language: "en",
+              timezone: "Europe/Berlin",
+              currency: "EUR",
+              firstDayOfWeek: "MONDAY",
+              dateFormat: "dd/MM/yyyy",
+              timeFormat: "H24",
+              theme: "DARK",
+              defaultBreakMinutes: 30,
+              preferredDailyMinutes: 480,
+              onboardingCompleted: true
+            }
           }
         }
       }
