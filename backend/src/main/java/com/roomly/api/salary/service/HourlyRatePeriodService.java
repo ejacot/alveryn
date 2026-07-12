@@ -1,13 +1,18 @@
 package com.roomly.api.salary.service;
 
-import com.roomly.api.common.exception.*;
-import com.roomly.api.salary.dto.HourlyRatePeriodDto;
+import com.roomly.api.auth.security.AuthenticatedUserAccessor;
+import com.roomly.api.common.exception.ConflictException;
+import com.roomly.api.common.exception.NotFoundException;
+import com.roomly.api.common.util.InputSanitizer;
+import com.roomly.api.salary.dto.HourlyRatePeriodRequest;
+import com.roomly.api.salary.dto.HourlyRatePeriodResponse;
 import com.roomly.api.salary.entity.HourlyRatePeriod;
 import com.roomly.api.salary.mapper.HourlyRatePeriodMapper;
 import com.roomly.api.salary.repository.HourlyRatePeriodRepository;
 import com.roomly.api.user.repository.UserAccountRepository;
 import jakarta.validation.Valid;
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,45 +22,58 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @RequiredArgsConstructor
 public class HourlyRatePeriodService {
+  private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final HourlyRatePeriodRepository repository;
   private final UserAccountRepository users;
   private final HourlyRatePeriodMapper mapper;
 
   @Transactional
-  public HourlyRatePeriodDto create(UUID userId, @Valid HourlyRatePeriodDto dto) {
-    if (overlaps(userId, dto.validFrom(), dto.validTo()))
+  public HourlyRatePeriodResponse create(@Valid HourlyRatePeriodRequest request) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
+    if (overlaps(userId, request.validFrom(), request.validTo()))
       throw new ConflictException("Hourly rate periods overlap");
     var user =
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
-    return mapper.toDto(
+    return mapper.toResponse(
         repository.save(
             new HourlyRatePeriod(
-                user, dto.hourlyRate(), dto.currency(), dto.validFrom(), dto.validTo())));
+                user,
+                request.hourlyRate(),
+                InputSanitizer.normalizeCurrency(request.currency()),
+                request.validFrom(),
+                request.validTo())));
   }
 
   @Transactional
-  public HourlyRatePeriodDto update(UUID userId, UUID id, @Valid HourlyRatePeriodDto dto) {
+  public HourlyRatePeriodResponse update(UUID id, @Valid HourlyRatePeriodRequest request) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
     var e = find(userId, id);
-    if (overlapsExcept(userId, dto.validFrom(), dto.validTo(), id))
+    if (overlapsExcept(userId, request.validFrom(), request.validTo(), id))
       throw new ConflictException("Hourly rate periods overlap");
-    e.update(dto.hourlyRate(), dto.currency(), dto.validFrom(), dto.validTo());
-    return mapper.toDto(e);
+    e.update(
+        request.hourlyRate(),
+        InputSanitizer.normalizeCurrency(request.currency()),
+        request.validFrom(),
+        request.validTo());
+    return mapper.toResponse(e);
   }
 
   @Transactional
-  public void delete(UUID userId, UUID id) {
+  public void delete(UUID id) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
     repository.delete(find(userId, id));
   }
 
   @Transactional(readOnly = true)
-  public HourlyRatePeriodDto get(UUID userId, UUID id) {
-    return mapper.toDto(find(userId, id));
+  public HourlyRatePeriodResponse get(UUID id) {
+    return mapper.toResponse(find(authenticatedUserAccessor.requireUserId(), id));
   }
 
   @Transactional(readOnly = true)
-  public List<HourlyRatePeriodDto> list(UUID userId) {
+  public List<HourlyRatePeriodResponse> list() {
+    UUID userId = authenticatedUserAccessor.requireUserId();
     return repository.findAllByUserIdOrderByValidFromDesc(userId).stream()
-        .map(mapper::toDto)
+        .map(mapper::toResponse)
         .toList();
   }
 

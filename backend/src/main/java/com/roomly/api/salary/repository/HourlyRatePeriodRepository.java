@@ -13,6 +13,8 @@ public interface HourlyRatePeriodRepository extends JpaRepository<HourlyRatePeri
 
   Optional<HourlyRatePeriod> findByIdAndUserId(UUID id, UUID userId);
 
+  boolean existsByUserId(UUID userId);
+
   @Query(
       """
       select h from HourlyRatePeriod h
