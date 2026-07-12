@@ -17,18 +17,21 @@ const previewEntries: RecentEntry[] = [
     id: "1",
     title: "Morning rooms",
     subtitle: "Housekeeping • 08:00 - 14:30",
+    duration: "6h 30m",
     amount: "6.5h"
   },
   {
     id: "2",
     title: "Late shift",
     subtitle: "Lobby reset • Yesterday",
+    duration: "4h 00m",
     amount: "4.0h"
   },
   {
     id: "3",
     title: "Weekend prep",
     subtitle: "Suite touch-up • Fri",
+    duration: "3h 30m",
     amount: "3.5h"
   }
 ];
@@ -61,6 +64,8 @@ export function PreviewDashboardPage() {
       summary={previewSummary}
       recentEntries={previewEntries}
       weeklyBars={previewWeeklyBarsState}
+      weeklyDescription="Preview-only rhythm bars for local design validation."
+      onQuickAdd={() => undefined}
       preview
     />
   );

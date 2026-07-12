@@ -20,7 +20,7 @@ export function WeeklyHoursCard({ bars, description }: Props) {
             <motion.div
               key={index}
               initial={{ height: `${Math.max(bar - 10, 8)}%`, opacity: 0.72 }}
-              animate={{ height: `${bar}%`, opacity: 1 }}
+              animate={{ height: `${Math.max(bar, 6)}%`, opacity: 1 }}
               transition={{ duration: 0.35, delay: index * 0.04 }}
               className="flex-1 rounded-full bg-white/90"
             />

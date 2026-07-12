@@ -17,6 +17,7 @@ export type RecentEntry = {
   id: string;
   title: string;
   subtitle: string;
+  duration: string;
   amount: string;
 };
 

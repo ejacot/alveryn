@@ -4,8 +4,6 @@ export type TimeFormat = "H12" | "H24";
 
 export type ThemePreference = "LIGHT" | "DARK" | "SYSTEM";
 
-export type CalculationMethod = "TIME_BASED" | "UNIT_BASED";
-
 export type UserProfile = {
   id: string;
   firstName: string | null;
@@ -49,7 +47,7 @@ export type HourlyRatePeriod = {
 export type WorkType = {
   id: string;
   name: string;
-  calculationMethod: CalculationMethod;
+  calculationMethod: import("./work-entry").CalculationMethod;
   color: string;
   icon: string | null;
   defaultBreakMinutes: number | null;

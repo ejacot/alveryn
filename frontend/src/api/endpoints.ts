@@ -7,7 +7,8 @@ import type {
   UserProfile,
   WorkType
 } from "../types/configuration";
-import type { DashboardResponse, WorkEntrySummary } from "../types/dashboard";
+import type { DashboardResponse } from "../types/dashboard";
+import type { WorkEntry, WorkEntryRequest } from "../types/work-entry";
 import type { OnboardingStatus } from "../types/onboarding";
 import { http } from "./http";
 
@@ -223,10 +224,40 @@ export async function getDashboard() {
   return response.data.data;
 }
 
-export async function getWorkEntries(params?: { page?: number; size?: number }) {
+export async function getWorkEntries(
+  params?: {
+    year?: number;
+    month?: number;
+    workTypeId?: string;
+    page?: number;
+    size?: number;
+  }
+) {
   const response =
-    await http.get<ApiResponse<PageResponse<WorkEntrySummary>>>("/api/work-entries", {
+    await http.get<ApiResponse<PageResponse<WorkEntry>>>("/api/work-entries", {
       params
     });
   return response.data.data;
+}
+
+export async function getWorkEntry(id: string) {
+  const response = await http.get<ApiResponse<WorkEntry>>(`/api/work-entries/${id}`);
+  return response.data.data;
+}
+
+export async function createWorkEntry(payload: WorkEntryRequest) {
+  const response = await http.post<ApiResponse<WorkEntry>>("/api/work-entries", payload);
+  return response.data.data;
+}
+
+export async function updateWorkEntry(id: string, payload: WorkEntryRequest) {
+  const response = await http.put<ApiResponse<WorkEntry>>(
+    `/api/work-entries/${id}`,
+    payload
+  );
+  return response.data.data;
+}
+
+export async function deleteWorkEntry(id: string) {
+  await http.delete(`/api/work-entries/${id}`);
 }

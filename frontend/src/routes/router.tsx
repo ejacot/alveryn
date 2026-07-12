@@ -18,9 +18,9 @@ const CalendarPage = lazy(() =>
     default: module.CalendarPage
   }))
 );
-const AddEntryPage = lazy(() =>
-  import("../pages/add-entry-page").then((module) => ({
-    default: module.AddEntryPage
+const WorkEntryEditorPage = lazy(() =>
+  import("../pages/work-entry-editor-page").then((module) => ({
+    default: module.WorkEntryEditorPage
   }))
 );
 const StatisticsPage = lazy(() =>
@@ -101,7 +101,8 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
           children: [
             { path: "/", element: withSuspense(<DashboardPage />) },
             { path: "/calendar", element: withSuspense(<CalendarPage />) },
-            { path: "/entries/new", element: withSuspense(<AddEntryPage />) },
+            { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
+            { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) }
           ]
