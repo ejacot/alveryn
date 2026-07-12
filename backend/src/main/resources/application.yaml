@@ -39,4 +39,3 @@ roomly:
     login-max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
     login-lock-duration: ${LOGIN_LOCK_DURATION:15m}
     frontend-verification-url: ${FRONTEND_VERIFICATION_URL:}
-    dev-expose-codes: ${AUTH_DEV_EXPOSE_CODES:false}

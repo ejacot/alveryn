@@ -1,12 +1,12 @@
 package com.roomly.api.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.roomly.api.auth.config.AuthConfiguration;
 import com.roomly.api.auth.config.AuthProperties;
 import com.roomly.api.auth.email.AuthenticationEmailService;
 import com.roomly.api.auth.email.DefaultAuthenticationEmailService;
-import com.roomly.api.auth.email.LocalDevelopmentAuthenticationEmailService;
 import com.roomly.api.user.entity.UserAccount;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,8 +14,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 @ExtendWith(OutputCaptureExtension.class)
 class AuthHardeningConfigurationTest {
@@ -32,42 +35,42 @@ class AuthHardeningConfigurationTest {
           .withUserConfiguration(TestAuthConfig.class);
 
   @Test
-  void authDevExposeCodesDefaultsToFalse() {
+  void authPropertiesBindWithoutFrontendVerificationUrlByDefault() {
     contextRunner
         .withPropertyValues("roomly.auth.jwt-secret=01234567890123456789012345678901")
-        .run(context -> assertThat(context.getBean(AuthProperties.class).devExposeCodes()).isFalse());
+        .run(context -> assertThat(context.getBean(AuthProperties.class).frontendVerificationUrl()).isNull());
   }
 
   @Test
   void defaultProfileNeverLogsAuthCodesEvenWhenExplicitlyEnabled(CapturedOutput output) {
     contextRunner
-        .withPropertyValues(
-            "roomly.auth.jwt-secret=01234567890123456789012345678901",
-            "roomly.auth.dev-expose-codes=true")
+        .withPropertyValues("roomly.auth.jwt-secret=01234567890123456789012345678901")
         .run(
             context -> {
               AuthenticationEmailService service = context.getBean(AuthenticationEmailService.class);
-              service.sendVerificationCode(new UserAccount("safe@example.com", "hash"), "654321");
+              assertThatThrownBy(
+                      () -> service.sendVerificationCode(new UserAccount("safe@example.com", "hash"), "654321"))
+                  .isInstanceOf(RuntimeException.class);
               assertThat(context.getBean(AuthenticationEmailService.class))
                   .isInstanceOf(DefaultAuthenticationEmailService.class);
               assertThat(output.getOut()).doesNotContain("654321");
-              assertThat(output.getOut()).doesNotContain("Development verification code");
             });
   }
 
   @Test
-  void localProfileCanExposeCodesOnlyWhenExplicitlyEnabled(CapturedOutput output) {
+  void localProfileStillNeverLogsAuthCodes(CapturedOutput output) {
     contextRunner
         .withPropertyValues(
             "spring.profiles.active=local",
-            "roomly.auth.jwt-secret=local-development-jwt-secret-32-bytes-minimum",
-            "roomly.auth.dev-expose-codes=true")
+            "roomly.auth.jwt-secret=local-development-jwt-secret-32-bytes-minimum")
         .run(
             context -> {
               AuthenticationEmailService service = context.getBean(AuthenticationEmailService.class);
-              service.sendVerificationCode(new UserAccount("local@example.com", "hash"), "123456");
-              assertThat(service).isInstanceOf(LocalDevelopmentAuthenticationEmailService.class);
-              assertThat(output.getOut()).contains("123456");
+              assertThatThrownBy(
+                      () -> service.sendVerificationCode(new UserAccount("local@example.com", "hash"), "123456"))
+                  .isInstanceOf(RuntimeException.class);
+              assertThat(service).isInstanceOf(DefaultAuthenticationEmailService.class);
+              assertThat(output.getOut()).doesNotContain("123456");
             });
   }
 
@@ -108,6 +111,11 @@ class AuthHardeningConfigurationTest {
 
   @Configuration
   @EnableConfigurationProperties(AuthProperties.class)
-  @Import({DefaultAuthenticationEmailService.class, LocalDevelopmentAuthenticationEmailService.class})
-  static class TestAuthConfig extends AuthConfiguration {}
+  @Import(DefaultAuthenticationEmailService.class)
+  static class TestAuthConfig extends AuthConfiguration {
+    @Bean
+    JavaMailSender javaMailSender() {
+      return new JavaMailSenderImpl();
+    }
+  }
 }

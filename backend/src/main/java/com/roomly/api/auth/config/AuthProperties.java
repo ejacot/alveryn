@@ -17,8 +17,7 @@ public record AuthProperties(
     Duration verificationResendCooldown,
     @Min(1) int loginMaxFailedAttempts,
     Duration loginLockDuration,
-    String frontendVerificationUrl,
-    boolean devExposeCodes) {
+    String frontendVerificationUrl) {
   public AuthProperties {
     requirePositive(accessTokenLifetime, "accessTokenLifetime");
     requirePositive(refreshTokenLifetime, "refreshTokenLifetime");

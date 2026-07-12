@@ -17,4 +17,3 @@ roomly:
     verification-resend-cooldown: 1m
     login-max-failed-attempts: 5
     login-lock-duration: 15m
-    dev-expose-codes: false

@@ -27,8 +27,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 
 @SpringBootTest(
     properties = {
-      "roomly.auth.jwt-secret=test-jwt-secret-012345678901234567890123",
-      "roomly.auth.dev-expose-codes=false"
+      "roomly.auth.jwt-secret=test-jwt-secret-012345678901234567890123"
     })
 class RefreshTokenConcurrencyTest {
   private MockMvc mockMvc;
