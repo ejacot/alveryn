@@ -3,9 +3,9 @@ spring:
     name: roomly-api
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/roomly}
+    username: ${DB_USERNAME:roomly}
+    password: ${DB_PASSWORD:change-me}
 
   jpa:
     hibernate:
