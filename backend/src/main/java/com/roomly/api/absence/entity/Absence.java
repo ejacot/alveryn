@@ -48,6 +48,16 @@ public class Absence extends BaseEntity {
     this.endDate = endDate;
   }
 
+  public void update(AbsenceType absenceType, LocalDate startDate, LocalDate endDate, String notes) {
+    this.absenceType = Objects.requireNonNull(absenceType, "absenceType is required");
+    if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+      throw new IllegalArgumentException("invalid absence range");
+    }
+    this.startDate = startDate;
+    this.endDate = endDate;
+    updateNotes(notes);
+  }
+
   public void updateNotes(String value) {
     if (value != null && value.length() > 500)
       throw new IllegalArgumentException("notes exceeds 500 characters");
