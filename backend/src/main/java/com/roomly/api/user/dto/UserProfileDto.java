@@ -1,9 +1,11 @@
 package com.roomly.api.user.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Schema(description = "User profile details")
 public record UserProfileDto(
     UUID id,
     UUID userId,

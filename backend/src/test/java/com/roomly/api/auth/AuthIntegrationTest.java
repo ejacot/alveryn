@@ -70,8 +70,8 @@ class AuthIntegrationTest {
                     {"email":"  NewUser@Example.com ","password":"super-secret"}
                     """))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.email").value("newuser@example.com"))
-        .andExpect(jsonPath("$.emailVerified").value(false));
+        .andExpect(jsonPath("$.data.email").value("newuser@example.com"))
+        .andExpect(jsonPath("$.data.emailVerified").value(false));
 
     var user = users.findByEmailIgnoreCase("newuser@example.com").orElseThrow();
     assertThat(user.getPasswordHash()).isNotEqualTo("super-secret");
@@ -228,7 +228,7 @@ class AuthIntegrationTest {
     mockMvc
         .perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.account.email").value("jwt@example.com"));
+        .andExpect(jsonPath("$.data.account.email").value("jwt@example.com"));
 
     mockMvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
 

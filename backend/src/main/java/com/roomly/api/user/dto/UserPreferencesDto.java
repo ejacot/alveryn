@@ -1,9 +1,11 @@
 package com.roomly.api.user.dto;
 
 import com.roomly.api.user.entity.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 
+@Schema(description = "User preference settings")
 public record UserPreferencesDto(
     UUID id,
     UUID userId,

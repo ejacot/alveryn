@@ -1,6 +1,8 @@
 package com.roomly.api.workentry;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,9 +31,14 @@ import com.roomly.api.worktype.entity.WorkType;
 import com.roomly.api.worktype.repository.UnitTypeRepository;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
@@ -42,7 +49,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class WorkEntryIntegrationTest {
   @Autowired WebApplicationContext context;
   @Autowired JwtService jwtService;
@@ -55,6 +62,8 @@ class WorkEntryIntegrationTest {
   @Autowired TimeEntryDetailsRepository timeEntryDetails;
   @Autowired UnitEntryItemRepository unitEntryItems;
   @Autowired SalaryCalculationService salaryCalculationService;
+  @Autowired EntityManagerFactory entityManagerFactory;
+  @Autowired Clock clock;
 
   private MockMvc mockMvc;
 
@@ -96,8 +105,8 @@ class WorkEntryIntegrationTest {
                     """
                         .formatted(workType.getId())))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.calculationMethod").value("TIME_BASED"))
-        .andExpect(jsonPath("$.timeEntry.workedMinutes").value(450));
+        .andExpect(jsonPath("$.data.calculationMethod").value("TIME_BASED"))
+        .andExpect(jsonPath("$.data.timeEntry.workedMinutes").value(450));
 
     WorkEntry firstEntry = workEntries.findAll().getFirst();
     TimeEntryDetails firstDetails = timeEntryDetails.findByWorkEntryId(firstEntry.getId()).orElseThrow();
@@ -123,8 +132,8 @@ class WorkEntryIntegrationTest {
                     """
                         .formatted(workType.getId())))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.timeEntry.totalIntervalMinutes").value(480))
-        .andExpect(jsonPath("$.timeEntry.workedMinutes").value(465));
+        .andExpect(jsonPath("$.data.timeEntry.totalIntervalMinutes").value(480))
+        .andExpect(jsonPath("$.data.timeEntry.workedMinutes").value(465));
 
     WorkEntry overnightEntry =
         workEntries.findAll().stream()
@@ -162,8 +171,8 @@ class WorkEntryIntegrationTest {
                     """
                         .formatted(workType.getId(), standardRoom.getId(), suite.getId())))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.calculationMethod").value("UNIT_BASED"))
-        .andExpect(jsonPath("$.unitItems.length()").value(2));
+        .andExpect(jsonPath("$.data.calculationMethod").value("UNIT_BASED"))
+        .andExpect(jsonPath("$.data.unitItems.length()").value(2));
 
     WorkEntry entry = workEntries.findAll().getFirst();
     BigDecimal expectedMinutes =
@@ -201,9 +210,24 @@ class WorkEntryIntegrationTest {
                 .param("workTypeId", daytime.getId().toString())
                 .param("size", "1"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.totalElements").value(2))
-        .andExpect(jsonPath("$.content.length()").value(1))
-        .andExpect(jsonPath("$.content[0].workTypeId").value(daytime.getId().toString()));
+        .andExpect(jsonPath("$.data.totalElements").value(2))
+        .andExpect(jsonPath("$.data.page").value(0))
+        .andExpect(jsonPath("$.data.size").value(1))
+        .andExpect(jsonPath("$.data.content.length()").value(1))
+        .andExpect(jsonPath("$.data.content[0].workTypeId").value(daytime.getId().toString()));
+  }
+
+  @Test
+  void paginationValidationRejectsOversizedPageRequests() throws Exception {
+    UserAccount user = createVerifiedUser("page@example.com");
+
+    mockMvc
+        .perform(
+            get("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("size", "101"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0]").value("list.size: must be less than or equal to 100"));
   }
 
   @Test
@@ -239,7 +263,7 @@ class WorkEntryIntegrationTest {
     mockMvc
         .perform(get("/api/work-entries/" + entryId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.timeEntry.workedMinutes").value(240));
+        .andExpect(jsonPath("$.data.timeEntry.workedMinutes").value(240));
 
     mockMvc
         .perform(
@@ -259,8 +283,8 @@ class WorkEntryIntegrationTest {
                     """
                         .formatted(workType.getId())))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.notes").value("Updated"))
-        .andExpect(jsonPath("$.timeEntry.workedMinutes").value(300));
+        .andExpect(jsonPath("$.data.notes").value("Updated"))
+        .andExpect(jsonPath("$.data.timeEntry.workedMinutes").value(300));
 
     mockMvc
         .perform(delete("/api/work-entries/" + entryId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -368,12 +392,59 @@ class WorkEntryIntegrationTest {
   @Test
   void unauthorizedRequestsReturn401() throws Exception {
     mockMvc.perform(get("/api/work-entries")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/api/dashboard")).andExpect(status().isUnauthorized());
     mockMvc
         .perform(
             post("/api/work-entries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"workTypeId\":\"00000000-0000-0000-0000-000000000000\",\"workDate\":\"2026-07-10\"}"))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void dashboardReturnsCurrentMonthSummary() throws Exception {
+    UserAccount user = createVerifiedUser("dashboard@example.com");
+    WorkType workType = createWorkType(user, "Dashboard Work", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    YearMonth currentMonth = YearMonth.now(clock);
+    LocalDate firstWorkDate = currentMonth.atDay(2);
+    LocalDate secondWorkDate = currentMonth.atDay(3);
+    LocalDate absenceDate = currentMonth.atDay(4);
+
+    createTimeEntry(user, workType, firstWorkDate, "08:00:00", "12:00:00", 0);
+    createTimeEntry(user, workType, secondWorkDate, "09:00:00", "11:30:00", 0);
+    absences.saveAndFlush(new Absence(user, AbsenceType.SICK_LEAVE, absenceDate, absenceDate.plusDays(1)));
+
+    mockMvc
+        .perform(get("/api/dashboard").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.currentMonth").value(currentMonth.toString()))
+        .andExpect(jsonPath("$.data.entriesCount").value(2))
+        .andExpect(jsonPath("$.data.absenceDays").value(2))
+        .andExpect(content().string(containsString("\"workedMinutes\":390.000000000000000")))
+        .andExpect(content().string(containsString("\"workedHours\":6.500000000000000")))
+        .andExpect(content().string(containsString("\"grossAmount\":130.000000000000000")));
+  }
+
+  @Test
+  void workEntryListingAvoidsPerEntryNPlusOneQueries() throws Exception {
+    UserAccount user = createVerifiedUser("querycount@example.com");
+    WorkType workType = createWorkType(user, "Query Count Work", CalculationMethod.TIME_BASED);
+    createRate(user, "18.50", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 1), "08:00:00", "10:00:00", 0);
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 2), "08:00:00", "10:00:00", 0);
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 3), "08:00:00", "10:00:00", 0);
+
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.clear();
+
+    mockMvc
+        .perform(get("/api/work-entries").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content.length()").value(3));
+
+    assertThat(statistics.getPrepareStatementCount()).isLessThanOrEqualTo(4);
   }
 
   private void createTimeEntry(

@@ -1,9 +1,11 @@
 package com.roomly.api.worktype.dto;
 
 import com.roomly.api.worktype.entity.CalculationMethod;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 
+@Schema(description = "Work type definition used for work entry classification")
 public record WorkTypeDto(
     UUID id,
     UUID userId,
