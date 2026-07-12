@@ -25,8 +25,8 @@ public class CurrentUserService {
     var userId = authenticatedUserAccessor.requireUserId();
     var account =
         mapper.toDto(users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId)));
-    var profile = profiles.findByUserId(userId).map(mapper::toDto).orElse(null);
-    var prefs = preferences.findByUserId(userId).map(mapper::toDto).orElse(null);
+    var profile = profiles.findByUserId(userId).map(mapper::toProfileResponse).orElse(null);
+    var prefs = preferences.findByUserId(userId).map(mapper::toPreferencesResponse).orElse(null);
     return new CurrentUserResponse(account, profile, prefs);
   }
 }

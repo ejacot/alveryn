@@ -10,6 +10,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.context.MessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,6 +34,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler({
     ValidationException.class,
+    IllegalArgumentException.class,
     MethodArgumentNotValidException.class,
     ConstraintViolationException.class,
     HandlerMethodValidationException.class
@@ -51,6 +53,12 @@ public class GlobalExceptionHandler {
                     ? v.getParameterValidationResults().stream().flatMap(this::parameterMessages).toList()
             : List.of(e.getMessage());
     return response(HttpStatus.BAD_REQUEST, "Validation failed", r, errors);
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  ResponseEntity<ApiErrorResponse> handleDataIntegrity(
+      DataIntegrityViolationException e, HttpServletRequest r) {
+    return response(HttpStatus.CONFLICT, "Database constraint violated", r, List.of());
   }
 
   @ExceptionHandler({ExpiredCodeException.class})

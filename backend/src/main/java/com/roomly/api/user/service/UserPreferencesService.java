@@ -1,12 +1,15 @@
 package com.roomly.api.user.service;
 
+import com.roomly.api.auth.security.AuthenticatedUserAccessor;
 import com.roomly.api.common.exception.NotFoundException;
-import com.roomly.api.user.dto.UserPreferencesDto;
+import com.roomly.api.common.util.InputSanitizer;
+import com.roomly.api.user.dto.UserPreferencesRequest;
+import com.roomly.api.user.dto.UserPreferencesResponse;
 import com.roomly.api.user.entity.UserPreferences;
 import com.roomly.api.user.mapper.UserMapper;
-import com.roomly.api.user.repository.*;
+import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.user.repository.UserPreferencesRepository;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,39 +19,52 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @RequiredArgsConstructor
 public class UserPreferencesService {
+  private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final UserPreferencesRepository repository;
   private final UserAccountRepository users;
   private final UserMapper mapper;
 
   @Transactional
-  public UserPreferencesDto createOrUpdate(UUID userId, @Valid UserPreferencesDto dto) {
-    var p =
-        repository
-            .findByUserId(userId)
-            .orElseGet(
-                () ->
-                    new UserPreferences(
-                        users
-                            .findById(userId)
-                            .orElseThrow(() -> new NotFoundException("UserAccount", userId))));
-    p.changeLanguage(dto.language());
-    p.changeTimezone(dto.timezone());
-    p.changeCurrency(dto.currency());
-    p.changeFirstDayOfWeek(dto.firstDayOfWeek());
-    p.changeDateFormat(dto.dateFormat());
-    p.changeTimeFormat(dto.timeFormat());
-    p.changeTheme(dto.theme());
-    p.changeDefaultBreakMinutes(dto.defaultBreakMinutes());
-    p.changePreferredDailyMinutes(dto.preferredDailyMinutes());
-    if (dto.onboardingCompleted()) p.completeOnboarding();
-    return mapper.toDto(repository.save(p));
+  public UserPreferencesResponse update(@Valid UserPreferencesRequest request) {
+    UserPreferences preferences = getOrCreatePreferences();
+    String timezone = InputSanitizer.requireTrimmed(request.timezone(), "timezone");
+    InputSanitizer.validateTimezone(timezone);
+    preferences.changeLanguage(InputSanitizer.requireTrimmed(request.language(), "language"));
+    preferences.changeTimezone(timezone);
+    preferences.changeCurrency(InputSanitizer.normalizeCurrency(request.currency()));
+    preferences.changeFirstDayOfWeek(request.firstDayOfWeek());
+    preferences.changeDateFormat(InputSanitizer.requireTrimmed(request.dateFormat(), "dateFormat"));
+    preferences.changeTimeFormat(request.timeFormat());
+    preferences.changeTheme(request.theme());
+    preferences.changeDefaultBreakMinutes(request.defaultBreakMinutes());
+    preferences.changePreferredDailyMinutes(request.preferredDailyMinutes());
+    return mapper.toPreferencesResponse(repository.save(preferences));
+  }
+
+  @Transactional
+  public UserPreferencesResponse get() {
+    return mapper.toPreferencesResponse(repository.save(getOrCreatePreferences()));
+  }
+
+  @Transactional
+  public UserPreferences completeOnboarding() {
+    UserPreferences preferences = getOrCreatePreferences();
+    preferences.completeOnboarding();
+    return repository.save(preferences);
   }
 
   @Transactional(readOnly = true)
-  public UserPreferencesDto get(UUID userId) {
-    return mapper.toDto(
-        repository
-            .findByUserId(userId)
-            .orElseThrow(() -> new NotFoundException("UserPreferences", userId)));
+  public UserPreferences findCurrentPreferencesOrNull() {
+    return repository.findByUserId(authenticatedUserAccessor.requireUserId()).orElse(null);
+  }
+
+  private UserPreferences getOrCreatePreferences() {
+    var userId = authenticatedUserAccessor.requireUserId();
+    return repository
+        .findByUserId(userId)
+        .orElseGet(
+            () ->
+                new UserPreferences(
+                    users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId))));
   }
 }

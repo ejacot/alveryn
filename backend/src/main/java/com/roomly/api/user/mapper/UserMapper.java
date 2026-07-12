@@ -8,9 +8,7 @@ import org.mapstruct.*;
 public interface UserMapper {
   UserAccountDto toDto(UserAccount e);
 
-  @Mapping(target = "userId", source = "user.id")
-  UserProfileDto toDto(UserProfile e);
+  UserProfileResponse toProfileResponse(UserProfile e);
 
-  @Mapping(target = "userId", source = "user.id")
-  UserPreferencesDto toDto(UserPreferences e);
+  UserPreferencesResponse toPreferencesResponse(UserPreferences e);
 }

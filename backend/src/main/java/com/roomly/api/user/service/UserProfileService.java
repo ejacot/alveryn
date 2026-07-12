@@ -1,12 +1,16 @@
 package com.roomly.api.user.service;
 
+import com.roomly.api.auth.security.AuthenticatedUserAccessor;
 import com.roomly.api.common.exception.NotFoundException;
-import com.roomly.api.user.dto.UserProfileDto;
+import com.roomly.api.common.exception.ValidationException;
+import com.roomly.api.common.util.InputSanitizer;
+import com.roomly.api.user.dto.UserProfileRequest;
+import com.roomly.api.user.dto.UserProfileResponse;
 import com.roomly.api.user.entity.UserProfile;
 import com.roomly.api.user.mapper.UserMapper;
-import com.roomly.api.user.repository.*;
+import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.user.repository.UserProfileRepository;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,43 +20,52 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @RequiredArgsConstructor
 public class UserProfileService {
+  private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final UserProfileRepository repository;
   private final UserAccountRepository users;
   private final UserMapper mapper;
 
   @Transactional
-  public UserProfileDto createOrUpdate(UUID userId, @Valid UserProfileDto dto) {
-    var profile =
-        repository
-            .findByUserId(userId)
-            .orElseGet(
-                () ->
-                    new UserProfile(
-                        users
-                            .findById(userId)
-                            .orElseThrow(() -> new NotFoundException("UserAccount", userId))));
+  public UserProfileResponse update(@Valid UserProfileRequest request) {
+    UserProfile profile = getOrCreateProfile();
+    validateEmploymentDates(request);
     profile.updateDetails(
-        dto.firstName(),
-        dto.lastName(),
-        dto.displayName(),
-        dto.dateOfBirth(),
-        dto.phone(),
-        dto.countryCode(),
-        dto.city(),
-        dto.postalCode(),
-        dto.street(),
-        dto.houseNumber(),
-        dto.apartment(),
-        dto.avatarUrl());
-    profile.updateEmploymentDates(dto.employmentStartDate(), dto.employmentEndDate());
-    return mapper.toDto(repository.save(profile));
+        InputSanitizer.trimToNull(request.firstName()),
+        InputSanitizer.trimToNull(request.lastName()),
+        InputSanitizer.trimToNull(request.displayName()),
+        request.dateOfBirth(),
+        InputSanitizer.trimToNull(request.phone()),
+        InputSanitizer.normalizeCountryCode(request.countryCode()),
+        InputSanitizer.trimToNull(request.city()),
+        InputSanitizer.trimToNull(request.postalCode()),
+        InputSanitizer.trimToNull(request.street()),
+        InputSanitizer.trimToNull(request.houseNumber()),
+        InputSanitizer.trimToNull(request.apartment()),
+        InputSanitizer.trimToNull(request.avatarUrl()));
+    profile.updateEmploymentDates(request.employmentStartDate(), request.employmentEndDate());
+    return mapper.toProfileResponse(repository.save(profile));
   }
 
-  @Transactional(readOnly = true)
-  public UserProfileDto get(UUID userId) {
-    return mapper.toDto(
-        repository
-            .findByUserId(userId)
-            .orElseThrow(() -> new NotFoundException("UserProfile", userId)));
+  @Transactional
+  public UserProfileResponse get() {
+    return mapper.toProfileResponse(repository.save(getOrCreateProfile()));
+  }
+
+  private UserProfile getOrCreateProfile() {
+    var userId = authenticatedUserAccessor.requireUserId();
+    return repository
+        .findByUserId(userId)
+        .orElseGet(
+            () ->
+                new UserProfile(
+                    users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId))));
+  }
+
+  private void validateEmploymentDates(UserProfileRequest request) {
+    if (request.employmentStartDate() != null
+        && request.employmentEndDate() != null
+        && request.employmentEndDate().isBefore(request.employmentStartDate())) {
+      throw new ValidationException("employmentEndDate cannot be before employmentStartDate");
+    }
   }
 }
