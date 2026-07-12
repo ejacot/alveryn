@@ -3,7 +3,7 @@ import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isHydrating } = useAuth();
+  const { isAuthenticated, isHydrating, user } = useAuth();
   const location = useLocation();
 
   if (isHydrating) {
@@ -12,6 +12,17 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  const onboardingCompleted = user?.preferences?.onboardingCompleted === true;
+  const isOnboardingRoute = location.pathname.startsWith("/onboarding");
+
+  if (!onboardingCompleted && !isOnboardingRoute) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  if (onboardingCompleted && isOnboardingRoute) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

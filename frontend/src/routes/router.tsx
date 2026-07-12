@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from "react-router-dom";
 import { PREVIEW_ROUTES_ENABLED } from "../api/config";
 import { AppLayout } from "../layouts/app-layout";
 import { AuthLayout } from "../layouts/auth-layout";
+import { OnboardingLayout } from "../layouts/onboarding-layout";
 import { RouteFallback } from "../components/ui/route-fallback";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
@@ -62,6 +63,11 @@ const PreviewDashboardPage = lazy(() =>
     default: module.PreviewDashboardPage
   }))
 );
+const OnboardingPage = lazy(() =>
+  import("../pages/onboarding-page").then((module) => ({
+    default: module.OnboardingPage
+  }))
+);
 
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
@@ -99,6 +105,10 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) }
           ]
+        },
+        {
+          element: <OnboardingLayout />,
+          children: [{ path: "/onboarding", element: withSuspense(<OnboardingPage />) }]
         }
       ]
     }
