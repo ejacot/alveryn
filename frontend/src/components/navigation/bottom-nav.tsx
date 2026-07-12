@@ -33,13 +33,14 @@ export function BottomNav() {
     <motion.nav
       aria-label="Primary navigation"
       animate={{
-        scale: compact ? 0.96 : 1,
-        y: compact ? 8 : 0,
-        paddingTop: compact ? 10 : 12,
-        paddingBottom: compact ? 10 : 12
+        scale: compact ? 0.82 : 1,
+        y: compact ? 10 : 0,
+        width: compact ? "calc(100% - 4.25rem)" : "calc(100% - 1.5rem)",
+        paddingTop: compact ? 8 : 12,
+        paddingBottom: compact ? 8 : 12
       }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-      className="floating-nav glass-panel fixed inset-x-0 z-50 mx-auto flex w-[calc(100%-1.5rem)] max-w-[430px] items-center justify-between rounded-[32px] px-4"
+      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+      className="floating-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[34px] border border-white/[0.07] bg-white/[0.035] px-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-[34px]"
     >
       {items.map(({ to, icon: Icon, label, prominent }) => (
         <NavLink
@@ -49,19 +50,29 @@ export function BottomNav() {
           className="relative flex min-w-0 flex-1 justify-center"
         >
           {({ isActive }) => (
-            <div
+            <motion.div
+              animate={{
+                scale: prominent ? 1 : isActive ? 1.1 : 1,
+                opacity: isActive || prominent ? 1 : 0.52
+              }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
               className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-full transition",
+                "flex items-center justify-center transition",
                 prominent
-                  ? "bg-white text-black shadow-soft"
-                  : isActive
-                    ? "bg-white/10 text-white"
-                    : "text-white/58"
+                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.9] text-black shadow-[0_18px_40px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.28)]"
+                  : "h-11 w-11 text-white/52"
               )}
               title={label}
+              aria-current={isActive ? "page" : undefined}
             >
-              <Icon className="h-5 w-5" aria-hidden="true" />
-            </div>
+              <Icon
+                className={cn(
+                  prominent ? "h-5 w-5" : isActive ? "h-[22px] w-[22px] text-white" : "h-5 w-5"
+                )}
+                strokeWidth={prominent ? 2.4 : isActive ? 2.5 : 2.1}
+                aria-hidden="true"
+              />
+            </motion.div>
           )}
         </NavLink>
       ))}

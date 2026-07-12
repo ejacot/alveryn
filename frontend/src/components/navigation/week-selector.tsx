@@ -1,8 +1,14 @@
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getWeekDays, isSameDay } from "../../utils/date";
-import { Button } from "../ui/button";
+import { useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
+import { getWorkEntries } from "../../api/endpoints";
+import { addDays, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
 import { cn } from "../../utils/cn";
+import {
+  getNextWeekDate,
+  getPreviousWeekDate,
+  resolveWeekSwipeDirection
+} from "./week-selector.utils";
 
 type Props = {
   value: Date;
@@ -10,68 +16,150 @@ type Props = {
 };
 
 export function WeekSelector({ value, onChange }: Props) {
+  const [slideDirection, setSlideDirection] = useState(0);
   const days = getWeekDays(value);
   const today = new Date();
+  const weekStart = useMemo(() => startOfWeek(value), [value]);
+  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
+  const monthRequests = useMemo(() => {
+    const unique = new Map<string, { year: number; month: number }>();
+
+    [weekStart, weekEnd].forEach((date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      unique.set(`${year}-${month}`, { year, month });
+    });
+
+    return Array.from(unique.values());
+  }, [weekEnd, weekStart]);
+  const entryQueries = useQueries({
+    queries: monthRequests.map(({ year, month }) => ({
+      queryKey: ["week-selector-entries", year, month],
+      queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
+    }))
+  });
+  const markedDates = useMemo(() => {
+    const dates = new Set<string>();
+    entryQueries.forEach((query) => {
+      query.data?.content.forEach((entry) => dates.add(entry.workDate));
+    });
+    return dates;
+  }, [entryQueries]);
+  const monthLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        month: "long",
+        year: "numeric"
+      }).format(value),
+    [value]
+  );
+  const weekKey = weekStart.toISOString();
+
+  function shiftWeek(direction: -1 | 1) {
+    setSlideDirection(direction);
+    onChange(direction === -1 ? getPreviousWeekDate(value) : getNextWeekDate(value));
+  }
 
   return (
-    <section className="section-card space-y-4">
-      <div className="flex items-center justify-between">
+    <section className="space-y-4 overflow-hidden">
+      <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-white/42">
-            This week
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">Week flow</h2>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            className="h-10 w-10 rounded-full px-0"
-            onClick={() => onChange(new Date(value.getTime() - 7 * 86_400_000))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="secondary"
-            className="h-10 w-10 rounded-full px-0"
-            onClick={() => onChange(new Date(value.getTime() + 7 * 86_400_000))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <p className="hairline-text">Week flow</p>
+          <h2 className="mt-2 text-[1.1rem] font-semibold tracking-[-0.04em] text-white">
+            {monthLabel}
+          </h2>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day, index) => {
-          const selected = isSameDay(day.date, value);
-          const current = isSameDay(day.date, today);
+      <div className="relative min-h-[84px] touch-pan-y overflow-hidden">
+        <AnimatePresence custom={slideDirection} initial={false} mode="wait">
+          <motion.div
+            key={weekKey}
+            custom={slideDirection}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.08}
+            dragDirectionLock
+            onDragEnd={(_, info) => {
+              const direction = resolveWeekSwipeDirection(info);
+              if (direction === -1) {
+                shiftWeek(-1);
+              } else if (direction === 1) {
+                shiftWeek(1);
+              }
+            }}
+            variants={{
+              enter: (direction: number) => ({
+                x: direction === 0 ? 0 : direction > 0 ? 36 : -36,
+                opacity: 0
+              }),
+              center: {
+                x: 0,
+                opacity: 1
+              },
+              exit: (direction: number) => ({
+                x: direction > 0 ? -36 : 36,
+                opacity: 0
+              })
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-7 gap-1"
+          >
+            {days.map((day, index) => {
+              const selected = isSameDay(day.date, value);
+              const current = !selected && isSameDay(day.date, today);
+              const hasEntries = markedDates.has(day.date.toISOString().slice(0, 10));
+              const state = selected ? "selected" : current ? "today" : "default";
 
-          return (
-            <motion.button
-              key={day.key}
-              type="button"
-              aria-pressed={selected}
-              aria-label={`${day.weekday} ${day.dayNumber}`}
-              initial={{ opacity: 0.94, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: index * 0.03 }}
-              onClick={() => onChange(day.date)}
-              className="flex min-h-[60px] flex-col items-center gap-2 rounded-[20px] px-1 focus:outline-none focus:ring-2 focus:ring-white/36 focus:ring-offset-2 focus:ring-offset-[#050505]"
-            >
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-white/34">
-                {day.weekday}
-              </span>
-              <div
-                className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-full border text-sm font-semibold transition",
-                  selected || current
-                    ? "border-white bg-white text-black"
-                    : "border-white/[0.18] bg-transparent text-white/72"
-                )}
-              >
-                {day.dayNumber}
-              </div>
-            </motion.button>
-          );
-        })}
+              return (
+                <motion.button
+                  key={day.key}
+                  type="button"
+                  aria-pressed={selected}
+                  aria-label={`${day.weekday} ${day.dayNumber}`}
+                  data-state={state}
+                  initial={{ opacity: 0.94, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  onClick={() => onChange(day.date)}
+                  className="flex min-h-[78px] flex-col items-center justify-between rounded-[26px] px-1 py-2 focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]"
+                >
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-white/34">
+                    {day.weekday.slice(0, 3)}
+                  </span>
+                  <motion.div
+                    layout
+                    className={cn(
+                      "relative flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-semibold transition",
+                      selected
+                        ? "bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
+                        : current
+                          ? "border border-white/[0.08] bg-white/[0.1] text-white/88"
+                          : "text-white/76"
+                    )}
+                  >
+                    {day.dayNumber}
+                  </motion.div>
+                  <span
+                    className={cn(
+                      "block h-1.5 w-1.5 rounded-full transition",
+                      hasEntries
+                        ? selected
+                          ? "bg-black/68"
+                          : current
+                            ? "bg-white/72"
+                            : "bg-white/46"
+                        : "bg-transparent"
+                    )}
+                    aria-hidden="true"
+                  />
+                </motion.button>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );

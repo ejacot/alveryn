@@ -21,12 +21,14 @@ export function AppLayout() {
   return (
     <>
       <main className="screen-shell space-y-5">
-        <header className="sticky top-0 z-30 bg-gradient-to-b from-ink via-ink/92 to-transparent pb-3 pt-6 backdrop-blur-sm">
-          <AppLogo />
+        <header className="sticky top-0 z-30 -mx-5 bg-gradient-to-b from-[#050505] via-[#050505]/94 to-transparent px-5 pb-4 pt-2 backdrop-blur-xl">
+          <div className="space-y-4">
+            <AppLogo />
+            {showWeekSelector ? (
+              <WeekSelector value={selectedDate} onChange={setSelectedDate} />
+            ) : null}
+          </div>
         </header>
-        {showWeekSelector ? (
-          <WeekSelector value={selectedDate} onChange={setSelectedDate} />
-        ) : null}
         <PageTransition routeKey={location.pathname}>
           <Outlet context={{ selectedDate }} />
         </PageTransition>
