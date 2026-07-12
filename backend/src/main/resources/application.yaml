@@ -27,3 +27,16 @@ management:
     health:
       probes:
         enabled: true
+
+roomly:
+  auth:
+    jwt-secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-please-dev-only-jwt-secret}
+    access-token-lifetime: ${ACCESS_TOKEN_LIFETIME:15m}
+    refresh-token-lifetime: ${REFRESH_TOKEN_LIFETIME:30d}
+    email-verification-code-lifetime: ${EMAIL_VERIFICATION_CODE_LIFETIME:15m}
+    password-reset-code-lifetime: ${PASSWORD_RESET_CODE_LIFETIME:30m}
+    verification-resend-cooldown: ${VERIFICATION_RESEND_COOLDOWN:1m}
+    login-max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
+    login-lock-duration: ${LOGIN_LOCK_DURATION:15m}
+    frontend-verification-url: ${FRONTEND_VERIFICATION_URL:}
+    dev-expose-codes: ${AUTH_DEV_EXPOSE_CODES:true}
