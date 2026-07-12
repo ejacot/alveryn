@@ -2,12 +2,14 @@ package com.roomly.api.auth.service;
 
 import com.roomly.api.auth.config.AuthProperties;
 import com.roomly.api.auth.entity.RefreshToken;
+import com.roomly.api.auth.exception.AuthenticationFailureException;
 import com.roomly.api.auth.repository.RefreshTokenRepository;
 import com.roomly.api.auth.util.AuthTokenGenerator;
 import com.roomly.api.auth.util.TokenHashingService;
 import com.roomly.api.user.entity.UserAccount;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +39,21 @@ public class RefreshTokenService {
   }
 
   @Transactional
-  public IssuedRefreshToken rotate(RefreshToken current) {
+  public IssuedRefreshToken rotate(String plainToken, Predicate<UserAccount> userValidator) {
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    RefreshToken current =
+        repository
+            .findByTokenHashForUpdate(hashingService.sha256Hex(plainToken))
+            .orElseThrow(() -> new AuthenticationFailureException("Invalid refresh token"));
+    if (!current.isActive(now)) {
+      throw new AuthenticationFailureException("Invalid refresh token");
+    }
+    if (!userValidator.test(current.getUser())) {
+      throw new AuthenticationFailureException("Invalid refresh token");
+    }
+
     IssuedRefreshToken replacement = issue(current.getUser());
-    current.revoke(OffsetDateTime.now(clock), replacement.persistedToken().getId());
+    current.revoke(now, replacement.persistedToken().getId());
     repository.save(current);
     return replacement;
   }

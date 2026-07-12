@@ -3,7 +3,6 @@ package com.roomly.api.auth.service;
 import com.roomly.api.auth.config.AuthProperties;
 import com.roomly.api.auth.dto.*;
 import com.roomly.api.auth.email.AuthenticationEmailService;
-import com.roomly.api.auth.entity.RefreshToken;
 import com.roomly.api.auth.exception.AuthenticationFailureException;
 import com.roomly.api.auth.exception.EmailNotVerifiedException;
 import com.roomly.api.auth.exception.ExpiredCodeException;
@@ -121,21 +120,12 @@ public class AuthService {
 
   @Transactional
   public AuthResponse refresh(RefreshTokenRequest request) {
-    RefreshToken current =
-        refreshTokenService.findByPlainToken(request.refreshToken());
-    if (current == null) {
-      throw new AuthenticationFailureException("Invalid refresh token");
-    }
     OffsetDateTime now = OffsetDateTime.now(clock);
-    if (!current.isActive(now)) {
-      throw new AuthenticationFailureException("Invalid refresh token");
-    }
-    UserAccount user = current.getUser();
-    if (user.isDeleted() || user.isLockedAt(now) || !user.isEmailVerified()) {
-      throw new AuthenticationFailureException("Invalid refresh token");
-    }
-    RefreshTokenService.IssuedRefreshToken rotated = refreshTokenService.rotate(current);
-    return buildAuthResponse(user, rotated);
+    RefreshTokenService.IssuedRefreshToken rotated =
+        refreshTokenService.rotate(
+            request.refreshToken(),
+            user -> !user.isDeleted() && !user.isLockedAt(now) && user.isEmailVerified());
+    return buildAuthResponse(rotated.persistedToken().getUser(), rotated);
   }
 
   @Transactional
