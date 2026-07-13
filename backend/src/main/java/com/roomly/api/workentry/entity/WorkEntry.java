@@ -74,7 +74,7 @@ public class WorkEntry extends BaseEntity {
   @Column(name = "import_source_key", length = 255)
   private String importSourceKey;
 
-  @Column(name = "import_fingerprint", length = 64)
+  @Column(name = "import_fingerprint", columnDefinition = "CHAR(64)")
   private String importFingerprint;
 
   public WorkEntry(

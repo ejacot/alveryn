@@ -29,7 +29,7 @@ public class ExcelImportBatch extends BaseEntity {
   @Column(name = "file_name", nullable = false, length = 255)
   private String fileName;
 
-  @Column(name = "file_sha256", nullable = false, length = 64)
+  @Column(name = "file_sha256", nullable = false, columnDefinition = "CHAR(64)")
   private String fileSha256;
 
   @Enumerated(EnumType.STRING)
@@ -73,7 +73,7 @@ public class ExcelImportBatch extends BaseEntity {
   @Column(name = "preview_expires_at")
   private OffsetDateTime previewExpiresAt;
 
-  @Column(name = "preview_token_hash", length = 64)
+  @Column(name = "preview_token_hash", columnDefinition = "CHAR(64)")
   private String previewTokenHash;
 
   @Column(name = "preview_payload_json")
