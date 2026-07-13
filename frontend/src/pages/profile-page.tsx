@@ -2,27 +2,28 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPreferences, getProfile, listHourlyRates, listWorkTypes } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
+import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const profileQuery = useQuery({
-    queryKey: ["settings-profile"],
+    queryKey: settingsKeys.profile(),
     queryFn: getProfile,
     initialData: user?.profile ?? undefined
   });
   const preferencesQuery = useQuery({
-    queryKey: ["settings-preferences"],
+    queryKey: settingsKeys.preferences(),
     queryFn: getPreferences,
     initialData: user?.preferences ?? undefined
   });
   const hourlyRatesQuery = useQuery({
-    queryKey: ["hourly-rates"],
+    queryKey: settingsKeys.hourlyRates(),
     queryFn: listHourlyRates
   });
   const workTypesQuery = useQuery({
-    queryKey: ["work-types"],
+    queryKey: settingsKeys.workTypes(),
     queryFn: listWorkTypes
   });
 
@@ -89,8 +90,6 @@ export function ProfilePage() {
 
       <SettingsGroup title="Account">
         <SettingsRow to="/settings/profile" label="Profile" />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/security" label="Password & Security" />
       </SettingsGroup>
 
       <SettingsGroup title="Work">
@@ -101,53 +100,61 @@ export function ProfilePage() {
 
       <SettingsGroup title="Preferences">
         <SettingsRow
-          to="/settings/preferences/language"
+          to="/settings/preferences"
           label="Language"
           value={formatLanguage(preferences?.language)}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/currency"
+          to="/settings/preferences"
           label="Currency"
           value={preferences?.currency ?? "EUR"}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/timezone"
+          to="/settings/preferences"
           label="Timezone"
           value={preferences?.timezone ?? "Europe/Berlin"}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/appearance"
+          to="/settings/preferences"
+          label="Default break"
+          value={`${preferences?.defaultBreakMinutes ?? 30} min`}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <SettingsRow
+          to="/settings/preferences"
+          label="Daily target"
+          value={formatDailyTarget(preferences?.preferredDailyMinutes)}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <SettingsRow
+          to="/settings/preferences"
           label="Appearance"
           value={formatTheme(preferences?.theme)}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/date-format"
+          to="/settings/preferences"
           label="Date format"
           value={preferences?.dateFormat ?? "DD.MM.YYYY"}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/time-format"
+          to="/settings/preferences"
           label="Time format"
           value={formatTimeFormat(preferences?.timeFormat)}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
-          to="/settings/preferences/first-day-of-week"
+          to="/settings/preferences"
           label="First day of week"
           value={formatFirstDay(preferences?.firstDayOfWeek)}
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Data">
-        <SettingsRow to="/settings/export-data" label="Export data" />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/notifications" label="Notifications" />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+      <SettingsGroup title="App">
         <SettingsRow to="/settings/about" label="About Roomly" />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/help" label="Help & Support" />
@@ -197,4 +204,14 @@ function formatTimeFormat(value?: "H12" | "H24" | null) {
 
 function formatFirstDay(value?: "MONDAY" | "SUNDAY" | null) {
   return value === "SUNDAY" ? "Sunday" : "Monday";
+}
+
+function formatDailyTarget(value?: number | null) {
+  if (!value) {
+    return "8h 00m";
+  }
+
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 }

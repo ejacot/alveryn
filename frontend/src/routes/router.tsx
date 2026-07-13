@@ -33,9 +33,49 @@ const ProfilePage = lazy(() =>
     default: module.ProfilePage
   }))
 );
-const SettingsDetailPage = lazy(() =>
-  import("../pages/settings-detail-page").then((module) => ({
-    default: module.SettingsDetailPage
+const SettingsProfilePage = lazy(() =>
+  import("../pages/settings-profile-page").then((module) => ({
+    default: module.SettingsProfilePage
+  }))
+);
+const SettingsPreferencesPage = lazy(() =>
+  import("../pages/settings-preferences-page").then((module) => ({
+    default: module.SettingsPreferencesPage
+  }))
+);
+const HourlyRatesPage = lazy(() =>
+  import("../pages/hourly-rates-page").then((module) => ({
+    default: module.HourlyRatesPage
+  }))
+);
+const HourlyRateEditorPage = lazy(() =>
+  import("../pages/hourly-rate-editor-page").then((module) => ({
+    default: module.HourlyRateEditorPage
+  }))
+);
+const WorkTypesPage = lazy(() =>
+  import("../pages/work-types-page").then((module) => ({
+    default: module.WorkTypesPage
+  }))
+);
+const WorkTypeEditorPage = lazy(() =>
+  import("../pages/work-type-editor-page").then((module) => ({
+    default: module.WorkTypeEditorPage
+  }))
+);
+const UnitTypeEditorPage = lazy(() =>
+  import("../pages/unit-type-editor-page").then((module) => ({
+    default: module.UnitTypeEditorPage
+  }))
+);
+const AboutRoomlyPage = lazy(() =>
+  import("../pages/about-roomly-page").then((module) => ({
+    default: module.AboutRoomlyPage
+  }))
+);
+const HelpSupportPage = lazy(() =>
+  import("../pages/help-support-page").then((module) => ({
+    default: module.HelpSupportPage
   }))
 );
 const LoginPage = lazy(() =>
@@ -110,42 +150,24 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
-            { path: "/settings/profile", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/security", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/hourly-rates", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/work-types", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
+            { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
+            { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
+            { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },
+            { path: "/settings/hourly-rates/:rateId", element: withSuspense(<HourlyRateEditorPage />) },
+            { path: "/settings/work-types", element: withSuspense(<WorkTypesPage />) },
+            { path: "/settings/work-types/new", element: withSuspense(<WorkTypeEditorPage />) },
+            { path: "/settings/work-types/:workTypeId", element: withSuspense(<WorkTypeEditorPage />) },
             {
-              path: "/settings/preferences/language",
-              element: withSuspense(<SettingsDetailPage />)
+              path: "/settings/work-types/:workTypeId/unit-types/new",
+              element: withSuspense(<UnitTypeEditorPage />)
             },
             {
-              path: "/settings/preferences/currency",
-              element: withSuspense(<SettingsDetailPage />)
+              path: "/settings/work-types/:workTypeId/unit-types/:unitTypeId",
+              element: withSuspense(<UnitTypeEditorPage />)
             },
-            {
-              path: "/settings/preferences/timezone",
-              element: withSuspense(<SettingsDetailPage />)
-            },
-            {
-              path: "/settings/preferences/appearance",
-              element: withSuspense(<SettingsDetailPage />)
-            },
-            {
-              path: "/settings/preferences/date-format",
-              element: withSuspense(<SettingsDetailPage />)
-            },
-            {
-              path: "/settings/preferences/time-format",
-              element: withSuspense(<SettingsDetailPage />)
-            },
-            {
-              path: "/settings/preferences/first-day-of-week",
-              element: withSuspense(<SettingsDetailPage />)
-            },
-            { path: "/settings/export-data", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/notifications", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/about", element: withSuspense(<SettingsDetailPage />) },
-            { path: "/settings/help", element: withSuspense(<SettingsDetailPage />) }
+            { path: "/settings/about", element: withSuspense(<AboutRoomlyPage />) },
+            { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
           ]
         },
         {

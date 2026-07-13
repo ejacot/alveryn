@@ -65,6 +65,8 @@ export type CreateHourlyRatePayload = {
   validTo?: string | null;
 };
 
+export type UpdateHourlyRatePayload = CreateHourlyRatePayload;
+
 export type CreateWorkTypePayload = {
   name: string;
   calculationMethod: WorkType["calculationMethod"];
@@ -74,12 +76,18 @@ export type CreateWorkTypePayload = {
   displayOrder: number;
 };
 
+export type UpdateWorkTypePayload = CreateWorkTypePayload & {
+  active: boolean;
+};
+
 export type CreateUnitTypePayload = {
   name: string;
   unitsPerHour: number;
   displayOrder: number;
   active: boolean;
 };
+
+export type UpdateUnitTypePayload = CreateUnitTypePayload;
 
 export async function register(payload: Credentials) {
   const response = await http.post<ApiResponse<AuthUser>>(
@@ -192,6 +200,23 @@ export async function createHourlyRate(payload: CreateHourlyRatePayload) {
   return response.data.data;
 }
 
+export async function getHourlyRate(id: string) {
+  const response = await http.get<ApiResponse<HourlyRatePeriod>>(`/api/hourly-rates/${id}`);
+  return response.data.data;
+}
+
+export async function updateHourlyRate(id: string, payload: UpdateHourlyRatePayload) {
+  const response = await http.put<ApiResponse<HourlyRatePeriod>>(
+    `/api/hourly-rates/${id}`,
+    payload
+  );
+  return response.data.data;
+}
+
+export async function deleteHourlyRate(id: string) {
+  await http.delete(`/api/hourly-rates/${id}`);
+}
+
 export async function listWorkTypes() {
   const response = await http.get<ApiResponse<WorkType[]>>("/api/work-types");
   return response.data.data;
@@ -200,6 +225,20 @@ export async function listWorkTypes() {
 export async function createWorkType(payload: CreateWorkTypePayload) {
   const response = await http.post<ApiResponse<WorkType>>("/api/work-types", payload);
   return response.data.data;
+}
+
+export async function getWorkType(id: string) {
+  const response = await http.get<ApiResponse<WorkType>>(`/api/work-types/${id}`);
+  return response.data.data;
+}
+
+export async function updateWorkType(id: string, payload: UpdateWorkTypePayload) {
+  const response = await http.put<ApiResponse<WorkType>>(`/api/work-types/${id}`, payload);
+  return response.data.data;
+}
+
+export async function deleteWorkType(id: string) {
+  await http.delete(`/api/work-types/${id}`);
 }
 
 export async function listUnitTypes(workTypeId: string) {
@@ -218,6 +257,29 @@ export async function createUnitType(
     payload
   );
   return response.data.data;
+}
+
+export async function getUnitType(workTypeId: string, unitTypeId: string) {
+  const response = await http.get<ApiResponse<UnitType>>(
+    `/api/work-types/${workTypeId}/unit-types/${unitTypeId}`
+  );
+  return response.data.data;
+}
+
+export async function updateUnitType(
+  workTypeId: string,
+  unitTypeId: string,
+  payload: UpdateUnitTypePayload
+) {
+  const response = await http.put<ApiResponse<UnitType>>(
+    `/api/work-types/${workTypeId}/unit-types/${unitTypeId}`,
+    payload
+  );
+  return response.data.data;
+}
+
+export async function deleteUnitType(workTypeId: string, unitTypeId: string) {
+  await http.delete(`/api/work-types/${workTypeId}/unit-types/${unitTypeId}`);
 }
 
 export async function getDashboard() {

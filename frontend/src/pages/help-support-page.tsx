@@ -1,0 +1,18 @@
+import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsSection } from "../components/settings/settings-section";
+
+export function HelpSupportPage() {
+  return (
+    <div className="space-y-8 pb-10">
+      <SettingsPageHeader title="Help & Support" />
+      <SettingsSection title="Support">
+        <div className="space-y-3 text-sm leading-6 text-white/58">
+          <p>If something feels off, the fastest path is still direct email support.</p>
+          <a className="text-white underline decoration-white/20 underline-offset-4" href="mailto:roomly000app@gmail.com">
+            roomly000app@gmail.com
+          </a>
+        </div>
+      </SettingsSection>
+    </div>
+  );
+}

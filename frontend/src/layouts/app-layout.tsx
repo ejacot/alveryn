@@ -9,6 +9,8 @@ import { PageTransition } from "../components/ui/page-transition";
 export function AppLayout() {
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const isSettingsOverview = location.pathname === "/profile";
+  const isSettingsDetail = location.pathname.startsWith("/settings/");
 
   const showWeekSelector = useMemo(
     () =>
@@ -16,23 +18,27 @@ export function AppLayout() {
       (PREVIEW_ROUTES_ENABLED && location.pathname.startsWith("/preview")),
     [location.pathname]
   );
+  const showAppLogo = !isSettingsOverview && !isSettingsDetail;
+  const showBottomNav = !isSettingsDetail;
 
   return (
     <>
       <main className="screen-shell space-y-4">
-        <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
-          <div className="space-y-2.5">
-            <AppLogo />
-            {showWeekSelector ? (
-              <WeekSelector value={selectedDate} onChange={setSelectedDate} />
-            ) : null}
-          </div>
-        </header>
+        {showAppLogo || showWeekSelector ? (
+          <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
+            <div className="space-y-2.5">
+              {showAppLogo ? <AppLogo /> : null}
+              {showWeekSelector ? (
+                <WeekSelector value={selectedDate} onChange={setSelectedDate} />
+              ) : null}
+            </div>
+          </header>
+        ) : null}
         <PageTransition routeKey={location.pathname}>
           <Outlet context={{ selectedDate }} />
         </PageTransition>
       </main>
-      <BottomNav />
+      {showBottomNav ? <BottomNav /> : null}
     </>
   );
 }
