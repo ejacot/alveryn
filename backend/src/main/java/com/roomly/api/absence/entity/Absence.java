@@ -16,6 +16,8 @@ import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -46,7 +48,8 @@ public class Absence extends BaseEntity {
   @Column(name = "import_source_key", length = 255)
   private String importSourceKey;
 
-  @Column(name = "import_fingerprint", columnDefinition = "CHAR(64)")
+  @JdbcTypeCode(SqlTypes.CHAR)
+  @Column(name = "import_fingerprint", length = 64)
   private String importFingerprint;
 
   public Absence(

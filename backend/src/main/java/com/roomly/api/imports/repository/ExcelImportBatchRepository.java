@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 public interface ExcelImportBatchRepository extends JpaRepository<ExcelImportBatch, UUID> {
   boolean existsByUserIdAndFileSha256(UUID userId, String fileSha256);
 
+  Optional<ExcelImportBatch> findByUserIdAndFileSha256(UUID userId, String fileSha256);
+
   Optional<ExcelImportBatch> findByIdAndUserId(UUID id, UUID userId);
 
   List<ExcelImportBatch> findAllByUserIdOrderByCreatedAtDesc(UUID userId);

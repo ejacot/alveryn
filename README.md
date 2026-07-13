@@ -4,7 +4,7 @@ Roomly is organized as a Spring Boot backend plus a Vite/React frontend, with in
 
 ## Local development
 
-1. Copy `.env.example` to `.env` if local overrides are needed.
+1. Copy `.env.example` to `.env` if local overrides are needed. The backend imports `.env` automatically in local development.
 2. Start PostgreSQL with `docker compose up -d postgres`.
 3. Set local mail variables if email delivery should work end-to-end: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_STARTTLS`.
 4. Start the backend from `backend` with `SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run` on Unix-like systems or the equivalent local profile configuration in IntelliJ IDEA / Windows.

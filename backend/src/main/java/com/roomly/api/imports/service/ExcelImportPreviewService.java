@@ -11,6 +11,7 @@ import com.roomly.api.common.exception.ValidationException;
 import com.roomly.api.imports.config.ExcelImportProperties;
 import com.roomly.api.imports.dto.ExcelImportPreviewResponse;
 import com.roomly.api.imports.entity.ExcelImportBatch;
+import com.roomly.api.imports.entity.ExcelImportBatchStatus;
 import com.roomly.api.imports.repository.ExcelImportBatchRepository;
 import com.roomly.api.imports.model.ExcelImportErrorCode;
 import com.roomly.api.imports.model.ExcelImportPreviewPayload;
@@ -120,7 +121,17 @@ public class ExcelImportPreviewService {
         String tokenHash = sha256(rawToken);
         OffsetDateTime now = OffsetDateTime.now(clock);
         ExcelImportBatch batch =
-            new ExcelImportBatch(user, workbook.fileName(), workbook.fileSha256(), workbook.fileSizeBytes(), detectedYear);
+            importBatches
+                .findByUserIdAndFileSha256(userId, workbook.fileSha256())
+                .filter(existing -> existing.getStatus() != ExcelImportBatchStatus.COMPLETED)
+                .orElseGet(
+                    () ->
+                        new ExcelImportBatch(
+                            user,
+                            workbook.fileName(),
+                            workbook.fileSha256(),
+                            workbook.fileSizeBytes(),
+                            detectedYear));
         batch.markPreviewed(
             payload.recognizedSheets().size(),
             payload.totals().workEntries(),

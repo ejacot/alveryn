@@ -1,6 +1,10 @@
 spring:
   application:
     name: roomly-api
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
 
   servlet:
     multipart:
