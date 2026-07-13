@@ -2,9 +2,7 @@ import { z } from "zod";
 
 export const profileStepSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(80),
-  lastName: z.string().trim().min(1, "Last name is required").max(80),
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  employmentStartDate: z.string().optional().or(z.literal(""))
+  lastName: z.string().trim().min(1, "Last name is required").max(80)
 });
 
 export type ProfileStepValues = z.infer<typeof profileStepSchema>;
@@ -20,8 +18,7 @@ export const preferencesStepSchema = z.object({
 export type PreferencesStepValues = z.infer<typeof preferencesStepSchema>;
 
 export const hourlyRateStepSchema = z.object({
-  hourlyRate: z.coerce.number().min(0, "Rate must be zero or positive"),
-  currency: z.string().trim().length(3, "Use a 3-letter currency")
+  hourlyRate: z.coerce.number().min(0, "Rate must be zero or positive")
 });
 
 export type HourlyRateStepValues = z.infer<typeof hourlyRateStepSchema>;

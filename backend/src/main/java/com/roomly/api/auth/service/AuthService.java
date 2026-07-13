@@ -12,9 +12,11 @@ import com.roomly.api.auth.util.AuthTokenGenerator;
 import com.roomly.api.common.exception.ConflictException;
 import com.roomly.api.common.exception.ValidationException;
 import com.roomly.api.user.entity.UserAccount;
+import com.roomly.api.user.entity.UserPreferences;
 import com.roomly.api.user.entity.UserStatus;
 import com.roomly.api.user.mapper.UserMapper;
 import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.user.repository.UserPreferencesRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Locale;
@@ -32,6 +34,7 @@ public class AuthService {
 
   private final UserAccountRepository users;
   private final UserMapper userMapper;
+  private final UserPreferencesRepository preferences;
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationEmailService emailService;
   private final AuthTokenGenerator tokenGenerator;
@@ -53,6 +56,7 @@ public class AuthService {
     user.assignSecurityCode(
         passwordEncoder.encode(verificationCode), now.plus(properties.emailVerificationCodeLifetime()));
     UserAccount saved = users.save(user);
+    preferences.save(new UserPreferences(saved));
     emailService.sendVerificationCode(saved, verificationCode);
     return toAuthUserResponse(saved);
   }

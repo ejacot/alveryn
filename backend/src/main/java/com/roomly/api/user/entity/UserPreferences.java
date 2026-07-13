@@ -25,10 +25,10 @@ public class UserPreferences extends BaseEntity {
   private UserAccount user;
 
   @Column(nullable = false, length = 10)
-  private String language = "ro";
+  private String language = "en";
 
   @Column(nullable = false, length = 60)
-  private String timezone = "Europe/Berlin";
+  private String timezone = "UTC";
 
   @Column(nullable = false, length = 3)
   private String currency = "EUR";
@@ -38,7 +38,7 @@ public class UserPreferences extends BaseEntity {
   private FirstDayOfWeek firstDayOfWeek = FirstDayOfWeek.MONDAY;
 
   @Column(name = "date_format", nullable = false, length = 30)
-  private String dateFormat = "DD.MM.YYYY";
+  private String dateFormat = "dd/MM/yyyy";
 
   @Enumerated(EnumType.STRING)
   @Column(name = "time_format", nullable = false, length = 10)
@@ -46,13 +46,13 @@ public class UserPreferences extends BaseEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 10)
-  private ThemePreference theme = ThemePreference.SYSTEM;
+  private ThemePreference theme = ThemePreference.DARK;
 
   @Column(name = "default_break_minutes", nullable = false)
   private int defaultBreakMinutes = 30;
 
   @Column(name = "preferred_daily_minutes")
-  private Integer preferredDailyMinutes;
+  private Integer preferredDailyMinutes = 480;
 
   @Column(name = "onboarding_completed", nullable = false)
   private boolean onboardingCompleted;

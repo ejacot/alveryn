@@ -11,6 +11,7 @@ import com.roomly.api.auth.email.AuthenticationEmailService;
 import com.roomly.api.auth.repository.PasswordResetTokenRepository;
 import com.roomly.api.auth.repository.RefreshTokenRepository;
 import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.user.repository.UserPreferencesRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 class AuthIntegrationTest {
   private MockMvc mockMvc;
   @Autowired UserAccountRepository users;
+  @Autowired UserPreferencesRepository preferences;
   @Autowired RefreshTokenRepository refreshTokens;
   @Autowired PasswordResetTokenRepository passwordResetTokens;
   @Autowired PasswordEncoder passwordEncoder;
@@ -79,6 +81,12 @@ class AuthIntegrationTest {
     assertThat(user.getSecurityCodeHash()).isNotEqualTo(emailService.verificationCodeFor("newuser@example.com"));
     assertThat(passwordEncoder.matches(emailService.verificationCodeFor("newuser@example.com"), user.getSecurityCodeHash()))
         .isTrue();
+    var savedPreferences = preferences.findByUserId(user.getId()).orElseThrow();
+    assertThat(savedPreferences.getLanguage()).isEqualTo("en");
+    assertThat(savedPreferences.getCurrency()).isEqualTo("EUR");
+    assertThat(savedPreferences.getTimezone()).isEqualTo("UTC");
+    assertThat(savedPreferences.getDefaultBreakMinutes()).isEqualTo(30);
+    assertThat(savedPreferences.getPreferredDailyMinutes()).isEqualTo(480);
   }
 
   @Test

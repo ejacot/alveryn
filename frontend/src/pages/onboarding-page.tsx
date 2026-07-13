@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,7 +16,6 @@ import { getApiError } from "../api/api-errors";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
-import { Select } from "../components/ui/select";
 import {
   clearStoredOnboardingStep,
   getStoredOnboardingStep,
@@ -24,25 +23,21 @@ import {
 } from "../features/onboarding/onboarding-storage";
 import {
   hourlyRateStepSchema,
-  preferencesStepSchema,
   profileStepSchema
 } from "../features/onboarding/onboarding-schemas";
 import { useAuth } from "../features/auth/use-auth";
 
-const STEP_WELCOME = 1;
-const STEP_PROFILE = 2;
-const STEP_PREFERENCES = 3;
-const STEP_HOURLY_RATE = 4;
-const STEP_FINISH = 5;
-
+const STEP_PROFILE = 1;
+const STEP_HOURLY_RATE = 2;
+const TOTAL_STEPS = 2;
 const DEFAULT_DATE_FORMAT = "dd/MM/yyyy";
-const ONBOARDING_STEPS = STEP_FINISH;
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
-  const [currentStep, setCurrentStep] = useState(STEP_WELCOME);
+  const [currentStep, setCurrentStep] = useState(STEP_PROFILE);
+  const [defaultsReady, setDefaultsReady] = useState(false);
   const userId = user?.account.id ?? null;
 
   const onboardingStatusQuery = useQuery({
@@ -53,90 +48,86 @@ export function OnboardingPage() {
   const hourlyRatesQuery = useQuery({
     queryKey: ["hourly-rates"],
     queryFn: listHourlyRates,
-    enabled: Boolean(userId)
+    enabled: Boolean(userId && defaultsReady)
   });
-
-  const isLoading = onboardingStatusQuery.isLoading || hourlyRatesQuery.isLoading;
-  const combinedError = onboardingStatusQuery.error ?? hourlyRatesQuery.error;
 
   const profileComplete = Boolean(
     user?.profile?.firstName?.trim() && user.profile?.lastName?.trim()
   );
-  const preferencesComplete = Boolean(user?.preferences);
   const hourlyRateComplete = Boolean(hourlyRatesQuery.data?.length);
 
   const profileForm = useForm({
     resolver: zodResolver(profileStepSchema),
     defaultValues: {
       firstName: "",
-      lastName: "",
-      phone: "",
-      employmentStartDate: ""
-    }
-  });
-  const preferencesForm = useForm({
-    resolver: zodResolver(preferencesStepSchema),
-    defaultValues: {
-      language: "",
-      currency: "EUR",
-      timezone: "",
-      defaultBreakMinutes: 30,
-      preferredDailyHours: 8
+      lastName: ""
     }
   });
   const hourlyRateForm = useForm({
     resolver: zodResolver(hourlyRateStepSchema),
     defaultValues: {
-      hourlyRate: 0,
-      currency: "EUR"
+      hourlyRate: 0
     }
   });
 
   useEffect(() => {
-    if (user?.profile) {
-      profileForm.reset({
-        firstName: user.profile.firstName ?? "",
-        lastName: user.profile.lastName ?? "",
-        phone: user.profile.phone ?? "",
-        employmentStartDate: user.profile.employmentStartDate ?? ""
-      });
-    }
-  }, [profileForm, user?.profile]);
+    setDefaultsReady(false);
+  }, [userId]);
 
   useEffect(() => {
-    if (user?.preferences) {
-      preferencesForm.reset({
-        language: user.preferences.language,
-        currency: user.preferences.currency,
-        timezone: user.preferences.timezone,
-        defaultBreakMinutes: user.preferences.defaultBreakMinutes,
-        preferredDailyHours: (user.preferences.preferredDailyMinutes ?? 480) / 60
-      });
-      hourlyRateForm.setValue("currency", user.preferences.currency);
+    profileForm.reset({
+      firstName: user?.profile?.firstName ?? "",
+      lastName: user?.profile?.lastName ?? ""
+    });
+  }, [profileForm, user?.profile?.firstName, user?.profile?.lastName]);
+
+  const automaticPreferences = useMemo(
+    () => ({
+      language:
+        typeof navigator === "undefined"
+          ? "en"
+          : navigator.language.split("-")[0]?.slice(0, 10)?.toLowerCase() || "en",
+      timezone:
+        typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+          : "UTC",
+      currency: "EUR",
+      firstDayOfWeek: "MONDAY" as const,
+      dateFormat: DEFAULT_DATE_FORMAT,
+      timeFormat: "H24" as const,
+      theme: "DARK" as const,
+      defaultBreakMinutes: 30,
+      preferredDailyMinutes: 480
+    }),
+    []
+  );
+
+  const preferencesBootstrapMutation = useMutation({
+    mutationFn: updatePreferences,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] }),
+        refreshCurrentUser()
+      ]);
+      setDefaultsReady(true);
+    }
+  });
+
+  useEffect(() => {
+    if (!userId || defaultsReady || preferencesBootstrapMutation.isPending) {
       return;
     }
 
-    const browserLanguage =
-      typeof navigator === "undefined"
-        ? "en"
-        : navigator.language.split("-")[0]?.slice(0, 10) || "en";
-    const browserTimezone =
-      typeof Intl !== "undefined"
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-        : "Europe/Berlin";
-
-    preferencesForm.reset({
-      language: browserLanguage,
-      currency: "EUR",
-      timezone: browserTimezone,
-      defaultBreakMinutes: 30,
-      preferredDailyHours: 8
-    });
-    hourlyRateForm.setValue("currency", "EUR");
-  }, [hourlyRateForm, preferencesForm, user?.preferences]);
+    void preferencesBootstrapMutation.mutateAsync(automaticPreferences);
+  }, [
+    automaticPreferences,
+    defaultsReady,
+    preferencesBootstrapMutation,
+    userId
+  ]);
 
   useEffect(() => {
-    if (!userId || isLoading) {
+    if (!userId || !defaultsReady) {
       return;
     }
 
@@ -151,16 +142,14 @@ export function OnboardingPage() {
       deriveCurrentStep({
         storedStep,
         profileComplete,
-        preferencesComplete,
         hourlyRateComplete
       })
     );
   }, [
+    defaultsReady,
     hourlyRateComplete,
-    isLoading,
     navigate,
     onboardingStatusQuery.data?.onboardingCompleted,
-    preferencesComplete,
     profileComplete,
     refreshCurrentUser,
     userId
@@ -175,33 +164,8 @@ export function OnboardingPage() {
   const profileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] }),
-        refreshCurrentUser()
-      ]);
-      setCurrentStep(STEP_PREFERENCES);
-    }
-  });
-
-  const preferencesMutation = useMutation({
-    mutationFn: updatePreferences,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] }),
-        refreshCurrentUser()
-      ]);
+      await refreshCurrentUser();
       setCurrentStep(STEP_HOURLY_RATE);
-    }
-  });
-
-  const hourlyRateMutation = useMutation({
-    mutationFn: createHourlyRate,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["hourly-rates"] }),
-        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] })
-      ]);
-      setCurrentStep(STEP_FINISH);
     }
   });
 
@@ -221,23 +185,27 @@ export function OnboardingPage() {
     }
   });
 
-  function goBack() {
-    if (currentStep <= STEP_WELCOME) {
-      return;
-    }
+  const hourlyRateMutation = useMutation({
+    mutationFn: createHourlyRate
+  });
 
-    setCurrentStep((step) => Math.max(STEP_WELCOME, step - 1));
-  }
+  const isBootstrapping =
+    !userId ||
+    !defaultsReady ||
+    onboardingStatusQuery.isLoading ||
+    hourlyRatesQuery.isLoading ||
+    preferencesBootstrapMutation.isPending;
 
-  if (!userId) {
-    return <ScreenMessage title="Loading session..." />;
-  }
+  const combinedError =
+    onboardingStatusQuery.error ??
+    hourlyRatesQuery.error ??
+    preferencesBootstrapMutation.error;
 
-  if (isLoading) {
+  if (!userId || isBootstrapping) {
     return (
       <ScreenMessage
-        title="Preparing onboarding..."
-        description="Restoring your setup and the next step."
+        title="Preparing Roomly..."
+        description="Applying your defaults and restoring the shortest path into the app."
       />
     );
   }
@@ -250,6 +218,7 @@ export function OnboardingPage() {
         <Button
           className="w-full"
           onClick={() => {
+            setDefaultsReady(false);
             void Promise.all([onboardingStatusQuery.refetch(), hourlyRatesQuery.refetch()]);
           }}
         >
@@ -259,8 +228,7 @@ export function OnboardingPage() {
     );
   }
 
-  const progressValue =
-    ((Math.min(currentStep, ONBOARDING_STEPS) - 1) / Math.max(ONBOARDING_STEPS - 1, 1)) * 100;
+  const progressValue = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
 
   return (
     <section className="pb-8 pt-6">
@@ -268,7 +236,7 @@ export function OnboardingPage() {
         <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.24em] text-white/42">
           <span>Onboarding</span>
           <span>
-            {Math.min(currentStep, ONBOARDING_STEPS)} / {ONBOARDING_STEPS}
+            {currentStep} / {TOTAL_STEPS}
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-white/10">
@@ -287,43 +255,31 @@ export function OnboardingPage() {
         transition={{ duration: 0.24, ease: "easeOut" }}
         className="section-card mx-auto max-w-md space-y-6 rounded-[32px] p-6"
       >
-        {currentStep === STEP_WELCOME ? (
-          <StepScaffold
-            title="Let's get everything ready in less than 30 seconds."
-            description="Only the essentials now. Roomly will take care of the rest in the background."
-            primaryAction={
-              <Button className="w-full" onClick={() => setCurrentStep(STEP_PROFILE)}>
-                Continue
-              </Button>
-            }
-          />
-        ) : null}
-
         {currentStep === STEP_PROFILE ? (
           <form
-            className="space-y-4"
+            className="space-y-5"
             onSubmit={profileForm.handleSubmit(async (values) => {
               await profileMutation.mutateAsync({
                 firstName: values.firstName,
                 lastName: values.lastName,
-                phone: emptyToNull(values.phone),
-                employmentStartDate: emptyToNull(values.employmentStartDate),
-                displayName: null,
-                dateOfBirth: null,
-                countryCode: null,
-                city: null,
-                postalCode: null,
-                street: null,
-                houseNumber: null,
-                apartment: null,
-                avatarUrl: null,
-                employmentEndDate: null
+                phone: user?.profile?.phone ?? null,
+                employmentStartDate: user?.profile?.employmentStartDate ?? null,
+                displayName: user?.profile?.displayName ?? null,
+                dateOfBirth: user?.profile?.dateOfBirth ?? null,
+                countryCode: user?.profile?.countryCode ?? null,
+                city: user?.profile?.city ?? null,
+                postalCode: user?.profile?.postalCode ?? null,
+                street: user?.profile?.street ?? null,
+                houseNumber: user?.profile?.houseNumber ?? null,
+                apartment: user?.profile?.apartment ?? null,
+                avatarUrl: user?.profile?.avatarUrl ?? null,
+                employmentEndDate: user?.profile?.employmentEndDate ?? null
               });
             })}
           >
             <StepHeader
-              title="A quick profile touch."
-              description="Just enough to make the app feel personal from the first day."
+              title="Welcome to Roomly"
+              description="Let's get to know you."
             />
             <Input
               label="First name"
@@ -335,173 +291,61 @@ export function OnboardingPage() {
               error={profileForm.formState.errors.lastName?.message}
               {...profileForm.register("lastName")}
             />
-            <Input
-              label="Phone (optional)"
-              error={profileForm.formState.errors.phone?.message}
-              {...profileForm.register("phone")}
-            />
-            <Input
-              label="Employment start date (optional)"
-              type="date"
-              error={profileForm.formState.errors.employmentStartDate?.message}
-              {...profileForm.register("employmentStartDate")}
-            />
-            <StepActions
-              onBack={goBack}
-              primaryLabel="Save and continue"
-              isSubmitting={profileMutation.isPending}
-            />
+            <Button className="w-full" type="submit" disabled={profileMutation.isPending}>
+              {profileMutation.isPending ? "Saving..." : "Continue"}
+            </Button>
             <FormLevelError error={profileMutation.error} />
-          </form>
-        ) : null}
-
-        {currentStep === STEP_PREFERENCES ? (
-          <form
-            className="space-y-4"
-            onSubmit={preferencesForm.handleSubmit(async (values) => {
-              await preferencesMutation.mutateAsync({
-                language: values.language.trim().toLowerCase(),
-                timezone: values.timezone.trim(),
-                currency: values.currency.trim().toUpperCase(),
-                firstDayOfWeek: "MONDAY",
-                dateFormat: DEFAULT_DATE_FORMAT,
-                timeFormat: "H24",
-                theme: "DARK",
-                defaultBreakMinutes: values.defaultBreakMinutes,
-                preferredDailyMinutes: Math.round(values.preferredDailyHours * 60)
-              });
-            })}
-          >
-            <StepHeader
-              title="Tune your default rhythm."
-              description="Language, currency and timezone are enough to make Roomly yours."
-            />
-            <Select
-              label="Language"
-              error={preferencesForm.formState.errors.language?.message}
-              {...preferencesForm.register("language")}
-            >
-              <option value="en">English</option>
-              <option value="ro">Romana</option>
-              <option value="de">Deutsch</option>
-            </Select>
-            <Select
-              label="Currency"
-              error={preferencesForm.formState.errors.currency?.message}
-              {...preferencesForm.register("currency")}
-            >
-              <option value="EUR">EUR</option>
-              <option value="RON">RON</option>
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-            </Select>
-            <Select
-              label="Timezone"
-              error={preferencesForm.formState.errors.timezone?.message}
-              {...preferencesForm.register("timezone")}
-            >
-              {TIMEZONE_OPTIONS.map((timezone) => (
-                <option key={timezone} value={timezone}>
-                  {timezone}
-                </option>
-              ))}
-            </Select>
-            <Input
-              label="Default break (minutes)"
-              type="number"
-              min={0}
-              error={preferencesForm.formState.errors.defaultBreakMinutes?.message}
-              {...preferencesForm.register("defaultBreakMinutes")}
-            />
-            <Input
-              label="Preferred daily hours"
-              type="number"
-              min={1}
-              step="0.5"
-              error={preferencesForm.formState.errors.preferredDailyHours?.message}
-              {...preferencesForm.register("preferredDailyHours")}
-            />
-            <StepActions
-              onBack={goBack}
-              primaryLabel="Save and continue"
-              isSubmitting={preferencesMutation.isPending}
-            />
-            <FormLevelError error={preferencesMutation.error} />
           </form>
         ) : null}
 
         {currentStep === STEP_HOURLY_RATE ? (
           <form
-            className="space-y-4"
+            className="space-y-5"
             onSubmit={hourlyRateForm.handleSubmit(async (values) => {
               await hourlyRateMutation.mutateAsync({
                 hourlyRate: values.hourlyRate,
-                currency: values.currency.trim().toUpperCase(),
+                currency: "EUR",
                 validFrom: new Date().toISOString().slice(0, 10)
               });
+              await finishMutation.mutateAsync();
             })}
           >
             <StepHeader
-              title="Set your hourly rate."
-              description="We will start it from today automatically and keep history for settings later."
+              title="How much do you earn per hour?"
+              description="Enter the number and continue. Roomly handles the rest."
             />
             <Input
               label="Hourly rate"
               type="number"
               min={0}
               step="0.01"
+              placeholder="17.50"
               error={hourlyRateForm.formState.errors.hourlyRate?.message}
               {...hourlyRateForm.register("hourlyRate")}
             />
-            <Select
-              label="Currency"
-              error={hourlyRateForm.formState.errors.currency?.message}
-              {...hourlyRateForm.register("currency")}
-            >
-              <option value="EUR">EUR</option>
-              <option value="RON">RON</option>
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-            </Select>
-            <StepActions
-              onBack={goBack}
-              primaryLabel="Save and continue"
-              isSubmitting={hourlyRateMutation.isPending}
-            />
-            <FormLevelError error={hourlyRateMutation.error} />
-          </form>
-        ) : null}
-
-        {currentStep === STEP_FINISH ? (
-          <div className="space-y-5">
-            <StepHeader
-              title="You are ready to track work."
-              description="Roomly will create a default Regular Shift for you if no work type exists yet."
-            />
-            <div className="space-y-3 rounded-[24px] border border-white/[0.08] bg-white/[0.04] p-4">
-              <SummaryRow label="Profile" complete={profileComplete} />
-              <SummaryRow label="Preferences" complete={preferencesComplete} />
-              <SummaryRow label="Hourly Rate" complete={hourlyRateComplete} />
-              <SummaryRow label="Default Work Type" complete>
-                Created automatically on finish
-              </SummaryRow>
+            <div className="rounded-[22px] border border-white/[0.06] bg-white/[0.03] px-4 py-3 text-sm text-white/64">
+              Saved as EUR from today.
             </div>
-            {onboardingStatusQuery.data?.missingSteps.length ? (
-              <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.04] p-4 text-sm text-white/70">
-                Missing backend requirements:{" "}
-                {onboardingStatusQuery.data.missingSteps.join(", ")}
-              </div>
-            ) : null}
-            <StepActions
-              onBack={goBack}
-              primaryLabel="Enter Roomly"
-              isSubmitting={finishMutation.isPending}
-              onPrimary={() => {
-                void finishMutation.mutateAsync();
-              }}
-            />
-            <FormLevelError error={finishMutation.error} />
-          </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                className="w-full"
+                variant="ghost"
+                onClick={() => setCurrentStep(STEP_PROFILE)}
+              >
+                Back
+              </Button>
+              <Button
+                className="w-full"
+                type="submit"
+                disabled={hourlyRateMutation.isPending || finishMutation.isPending}
+              >
+                {hourlyRateMutation.isPending || finishMutation.isPending
+                  ? "Finishing..."
+                  : "Enter Roomly"}
+              </Button>
+            </div>
+            <FormLevelError error={hourlyRateMutation.error ?? finishMutation.error} />
+          </form>
         ) : null}
       </motion.div>
     </section>
@@ -517,76 +361,8 @@ function StepHeader({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-[0.28em] text-white/42">
-        Roomly setup
-      </p>
-      <h1 className="text-[1.85rem] font-semibold leading-tight text-white">{title}</h1>
+      <h1 className="text-[1.9rem] font-semibold leading-tight text-white">{title}</h1>
       <p className="text-sm leading-6 text-white/62">{description}</p>
-    </div>
-  );
-}
-
-function StepScaffold({
-  title,
-  description,
-  primaryAction
-}: {
-  title: string;
-  description: string;
-  primaryAction: ReactNode;
-}) {
-  return (
-    <div className="space-y-6">
-      <StepHeader title={title} description={description} />
-      {primaryAction}
-    </div>
-  );
-}
-
-function StepActions({
-  onBack,
-  primaryLabel,
-  isSubmitting,
-  onPrimary
-}: {
-  onBack: () => void;
-  primaryLabel: string;
-  isSubmitting: boolean;
-  onPrimary?: () => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <Button className="w-full" variant="ghost" onClick={onBack}>
-        Back
-      </Button>
-      <Button
-        className="w-full"
-        type={onPrimary ? "button" : "submit"}
-        onClick={onPrimary}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Saving..." : primaryLabel}
-      </Button>
-    </div>
-  );
-}
-
-function SummaryRow({
-  label,
-  complete,
-  children
-}: {
-  label: string;
-  complete: boolean;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="space-y-1">
-        <span className="text-sm text-white/72">{label}</span>
-        {children ? <p className="text-xs text-white/42">{children}</p> : null}
-      </div>
-      <span className="text-sm font-medium text-white">{complete ? "Done" : "Missing"}</span>
     </div>
   );
 }
@@ -599,39 +375,20 @@ function FormLevelError({ error }: { error: unknown }) {
   return <p className="text-sm text-red-300">{getApiError(error).message}</p>;
 }
 
-function emptyToNull(value?: string | null) {
-  const normalized = value?.trim();
-  return normalized ? normalized : null;
-}
-
 function deriveCurrentStep({
   storedStep,
   profileComplete,
-  preferencesComplete,
   hourlyRateComplete
 }: {
   storedStep: number | null;
   profileComplete: boolean;
-  preferencesComplete: boolean;
   hourlyRateComplete: boolean;
 }) {
   if (!profileComplete) {
-    return storedStep === STEP_WELCOME ? STEP_WELCOME : STEP_PROFILE;
-  }
-  if (!preferencesComplete) {
-    return STEP_PREFERENCES;
+    return STEP_PROFILE;
   }
   if (!hourlyRateComplete) {
-    return STEP_HOURLY_RATE;
+    return storedStep === STEP_PROFILE ? STEP_PROFILE : STEP_HOURLY_RATE;
   }
-  return STEP_FINISH;
+  return STEP_HOURLY_RATE;
 }
-
-const TIMEZONE_OPTIONS = [
-  "Europe/Berlin",
-  "Europe/Bucharest",
-  "Europe/London",
-  "America/New_York",
-  "America/Chicago",
-  "America/Los_Angeles"
-];
