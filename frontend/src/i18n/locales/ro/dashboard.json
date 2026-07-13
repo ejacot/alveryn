@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "today": "Astazi",
+    "gross": "Brut",
+    "week": "Saptamana",
+    "recent": "Recente",
+    "noEntries": "Niciun pontaj inca",
+    "liveSavedEntries": "Direct din datele salvate",
+    "loadedRealData": "Incarcat din backendul real"
+  },
+  "recentEntries": {
+    "title": "Intrari recente"
+  },
+  "quickAdd": "Adaugare rapida"
+}

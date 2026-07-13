@@ -1,0 +1,41 @@
+{
+  "actions": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "continue": "Continue",
+    "retry": "Retry",
+    "save": "Save",
+    "saving": "Saving...",
+    "working": "Working..."
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "verificationCode": "Verification code"
+  },
+  "messages": {
+    "genericError": "Something went wrong. Please try again.",
+    "networkError": "Roomly could not reach the backend. Check the server and try again.",
+    "serverUnavailable": "Roomly is temporarily unavailable. Try again in a moment.",
+    "unexpectedResponse": "The backend returned an unexpected response.",
+    "saved": "Saved",
+    "changesSaved": "Changes saved.",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "home": "Home",
+    "calendar": "Calendar",
+    "addEntry": "Add entry",
+    "statistics": "Statistics",
+    "settings": "Settings",
+    "primaryNavigation": "Primary navigation"
+  },
+  "time": {
+    "today": "Today",
+    "current": "Current",
+    "hoursShort": "h",
+    "minutesShort": "m"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Setari",
+  "account": "Cont",
+  "work": "Munca",
+  "preferences": "Preferinte",
+  "app": "Aplicatie",
+  "profile": "Profil",
+  "hourlyRates": "Tarife orare",
+  "workTypes": "Tipuri de munca",
+  "about": "Despre Roomly",
+  "help": "Ajutor si suport",
+  "logout": "Deconectare",
+  "discardTitle": "Renunti la modificari?",
+  "discardDescription": "Modificarile nesalvate vor fi pierdute.",
+  "discardConfirm": "Renunta"
+}

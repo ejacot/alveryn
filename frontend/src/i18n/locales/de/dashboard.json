@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "today": "Heute",
+    "gross": "Brutto",
+    "week": "Woche",
+    "recent": "Letzte",
+    "noEntries": "Noch keine Eintrage",
+    "liveSavedEntries": "Direkt aus gespeicherten Eintragen",
+    "loadedRealData": "Aus echten Backend-Daten geladen"
+  },
+  "recentEntries": {
+    "title": "Letzte Eintrage"
+  },
+  "quickAdd": "Schnell hinzufugen"
+}

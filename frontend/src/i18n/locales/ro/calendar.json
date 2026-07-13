@@ -1,0 +1,13 @@
+{
+  "title": "Calendar",
+  "monthlySummaryLabel": "Rezumat lunar",
+  "unavailable": "Calendarul nu este disponibil.",
+  "monthlySummary": {
+    "worked": "Lucrate",
+    "grossPay": "Brut",
+    "entries": "Intrari",
+    "absenceDays": "Zile absenta"
+  },
+  "emptyDay": "Nicio activitate.",
+  "addEntryForDay": "Adauga o intrare pentru aceasta zi"
+}

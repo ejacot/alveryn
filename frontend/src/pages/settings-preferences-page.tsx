@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -16,6 +17,8 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
+import { applyAppLanguage } from "../i18n";
+import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
 import { getSupportedTimezones } from "../utils/timezones";
 
 const schema = z.object({
@@ -34,6 +37,7 @@ type FormValues = z.infer<typeof schema>;
 type FormInput = z.input<typeof schema>;
 
 export function SettingsPreferencesPage() {
+  const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -59,8 +63,9 @@ export function SettingsPreferencesPage() {
     mutationFn: (payload: UpdatePreferencesPayload) => updatePreferences(payload),
     onSuccess: async (nextPreferences) => {
       queryClient.setQueryData(queryKeys.preferences(), nextPreferences);
+      applyAppLanguage(nextPreferences.language);
       await refreshCurrentUser();
-      setSuccessMessage("Preferences updated.");
+      setSuccessMessage(t("common:messages.changesSaved"));
     },
     onError: (error) => {
       const apiError = getApiError(error);
@@ -79,14 +84,14 @@ export function SettingsPreferencesPage() {
   }
 
   if (preferencesQuery.error) {
-    return <ScreenMessage title="Preferences are unavailable" description={getApiError(preferencesQuery.error).message} />;
+    return <ScreenMessage title={t("settings:preferences")} description={getApiError(preferencesQuery.error).message} />;
   }
 
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
-        title="Preferences"
-        description={`Current device timezone: ${detectedTimezone}`}
+        title={t("settings:preferences")}
+        description={`${t("settings:preferences")}: ${detectedTimezone}`}
         fallbackHref="/profile"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -109,9 +114,11 @@ export function SettingsPreferencesPage() {
         <SettingsSection title="Regional">
           <div className="space-y-4">
             <Select label="Language" error={form.formState.errors.language?.message} {...form.register("language")}>
-              <option value="en">English</option>
-              <option value="de">German</option>
-              <option value="ro">Romanian</option>
+              {["en", "de", "ro"].map((language) => (
+                <option key={language} value={language}>
+                  {getNativeLanguageName(normalizeLanguage(language))}
+                </option>
+              ))}
             </Select>
             <Select label="Currency" error={form.formState.errors.currency?.message} {...form.register("currency")}>
               {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (

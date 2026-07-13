@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { resendVerification, verifyEmail } from "../api/endpoints";
@@ -13,6 +14,7 @@ import {
 } from "../features/auth/auth-schemas";
 
 export function VerifyEmailPage() {
+  const { t } = useTranslation(["auth", "common"]);
   const location = useLocation();
   const navigate = useNavigate();
   const [message, setMessage] = useState(
@@ -37,7 +39,7 @@ export function VerifyEmailPage() {
       setMessage(result.message);
       navigate("/login", {
         replace: true,
-        state: { message: "Email verified successfully. Sign in to continue." }
+        state: { message: t("auth:verifyEmail.successNavigate") }
       });
     } catch (error) {
       const apiError = getApiError(error);
@@ -54,7 +56,7 @@ export function VerifyEmailPage() {
   async function handleResend() {
     const email = form.getValues("email");
     if (!email) {
-      setMessage("Enter your email before requesting a new verification code.");
+      setMessage(t("auth:verifyEmail.missingEmail"));
       return;
     }
     try {
@@ -67,25 +69,25 @@ export function VerifyEmailPage() {
 
   return (
     <AuthCard
-      title="Verify your email"
-      subtitle="A clean verification step that respects the existing hardened backend flow."
-      backLink={{ to: "/login", label: "Back to login" }}
+      title={t("auth:verifyEmail.title")}
+      subtitle={t("auth:verifyEmail.subtitle")}
+      backLink={{ to: "/login", label: t("auth:verifyEmail.backToLogin") }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
-          label="Email"
+          label={t("common:labels.email")}
           type="email"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
         <Input
-          label="Verification code"
+          label={t("common:labels.verificationCode")}
           error={form.formState.errors.code?.message}
           {...form.register("code")}
         />
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Verifying..." : "Verify email"}
+          {form.formState.isSubmitting ? t("auth:verifyEmail.submitting") : t("auth:verifyEmail.submit")}
         </Button>
         <Button
           className="w-full"
@@ -93,7 +95,7 @@ export function VerifyEmailPage() {
           type="button"
           onClick={() => void handleResend()}
         >
-          Resend code
+          {t("auth:verifyEmail.resend")}
         </Button>
       </form>
     </AuthCard>

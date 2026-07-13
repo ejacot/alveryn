@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { resetPassword } from "../api/endpoints";
@@ -13,6 +14,7 @@ import {
 } from "../features/auth/auth-schemas";
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const form = useForm<ResetPasswordValues>({
@@ -30,7 +32,7 @@ export function ResetPasswordPage() {
       setMessage(result.message);
       navigate("/login", {
         replace: true,
-        state: { message: "Password reset successfully. Sign in with your new password." }
+        state: { message: t("auth:resetPassword.successNavigate") }
       });
     } catch (error) {
       const apiError = getApiError(error);
@@ -49,42 +51,42 @@ export function ResetPasswordPage() {
 
   return (
     <AuthCard
-      title="Choose a new password"
-      subtitle="This flow is wired to the live backend reset endpoint and stays visually aligned with the rest of the product."
+      title={t("auth:resetPassword.title")}
+      subtitle={t("auth:resetPassword.subtitle")}
       footer={
         <span>
-          Need a code first?{" "}
+          {t("auth:resetPassword.footer")}{" "}
           <Link
             to="/forgot-password"
             className="text-white transition hover:text-white/70"
           >
-            Request one
+            {t("auth:resetPassword.footerLink")}
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: "Back to login" }}
+      backLink={{ to: "/login", label: t("auth:resetPassword.backToLogin") }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
-          label="Email"
+          label={t("common:labels.email")}
           type="email"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
         <Input
-          label="Verification code"
+          label={t("common:labels.verificationCode")}
           error={form.formState.errors.code?.message}
           {...form.register("code")}
         />
         <Input
-          label="New password"
+          label={t("common:labels.newPassword")}
           type="password"
           error={form.formState.errors.newPassword?.message}
           {...form.register("newPassword")}
         />
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Updating..." : "Reset password"}
+          {form.formState.isSubmitting ? t("auth:resetPassword.submitting") : t("auth:resetPassword.submit")}
         </Button>
       </form>
     </AuthCard>

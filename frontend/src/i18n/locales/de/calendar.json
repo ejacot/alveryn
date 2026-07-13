@@ -1,0 +1,13 @@
+{
+  "title": "Kalender",
+  "monthlySummaryLabel": "Monatsubersicht",
+  "unavailable": "Kalender ist nicht verfugbar.",
+  "monthlySummary": {
+    "worked": "Arbeitszeit",
+    "grossPay": "Brutto",
+    "entries": "Eintrage",
+    "absenceDays": "Fehltage"
+  },
+  "emptyDay": "Keine Aktivitaten.",
+  "addEntryForDay": "Eintrag fur diesen Tag hinzufugen"
+}

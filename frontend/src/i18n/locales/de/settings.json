@@ -1,0 +1,16 @@
+{
+  "title": "Einstellungen",
+  "account": "Konto",
+  "work": "Arbeit",
+  "preferences": "Einstellungen",
+  "app": "App",
+  "profile": "Profil",
+  "hourlyRates": "Stundensatze",
+  "workTypes": "Arbeitstypen",
+  "about": "Uber Roomly",
+  "help": "Hilfe & Support",
+  "logout": "Abmelden",
+  "discardTitle": "Anderungen verwerfen?",
+  "discardDescription": "Deine ungespeicherten Anderungen gehen verloren.",
+  "discardConfirm": "Verwerfen"
+}

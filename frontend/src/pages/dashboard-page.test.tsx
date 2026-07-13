@@ -101,7 +101,7 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
-    expect(screen.getByText("08:00 -> 16:00")).toBeInTheDocument();
+    expect(screen.getByText("08:00 - 16:00")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(listWorkEntriesInRange).toHaveBeenCalledWith({

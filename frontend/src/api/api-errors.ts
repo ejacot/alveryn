@@ -1,4 +1,5 @@
 import axios from "axios";
+import { i18n } from "../i18n";
 import type { ApiErrorResponse } from "../types/api";
 
 export type ParsedApiError = {
@@ -14,7 +15,7 @@ export type ParsedApiError = {
 
 const DEFAULT_ERROR: ParsedApiError = {
   status: null,
-  message: "Something went wrong. Please try again.",
+  message: i18n.t("common:messages.genericError"),
   fieldErrors: {},
   errors: [],
   isAuthError: false,
@@ -59,7 +60,7 @@ export function getApiError(error: unknown): ParsedApiError {
   if (!error.response) {
     return {
       ...DEFAULT_ERROR,
-      message: "Roomly could not reach the backend. Check the server and try again.",
+      message: i18n.t("common:messages.networkError"),
       isNetworkError: true,
       isServerUnavailable: true
     };
@@ -73,8 +74,8 @@ export function getApiError(error: unknown): ParsedApiError {
       status,
       message:
         status >= 500
-          ? "Roomly is temporarily unavailable. Try again in a moment."
-          : "The backend returned an unexpected response.",
+          ? i18n.t("common:messages.serverUnavailable")
+          : i18n.t("common:messages.unexpectedResponse"),
       isServerUnavailable: status >= 500
     };
   }

@@ -1,0 +1,41 @@
+{
+  "actions": {
+    "back": "Zuruck",
+    "cancel": "Abbrechen",
+    "close": "Schliessen",
+    "continue": "Weiter",
+    "retry": "Erneut versuchen",
+    "save": "Speichern",
+    "saving": "Speichert...",
+    "working": "Wird verarbeitet..."
+  },
+  "labels": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "newPassword": "Neues Passwort",
+    "verificationCode": "Bestatigungscode"
+  },
+  "messages": {
+    "genericError": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "networkError": "Roomly konnte das Backend nicht erreichen. Prufe den Server und versuche es erneut.",
+    "serverUnavailable": "Roomly ist vorubergehend nicht verfugbar. Bitte versuche es gleich noch einmal.",
+    "unexpectedResponse": "Das Backend hat eine unerwartete Antwort zuruckgegeben.",
+    "saved": "Gespeichert",
+    "changesSaved": "Anderungen gespeichert.",
+    "loading": "Ladt..."
+  },
+  "nav": {
+    "home": "Start",
+    "calendar": "Kalender",
+    "addEntry": "Eintrag",
+    "statistics": "Statistik",
+    "settings": "Einstellungen",
+    "primaryNavigation": "Primare Navigation"
+  },
+  "time": {
+    "today": "Heute",
+    "current": "Aktuell",
+    "hoursShort": "Std",
+    "minutesShort": "Min"
+  }
+}

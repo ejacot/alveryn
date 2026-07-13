@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
@@ -13,6 +14,7 @@ import {
 import { useAuth } from "../features/auth/use-auth";
 
 export function LoginPage() {
+  const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithPassword } = useAuth();
@@ -42,27 +44,27 @@ export function LoginPage() {
 
   return (
     <AuthCard
-      title="Welcome back"
-      subtitle="A quiet, premium authentication flow built for the Roomly product language."
+      title={t("auth:login.title")}
+      subtitle={t("auth:login.subtitle")}
       footer={
         <span>
-          New here?{" "}
+          {t("auth:login.footer")}{" "}
           <Link to="/register" className="text-white transition hover:text-white/70">
-            Create an account
+            {t("auth:login.footerLink")}
           </Link>
         </span>
       }
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
-          label="Email"
+          label={t("common:labels.email")}
           type="email"
           autoComplete="email"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
         <Input
-          label="Password"
+          label={t("common:labels.password")}
           type="password"
           autoComplete="current-password"
           error={form.formState.errors.password?.message}
@@ -72,14 +74,14 @@ export function LoginPage() {
           <p className="text-sm text-red-300">{serverError}</p>
         ) : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Signing in..." : "Sign in"}
+          {form.formState.isSubmitting ? t("auth:login.submitting") : t("auth:login.submit")}
         </Button>
         <div className="flex justify-end">
           <Link
             to="/forgot-password"
             className="text-sm text-white/52 transition hover:text-white/74"
           >
-            Forgot password?
+            {t("auth:login.forgotPassword")}
           </Link>
         </div>
       </form>

@@ -3,6 +3,7 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./styles/index.css";
+import "./i18n";
 
 import React from "react";
 import ReactDOM from "react-dom/client";

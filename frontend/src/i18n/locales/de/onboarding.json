@@ -1,0 +1,10 @@
+{
+  "title": "Onboarding",
+  "loadingTitle": "Roomly wird vorbereitet...",
+  "loadingDescription": "Deine Standards werden angewendet und der kurzeste Weg in die App wird wiederhergestellt.",
+  "errorTitle": "Onboarding braucht einen neuen Versuch",
+  "welcomeTitle": "Willkommen bei Roomly",
+  "profileTitle": "Lass uns dich kurz kennenlernen.",
+  "hourlyRateTitle": "Wie viel verdienst du pro Stunde?",
+  "hourlyRateHint": "Heute als EUR gespeichert."
+}

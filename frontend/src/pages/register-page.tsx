@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
@@ -13,6 +14,7 @@ import {
 import { useAuth } from "../features/auth/use-auth";
 
 export function RegisterPage() {
+  const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const { registerWithPassword } = useAuth();
   const [serverMessage, setServerMessage] = useState("");
@@ -29,11 +31,11 @@ export function RegisterPage() {
     try {
       setServerError("");
       await registerWithPassword(values.email, values.password);
-      setServerMessage("Account created. Check your email for the verification code.");
+      setServerMessage(t("auth:register.created"));
       navigate("/verify-email", {
         state: {
           email: values.email,
-          message: "Account created. Enter the verification code to continue."
+          message: t("auth:register.createdNavigate")
         }
       });
     } catch (error) {
@@ -50,27 +52,27 @@ export function RegisterPage() {
 
   return (
     <AuthCard
-      title="Create Roomly"
-      subtitle="Minimal onboarding starts here, with a clean registration flow aligned with the backend contract."
+      title={t("auth:register.title")}
+      subtitle={t("auth:register.subtitle")}
       footer={
         <span>
-          Already have an account?{" "}
+          {t("auth:register.footer")}{" "}
           <Link to="/login" className="text-white transition hover:text-white/70">
-            Sign in
+            {t("auth:register.footerLink")}
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: "Back to login" }}
+      backLink={{ to: "/login", label: t("auth:register.backToLogin") }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
-          label="Email"
+          label={t("common:labels.email")}
           type="email"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
         <Input
-          label="Password"
+          label={t("common:labels.password")}
           type="password"
           error={form.formState.errors.password?.message}
           {...form.register("password")}
@@ -80,7 +82,7 @@ export function RegisterPage() {
         ) : null}
         {serverError ? <p className="text-sm text-red-300">{serverError}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Creating..." : "Create account"}
+          {form.formState.isSubmitting ? t("auth:register.submitting") : t("auth:register.submit")}
         </Button>
       </form>
     </AuthCard>

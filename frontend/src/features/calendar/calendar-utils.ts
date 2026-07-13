@@ -1,32 +1,11 @@
 import type { PanInfo } from "framer-motion";
+import { i18n } from "../../i18n";
 import {
   daysBetweenInclusive,
   eachDayOfInterval,
   formatLocalIsoDate,
   parseLocalIsoDate
 } from "../../utils/date";
-
-const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short"
-});
-
-const monthFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric"
-});
-
-const longDateFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  day: "numeric",
-  month: "long"
-});
-
-const fullDateFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric"
-});
 
 const MONTH_SWIPE_DISTANCE_THRESHOLD = 84;
 const MONTH_SWIPE_VELOCITY_THRESHOLD = 460;
@@ -88,6 +67,9 @@ export function parseIsoDate(value: string) {
 
 export function getCalendarWeekdays() {
   const monday = startOfWeekMonday(new Date("2026-07-13T00:00:00"));
+  const weekdayFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "short"
+  });
   return Array.from({ length: 7 }, (_, index) =>
     weekdayFormatter.format(addDays(monday, index)).slice(0, 3).toUpperCase()
   );
@@ -100,6 +82,9 @@ export function buildMonthGrid(month: Date): CalendarDayCell[] {
   const lastDayWeekday = lastDayOfMonth.getDay();
   const trailingDays = lastDayWeekday === 0 ? 0 : 7 - lastDayWeekday;
   const gridEnd = addDays(lastDayOfMonth, trailingDays);
+  const weekdayFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "short"
+  });
 
   return eachDayOfInterval(gridStart, gridEnd).map((date) => {
     return {
@@ -113,6 +98,10 @@ export function buildMonthGrid(month: Date): CalendarDayCell[] {
 }
 
 export function formatMonthLabel(date: Date) {
+  const monthFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    month: "long",
+    year: "numeric"
+  });
   return monthFormatter.format(date);
 }
 
@@ -121,10 +110,21 @@ export function getCalendarRowCount(month: Date) {
 }
 
 export function formatSelectedDate(date: Date) {
+  const longDateFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  });
   return longDateFormatter.format(date);
 }
 
 export function formatAriaDate(date: Date) {
+  const fullDateFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
   return fullDateFormatter.format(date);
 }
 

@@ -1,0 +1,41 @@
+{
+  "actions": {
+    "back": "Inapoi",
+    "cancel": "Anuleaza",
+    "close": "Inchide",
+    "continue": "Continua",
+    "retry": "Incearca din nou",
+    "save": "Salveaza",
+    "saving": "Se salveaza...",
+    "working": "Se proceseaza..."
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Parola",
+    "newPassword": "Parola noua",
+    "verificationCode": "Cod de verificare"
+  },
+  "messages": {
+    "genericError": "Ceva nu a mers bine. Incearca din nou.",
+    "networkError": "Roomly nu a putut contacta backendul. Verifica serverul si incearca din nou.",
+    "serverUnavailable": "Roomly este temporar indisponibil. Incearca din nou peste cateva momente.",
+    "unexpectedResponse": "Backendul a returnat un raspuns neasteptat.",
+    "saved": "Salvat",
+    "changesSaved": "Modificarile au fost salvate.",
+    "loading": "Se incarca..."
+  },
+  "nav": {
+    "home": "Acasa",
+    "calendar": "Calendar",
+    "addEntry": "Adauga",
+    "statistics": "Statistici",
+    "settings": "Setari",
+    "primaryNavigation": "Navigare principala"
+  },
+  "time": {
+    "today": "Astazi",
+    "current": "Curent",
+    "hoursShort": "h",
+    "minutesShort": "m"
+  }
+}

@@ -1,6 +1,4 @@
-const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short"
-});
+import { i18n } from "../i18n";
 
 export function formatLocalIsoDate(date: Date) {
   const year = date.getFullYear();
@@ -58,6 +56,9 @@ export function getWeekDays(anchor = new Date()) {
   const start = startOfWeek(anchor);
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
+    const weekdayFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+      weekday: "short"
+    });
     return {
       key: formatLocalIsoDate(date),
       date,

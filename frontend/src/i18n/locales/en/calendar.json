@@ -1,0 +1,13 @@
+{
+  "title": "Calendar",
+  "monthlySummaryLabel": "Monthly summary",
+  "unavailable": "Calendar is unavailable.",
+  "monthlySummary": {
+    "worked": "Worked",
+    "grossPay": "Gross pay",
+    "entries": "Entries",
+    "absenceDays": "Absence days"
+  },
+  "emptyDay": "No activity.",
+  "addEntryForDay": "Add entry for this day"
+}

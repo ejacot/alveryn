@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AppLogo } from "../branding/app-logo";
 
 type Props = {
@@ -19,6 +20,8 @@ export function AuthCard({
   footer,
   backLink
 }: Props) {
+  const { t } = useTranslation(["auth"]);
+
   return (
     <div className="screen-shell flex min-h-screen items-center justify-center pb-10">
       <div className="glass-panel w-full rounded-[36px] p-6">
@@ -36,7 +39,7 @@ export function AuthCard({
           </div>
         ) : null}
         <div className="mt-6 text-center text-xs text-white/40">
-          By continuing you agree to the Roomly product flow.
+          {t("legal.footnote")}
         </div>
         {backLink ? (
           <div className="mt-3 text-center text-xs">

@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "today": "Today",
+    "gross": "Gross",
+    "week": "Week",
+    "recent": "Recent",
+    "noEntries": "No entries yet",
+    "liveSavedEntries": "Live from saved entries",
+    "loadedRealData": "Loaded from real backend data"
+  },
+  "recentEntries": {
+    "title": "Recent entries"
+  },
+  "quickAdd": "Quick add"
+}

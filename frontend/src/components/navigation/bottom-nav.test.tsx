@@ -12,9 +12,9 @@ describe("BottomNav", () => {
 
     expect(screen.getByLabelText("Home")).toBeInTheDocument();
     expect(screen.getByLabelText("Calendar")).toBeInTheDocument();
-    expect(screen.getByLabelText("Add Entry")).toBeInTheDocument();
+    expect(screen.getByLabelText("Add entry")).toBeInTheDocument();
     expect(screen.getByLabelText("Statistics")).toBeInTheDocument();
-    expect(screen.getByLabelText("Profile")).toBeInTheDocument();
+    expect(screen.getByLabelText("Settings")).toBeInTheDocument();
 
     const nav = container.querySelector("nav");
     expect(nav).toHaveClass("ios-glass-nav");

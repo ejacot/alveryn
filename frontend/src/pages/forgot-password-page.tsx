@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { forgotPassword } from "../api/endpoints";
@@ -13,6 +14,7 @@ import {
 } from "../features/auth/auth-schemas";
 
 export function ForgotPasswordPage() {
+  const { t } = useTranslation(["auth", "common"]);
   const [message, setMessage] = useState("");
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -34,28 +36,28 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      title="Reset access"
-      subtitle="Request a password reset code using the same secure flow already present in the backend."
+      title={t("auth:forgotPassword.title")}
+      subtitle={t("auth:forgotPassword.subtitle")}
       footer={
         <span>
-          Remembered it?{" "}
+          {t("auth:forgotPassword.footer")}{" "}
           <Link to="/login" className="text-white transition hover:text-white/70">
-            Sign in
+            {t("auth:forgotPassword.footerLink")}
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: "Back to login" }}
+      backLink={{ to: "/login", label: t("auth:forgotPassword.backToLogin") }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
-          label="Email"
+          label={t("common:labels.email")}
           type="email"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Sending..." : "Send reset code"}
+          {form.formState.isSubmitting ? t("auth:forgotPassword.submitting") : t("auth:forgotPassword.submit")}
         </Button>
       </form>
     </AuthCard>

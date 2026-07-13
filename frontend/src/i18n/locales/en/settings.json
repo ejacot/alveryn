@@ -1,0 +1,16 @@
+{
+  "title": "Settings",
+  "account": "Account",
+  "work": "Work",
+  "preferences": "Preferences",
+  "app": "App",
+  "profile": "Profile",
+  "hourlyRates": "Hourly rates",
+  "workTypes": "Work types",
+  "about": "About Roomly",
+  "help": "Help & Support",
+  "logout": "Log out",
+  "discardTitle": "Discard changes?",
+  "discardDescription": "Your unsaved edits will be lost.",
+  "discardConfirm": "Discard"
+}

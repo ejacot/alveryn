@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CalendarDays, MoonStar, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import type { WorkEntry } from "../../types/work-entry";
 import type { Absence } from "../../types/absence";
 import { daysBetweenInclusive, parseLocalIsoDate, todayLocalIsoDate } from "../../utils/date";
+import { i18n } from "../../i18n";
 import { formatCurrency, formatMinutesAsDuration, formatTimeRange } from "../../utils/format";
 
 type Props = {
@@ -29,6 +31,7 @@ export function CalendarSelectedDayPanel({
   onAddEntry,
   onEntrySelect
 }: Props) {
+  const { t } = useTranslation("calendar");
   const hasContent = entries.length > 0 || absence;
   const titleEyebrow = title.replace(",", "").toUpperCase();
   const absenceStatus = resolveAbsenceStatus(absence);
@@ -98,7 +101,7 @@ export function CalendarSelectedDayPanel({
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.02]">
                   <Plus className="h-5 w-5" />
                 </div>
-                Add entry for this day
+                {t("addEntryForDay")}
               </Button>
             </div>
           </motion.div>
@@ -114,15 +117,14 @@ export function CalendarSelectedDayPanel({
             className="flex items-center justify-between gap-4 rounded-[28px] border border-white/[0.045] bg-white/[0.02] px-5 py-5 shadow-[0_20px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
           >
             <div className="space-y-1">
-              <p className="text-base font-semibold text-white">No activity.</p>
-              <p className="text-sm text-white/48">Add a shift.</p>
+              <p className="text-base font-semibold text-white">{t("emptyDay")}</p>
             </div>
             <Button
               className="gap-2 bg-white/[0.94] shadow-[0_16px_34px_rgba(0,0,0,0.24)]"
               onClick={onAddEntry}
             >
               <Plus className="h-4 w-4" />
-              Add entry
+              {t("addEntryForDay")}
             </Button>
           </motion.div>
         ) : null}
@@ -189,7 +191,7 @@ function countAbsenceDays(absence: Absence) {
 
 function formatShortDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(i18n.resolvedLanguage, {
     day: "numeric",
     month: "short"
   }).format(date);

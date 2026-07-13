@@ -1,13 +1,16 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { queryKeys } from "../api/query-keys";
 import { getPreferences, getProfile, listHourlyRates, listWorkTypes } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
 import { todayLocalIsoDate } from "../utils/date";
+import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
 
 export function ProfilePage() {
+  const { t } = useTranslation(["settings", "common"]);
   const { user, logout } = useAuth();
   const profileQuery = useQuery({
     queryKey: queryKeys.profile(),
@@ -37,7 +40,7 @@ export function ProfilePage() {
       .filter(Boolean)
       .join(" ");
 
-    return composed || profile?.displayName?.trim() || "Your account";
+    return composed || profile?.displayName?.trim() || user?.account.email || "Roomly";
   }, [profile?.displayName, profile?.firstName, profile?.lastName]);
 
   const initials = useMemo(() => {
@@ -73,15 +76,15 @@ export function ProfilePage() {
     const activeCount = items.filter((item) => item.active).length;
 
     if (!items.length) {
-      return "None";
+      return "0";
     }
 
-    return `${activeCount} active`;
+    return `${activeCount}`;
   }, [workTypesQuery.data]);
 
   return (
     <div className="space-y-8 pb-10">
-      <h1 className="text-[2rem] font-semibold tracking-[-0.07em] text-white">Settings</h1>
+      <h1 className="text-[2rem] font-semibold tracking-[-0.07em] text-white">{t("settings:title")}</h1>
 
       <SettingsProfileCard
         initials={initials}
@@ -89,17 +92,17 @@ export function ProfilePage() {
         email={user?.account.email ?? ""}
       />
 
-      <SettingsGroup title="Account">
-        <SettingsRow to="/settings/profile" label="Profile" />
+      <SettingsGroup title={t("settings:account")}>
+        <SettingsRow to="/settings/profile" label={t("settings:profile")} />
       </SettingsGroup>
 
-      <SettingsGroup title="Work">
-        <SettingsRow to="/settings/hourly-rates" label="Hourly rates" value={hourlyRateValue} />
+      <SettingsGroup title={t("settings:work")}>
+        <SettingsRow to="/settings/hourly-rates" label={t("settings:hourlyRates")} value={hourlyRateValue} />
         <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/work-types" label="Work types" value={workTypesValue} />
+        <SettingsRow to="/settings/work-types" label={t("settings:workTypes")} value={workTypesValue} />
       </SettingsGroup>
 
-      <SettingsGroup title="Preferences">
+      <SettingsGroup title={t("settings:preferences")}>
         <SettingsRow
           to="/settings/preferences"
           label="Language"
@@ -149,36 +152,21 @@ export function ProfilePage() {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="App">
-        <SettingsRow to="/settings/about" label="About Roomly" />
+      <SettingsGroup title={t("settings:app")}>
+        <SettingsRow to="/settings/about" label={t("settings:about")} />
         <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/help" label="Help & Support" />
+        <SettingsRow to="/settings/help" label={t("settings:help")} />
       </SettingsGroup>
 
-      <SettingsGroup title="Account">
-        <SettingsRow label="Log out" onClick={() => void logout()} />
+      <SettingsGroup title={t("settings:account")}>
+        <SettingsRow label={t("settings:logout")} onClick={() => void logout()} />
       </SettingsGroup>
     </div>
   );
 }
 
 function formatLanguage(value?: string | null) {
-  if (!value) {
-    return "English";
-  }
-
-  const normalized = value.toLowerCase();
-  if (normalized.startsWith("en")) {
-    return "English";
-  }
-  if (normalized.startsWith("de")) {
-    return "German";
-  }
-  if (normalized.startsWith("ro")) {
-    return "Romanian";
-  }
-
-  return value;
+  return getNativeLanguageName(normalizeLanguage(value));
 }
 
 function formatTheme(value?: "LIGHT" | "DARK" | "SYSTEM" | null) {

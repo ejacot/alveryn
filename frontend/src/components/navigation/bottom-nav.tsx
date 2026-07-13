@@ -6,6 +6,7 @@ import {
   Plus,
   ChartColumnIncreasing
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { useScrollDirection } from "../../hooks/use-scroll-direction";
 import { cn } from "../../utils/cn";
@@ -17,21 +18,21 @@ type NavItem = {
   prominent?: boolean;
 };
 
-const items: NavItem[] = [
-  { to: "/", icon: House, label: "Home" },
-  { to: "/calendar", icon: CalendarDays, label: "Calendar" },
-  { to: "/entries/new", icon: Plus, label: "Add Entry", prominent: true },
-  { to: "/statistics", icon: ChartColumnIncreasing, label: "Statistics" },
-  { to: "/profile", icon: CircleUserRound, label: "Profile" }
-];
-
 export function BottomNav() {
+  const { t } = useTranslation("common");
   const direction = useScrollDirection();
   const compact = direction === "down";
+  const items: NavItem[] = [
+    { to: "/", icon: House, label: t("nav.home") },
+    { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
+    { to: "/entries/new", icon: Plus, label: t("nav.addEntry"), prominent: true },
+    { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },
+    { to: "/profile", icon: CircleUserRound, label: t("nav.settings") }
+  ];
 
   return (
     <motion.nav
-      aria-label="Primary navigation"
+      aria-label={t("nav.primaryNavigation")}
       animate={{
         scale: compact ? 0.84 : 1,
         y: compact ? 10 : 0,

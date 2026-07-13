@@ -1,10 +1,12 @@
+import { i18n } from "../i18n";
+
 function formatDecimal(value: string, fractionDigits = 1) {
   const parsed = Number(value);
   if (Number.isNaN(parsed)) {
     return "0";
   }
 
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(i18n.resolvedLanguage, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits
   }).format(parsed);
@@ -20,7 +22,7 @@ export function formatCurrency(value: string, currency: string) {
     return `${currency} 0`;
   }
 
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(i18n.resolvedLanguage, {
     style: "currency",
     currency,
     maximumFractionDigits: 2
@@ -42,5 +44,5 @@ export function formatTimeRange(startTime?: string | null, endTime?: string | nu
     return null;
   }
 
-  return `${startTime} -> ${endTime}`;
+  return `${startTime} - ${endTime}`;
 }
