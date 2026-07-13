@@ -4,7 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { WorkEntryEditorPage } from "./work-entry-editor-page";
 
 const navigateMock = vi.fn();
-const routeState: { entryId?: string; selectedDate: Date } = {
+const routeState: {
+  entryId?: string;
+  selectedDate: Date;
+  locationState?: { returnTo?: string } | null;
+  search?: string;
+} = {
   selectedDate: new Date("2026-07-13T00:00:00")
 };
 
@@ -17,7 +22,9 @@ vi.mock("react-router-dom", async () => {
     ...actual,
     useNavigate: () => navigateMock,
     useParams: () => (routeState.entryId ? { entryId: routeState.entryId } : {}),
-    useOutletContext: () => ({ selectedDate: routeState.selectedDate })
+    useOutletContext: () => ({ selectedDate: routeState.selectedDate }),
+    useLocation: () => ({ state: routeState.locationState ?? null }),
+    useSearchParams: () => [new URLSearchParams(routeState.search ?? "")]
   };
 });
 
@@ -158,6 +165,8 @@ describe("WorkEntryEditorPage", () => {
     vi.clearAllMocks();
     routeState.entryId = undefined;
     routeState.selectedDate = new Date("2026-07-13T12:00:00");
+    routeState.locationState = null;
+    routeState.search = "";
     navigateMock.mockReset();
     vi.mocked(listWorkTypes).mockResolvedValue(workTypes);
     vi.mocked(listHourlyRates).mockResolvedValue(hourlyRates);
@@ -280,5 +289,12 @@ describe("WorkEntryEditorPage", () => {
 
     expect(await screen.findByText("Choose a work type")).toBeInTheDocument();
     expect(createWorkEntry).not.toHaveBeenCalled();
+  });
+
+  it("prefills the work date from the calendar query string", async () => {
+    routeState.search = "date=2026-07-21";
+    renderPage();
+
+    expect(await screen.findByDisplayValue("2026-07-21")).toBeInTheDocument();
   });
 });

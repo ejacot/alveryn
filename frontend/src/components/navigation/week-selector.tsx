@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { getWorkEntries } from "../../api/endpoints";
-import { addDays, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
+import { addDays, formatLocalIsoDate, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
 import { cn } from "../../utils/cn";
 import {
   getNextWeekDate,
@@ -53,7 +53,7 @@ export function WeekSelector({ value, onChange }: Props) {
       }).format(value),
     [value]
   );
-  const weekKey = weekStart.toISOString();
+  const weekKey = formatLocalIsoDate(weekStart);
 
   function shiftWeek(direction: -1 | 1) {
     setSlideDirection(direction);
@@ -109,7 +109,7 @@ export function WeekSelector({ value, onChange }: Props) {
             {days.map((day, index) => {
               const selected = isSameDay(day.date, value);
               const current = !selected && isSameDay(day.date, today);
-              const hasEntries = markedDates.has(day.date.toISOString().slice(0, 10));
+              const hasEntries = markedDates.has(formatLocalIsoDate(day.date));
               const state = selected ? "selected" : current ? "today" : "default";
 
               return (

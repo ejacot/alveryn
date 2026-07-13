@@ -8,6 +8,7 @@ import type {
   WorkType
 } from "../types/configuration";
 import type { DashboardResponse } from "../types/dashboard";
+import type { Absence, AbsenceType } from "../types/absence";
 import type { WorkEntry, WorkEntryRequest } from "../types/work-entry";
 import type { OnboardingStatus } from "../types/onboarding";
 import { http } from "./http";
@@ -260,4 +261,21 @@ export async function updateWorkEntry(id: string, payload: WorkEntryRequest) {
 
 export async function deleteWorkEntry(id: string) {
   await http.delete(`/api/work-entries/${id}`);
+}
+
+export async function getAbsences(
+  params?: {
+    year?: number;
+    month?: number;
+    from?: string;
+    to?: string;
+    absenceType?: AbsenceType;
+    page?: number;
+    size?: number;
+  }
+) {
+  const response = await http.get<ApiResponse<PageResponse<Absence>>>("/api/absences", {
+    params
+  });
+  return response.data.data;
 }

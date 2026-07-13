@@ -2,6 +2,18 @@ const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
   weekday: "short"
 });
 
+export function formatLocalIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function parseLocalIsoDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
 export function startOfWeek(date: Date) {
   const result = new Date(date);
   const day = result.getDay();
@@ -22,7 +34,7 @@ export function getWeekDays(anchor = new Date()) {
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
     return {
-      key: date.toISOString(),
+      key: formatLocalIsoDate(date),
       date,
       weekday: weekdayFormatter.format(date).toUpperCase(),
       dayNumber: date.getDate()

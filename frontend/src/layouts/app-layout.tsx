@@ -13,7 +13,6 @@ export function AppLayout() {
   const showWeekSelector = useMemo(
     () =>
       location.pathname === "/" ||
-      location.pathname === "/calendar" ||
       (PREVIEW_ROUTES_ENABLED && location.pathname.startsWith("/preview")),
     [location.pathname]
   );

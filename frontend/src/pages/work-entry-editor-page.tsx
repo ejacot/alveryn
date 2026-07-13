@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Check, Clock3, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import {
   createWorkEntry,
   deleteWorkEntry,
@@ -22,6 +22,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
+import { formatLocalIsoDate } from "../utils/date";
 import {
   calculateGrossAmount,
   calculateTimeEntryMinutes,
@@ -43,18 +44,29 @@ type OutletContext = {
 
 export function WorkEntryEditorPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { entryId } = useParams();
+  const [searchParams] = useSearchParams();
   const outletContext = useOutletContext<OutletContext>();
-  const selectedDate = outletContext?.selectedDate ?? new Date();
   const isEditing = Boolean(entryId);
+  const prefilledDate = !isEditing ? searchParams.get("date") : null;
+  const selectedDate = useMemo(() => {
+    if (prefilledDate) {
+      return new Date(`${prefilledDate}T12:00:00`);
+    }
+
+    return outletContext?.selectedDate ?? new Date();
+  }, [outletContext?.selectedDate, prefilledDate]);
+  const returnTo =
+    (location.state as { returnTo?: string } | null)?.returnTo ?? "/";
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successState, setSuccessState] = useState<"idle" | "saved" | "deleted">("idle");
 
   const form = useForm<WorkEntryFormInput, undefined, WorkEntryFormValues>({
     resolver: zodResolver(workEntrySchema),
     defaultValues: {
-      workDate: selectedDate.toISOString().slice(0, 10),
+      workDate: formatLocalIsoDate(selectedDate),
       workTypeId: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -158,10 +170,11 @@ export function WorkEntryEditorPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["work-entries"] }),
+      queryClient.invalidateQueries({ queryKey: ["absences"] }),
       queryClient.invalidateQueries({ queryKey: ["work-entry", entryId] })
     ]);
     window.setTimeout(() => {
-      navigate("/", { replace: true });
+      navigate(returnTo, { replace: true });
     }, 520);
   }
 
@@ -190,7 +203,14 @@ export function WorkEntryEditorPage() {
     }
 
     return calculateUnitEntryMinutes(values.unitItems ?? [], unitTypesQuery.data ?? []);
-  }, [selectedWorkType, unitTypesQuery.data, values.endTime, values.startTime, values.unitItems, values.unpaidBreakMinutes]);
+  }, [
+    selectedWorkType,
+    unitTypesQuery.data,
+    values.endTime,
+    values.startTime,
+    values.unitItems,
+    values.unpaidBreakMinutes
+  ]);
 
   const grossAmount = useMemo(
     () => calculateGrossAmount(workedMinutes ?? 0, applicableRate?.hourlyRate ?? 0),
@@ -236,7 +256,7 @@ export function WorkEntryEditorPage() {
   }
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="space-y-6 pb-6">
       <header className="flex items-center justify-between">
         <Button variant="ghost" className="px-0" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -256,15 +276,13 @@ export function WorkEntryEditorPage() {
         )}
       </header>
 
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.26em] text-white/42">
-          Work Entry
-        </p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white">
+      <div className="space-y-3">
+        <p className="hairline-text">Work Entry</p>
+        <h1 className="text-[2.4rem] font-semibold tracking-[-0.08em] text-white">
           {isEditing ? "Edit this entry." : "Capture work in one motion."}
         </h1>
-        <p className="max-w-md text-sm leading-6 text-white/62">
-          A focused, mobile-first flow that adapts to time-based and unit-based work.
+        <p className="max-w-md text-sm leading-6 text-white/56">
+          Fast, calm, and adapted to the work type you choose.
         </p>
       </div>
 
@@ -274,7 +292,7 @@ export function WorkEntryEditorPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="rounded-[28px] border border-red-300/20 bg-red-400/10 p-4"
+            className="surface-muted border-red-300/16 bg-red-400/8 p-4"
           >
             <p className="text-base font-semibold text-white">Delete this entry?</p>
             <p className="mt-2 text-sm leading-6 text-white/62">
@@ -313,14 +331,14 @@ export function WorkEntryEditorPage() {
           );
         })}
       >
-        <section className="section-card space-y-4">
+        <section className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.07]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04]">
               <CalendarDays className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Step 1</p>
-              <h2 className="text-lg font-semibold text-white">Choose date</h2>
+              <p className="hairline-text">Step 1</p>
+              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">Choose date</h2>
             </div>
           </div>
           <Input
@@ -331,14 +349,14 @@ export function WorkEntryEditorPage() {
           />
         </section>
 
-        <section className="section-card space-y-4">
+        <section className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.07]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04]">
               <Clock3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Step 2</p>
-              <h2 className="text-lg font-semibold text-white">Choose work type</h2>
+              <p className="hairline-text">Step 2</p>
+              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">Choose work type</h2>
             </div>
           </div>
           <WorkTypePicker
@@ -352,10 +370,10 @@ export function WorkEntryEditorPage() {
         </section>
 
         {selectedWorkType && workTypeIsTimeBased(selectedWorkType) ? (
-          <section className="section-card space-y-4">
+          <section className="space-y-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Time Based</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Shift details</h2>
+              <p className="hairline-text">Time Based</p>
+              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Shift details</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
@@ -378,17 +396,17 @@ export function WorkEntryEditorPage() {
               error={form.formState.errors.unpaidBreakMinutes?.message}
               {...form.register("unpaidBreakMinutes", { valueAsNumber: true })}
             />
-            <p className="text-sm text-white/54">
+            <p className="text-sm text-white/46">
               Overnight shifts are supported automatically.
             </p>
           </section>
         ) : null}
 
         {selectedWorkType && workTypeIsUnitBased(selectedWorkType) ? (
-          <section className="section-card space-y-4">
+          <section className="space-y-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Unit Based</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Add unit rows</h2>
+              <p className="hairline-text">Unit Based</p>
+              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Add unit rows</h2>
             </div>
             <UnitItemRows
               fields={unitItemsFieldArray.fields}
@@ -403,7 +421,7 @@ export function WorkEntryEditorPage() {
           </section>
         ) : null}
 
-        <section className="section-card space-y-4">
+        <section className="space-y-4">
           <Textarea
             label="Notes (optional)"
             placeholder="Anything useful about the shift, route or context."
