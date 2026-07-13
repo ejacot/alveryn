@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import type { HTMLMotionProps } from "framer-motion";
 import { cn } from "../../utils/cn";
@@ -6,14 +7,13 @@ type Props = HTMLMotionProps<"button"> & {
   variant?: "primary" | "secondary" | "ghost";
 };
 
-export function Button({
-  className,
-  variant = "primary",
-  type = "button",
-  ...props
-}: Props) {
+export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
+  { className, variant = "primary", type = "button", ...props },
+  ref
+) {
   return (
     <motion.button
+      ref={ref}
       whileTap={{ scale: 0.985 }}
       whileHover={{ y: -1 }}
       type={type}
@@ -29,4 +29,4 @@ export function Button({
       {...props}
     />
   );
-}
+});

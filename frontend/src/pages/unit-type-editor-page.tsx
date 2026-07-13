@@ -5,20 +5,23 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import {
   createUnitType,
   deleteUnitType,
   getUnitType,
   updateUnitType
 } from "../api/endpoints";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
@@ -37,9 +40,14 @@ export function UnitTypeEditorPage() {
   const isEditing = Boolean(unitTypeId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const fallbackRoute = workTypeId ? `/settings/work-types/${workTypeId}` : "/settings/work-types";
+  const safeBack = useSafeBackNavigation({ fallback: fallbackRoute });
 
   const unitTypeQuery = useQuery({
-    queryKey: workTypeId && unitTypeId ? settingsKeys.unitType(workTypeId, unitTypeId) : settingsKeys.workTypes(),
+    queryKey:
+      workTypeId && unitTypeId
+        ? queryKeys.unitTypes.detail(workTypeId, unitTypeId)
+        : queryKeys.workTypes.all(),
     queryFn: () => getUnitType(workTypeId!, unitTypeId!),
     enabled: Boolean(workTypeId && unitTypeId)
   });
@@ -66,9 +74,9 @@ export function UnitTypeEditorPage() {
 
   async function afterSuccess() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: settingsKeys.unitTypes(workTypeId!) }),
-      queryClient.invalidateQueries({ queryKey: ["unit-types"] }),
-      queryClient.invalidateQueries({ queryKey: ["work-types"] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() })
     ]);
     navigate(`/settings/work-types/${workTypeId}`);
   }
@@ -98,8 +106,15 @@ export function UnitTypeEditorPage() {
     }
   });
 
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty:
+      form.formState.isDirty &&
+      !saveMutation.isPending &&
+      !deleteMutation.isPending
+  });
+
   if (unitTypeQuery.isLoading) {
-    return <ScreenMessage title="Loading unit type..." description="Bringing in the selected unit configuration." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (unitTypeQuery.error) {
@@ -108,7 +123,11 @@ export function UnitTypeEditorPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <SettingsPageHeader title={isEditing ? "Edit unit type" : "Add unit type"} />
+      <SettingsPageHeader
+        title={isEditing ? "Edit unit type" : "Add unit type"}
+        fallbackHref={fallbackRoute}
+        onBack={() => confirmOrRun(safeBack)}
+      />
       <form
         className="space-y-6"
         onSubmit={form.handleSubmit(async (values) => {
@@ -148,6 +167,7 @@ export function UnitTypeEditorPage() {
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
+      {dialog}
     </div>
   );
 }

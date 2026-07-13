@@ -1,29 +1,29 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "../api/query-keys";
 import { getPreferences, getProfile, listHourlyRates, listWorkTypes } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const profileQuery = useQuery({
-    queryKey: settingsKeys.profile(),
+    queryKey: queryKeys.profile(),
     queryFn: getProfile,
     initialData: user?.profile ?? undefined
   });
   const preferencesQuery = useQuery({
-    queryKey: settingsKeys.preferences(),
+    queryKey: queryKeys.preferences(),
     queryFn: getPreferences,
     initialData: user?.preferences ?? undefined
   });
   const hourlyRatesQuery = useQuery({
-    queryKey: settingsKeys.hourlyRates(),
+    queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
   const workTypesQuery = useQuery({
-    queryKey: settingsKeys.workTypes(),
+    queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
 

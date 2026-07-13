@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getAbsences, getWorkEntries } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
 import { CalendarErrorState } from "../components/calendar/calendar-error-state";
 import { CalendarMonthGrid } from "../components/calendar/calendar-month-grid";
@@ -39,12 +40,12 @@ export function CalendarPage() {
   const month = activeMonth.getMonth() + 1;
 
   const workEntriesQuery = useQuery({
-    queryKey: ["work-entries", year, month],
+    queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
     queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
   });
 
   const absencesQuery = useQuery({
-    queryKey: ["absences", year, month],
+    queryKey: queryKeys.absences.list({ year, month, page: 0, size: 100 }),
     queryFn: () => getAbsences({ year, month, page: 0, size: 100 })
   });
 
@@ -53,7 +54,12 @@ export function CalendarPage() {
     const nextMonth = getNextMonthDate(activeMonth);
 
     void queryClient.prefetchQuery({
-      queryKey: ["work-entries", previousMonth.getFullYear(), previousMonth.getMonth() + 1],
+      queryKey: queryKeys.workEntries.list({
+        year: previousMonth.getFullYear(),
+        month: previousMonth.getMonth() + 1,
+        page: 0,
+        size: 100
+      }),
       queryFn: () =>
         getWorkEntries({
           year: previousMonth.getFullYear(),
@@ -63,7 +69,12 @@ export function CalendarPage() {
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: ["work-entries", nextMonth.getFullYear(), nextMonth.getMonth() + 1],
+      queryKey: queryKeys.workEntries.list({
+        year: nextMonth.getFullYear(),
+        month: nextMonth.getMonth() + 1,
+        page: 0,
+        size: 100
+      }),
       queryFn: () =>
         getWorkEntries({
           year: nextMonth.getFullYear(),
@@ -73,7 +84,12 @@ export function CalendarPage() {
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: ["absences", previousMonth.getFullYear(), previousMonth.getMonth() + 1],
+      queryKey: queryKeys.absences.list({
+        year: previousMonth.getFullYear(),
+        month: previousMonth.getMonth() + 1,
+        page: 0,
+        size: 100
+      }),
       queryFn: () =>
         getAbsences({
           year: previousMonth.getFullYear(),
@@ -83,7 +99,12 @@ export function CalendarPage() {
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: ["absences", nextMonth.getFullYear(), nextMonth.getMonth() + 1],
+      queryKey: queryKeys.absences.list({
+        year: nextMonth.getFullYear(),
+        month: nextMonth.getMonth() + 1,
+        page: 0,
+        size: 100
+      }),
       queryFn: () =>
         getAbsences({
           year: nextMonth.getFullYear(),

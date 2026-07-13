@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { getWorkEntries } from "../../api/endpoints";
+import { queryKeys } from "../../api/query-keys";
 import { addDays, formatLocalIsoDate, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
 import { cn } from "../../utils/cn";
 import {
@@ -34,7 +35,7 @@ export function WeekSelector({ value, onChange }: Props) {
   }, [weekEnd, weekStart]);
   const entryQueries = useQueries({
     queries: monthRequests.map(({ year, month }) => ({
-      queryKey: ["week-selector-entries", year, month],
+      queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
       queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
     }))
   });

@@ -2,22 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { listWorkTypes } from "../api/endpoints";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
 
 export function WorkTypesPage() {
   const navigate = useNavigate();
   const workTypesQuery = useQuery({
-    queryKey: settingsKeys.workTypes(),
+    queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
 
   if (workTypesQuery.isLoading) {
-    return <ScreenMessage title="Loading work types..." description="Bringing in your saved work configurations." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (workTypesQuery.error) {

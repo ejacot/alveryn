@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 
 type Props = {
@@ -17,9 +18,27 @@ export function SettingsFormActions({
   deleteLabel,
   deleteDisabled = false
 }: Props) {
+  const [visibleSuccess, setVisibleSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!successMessage) {
+      setVisibleSuccess(null);
+      return;
+    }
+
+    setVisibleSuccess(successMessage);
+    const timeoutId = window.setTimeout(() => {
+      setVisibleSuccess(null);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [successMessage]);
+
   return (
     <div className="flex flex-col gap-3 pt-2">
-      {successMessage ? <p className="text-sm text-white/58">{successMessage}</p> : null}
+      {visibleSuccess ? <p className="text-sm text-white/58">{visibleSuccess}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {onDelete && deleteLabel ? (
           <Button

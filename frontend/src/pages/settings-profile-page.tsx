@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { getProfile, updateProfile, type UpdateProfilePayload } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
 const schema = z
   .object({
@@ -46,9 +49,10 @@ export function SettingsProfilePage() {
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
 
   const profileQuery = useQuery({
-    queryKey: settingsKeys.profile(),
+    queryKey: queryKeys.profile(),
     queryFn: getProfile,
     initialData: user?.profile ?? undefined
   });
@@ -65,7 +69,7 @@ export function SettingsProfilePage() {
   const mutation = useMutation({
     mutationFn: (payload: UpdateProfilePayload) => updateProfile(payload),
     onSuccess: async (nextProfile) => {
-      queryClient.setQueryData(settingsKeys.profile(), nextProfile);
+      queryClient.setQueryData(queryKeys.profile(), nextProfile);
       await refreshCurrentUser();
       setSuccessMessage("Profile updated.");
     },
@@ -77,8 +81,12 @@ export function SettingsProfilePage() {
     }
   });
 
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty: form.formState.isDirty && !mutation.isPending
+  });
+
   if (profileQuery.isLoading) {
-    return <ScreenMessage title="Loading profile..." description="Bringing in your current information." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (profileQuery.error) {
@@ -87,7 +95,12 @@ export function SettingsProfilePage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <SettingsPageHeader title="Profile" description="Keep the essentials accurate. Advanced fields stay calm and out of the way." />
+      <SettingsPageHeader
+        title="Profile"
+        description="Keep the essentials accurate. Advanced fields stay calm and out of the way."
+        fallbackHref="/profile"
+        onBack={() => confirmOrRun(safeBack)}
+      />
       <form
         className="space-y-6"
         onSubmit={form.handleSubmit(async (values) => {
@@ -128,6 +141,7 @@ export function SettingsProfilePage() {
           <p className="text-sm text-red-300">{getApiError(mutation.error).message}</p>
         ) : null}
       </form>
+      {dialog}
     </div>
   );
 }

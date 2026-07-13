@@ -13,6 +13,7 @@ import {
   updateProfile
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
@@ -41,12 +42,12 @@ export function OnboardingPage() {
   const userId = user?.account.id ?? null;
 
   const onboardingStatusQuery = useQuery({
-    queryKey: ["onboarding-status"],
+    queryKey: queryKeys.onboardingStatus(),
     queryFn: getOnboardingStatus,
     enabled: Boolean(userId)
   });
   const hourlyRatesQuery = useQuery({
-    queryKey: ["hourly-rates"],
+    queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates,
     enabled: Boolean(userId && defaultsReady)
   });
@@ -106,7 +107,8 @@ export function OnboardingPage() {
     mutationFn: updatePreferences,
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.onboardingStatus() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.preferences() }),
         refreshCurrentUser()
       ]);
       setDefaultsReady(true);
@@ -176,9 +178,9 @@ export function OnboardingPage() {
         clearStoredOnboardingStep(userId);
       }
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["onboarding-status"] }),
-        queryClient.invalidateQueries({ queryKey: ["hourly-rates"] }),
-        queryClient.invalidateQueries({ queryKey: ["work-types"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.onboardingStatus() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
         refreshCurrentUser()
       ]);
       navigate("/", { replace: true });

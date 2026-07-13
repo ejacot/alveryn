@@ -5,20 +5,23 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import {
   createHourlyRate,
   deleteHourlyRate,
   getHourlyRate,
   updateHourlyRate
 } from "../api/endpoints";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
 const schema = z
   .object({
@@ -42,9 +45,10 @@ export function HourlyRateEditorPage() {
   const isEditing = Boolean(rateId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const safeBack = useSafeBackNavigation({ fallback: "/settings/hourly-rates" });
 
   const rateQuery = useQuery({
-    queryKey: rateId ? settingsKeys.hourlyRate(rateId) : settingsKeys.hourlyRates(),
+    queryKey: rateId ? queryKeys.hourlyRates.detail(rateId) : queryKeys.hourlyRates.all(),
     queryFn: () => getHourlyRate(rateId!),
     enabled: isEditing
   });
@@ -71,10 +75,9 @@ export function HourlyRateEditorPage() {
 
   async function afterSuccess() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: settingsKeys.hourlyRates() }),
-      queryClient.invalidateQueries({ queryKey: ["hourly-rates"] }),
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      queryClient.invalidateQueries({ queryKey: ["work-entries"] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() })
     ]);
     navigate("/settings/hourly-rates");
   }
@@ -104,8 +107,15 @@ export function HourlyRateEditorPage() {
     }
   });
 
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty:
+      form.formState.isDirty &&
+      !saveMutation.isPending &&
+      !deleteMutation.isPending
+  });
+
   if (rateQuery.isLoading) {
-    return <ScreenMessage title="Loading rate..." description="Bringing in this period." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (rateQuery.error) {
@@ -117,6 +127,8 @@ export function HourlyRateEditorPage() {
       <SettingsPageHeader
         title={isEditing ? "Edit hourly rate" : "Add hourly rate"}
         description="Saved work-entry amounts stay unchanged even when a rate period is updated or removed."
+        fallbackHref="/settings/hourly-rates"
+        onBack={() => confirmOrRun(safeBack)}
       />
       <form
         className="space-y-6"
@@ -143,7 +155,7 @@ export function HourlyRateEditorPage() {
           submitting={saveMutation.isPending}
           successMessage={successMessage}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? "Delete rate" : undefined}
+          deleteLabel={isEditing ? "Delete rate period" : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
         {saveMutation.error ? <p className="text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
@@ -151,13 +163,14 @@ export function HourlyRateEditorPage() {
 
       <SettingsConfirmDialog
         open={showConfirm}
-        title="Delete hourly rate?"
-        description="This removes the period, but saved work-entry amounts remain unchanged."
-        confirmLabel="Delete rate"
+        title="Delete rate period?"
+        description="This removes the rate period, but saved work-entry amounts remain unchanged."
+        confirmLabel="Delete period"
         pending={deleteMutation.isPending}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
+      {dialog}
     </div>
   );
 }

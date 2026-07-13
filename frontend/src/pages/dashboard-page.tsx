@@ -3,6 +3,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { getWorkEntries } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
@@ -50,7 +51,7 @@ export function DashboardPage() {
 
   const monthQueries = useQueries({
     queries: monthRequests.map(({ year, month }) => ({
-      queryKey: ["work-entries", year, month],
+      queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
       queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
     }))
   });

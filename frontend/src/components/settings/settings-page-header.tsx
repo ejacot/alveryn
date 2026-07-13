@@ -1,19 +1,26 @@
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useSafeBackNavigation } from "../../hooks/use-safe-back-navigation";
 
 type Props = {
   title: string;
   description?: string;
+  fallbackHref?: string;
+  onBack?: () => void;
 };
 
-export function SettingsPageHeader({ title, description }: Props) {
-  const navigate = useNavigate();
+export function SettingsPageHeader({
+  title,
+  description,
+  fallbackHref = "/profile",
+  onBack
+}: Props) {
+  const safeBack = useSafeBackNavigation({ fallback: fallbackHref });
 
   return (
     <header className="space-y-3">
       <button
         type="button"
-        onClick={() => navigate(-1)}
+        onClick={onBack ?? safeBack}
         className="flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04] text-white/78 transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
         aria-label="Go back"
       >

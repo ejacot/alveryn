@@ -15,6 +15,7 @@ import {
   updateWorkEntry
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { UnitItemRows } from "../components/work-entry/unit-item-rows";
 import { WorkEntrySummaryCard } from "../components/work-entry/work-entry-summary-card";
 import { WorkTypePicker } from "../components/work-entry/work-type-picker";
@@ -81,15 +82,15 @@ export function WorkEntryEditorPage() {
   });
 
   const workTypesQuery = useQuery({
-    queryKey: ["work-types"],
+    queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
   const hourlyRatesQuery = useQuery({
-    queryKey: ["hourly-rates"],
+    queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
   const entryQuery = useQuery({
-    queryKey: ["work-entry", entryId],
+    queryKey: queryKeys.workEntries.detail(entryId!),
     queryFn: () => getWorkEntry(entryId!),
     enabled: isEditing
   });
@@ -101,7 +102,7 @@ export function WorkEntryEditorPage() {
   );
 
   const unitTypesQuery = useQuery({
-    queryKey: ["unit-types", selectedWorkTypeId],
+    queryKey: queryKeys.unitTypes.list(selectedWorkTypeId),
     queryFn: () => listUnitTypes(selectedWorkTypeId),
     enabled: Boolean(selectedWorkTypeId && workTypeIsUnitBased(selectedWorkType))
   });
@@ -168,10 +169,13 @@ export function WorkEntryEditorPage() {
   async function afterSuccessfulMutation(state: "saved" | "deleted") {
     setSuccessState(state);
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      queryClient.invalidateQueries({ queryKey: ["work-entries"] }),
-      queryClient.invalidateQueries({ queryKey: ["absences"] }),
-      queryClient.invalidateQueries({ queryKey: ["work-entry", entryId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.detail(entryId!) })
     ]);
     window.setTimeout(() => {
       navigate(returnTo, { replace: true });

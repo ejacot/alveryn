@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import {
   createWorkType,
   deleteWorkType,
@@ -12,16 +13,18 @@ import {
   listUnitTypes,
   updateWorkType
 } from "../api/endpoints";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Select } from "../components/ui/select";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
@@ -45,15 +48,16 @@ export function WorkTypeEditorPage() {
   const isEditing = Boolean(workTypeId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const safeBack = useSafeBackNavigation({ fallback: "/settings/work-types" });
 
   const workTypeQuery = useQuery({
-    queryKey: workTypeId ? settingsKeys.workType(workTypeId) : settingsKeys.workTypes(),
+    queryKey: workTypeId ? queryKeys.workTypes.detail(workTypeId) : queryKeys.workTypes.all(),
     queryFn: () => getWorkType(workTypeId!),
     enabled: isEditing
   });
 
   const unitTypesQuery = useQuery({
-    queryKey: workTypeId ? settingsKeys.unitTypes(workTypeId) : settingsKeys.workTypes(),
+    queryKey: workTypeId ? queryKeys.unitTypes.list(workTypeId) : queryKeys.workTypes.all(),
     queryFn: () => listUnitTypes(workTypeId!),
     enabled: Boolean(workTypeId && workTypeQuery.data?.calculationMethod === "UNIT_BASED")
   });
@@ -88,9 +92,8 @@ export function WorkTypeEditorPage() {
 
   async function afterSuccess(targetId?: string) {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: settingsKeys.workTypes() }),
-      queryClient.invalidateQueries({ queryKey: ["work-types"] }),
-      queryClient.invalidateQueries({ queryKey: ["unit-types"] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() })
     ]);
     navigate(targetId ? `/settings/work-types/${targetId}` : "/settings/work-types");
   }
@@ -141,8 +144,15 @@ export function WorkTypeEditorPage() {
     }
   });
 
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty:
+      form.formState.isDirty &&
+      !saveMutation.isPending &&
+      !deleteMutation.isPending
+  });
+
   if (workTypeQuery.isLoading) {
-    return <ScreenMessage title="Loading work type..." description="Bringing in this configuration." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (workTypeQuery.error) {
@@ -154,6 +164,8 @@ export function WorkTypeEditorPage() {
       <SettingsPageHeader
         title={isEditing ? "Edit work type" : "Add work type"}
         description="Time based tracks start, end and break. Unit based tracks quantities such as rooms, orders or stops."
+        fallbackHref="/settings/work-types"
+        onBack={() => confirmOrRun(safeBack)}
       />
       <form
         className="space-y-6"
@@ -263,6 +275,7 @@ export function WorkTypeEditorPage() {
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
+      {dialog}
     </div>
   );
 }

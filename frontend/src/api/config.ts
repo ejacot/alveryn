@@ -15,6 +15,8 @@ export const DEV_PROXY_TARGET =
 export const PREVIEW_ROUTES_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_PREVIEW_ROUTES === "true";
 
+export const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL?.trim() || "roomly000app@gmail.com";
+
 export function buildApiUrl(path: `/api/${string}` | `/actuator/${string}`) {
   if (API_BASE_URL === "/") {
     return path;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser, login, logout, register } from "../../api/endpoints";
+import { queryKeys } from "../../api/query-keys";
 import {
   clearTokens,
   hasStoredSession,
@@ -23,7 +24,11 @@ export function AuthProvider({ children }: Props) {
 
   async function refreshCurrentUser() {
     const nextUser = await getCurrentUser();
+    queryClient.setQueryData(queryKeys.currentUser(), nextUser);
+    queryClient.setQueryData(queryKeys.profile(), nextUser.profile);
+    queryClient.setQueryData(queryKeys.preferences(), nextUser.preferences);
     setUser(nextUser);
+    return nextUser;
   }
 
   async function loginWithPassword(email: string, password: string) {

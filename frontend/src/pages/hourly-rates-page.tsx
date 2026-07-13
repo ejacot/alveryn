@@ -2,22 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { listHourlyRates } from "../api/endpoints";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
 
 export function HourlyRatesPage() {
   const navigate = useNavigate();
   const ratesQuery = useQuery({
-    queryKey: settingsKeys.hourlyRates(),
+    queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
 
   if (ratesQuery.isLoading) {
-    return <ScreenMessage title="Loading hourly rates..." description="Bringing in your saved rate periods." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (ratesQuery.error) {

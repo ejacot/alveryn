@@ -4,15 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
+import { queryKeys } from "../api/query-keys";
 import { getPreferences, updatePreferences, type UpdatePreferencesPayload } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
-import { settingsKeys } from "../features/settings/settings-keys";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
 const timezones = [
   "Europe/Berlin",
@@ -47,9 +50,10 @@ export function SettingsPreferencesPage() {
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
   const detectedTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const preferencesQuery = useQuery({
-    queryKey: settingsKeys.preferences(),
+    queryKey: queryKeys.preferences(),
     queryFn: getPreferences,
     initialData: user?.preferences ?? undefined
   });
@@ -66,7 +70,7 @@ export function SettingsPreferencesPage() {
   const mutation = useMutation({
     mutationFn: (payload: UpdatePreferencesPayload) => updatePreferences(payload),
     onSuccess: async (nextPreferences) => {
-      queryClient.setQueryData(settingsKeys.preferences(), nextPreferences);
+      queryClient.setQueryData(queryKeys.preferences(), nextPreferences);
       await refreshCurrentUser();
       setSuccessMessage("Preferences updated.");
     },
@@ -78,8 +82,12 @@ export function SettingsPreferencesPage() {
     }
   });
 
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty: form.formState.isDirty && !mutation.isPending
+  });
+
   if (preferencesQuery.isLoading) {
-    return <ScreenMessage title="Loading preferences..." description="Bringing in your current defaults." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (preferencesQuery.error) {
@@ -88,7 +96,12 @@ export function SettingsPreferencesPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <SettingsPageHeader title="Preferences" description={`Current device timezone: ${detectedTimezone}`} />
+      <SettingsPageHeader
+        title="Preferences"
+        description={`Current device timezone: ${detectedTimezone}`}
+        fallbackHref="/profile"
+        onBack={() => confirmOrRun(safeBack)}
+      />
       <form
         className="space-y-6"
         onSubmit={form.handleSubmit(async (values) => {
@@ -167,6 +180,7 @@ export function SettingsPreferencesPage() {
           <p className="text-sm text-red-300">{getApiError(mutation.error).message}</p>
         ) : null}
       </form>
+      {dialog}
     </div>
   );
 }
