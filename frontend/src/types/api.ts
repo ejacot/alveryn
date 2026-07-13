@@ -6,6 +6,7 @@ export type ApiErrorResponse = {
   timestamp: string;
   status: number;
   message: string;
+  code?: string | null;
   path: string;
   errors: string[];
 };

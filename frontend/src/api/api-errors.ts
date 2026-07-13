@@ -4,6 +4,7 @@ import type { ApiErrorResponse } from "../types/api";
 
 export type ParsedApiError = {
   status: number | null;
+  code: string | null;
   message: string;
   fieldErrors: Record<string, string>;
   errors: string[];
@@ -15,6 +16,7 @@ export type ParsedApiError = {
 
 const DEFAULT_ERROR: ParsedApiError = {
   status: null,
+  code: null,
   message: i18n.t("common:messages.genericError"),
   fieldErrors: {},
   errors: [],
@@ -32,6 +34,13 @@ function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
     "status" in value &&
     "errors" in value
   );
+}
+
+function localizeMessage(code?: string | null, fallback?: string | null) {
+  if (code && i18n.exists(`errors:${code}`)) {
+    return i18n.t(`errors:${code}`);
+  }
+  return fallback || DEFAULT_ERROR.message;
 }
 
 function parseFieldErrors(errors: string[]) {
@@ -60,6 +69,7 @@ export function getApiError(error: unknown): ParsedApiError {
   if (!error.response) {
     return {
       ...DEFAULT_ERROR,
+      code: null,
       message: i18n.t("common:messages.networkError"),
       isNetworkError: true,
       isServerUnavailable: true
@@ -72,6 +82,7 @@ export function getApiError(error: unknown): ParsedApiError {
     return {
       ...DEFAULT_ERROR,
       status,
+      code: null,
       message:
         status >= 500
           ? i18n.t("common:messages.serverUnavailable")
@@ -82,10 +93,11 @@ export function getApiError(error: unknown): ParsedApiError {
 
   const fieldErrors = parseFieldErrors(data.errors);
   const fallbackFieldMessage = Object.values(fieldErrors)[0];
-  const message = data.message || fallbackFieldMessage || DEFAULT_ERROR.message;
+  const message = localizeMessage(data.code, data.message || fallbackFieldMessage || DEFAULT_ERROR.message);
 
   return {
     status: data.status,
+    code: data.code ?? null,
     message,
     fieldErrors,
     errors: data.errors,

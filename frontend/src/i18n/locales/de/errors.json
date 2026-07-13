@@ -1,3 +1,18 @@
 {
-  "fallback": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  "fallback": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+  "EXCEL_FILE_REQUIRED": "Wähle zuerst eine Excel-Arbeitsmappe aus.",
+  "EXCEL_FILE_TOO_LARGE": "Diese Arbeitsmappe ist zu groß zum Importieren.",
+  "EXCEL_INVALID_TYPE": "Es werden nur gültige .xlsx-Arbeitsmappen unterstützt.",
+  "EXCEL_CORRUPTED": "Diese Arbeitsmappe konnte nicht sicher gelesen werden.",
+  "EXCEL_ENCRYPTED": "Verschlüsselte Arbeitsmappen werden nicht unterstützt.",
+  "EXCEL_YEAR_MISSING": "Roomly konnte das Jahr der Arbeitsmappe nicht erkennen.",
+  "EXCEL_YEAR_CONFLICT": "Die Arbeitsmappe enthält widersprüchliche Jahresangaben.",
+  "EXCEL_NO_SUPPORTED_SHEETS": "Es wurden keine unterstützten Monatsblätter gefunden.",
+  "EXCEL_NO_IMPORTABLE_ROWS": "In dieser Arbeitsmappe wurden keine importierbaren Zeilen gefunden.",
+  "EXCEL_ALREADY_IMPORTED": "Diese Arbeitsmappe wurde bereits importiert.",
+  "EXCEL_PREVIEW_EXPIRED": "Diese Vorschau ist abgelaufen. Erstelle eine neue Vorschau.",
+  "EXCEL_PREVIEW_ALREADY_USED": "Diese Vorschau wurde bereits verwendet.",
+  "EXCEL_IMPORT_CONFLICT": "Diese Arbeitsmappe hat blockierende Konflikte und kann noch nicht importiert werden.",
+  "EXCEL_BATCH_NOT_FOUND": "Dieser Importlauf wurde nicht gefunden.",
+  "EXCEL_BATCH_ALREADY_UNDONE": "Dieser Importlauf wurde bereits rückgängig gemacht."
 }

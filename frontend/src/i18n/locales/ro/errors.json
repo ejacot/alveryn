@@ -1,3 +1,18 @@
 {
-  "fallback": "Ceva nu a mers bine. Incearca din nou."
+  "fallback": "Ceva nu a mers bine. Incearca din nou.",
+  "EXCEL_FILE_REQUIRED": "Alege mai intai un fisier Excel.",
+  "EXCEL_FILE_TOO_LARGE": "Acest fisier este prea mare pentru import.",
+  "EXCEL_INVALID_TYPE": "Sunt acceptate doar fisiere .xlsx valide.",
+  "EXCEL_CORRUPTED": "Fisierul nu a putut fi citit in siguranta.",
+  "EXCEL_ENCRYPTED": "Fisierele Excel criptate nu sunt acceptate.",
+  "EXCEL_YEAR_MISSING": "Roomly nu a putut detecta anul fisierului.",
+  "EXCEL_YEAR_CONFLICT": "Fisierul contine informatii de an aflate in conflict.",
+  "EXCEL_NO_SUPPORTED_SHEETS": "Nu au fost gasite foi lunare compatibile.",
+  "EXCEL_NO_IMPORTABLE_ROWS": "Nu au fost gasite randuri importabile in acest fisier.",
+  "EXCEL_ALREADY_IMPORTED": "Acest fisier a fost deja importat.",
+  "EXCEL_PREVIEW_EXPIRED": "Aceasta previzualizare a expirat. Genereaza una noua.",
+  "EXCEL_PREVIEW_ALREADY_USED": "Aceasta previzualizare a fost deja folosita.",
+  "EXCEL_IMPORT_CONFLICT": "Acest fisier are conflicte care blocheaza importul.",
+  "EXCEL_BATCH_NOT_FOUND": "Acest lot de import nu a fost gasit.",
+  "EXCEL_BATCH_ALREADY_UNDONE": "Acest lot de import a fost deja anulat."
 }

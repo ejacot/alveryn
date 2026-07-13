@@ -1,3 +1,18 @@
 {
-  "fallback": "Something went wrong. Please try again."
+  "fallback": "Something went wrong. Please try again.",
+  "EXCEL_FILE_REQUIRED": "Choose an Excel workbook first.",
+  "EXCEL_FILE_TOO_LARGE": "This workbook is too large to import.",
+  "EXCEL_INVALID_TYPE": "Only valid .xlsx workbooks are supported.",
+  "EXCEL_CORRUPTED": "This workbook could not be read safely.",
+  "EXCEL_ENCRYPTED": "Encrypted workbooks are not supported.",
+  "EXCEL_YEAR_MISSING": "Roomly could not detect the workbook year.",
+  "EXCEL_YEAR_CONFLICT": "The workbook contains conflicting year information.",
+  "EXCEL_NO_SUPPORTED_SHEETS": "No supported monthly sheets were found.",
+  "EXCEL_NO_IMPORTABLE_ROWS": "No importable rows were found in this workbook.",
+  "EXCEL_ALREADY_IMPORTED": "This workbook was already imported.",
+  "EXCEL_PREVIEW_EXPIRED": "This preview expired. Generate a new preview.",
+  "EXCEL_PREVIEW_ALREADY_USED": "This preview was already used.",
+  "EXCEL_IMPORT_CONFLICT": "This workbook has blocking conflicts and cannot be imported yet.",
+  "EXCEL_BATCH_NOT_FOUND": "This import batch could not be found.",
+  "EXCEL_BATCH_ALREADY_UNDONE": "This import batch was already undone."
 }

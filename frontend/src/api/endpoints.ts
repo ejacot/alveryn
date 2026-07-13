@@ -9,7 +9,12 @@ import type {
 } from "../types/configuration";
 import type { DashboardResponse } from "../types/dashboard";
 import type { Absence, AbsenceType } from "../types/absence";
-import type { ExcelImportResult } from "../types/imports";
+import type {
+  ExcelImportBatchDetail,
+  ExcelImportBatchSummary,
+  ExcelImportConfirmResult,
+  ExcelImportPreview
+} from "../types/imports";
 import type { WorkEntry, WorkEntryRequest } from "../types/work-entry";
 import type { OnboardingStatus } from "../types/onboarding";
 import { http } from "./http";
@@ -358,17 +363,47 @@ export async function deleteWorkEntry(id: string) {
   await http.delete(`/api/work-entries/${id}`);
 }
 
-export async function importScheduleWorkbook(file: File) {
+export async function previewScheduleWorkbook(file: File, fallbackYear?: number) {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await http.post<ApiResponse<ExcelImportResult>>(
-    "/api/imports/excel/schedule",
+  const response = await http.post<ApiResponse<ExcelImportPreview>>(
+    "/api/imports/excel/schedule/preview",
     formData,
     {
+      params: fallbackYear ? { fallbackYear } : undefined,
       headers: {
         "Content-Type": "multipart/form-data"
       }
     }
+  );
+  return response.data.data;
+}
+
+export async function confirmScheduleWorkbook(previewToken: string) {
+  const response = await http.post<ApiResponse<ExcelImportConfirmResult>>(
+    "/api/imports/excel/schedule/confirm",
+    { previewToken }
+  );
+  return response.data.data;
+}
+
+export async function listScheduleImports() {
+  const response = await http.get<ApiResponse<ExcelImportBatchSummary[]>>(
+    "/api/imports/excel/schedule"
+  );
+  return response.data.data;
+}
+
+export async function getScheduleImport(batchId: string) {
+  const response = await http.get<ApiResponse<ExcelImportBatchDetail>>(
+    `/api/imports/excel/schedule/${batchId}`
+  );
+  return response.data.data;
+}
+
+export async function undoScheduleImport(batchId: string) {
+  const response = await http.post<ApiResponse<ExcelImportBatchDetail>>(
+    `/api/imports/excel/schedule/${batchId}/undo`
   );
   return response.data.data;
 }

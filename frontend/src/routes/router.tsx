@@ -83,6 +83,11 @@ const SettingsImportPage = lazy(() =>
     default: module.SettingsImportPage
   }))
 );
+const SettingsImportDetailPage = lazy(() =>
+  import("../pages/settings-import-detail-page").then((module) => ({
+    default: module.SettingsImportDetailPage
+  }))
+);
 const LoginPage = lazy(() =>
   import("../pages/login-page").then((module) => ({
     default: module.LoginPage
@@ -172,6 +177,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
               element: withSuspense(<UnitTypeEditorPage />)
             },
             { path: "/settings/import", element: withSuspense(<SettingsImportPage />) },
+            { path: "/settings/import/:batchId", element: withSuspense(<SettingsImportDetailPage />) },
             { path: "/settings/about", element: withSuspense(<AboutRoomlyPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
           ]

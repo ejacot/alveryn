@@ -50,5 +50,10 @@ export const queryKeys = {
     all: () => ["absences"] as const,
     list: (params: AbsencesParams) => ["absences", "list", params] as const,
     range: (params: AbsencesRangeParams) => ["absences", "range", params] as const
+  },
+  imports: {
+    all: () => ["imports"] as const,
+    history: () => ["imports", "history"] as const,
+    detail: (batchId: string) => ["imports", "detail", batchId] as const
   }
 } as const;
