@@ -22,6 +22,7 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
+import { todayLocalIsoDate } from "../utils/date";
 
 const schema = z
   .object({
@@ -58,7 +59,7 @@ export function HourlyRateEditorPage() {
     defaultValues: {
       hourlyRate: 0,
       currency: "EUR",
-      validFrom: new Date().toISOString().slice(0, 10),
+      validFrom: todayLocalIsoDate(),
       validTo: ""
     }
   });

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getWorkEntries } from "../api/endpoints";
+import { listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
@@ -51,8 +51,8 @@ export function DashboardPage() {
 
   const monthQueries = useQueries({
     queries: monthRequests.map(({ year, month }) => ({
-      queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
-      queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
+      queryKey: queryKeys.workEntries.range({ year, month }),
+      queryFn: () => listWorkEntriesInRange({ year, month })
     }))
   });
 
@@ -63,7 +63,7 @@ export function DashboardPage() {
     const merged = new Map<string, WorkEntry>();
 
     monthQueries.forEach((query) => {
-      query.data?.content.forEach((entry) => {
+      query.data?.forEach((entry) => {
         merged.set(entry.id, entry);
       });
     });

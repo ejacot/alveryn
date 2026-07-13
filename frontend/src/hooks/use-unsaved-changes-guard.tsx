@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useBeforeUnload, useBlocker } from "react-router-dom";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 
 type Options = {
@@ -8,22 +9,27 @@ type Options = {
 export function useUnsavedChangesGuard({ isDirty }: Options) {
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
+  const blocker = useBlocker(isDirty);
+
+  useBeforeUnload(
+    useCallback((event: BeforeUnloadEvent) => {
+      if (!isDirty) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    }, [isDirty])
+  );
 
   useEffect(() => {
-    if (!isDirty) {
+    if (blocker.state !== "blocked") {
       return;
     }
 
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isDirty]);
+    setPendingAction(() => () => blocker.proceed());
+    setOpen(true);
+  }, [blocker]);
 
   const confirmOrRun = useCallback(
     (action: () => void) => {
@@ -47,8 +53,11 @@ export function useUnsavedChangesGuard({ isDirty }: Options) {
 
   const cancelDiscard = useCallback(() => {
     setOpen(false);
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
     setPendingAction(null);
-  }, []);
+  }, [blocker]);
 
   const dialog = (
     <SettingsConfirmDialog

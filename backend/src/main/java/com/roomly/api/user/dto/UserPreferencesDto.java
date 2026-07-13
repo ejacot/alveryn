@@ -12,7 +12,6 @@ public record UserPreferencesDto(
     @NotBlank @Size(max = 10) String language,
     @NotBlank @Size(max = 60) String timezone,
     @NotBlank @Size(min = 3, max = 3) String currency,
-    @NotNull FirstDayOfWeek firstDayOfWeek,
     @NotBlank @Size(max = 30) String dateFormat,
     @NotNull TimeFormat timeFormat,
     @NotNull ThemePreference theme,

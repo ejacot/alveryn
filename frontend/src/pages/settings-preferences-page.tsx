@@ -16,19 +16,7 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
-
-const timezones = [
-  "Europe/Berlin",
-  "Europe/London",
-  "Europe/Bucharest",
-  "Europe/Zurich",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "Asia/Dubai",
-  "Asia/Tokyo"
-];
+import { getSupportedTimezones } from "../utils/timezones";
 
 const schema = z.object({
   language: z.string().min(2),
@@ -39,8 +27,7 @@ const schema = z.object({
   preferredDailyMinutes: z.coerce.number().min(0).max(59),
   theme: z.enum(["SYSTEM", "DARK"]),
   dateFormat: z.string().min(2),
-  timeFormat: z.enum(["H12", "H24"]),
-  firstDayOfWeek: z.enum(["MONDAY", "SUNDAY"])
+  timeFormat: z.enum(["H12", "H24"])
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,6 +39,7 @@ export function SettingsPreferencesPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const safeBack = useSafeBackNavigation({ fallback: "/profile" });
   const detectedTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const supportedTimezones = useMemo(getSupportedTimezones, []);
   const preferencesQuery = useQuery({
     queryKey: queryKeys.preferences(),
     queryFn: getPreferences,
@@ -114,8 +102,7 @@ export function SettingsPreferencesPage() {
             preferredDailyMinutes: values.preferredDailyHours * 60 + values.preferredDailyMinutes,
             theme: values.theme,
             dateFormat: values.dateFormat,
-            timeFormat: values.timeFormat,
-            firstDayOfWeek: values.firstDayOfWeek
+            timeFormat: values.timeFormat
           });
         })}
       >
@@ -134,7 +121,7 @@ export function SettingsPreferencesPage() {
               ))}
             </Select>
             <Select label="Timezone" error={form.formState.errors.timezone?.message} {...form.register("timezone")}>
-              {timezones.map((timezone) => (
+              {supportedTimezones.map((timezone) => (
                 <option key={timezone} value={timezone}>
                   {timezone}
                 </option>
@@ -168,10 +155,6 @@ export function SettingsPreferencesPage() {
               <option value="H24">24-hour</option>
               <option value="H12">12-hour</option>
             </Select>
-            <Select label="First day of week" error={form.formState.errors.firstDayOfWeek?.message} {...form.register("firstDayOfWeek")}>
-              <option value="MONDAY">Monday</option>
-              <option value="SUNDAY">Sunday</option>
-            </Select>
           </div>
         </SettingsSection>
 
@@ -199,7 +182,6 @@ function toPreferenceFormValues(
     preferredDailyMinutes: target % 60,
     theme: preferences?.theme === "DARK" ? "DARK" : "SYSTEM",
     dateFormat: preferences?.dateFormat ?? "DD.MM.YYYY",
-    timeFormat: preferences?.timeFormat ?? "H24",
-    firstDayOfWeek: preferences?.firstDayOfWeek ?? "MONDAY"
+    timeFormat: preferences?.timeFormat ?? "H24"
   };
 }

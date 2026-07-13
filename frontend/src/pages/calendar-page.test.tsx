@@ -53,14 +53,13 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
-  getWorkEntries: vi.fn(),
-  getAbsences: vi.fn()
+  listWorkEntriesInRange: vi.fn(),
+  listAbsencesInRange: vi.fn()
 }));
 
-import { getAbsences, getWorkEntries } from "../api/endpoints";
+import { listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
 
-const julyEntries = {
-  content: [
+const julyEntries = [
     {
       id: "entry-1",
       workTypeId: "wt-time",
@@ -110,20 +109,9 @@ const julyEntries = {
       createdAt: "2026-07-18T08:00:00Z",
       updatedAt: "2026-07-18T08:00:00Z"
     }
-  ],
-  page: 0,
-  size: 100,
-  totalElements: 2,
-  totalPages: 1,
-  first: true,
-  last: true,
-  hasNext: false,
-  hasPrevious: false,
-  numberOfElements: 2
-};
+];
 
-const julyAbsences = {
-  content: [
+const julyAbsences = [
     {
       id: "absence-1",
       absenceType: "VACATION" as const,
@@ -131,17 +119,7 @@ const julyAbsences = {
       endDate: "2026-07-21",
       notes: "Summer break"
     }
-  ],
-  page: 0,
-  size: 100,
-  totalElements: 1,
-  totalPages: 1,
-  first: true,
-  last: true,
-  hasNext: false,
-  hasPrevious: false,
-  numberOfElements: 1
-};
+];
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -205,29 +183,19 @@ describe("CalendarPage", () => {
 
     globalThis.Date = MockDate as DateConstructor;
     navigateMock.mockReset();
-    vi.mocked(getWorkEntries).mockImplementation(async ({ year, month } = {}) => {
+    vi.mocked(listWorkEntriesInRange).mockImplementation(async ({ year, month } = {}) => {
       if (year === 2026 && month === 7) {
         return julyEntries;
       }
 
-      return {
-        ...julyEntries,
-        content: [],
-        totalElements: 0,
-        numberOfElements: 0
-      };
+      return [];
     });
-    vi.mocked(getAbsences).mockImplementation(async ({ year, month } = {}) => {
+    vi.mocked(listAbsencesInRange).mockImplementation(async ({ year, month } = {}) => {
       if (year === 2026 && month === 7) {
         return julyAbsences;
       }
 
-      return {
-        ...julyAbsences,
-        content: [],
-        totalElements: 0,
-        numberOfElements: 0
-      };
+      return [];
     });
   });
 
@@ -298,18 +266,8 @@ describe("CalendarPage", () => {
   });
 
   it("shows empty and error states from real query results", async () => {
-    vi.mocked(getWorkEntries).mockResolvedValue({
-      ...julyEntries,
-      content: [],
-      totalElements: 0,
-      numberOfElements: 0
-    });
-    vi.mocked(getAbsences).mockResolvedValue({
-      ...julyAbsences,
-      content: [],
-      totalElements: 0,
-      numberOfElements: 0
-    });
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(listAbsencesInRange).mockResolvedValue([]);
 
     renderPage();
 
@@ -334,7 +292,7 @@ describe("CalendarPage", () => {
   });
 
   it("renders a friendly error state when monthly loading fails", async () => {
-    vi.mocked(getWorkEntries).mockRejectedValueOnce(new Error("backend down"));
+    vi.mocked(listWorkEntriesInRange).mockRejectedValueOnce(new Error("backend down"));
     renderPage();
 
     expect(await screen.findByText("Calendar is unavailable.")).toBeInTheDocument();
@@ -345,11 +303,9 @@ describe("CalendarPage", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(getWorkEntries).toHaveBeenCalledWith({
+      expect(listWorkEntriesInRange).toHaveBeenCalledWith({
         year: 2026,
-        month: 7,
-        page: 0,
-        size: 100
+        month: 7
       });
     });
   });

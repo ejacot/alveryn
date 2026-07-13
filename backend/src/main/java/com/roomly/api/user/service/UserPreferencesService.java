@@ -32,7 +32,6 @@ public class UserPreferencesService {
     preferences.changeLanguage(InputSanitizer.requireTrimmed(request.language(), "language"));
     preferences.changeTimezone(timezone);
     preferences.changeCurrency(InputSanitizer.normalizeCurrency(request.currency()));
-    preferences.changeFirstDayOfWeek(request.firstDayOfWeek());
     preferences.changeDateFormat(InputSanitizer.requireTrimmed(request.dateFormat(), "dateFormat"));
     preferences.changeTimeFormat(request.timeFormat());
     preferences.changeTheme(request.theme());

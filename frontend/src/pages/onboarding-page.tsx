@@ -27,6 +27,7 @@ import {
   profileStepSchema
 } from "../features/onboarding/onboarding-schemas";
 import { useAuth } from "../features/auth/use-auth";
+import { todayLocalIsoDate } from "../utils/date";
 
 const STEP_PROFILE = 1;
 const STEP_HOURLY_RATE = 2;
@@ -93,7 +94,6 @@ export function OnboardingPage() {
           ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
           : "UTC",
       currency: "EUR",
-      firstDayOfWeek: "MONDAY" as const,
       dateFormat: DEFAULT_DATE_FORMAT,
       timeFormat: "H24" as const,
       theme: "DARK" as const,
@@ -307,7 +307,7 @@ export function OnboardingPage() {
               await hourlyRateMutation.mutateAsync({
                 hourlyRate: values.hourlyRate,
                 currency: "EUR",
-                validFrom: new Date().toISOString().slice(0, 10)
+                validFrom: todayLocalIsoDate()
               });
               await finishMutation.mutateAsync();
             })}

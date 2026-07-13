@@ -38,7 +38,8 @@ public class OnboardingService {
   @Transactional(readOnly = true)
   public OnboardingStatusResponse getStatus() {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    boolean profileConfigured = profiles.findByUserId(userId).map(this::isProfileConfigured).orElse(false);
+    boolean profileConfigured =
+        profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false);
     boolean preferencesConfigured = preferences.findByUserId(userId).isPresent();
     boolean hourlyRateConfigured = hourlyRates.existsByUserId(userId);
     boolean workTypeConfigured = workTypes.existsByUserIdAndActiveTrue(userId);
@@ -46,6 +47,9 @@ public class OnboardingService {
         preferences.findByUserId(userId).map(UserPreferences::isOnboardingCompleted).orElse(false);
 
     List<String> missingSteps = new ArrayList<>();
+    if (!profileConfigured) {
+      missingSteps.add("profile");
+    }
     if (!preferencesConfigured) {
       missingSteps.add("preferences");
     }
@@ -65,7 +69,9 @@ public class OnboardingService {
   @Transactional
   public OnboardingStatusResponse complete() {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    if (!preferences.findByUserId(userId).isPresent() || !hourlyRates.existsByUserId(userId)) {
+    if (!profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false)
+        || !preferences.findByUserId(userId).isPresent()
+        || !hourlyRates.existsByUserId(userId)) {
       OnboardingStatusResponse status = getStatus();
       throw new ConflictException(
           "Onboarding cannot be completed until missing steps are resolved: "
@@ -82,21 +88,11 @@ public class OnboardingService {
     return getStatus();
   }
 
-  private boolean isProfileConfigured(UserProfile profile) {
+  private boolean hasRequiredProfileFields(UserProfile profile) {
     return profile.getFirstName() != null
-        || profile.getLastName() != null
-        || profile.getDisplayName() != null
-        || profile.getPhone() != null
-        || profile.getCountryCode() != null
-        || profile.getCity() != null
-        || profile.getPostalCode() != null
-        || profile.getStreet() != null
-        || profile.getHouseNumber() != null
-        || profile.getApartment() != null
-        || profile.getAvatarUrl() != null
-        || profile.getDateOfBirth() != null
-        || profile.getEmploymentStartDate() != null
-        || profile.getEmploymentEndDate() != null;
+        && !profile.getFirstName().isBlank()
+        && profile.getLastName() != null
+        && !profile.getLastName().isBlank();
   }
 
   private void ensureDefaultWorkType(UUID userId) {

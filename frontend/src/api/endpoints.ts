@@ -50,7 +50,6 @@ export type UpdatePreferencesPayload = {
   language: string;
   timezone: string;
   currency: string;
-  firstDayOfWeek: UserPreferences["firstDayOfWeek"];
   dateFormat: string;
   timeFormat: UserPreferences["timeFormat"];
   theme: UserPreferences["theme"];
@@ -303,6 +302,42 @@ export async function getWorkEntries(
   return response.data.data;
 }
 
+async function fetchAllPages<T>(
+  path: string,
+  params: Record<string, string | number | undefined>
+) {
+  const size = 100;
+  const firstResponse = await http.get<ApiResponse<PageResponse<T>>>(path, {
+    params: { ...params, page: 0, size }
+  });
+  const firstPage = firstResponse.data.data;
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.content;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      http.get<ApiResponse<PageResponse<T>>>(path, {
+        params: { ...params, page: index + 1, size }
+      })
+    )
+  );
+
+  return [
+    ...firstPage.content,
+    ...remainingPages.flatMap((response) => response.data.data.content)
+  ];
+}
+
+export function listWorkEntriesInRange(params: {
+  year?: number;
+  month?: number;
+  workTypeId?: string;
+}) {
+  return fetchAllPages<WorkEntry>("/api/work-entries", params);
+}
+
 export async function getWorkEntry(id: string) {
   const response = await http.get<ApiResponse<WorkEntry>>(`/api/work-entries/${id}`);
   return response.data.data;
@@ -340,4 +375,14 @@ export async function getAbsences(
     params
   });
   return response.data.data;
+}
+
+export function listAbsencesInRange(params: {
+  year?: number;
+  month?: number;
+  from?: string;
+  to?: string;
+  absenceType?: AbsenceType;
+}) {
+  return fetchAllPages<Absence>("/api/absences", params);
 }

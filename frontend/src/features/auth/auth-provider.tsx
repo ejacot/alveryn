@@ -80,7 +80,20 @@ export function AuthProvider({ children }: Props) {
       if (!hasStoredSession()) {
         queryClient.clear();
         setUser(null);
+        setIsHydrating(false);
+        return;
       }
+
+      setIsHydrating(true);
+      void refreshCurrentUser()
+        .catch(() => {
+          clearTokens();
+          queryClient.clear();
+          setUser(null);
+        })
+        .finally(() => {
+          setIsHydrating(false);
+        });
     });
 
     return () => {

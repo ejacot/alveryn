@@ -1,5 +1,10 @@
 import type { PanInfo } from "framer-motion";
-import { formatLocalIsoDate, parseLocalIsoDate } from "../../utils/date";
+import {
+  daysBetweenInclusive,
+  eachDayOfInterval,
+  formatLocalIsoDate,
+  parseLocalIsoDate
+} from "../../utils/date";
 
 const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
   weekday: "short"
@@ -95,11 +100,8 @@ export function buildMonthGrid(month: Date): CalendarDayCell[] {
   const lastDayWeekday = lastDayOfMonth.getDay();
   const trailingDays = lastDayWeekday === 0 ? 0 : 7 - lastDayWeekday;
   const gridEnd = addDays(lastDayOfMonth, trailingDays);
-  const totalCells =
-    Math.floor((gridEnd.getTime() - gridStart.getTime()) / 86_400_000) + 1;
 
-  return Array.from({ length: totalCells }, (_, index) => {
-    const date = addDays(gridStart, index);
+  return eachDayOfInterval(gridStart, gridEnd).map((date) => {
     return {
       key: toIsoDate(date),
       date,
@@ -149,7 +151,7 @@ export function countMonthOverlapDays(
 
   const start = parseIsoDate(overlapStart);
   const end = parseIsoDate(overlapEnd);
-  return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  return daysBetweenInclusive(start, end);
 }
 
 export function getNextMonthDate(date: Date) {

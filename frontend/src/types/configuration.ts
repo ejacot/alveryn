@@ -1,5 +1,3 @@
-export type FirstDayOfWeek = "MONDAY" | "SUNDAY";
-
 export type TimeFormat = "H12" | "H24";
 
 export type ThemePreference = "LIGHT" | "DARK" | "SYSTEM";
@@ -27,7 +25,6 @@ export type UserPreferences = {
   language: string;
   timezone: string;
   currency: string;
-  firstDayOfWeek: FirstDayOfWeek;
   dateFormat: string;
   timeFormat: TimeFormat;
   theme: ThemePreference;

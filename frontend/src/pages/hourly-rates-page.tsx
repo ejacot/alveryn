@@ -9,6 +9,7 @@ import { SettingsPageHeader } from "../components/settings/settings-page-header"
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { parseLocalIsoDate, todayLocalIsoDate } from "../utils/date";
 
 export function HourlyRatesPage() {
   const navigate = useNavigate();
@@ -72,7 +73,7 @@ export function HourlyRatesPage() {
 }
 
 function labelRate(rate: { validFrom: string; validTo: string | null }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalIsoDate();
   if (rate.validFrom > today) return "Future";
   if (!rate.validTo || rate.validTo >= today) return "Current";
   return "Past";
@@ -87,5 +88,5 @@ function formatDate(value: string) {
     day: "numeric",
     month: "short",
     year: "numeric"
-  }).format(new Date(`${value}T00:00:00`));
+  }).format(parseLocalIsoDate(value));
 }

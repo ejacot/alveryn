@@ -1,6 +1,5 @@
 package com.roomly.api.user.dto;
 
-import com.roomly.api.user.entity.FirstDayOfWeek;
 import com.roomly.api.user.entity.ThemePreference;
 import com.roomly.api.user.entity.TimeFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,7 +11,6 @@ public record UserPreferencesResponse(
     String language,
     String timezone,
     String currency,
-    FirstDayOfWeek firstDayOfWeek,
     String dateFormat,
     TimeFormat timeFormat,
     ThemePreference theme,

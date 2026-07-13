@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { SettingsProfilePage } from "./settings-profile-page";
 import { SettingsPreferencesPage } from "./settings-preferences-page";
 import { queryKeys } from "../api/query-keys";
@@ -40,7 +40,6 @@ vi.mock("../features/auth/use-auth", () => ({
         language: "en",
         timezone: "Europe/Berlin",
         currency: "EUR",
-        firstDayOfWeek: "MONDAY",
         dateFormat: "DD.MM.YYYY",
         timeFormat: "H24",
         theme: "SYSTEM",
@@ -93,7 +92,6 @@ vi.mock("../api/endpoints", () => ({
     language: "en",
     timezone: "Europe/Berlin",
     currency: "EUR",
-    firstDayOfWeek: "MONDAY",
     dateFormat: "DD.MM.YYYY",
     timeFormat: "H24",
     theme: "SYSTEM",
@@ -106,7 +104,6 @@ vi.mock("../api/endpoints", () => ({
     language: "ro",
     timezone: "Europe/Berlin",
     currency: "RON",
-    firstDayOfWeek: "MONDAY",
     dateFormat: "DD.MM.YYYY",
     timeFormat: "H24",
     theme: "SYSTEM",
@@ -127,9 +124,11 @@ function renderWithClient(node: React.ReactNode) {
   return {
     queryClient,
     ...render(
-      <MemoryRouter>
-        <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider
+          router={createMemoryRouter([{ path: "/", element: node }])}
+        />
+      </QueryClientProvider>
     )
   };
 }

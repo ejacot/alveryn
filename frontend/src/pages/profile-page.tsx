@@ -5,6 +5,7 @@ import { getPreferences, getProfile, listHourlyRates, listWorkTypes } from "../a
 import { useAuth } from "../features/auth/use-auth";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
+import { todayLocalIsoDate } from "../utils/date";
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
@@ -59,7 +60,7 @@ export function ProfilePage() {
       return "Not set";
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocalIsoDate();
     const current =
       rates.find((rate) => rate.validFrom <= today && (!rate.validTo || rate.validTo >= today)) ??
       rates[0];
@@ -146,12 +147,6 @@ export function ProfilePage() {
           label="Time format"
           value={formatTimeFormat(preferences?.timeFormat)}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="First day of week"
-          value={formatFirstDay(preferences?.firstDayOfWeek)}
-        />
       </SettingsGroup>
 
       <SettingsGroup title="App">
@@ -200,10 +195,6 @@ function formatTimeFormat(value?: "H12" | "H24" | null) {
   }
 
   return "24-hour";
-}
-
-function formatFirstDay(value?: "MONDAY" | "SUNDAY" | null) {
-  return value === "SUNDAY" ? "Sunday" : "Monday";
 }
 
 function formatDailyTarget(value?: number | null) {

@@ -1,14 +1,15 @@
 import type { PanInfo } from "framer-motion";
+import { addWeeks } from "../../utils/date";
 
 const SWIPE_DISTANCE_THRESHOLD = 72;
 const SWIPE_VELOCITY_THRESHOLD = 420;
 
 export function getNextWeekDate(date: Date) {
-  return new Date(date.getTime() + 7 * 86_400_000);
+  return addWeeks(date, 1);
 }
 
 export function getPreviousWeekDate(date: Date) {
-  return new Date(date.getTime() - 7 * 86_400_000);
+  return addWeeks(date, -1);
 }
 
 export function resolveWeekSwipeDirection(info: Pick<PanInfo, "offset" | "velocity">) {

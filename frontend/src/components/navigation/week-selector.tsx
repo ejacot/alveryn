@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { getWorkEntries } from "../../api/endpoints";
+import { listWorkEntriesInRange } from "../../api/endpoints";
 import { queryKeys } from "../../api/query-keys";
 import { addDays, formatLocalIsoDate, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
 import { cn } from "../../utils/cn";
@@ -35,14 +35,14 @@ export function WeekSelector({ value, onChange }: Props) {
   }, [weekEnd, weekStart]);
   const entryQueries = useQueries({
     queries: monthRequests.map(({ year, month }) => ({
-      queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
-      queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
+      queryKey: queryKeys.workEntries.range({ year, month }),
+      queryFn: () => listWorkEntriesInRange({ year, month })
     }))
   });
   const markedDates = useMemo(() => {
     const dates = new Set<string>();
     entryQueries.forEach((query) => {
-      query.data?.content.forEach((entry) => dates.add(entry.workDate));
+      query.data?.forEach((entry) => dates.add(entry.workDate));
     });
     return dates;
   }, [entryQueries]);

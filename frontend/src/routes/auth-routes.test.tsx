@@ -139,7 +139,6 @@ describe("auth routes", () => {
               language: "en",
               timezone: "Europe/Berlin",
               currency: "EUR",
-              firstDayOfWeek: "MONDAY",
               dateFormat: "dd/MM/yyyy",
               timeFormat: "H24",
               theme: "DARK",

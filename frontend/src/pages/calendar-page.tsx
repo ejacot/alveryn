@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getAbsences, getWorkEntries } from "../api/endpoints";
+import { listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
@@ -40,13 +40,13 @@ export function CalendarPage() {
   const month = activeMonth.getMonth() + 1;
 
   const workEntriesQuery = useQuery({
-    queryKey: queryKeys.workEntries.list({ year, month, page: 0, size: 100 }),
-    queryFn: () => getWorkEntries({ year, month, page: 0, size: 100 })
+    queryKey: queryKeys.workEntries.range({ year, month }),
+    queryFn: () => listWorkEntriesInRange({ year, month })
   });
 
   const absencesQuery = useQuery({
-    queryKey: queryKeys.absences.list({ year, month, page: 0, size: 100 }),
-    queryFn: () => getAbsences({ year, month, page: 0, size: 100 })
+    queryKey: queryKeys.absences.range({ year, month }),
+    queryFn: () => listAbsencesInRange({ year, month })
   });
 
   useEffect(() => {
@@ -54,71 +54,55 @@ export function CalendarPage() {
     const nextMonth = getNextMonthDate(activeMonth);
 
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.workEntries.list({
+      queryKey: queryKeys.workEntries.range({
         year: previousMonth.getFullYear(),
-        month: previousMonth.getMonth() + 1,
-        page: 0,
-        size: 100
+        month: previousMonth.getMonth() + 1
       }),
       queryFn: () =>
-        getWorkEntries({
+        listWorkEntriesInRange({
           year: previousMonth.getFullYear(),
-          month: previousMonth.getMonth() + 1,
-          page: 0,
-          size: 100
+          month: previousMonth.getMonth() + 1
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.workEntries.list({
+      queryKey: queryKeys.workEntries.range({
         year: nextMonth.getFullYear(),
-        month: nextMonth.getMonth() + 1,
-        page: 0,
-        size: 100
+        month: nextMonth.getMonth() + 1
       }),
       queryFn: () =>
-        getWorkEntries({
+        listWorkEntriesInRange({
           year: nextMonth.getFullYear(),
-          month: nextMonth.getMonth() + 1,
-          page: 0,
-          size: 100
+          month: nextMonth.getMonth() + 1
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.absences.list({
+      queryKey: queryKeys.absences.range({
         year: previousMonth.getFullYear(),
-        month: previousMonth.getMonth() + 1,
-        page: 0,
-        size: 100
+        month: previousMonth.getMonth() + 1
       }),
       queryFn: () =>
-        getAbsences({
+        listAbsencesInRange({
           year: previousMonth.getFullYear(),
-          month: previousMonth.getMonth() + 1,
-          page: 0,
-          size: 100
+          month: previousMonth.getMonth() + 1
         })
     });
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.absences.list({
+      queryKey: queryKeys.absences.range({
         year: nextMonth.getFullYear(),
-        month: nextMonth.getMonth() + 1,
-        page: 0,
-        size: 100
+        month: nextMonth.getMonth() + 1
       }),
       queryFn: () =>
-        getAbsences({
+        listAbsencesInRange({
           year: nextMonth.getFullYear(),
-          month: nextMonth.getMonth() + 1,
-          page: 0,
-          size: 100
+          month: nextMonth.getMonth() + 1
         })
     });
   }, [activeMonth, queryClient]);
 
   const isLoading = workEntriesQuery.isLoading || absencesQuery.isLoading;
   const error = workEntriesQuery.error ?? absencesQuery.error;
-  const entries = workEntriesQuery.data?.content ?? [];
-  const absences = absencesQuery.data?.content ?? [];
+  const entries = workEntriesQuery.data ?? [];
+  const absences = absencesQuery.data ?? [];
 
   const monthGrid = useMemo(() => buildMonthGrid(activeMonth), [activeMonth]);
 

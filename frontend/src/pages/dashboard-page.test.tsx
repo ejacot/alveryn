@@ -21,10 +21,10 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
-  getWorkEntries: vi.fn()
+  listWorkEntriesInRange: vi.fn()
 }));
 
-import { getWorkEntries } from "../api/endpoints";
+import { listWorkEntriesInRange } from "../api/endpoints";
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -43,8 +43,7 @@ function renderPage() {
 describe("DashboardPage", () => {
   beforeEach(() => {
     navigateMock.mockReset();
-    vi.mocked(getWorkEntries).mockResolvedValue({
-      content: [
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([
         {
           id: "entry-1",
           workTypeId: "wt-time",
@@ -94,17 +93,7 @@ describe("DashboardPage", () => {
           createdAt: "2026-07-12T09:00:00Z",
           updatedAt: "2026-07-12T09:00:00Z"
         }
-      ],
-      page: 0,
-      size: 100,
-      totalElements: 2,
-      totalPages: 1,
-      first: true,
-      last: true,
-      hasNext: false,
-      hasPrevious: false,
-      numberOfElements: 2
-    });
+      ]);
   });
 
   it("renders real recent entries and supports quick navigation", async () => {
@@ -115,11 +104,9 @@ describe("DashboardPage", () => {
     expect(screen.getByText("08:00 -> 16:00")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(getWorkEntries).toHaveBeenCalledWith({
+      expect(listWorkEntriesInRange).toHaveBeenCalledWith({
         year: 2026,
-        month: 7,
-        page: 0,
-        size: 100
+        month: 7
       });
     });
 

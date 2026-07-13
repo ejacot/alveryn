@@ -114,7 +114,6 @@ class UserConfigurationIntegrationTest {
                       "language":"ro",
                       "timezone":"Europe/Berlin",
                       "currency":"eur",
-                      "firstDayOfWeek":"MONDAY",
                       "dateFormat":"DD.MM.YYYY",
                       "timeFormat":"H24",
                       "theme":"SYSTEM",
@@ -138,7 +137,6 @@ class UserConfigurationIntegrationTest {
                       "language":"ro",
                       "timezone":"Mars/Olympus",
                       "currency":"EUR",
-                      "firstDayOfWeek":"MONDAY",
                       "dateFormat":"DD.MM.YYYY",
                       "timeFormat":"H24",
                       "theme":"SYSTEM",
@@ -159,7 +157,6 @@ class UserConfigurationIntegrationTest {
                       "language":"ro",
                       "timezone":"Europe/Berlin",
                       "currency":"EURO",
-                      "firstDayOfWeek":"MONDAY",
                       "dateFormat":"DD.MM.YYYY",
                       "timeFormat":"H24",
                       "theme":"SYSTEM",
@@ -481,9 +478,10 @@ class UserConfigurationIntegrationTest {
     mockMvc
         .perform(get("/api/onboarding/status").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.profileConfigured").value(false))
         .andExpect(jsonPath("$.data.preferencesConfigured").value(false))
         .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
-        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(3));
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -500,7 +498,6 @@ class UserConfigurationIntegrationTest {
                       "language":"ro",
                       "timezone":"Europe/Berlin",
                       "currency":"EUR",
-                      "firstDayOfWeek":"MONDAY",
                       "dateFormat":"DD.MM.YYYY",
                       "timeFormat":"H24",
                       "theme":"SYSTEM",
@@ -521,6 +518,22 @@ class UserConfigurationIntegrationTest {
           "validTo":null
         }
         """);
+
+    mockMvc
+        .perform(
+            put("/api/profile")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "firstName":"Ana",
+                      "lastName":"Pop",
+                      "phone":null,
+                      "employmentStartDate":null
+                    }
+                    """))
+        .andExpect(status().isOk());
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))

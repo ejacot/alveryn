@@ -6,6 +6,8 @@ type WorkEntriesParams = {
   size?: number;
 };
 
+type WorkEntriesRangeParams = Omit<WorkEntriesParams, "page" | "size">;
+
 type AbsencesParams = {
   year?: number;
   month?: number;
@@ -15,6 +17,8 @@ type AbsencesParams = {
   page?: number;
   size?: number;
 };
+
+type AbsencesRangeParams = Omit<AbsencesParams, "page" | "size">;
 
 export const queryKeys = {
   currentUser: () => ["current-user"] as const,
@@ -39,10 +43,12 @@ export const queryKeys = {
   workEntries: {
     all: () => ["work-entries"] as const,
     list: (params: WorkEntriesParams) => ["work-entries", "list", params] as const,
+    range: (params: WorkEntriesRangeParams) => ["work-entries", "range", params] as const,
     detail: (id: string) => ["work-entries", "detail", id] as const
   },
   absences: {
     all: () => ["absences"] as const,
-    list: (params: AbsencesParams) => ["absences", "list", params] as const
+    list: (params: AbsencesParams) => ["absences", "list", params] as const,
+    range: (params: AbsencesRangeParams) => ["absences", "range", params] as const
   }
 } as const;

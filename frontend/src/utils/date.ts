@@ -14,6 +14,10 @@ export function parseLocalIsoDate(value: string) {
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
+export function todayLocalIsoDate() {
+  return formatLocalIsoDate(new Date());
+}
+
 export function startOfWeek(date: Date) {
   const result = new Date(date);
   const day = result.getDay();
@@ -27,6 +31,27 @@ export function addDays(date: Date, amount: number) {
   const result = new Date(date);
   result.setDate(result.getDate() + amount);
   return result;
+}
+
+export function addWeeks(date: Date, amount: number) {
+  return addDays(date, amount * 7);
+}
+
+export function eachDayOfInterval(start: Date, end: Date) {
+  const days: Date[] = [];
+  let current = parseLocalIsoDate(formatLocalIsoDate(start));
+  const last = formatLocalIsoDate(end);
+
+  while (formatLocalIsoDate(current) <= last) {
+    days.push(current);
+    current = addDays(current, 1);
+  }
+
+  return days;
+}
+
+export function daysBetweenInclusive(start: Date, end: Date) {
+  return eachDayOfInterval(start, end).length;
 }
 
 export function getWeekDays(anchor = new Date()) {

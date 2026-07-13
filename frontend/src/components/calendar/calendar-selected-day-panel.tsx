@@ -3,6 +3,7 @@ import { ArrowRight, CalendarDays, MoonStar, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import type { WorkEntry } from "../../types/work-entry";
 import type { Absence } from "../../types/absence";
+import { daysBetweenInclusive, parseLocalIsoDate, todayLocalIsoDate } from "../../utils/date";
 import { formatCurrency, formatMinutesAsDuration, formatTimeRange } from "../../utils/format";
 
 type Props = {
@@ -169,7 +170,7 @@ function resolveAbsenceStatus(absence: Absence | null) {
     return "";
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalIsoDate();
   if (absence.startDate > today) {
     return "Upcoming";
   }
@@ -180,9 +181,10 @@ function resolveAbsenceStatus(absence: Absence | null) {
 }
 
 function countAbsenceDays(absence: Absence) {
-  const start = new Date(`${absence.startDate}T00:00:00`);
-  const end = new Date(`${absence.endDate}T00:00:00`);
-  return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  return daysBetweenInclusive(
+    parseLocalIsoDate(absence.startDate),
+    parseLocalIsoDate(absence.endDate)
+  );
 }
 
 function formatShortDate(value: string) {
