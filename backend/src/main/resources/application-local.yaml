@@ -22,6 +22,10 @@ roomly:
     allowed-origins:
       - http://localhost:5173
       - http://127.0.0.1:5173
+    allowed-origin-patterns:
+      - http://192.168.*:5173
+      - http://10.*:5173
+      - http://172.*:5173
   auth:
     jwt-secret: local-development-jwt-secret-32-bytes-minimum
     refresh-cookie:

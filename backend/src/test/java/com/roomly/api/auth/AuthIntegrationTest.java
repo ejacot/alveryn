@@ -2,6 +2,7 @@ package com.roomly.api.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -228,6 +229,40 @@ class AuthIntegrationTest {
     }
     assertThat(users.findByEmailIgnoreCase("login@example.com").orElseThrow().getFailedLoginAttempts())
         .isEqualTo(authProperties.loginMaxFailedAttempts());
+  }
+
+  @Test
+  void corsAllowsConfiguredLocalAndLanDevelopmentOrigins() throws Exception {
+    mockMvc
+        .perform(
+            options("/api/auth/login")
+                .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+        .andExpect(status().isOk())
+        .andExpect(
+            result ->
+                assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN))
+                    .isEqualTo("http://localhost:5173"))
+        .andExpect(
+            result ->
+                assertThat(
+                        result
+                            .getResponse()
+                            .getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS))
+                    .isEqualTo("true"));
+
+    mockMvc
+        .perform(
+            options("/api/auth/login")
+                .header(HttpHeaders.ORIGIN, "http://192.168.0.25:5173")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+        .andExpect(status().isOk())
+        .andExpect(
+            result ->
+                assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN))
+                    .isEqualTo("http://192.168.0.25:5173"));
   }
 
   @Test

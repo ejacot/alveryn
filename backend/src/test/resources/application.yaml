@@ -17,6 +17,8 @@ roomly:
   cors:
     allowed-origins:
       - http://localhost:5173
+    allowed-origin-patterns:
+      - http://192.168.*:5173
   auth:
     jwt-secret: test-jwt-secret-012345678901234567890123
     access-token-lifetime: 15m
