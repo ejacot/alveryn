@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getAbsences, getWorkEntries } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
-import { AppLogo } from "../components/branding/app-logo";
 import { Button } from "../components/ui/button";
 import { CalendarErrorState } from "../components/calendar/calendar-error-state";
 import { CalendarMonthGrid } from "../components/calendar/calendar-month-grid";
@@ -194,30 +193,8 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[860px] space-y-9 pb-8">
-      <section className="space-y-6">
-        <div className="flex items-start justify-between gap-5">
-          <div className="space-y-4">
-            <AppLogo className="justify-start" />
-            <h1 className="text-[2.25rem] font-semibold tracking-[-0.08em] text-white">
-              {formatMonthLabel(activeMonth)}
-            </h1>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Go to current month"
-            onClick={() => {
-              setSlideDirection(0);
-              setActiveMonth(startOfMonth(today));
-              setSelectedDate(today);
-            }}
-            className="mt-1 flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/[0.05] bg-white/[0.02] shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-[18px] transition hover:bg-white/[0.035] focus:outline-none focus:ring-2 focus:ring-white/20"
-          >
-            <CalendarDays className="h-[22px] w-[22px] text-white/72" />
-          </button>
-        </div>
-
+    <div className="mx-auto max-w-[860px] space-y-6 pb-28">
+      <section className="space-y-4">
         <div className="hidden items-center justify-end gap-2 md:flex">
           <Button
             variant="ghost"
@@ -238,6 +215,7 @@ export function CalendarPage() {
         </div>
 
         <CalendarMonthGrid
+          monthLabel={formatMonthLabel(activeMonth)}
           monthKey={`${year}-${month}`}
           slideDirection={slideDirection}
           days={monthGrid}

@@ -235,11 +235,11 @@ describe("CalendarPage", () => {
     globalThis.Date = RealDate;
   });
 
-  it("renders the active month, monday-first grid, and 42 day cells", async () => {
+  it("renders the active month, monday-first grid, and only the required adjacent month days", async () => {
     renderPage();
 
     expect(await screen.findByText("July 2026")).toBeInTheDocument();
-    expect(screen.getAllByRole("gridcell")).toHaveLength(42);
+    expect(screen.getAllByRole("gridcell")).toHaveLength(35);
 
     expect(screen.getByRole("row")).toHaveTextContent("MONTUEWEDTHUFRISATSUN");
 
@@ -247,8 +247,16 @@ describe("CalendarPage", () => {
       screen.getByRole("gridcell", { name: /monday, june 29, 2026/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("gridcell", { name: /sunday, august 9, 2026/i })
+      screen.getByRole("gridcell", { name: /sunday, august 2, 2026/i })
     ).toBeInTheDocument();
+    expect(screen.queryByRole("gridcell", { name: /monday, august 3, 2026/i })).not.toBeInTheDocument();
+  });
+
+  it("does not render the removed roomly header", async () => {
+    renderPage();
+
+    await screen.findByText("July 2026");
+    expect(screen.queryByText("Roomly")).not.toBeInTheDocument();
   });
 
   it("updates the detail panel and preserves selected versus today styling", async () => {

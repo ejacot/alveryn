@@ -91,8 +91,14 @@ export function getCalendarWeekdays() {
 export function buildMonthGrid(month: Date): CalendarDayCell[] {
   const activeMonth = startOfMonth(month);
   const gridStart = startOfWeekMonday(activeMonth);
+  const lastDayOfMonth = addDays(addMonths(activeMonth, 1), -1);
+  const lastDayWeekday = lastDayOfMonth.getDay();
+  const trailingDays = lastDayWeekday === 0 ? 0 : 7 - lastDayWeekday;
+  const gridEnd = addDays(lastDayOfMonth, trailingDays);
+  const totalCells =
+    Math.floor((gridEnd.getTime() - gridStart.getTime()) / 86_400_000) + 1;
 
-  return Array.from({ length: 42 }, (_, index) => {
+  return Array.from({ length: totalCells }, (_, index) => {
     const date = addDays(gridStart, index);
     return {
       key: toIsoDate(date),
@@ -106,6 +112,10 @@ export function buildMonthGrid(month: Date): CalendarDayCell[] {
 
 export function formatMonthLabel(date: Date) {
   return monthFormatter.format(date);
+}
+
+export function getCalendarRowCount(month: Date) {
+  return buildMonthGrid(month).length / 7;
 }
 
 export function formatSelectedDate(date: Date) {

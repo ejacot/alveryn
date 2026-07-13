@@ -8,6 +8,7 @@ type DayMeta = {
 };
 
 type Props = {
+  monthLabel: string;
   monthKey: string;
   slideDirection: number;
   days: CalendarDayCell[];
@@ -22,6 +23,7 @@ type Props = {
 const weekdays = getCalendarWeekdays();
 
 export function CalendarMonthGrid({
+  monthLabel,
   monthKey,
   slideDirection,
   days,
@@ -32,13 +34,33 @@ export function CalendarMonthGrid({
   onSwipeChange,
   onResolveSwipe
 }: Props) {
+  const rowCount = days.length / 7;
+  const gridClassName =
+    rowCount === 4
+      ? "grid grid-cols-7 gap-x-3 gap-y-3.5 sm:gap-x-4 sm:gap-y-4"
+      : rowCount === 5
+        ? "grid grid-cols-7 gap-x-3 gap-y-4 sm:gap-x-4 sm:gap-y-5"
+        : "grid grid-cols-7 gap-x-3 gap-y-4.5 sm:gap-x-4 sm:gap-y-5";
+  const cellClassName =
+    rowCount === 4
+      ? "flex min-h-[68px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[74px]"
+      : rowCount === 5
+        ? "flex min-h-[72px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[78px]"
+        : "flex min-h-[76px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[82px]";
+
   return (
-    <section className="space-y-6" aria-label="Monthly calendar">
-      <div className="grid grid-cols-7 gap-x-3 gap-y-2 px-1" role="row">
+    <section className="mx-auto max-w-[24rem] space-y-4 sm:max-w-[28rem]" aria-label="Monthly calendar">
+      <div className="flex items-center justify-between gap-4 px-1">
+        <p className="text-[1.45rem] font-semibold tracking-[-0.06em] text-white sm:text-[1.7rem]">
+          {monthLabel}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-7 gap-x-3 gap-y-2 px-1 sm:gap-x-4" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="text-center text-[10px] font-medium tracking-[0.24em] text-white/40"
+            className="text-center text-[10px] font-medium tracking-[0.22em] text-white/48 sm:text-[11px]"
           >
             {weekday}
           </div>
@@ -77,7 +99,7 @@ export function CalendarMonthGrid({
             animate="center"
             exit="exit"
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-7 gap-x-3 gap-y-4"
+            className={gridClassName}
             role="grid"
           >
             {days.map((day) => {
@@ -117,21 +139,21 @@ export function CalendarMonthGrid({
                   data-state={selected ? "selected" : current ? "today" : "default"}
                   onClick={() => onSelect(day.date)}
                   className={cn(
-                    "flex min-h-[90px] flex-col items-center justify-start gap-2.5 rounded-[24px] px-1 py-1 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505]",
-                    !day.inActiveMonth && "text-white/22"
+                    cellClassName,
+                    !day.inActiveMonth && "text-white/20"
                   )}
                 >
                   <span className="sr-only">{day.weekday}</span>
                   <div
                     className={cn(
-                      "flex h-[56px] w-[56px] items-center justify-center rounded-full text-[18px] font-medium tracking-[-0.04em] transition",
+                      "flex h-[48px] w-[48px] items-center justify-center rounded-full text-[18px] font-medium tracking-[-0.05em] transition sm:h-[52px] sm:w-[52px] sm:text-[19px]",
                       selected
-                        ? "scale-[1.03] bg-white text-black shadow-[0_18px_38px_rgba(255,255,255,0.14)]"
+                        ? "scale-[1.035] bg-white text-black shadow-[0_22px_44px_rgba(255,255,255,0.14)]"
                         : current
-                          ? "border border-white/[0.12] text-white/82"
+                          ? "border border-white/[0.22] text-white/84"
                           : day.inActiveMonth
-                            ? "text-white/74"
-                            : "text-white/26"
+                            ? "text-white/88"
+                            : "text-white/28"
                     )}
                   >
                     {day.dayNumber}
@@ -139,15 +161,31 @@ export function CalendarMonthGrid({
 
                   <div className="flex min-h-[10px] items-center gap-1" aria-hidden="true">
                     {meta.hasAbsence ? (
-                      <span className="h-1.5 w-1.5 rounded-full border border-white/40" />
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full border",
+                          day.inActiveMonth ? "border-white/42" : "border-white/18"
+                        )}
+                      />
                     ) : null}
                     {!meta.hasAbsence && meta.entriesCount > 0 ? (
                       meta.entriesCount <= 3 ? (
                         Array.from({ length: meta.entriesCount }, (_, index) => (
-                          <span key={index} className="h-1.5 w-1.5 rounded-full bg-white/52" />
+                          <span
+                            key={index}
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              day.inActiveMonth ? "bg-white/56" : "bg-white/18"
+                            )}
+                          />
                         ))
                       ) : (
-                        <span className="text-[10px] font-semibold text-white/40">
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold",
+                            day.inActiveMonth ? "text-white/42" : "text-white/18"
+                          )}
+                        >
                           {meta.entriesCount}
                         </span>
                       )
