@@ -193,8 +193,8 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[860px] space-y-6 pb-28">
-      <section className="space-y-4">
+    <div className="mx-auto max-w-[860px] space-y-5 pb-28">
+      <section className="space-y-2">
         <div className="hidden items-center justify-end gap-2 md:flex">
           <Button
             variant="ghost"

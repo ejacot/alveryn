@@ -37,37 +37,39 @@ export function CalendarMonthGrid({
   const rowCount = days.length / 7;
   const gridClassName =
     rowCount === 4
-      ? "grid grid-cols-7 gap-x-3 gap-y-3.5 sm:gap-x-4 sm:gap-y-4"
+      ? "grid grid-cols-7 gap-x-2.5 gap-y-1 sm:gap-x-3 sm:gap-y-1.5"
       : rowCount === 5
-        ? "grid grid-cols-7 gap-x-3 gap-y-4 sm:gap-x-4 sm:gap-y-5"
-        : "grid grid-cols-7 gap-x-3 gap-y-4.5 sm:gap-x-4 sm:gap-y-5";
+        ? "grid grid-cols-7 gap-x-2.5 gap-y-1 sm:gap-x-3 sm:gap-y-2"
+        : "grid grid-cols-7 gap-x-2.5 gap-y-1.5 sm:gap-x-3 sm:gap-y-2.5";
   const cellClassName =
     rowCount === 4
-      ? "flex min-h-[68px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[74px]"
+      ? "flex min-h-[29px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[33px]"
       : rowCount === 5
-        ? "flex min-h-[72px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[78px]"
-        : "flex min-h-[76px] flex-col items-center justify-start gap-1.5 rounded-[20px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[82px]";
+        ? "flex min-h-[31px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[35px]"
+        : "flex min-h-[34px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[38px]";
 
   return (
-    <section className="mx-auto max-w-[24rem] space-y-4 sm:max-w-[28rem]" aria-label="Monthly calendar">
-      <div className="flex items-center justify-between gap-4 px-1">
-        <p className="text-[1.45rem] font-semibold tracking-[-0.06em] text-white sm:text-[1.7rem]">
+    <section className="mx-auto w-full max-w-[28rem] space-y-2.5 overflow-hidden sm:max-w-[32rem]" aria-label="Monthly calendar">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-[1rem] font-medium tracking-[-0.03em] text-white/68">
           {monthLabel}
-        </p>
+          </h2>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-x-3 gap-y-2 px-1 sm:gap-x-4" role="row">
+      <div className="grid grid-cols-7 gap-1" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="text-center text-[10px] font-medium tracking-[0.22em] text-white/48 sm:text-[11px]"
+            className="text-center text-[10px] font-semibold tracking-[0.2em] text-white/34"
           >
             {weekday}
           </div>
         ))}
       </div>
 
-      <div className="relative overflow-hidden px-1 touch-pan-y">
+      <div className="relative overflow-hidden touch-pan-y">
         <AnimatePresence custom={slideDirection} initial={false} mode="wait">
           <motion.div
             key={monthKey}
@@ -139,27 +141,27 @@ export function CalendarMonthGrid({
                   data-state={selected ? "selected" : current ? "today" : "default"}
                   onClick={() => onSelect(day.date)}
                   className={cn(
-                    cellClassName,
+                    `${cellClassName} justify-between`,
                     !day.inActiveMonth && "text-white/20"
                   )}
                 >
                   <span className="sr-only">{day.weekday}</span>
                   <div
                     className={cn(
-                      "flex h-[48px] w-[48px] items-center justify-center rounded-full text-[18px] font-medium tracking-[-0.05em] transition sm:h-[52px] sm:w-[52px] sm:text-[19px]",
+                      "relative flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-semibold transition sm:h-10 sm:w-10",
                       selected
                         ? "scale-[1.035] bg-white text-black shadow-[0_22px_44px_rgba(255,255,255,0.14)]"
                         : current
-                          ? "border border-white/[0.22] text-white/84"
+                          ? "border border-white/[0.08] bg-white/[0.1] text-white/88"
                           : day.inActiveMonth
-                            ? "text-white/88"
+                            ? "text-white/76"
                             : "text-white/28"
                     )}
                   >
                     {day.dayNumber}
                   </div>
 
-                  <div className="flex min-h-[10px] items-center gap-1" aria-hidden="true">
+                  <div className="flex min-h-[4px] items-center gap-1" aria-hidden="true">
                     {meta.hasAbsence ? (
                       <span
                         className={cn(

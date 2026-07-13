@@ -33,10 +33,10 @@ export function CalendarSelectedDayPanel({
   const absenceStatus = resolveAbsenceStatus(absence);
 
   return (
-    <section className="space-y-5" aria-label="Selected day details">
-      <div className="space-y-2">
+    <section className="space-y-4" aria-label="Selected day details">
+      <div className="space-y-1">
         <p className="text-[11px] uppercase tracking-[0.24em] text-white/34">{titleEyebrow}</p>
-        <p className="text-[1.55rem] font-semibold tracking-[-0.06em] text-white">{title}</p>
+        <p className="text-[1.42rem] font-semibold tracking-[-0.06em] text-white">{title}</p>
       </div>
 
       <AnimatePresence mode="popLayout" initial={false}>
@@ -47,53 +47,50 @@ export function CalendarSelectedDayPanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden rounded-[30px] border border-white/[0.04] bg-white/[0.02] shadow-[0_22px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
+            className="overflow-hidden rounded-[32px] border border-white/[0.045] bg-white/[0.022] shadow-[0_20px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
           >
-            {entries.map((entry, index) => (
+            {entries.map((entry) => (
               <button
                 key={entry.id}
                 type="button"
                 onClick={() => onEntrySelect(entry.id)}
-                className="w-full border-b border-white/[0.04] px-5 py-5 text-left transition hover:bg-white/[0.02] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset last:border-b-0"
+                className="w-full border-b border-white/[0.045] px-5 py-5 text-left transition hover:bg-white/[0.02] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset last:border-b-0 sm:px-6 sm:py-6"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="flex min-h-12 w-12 flex-col items-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03]">
-                        <CalendarDays className="h-5 w-5 text-white/66" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.05] bg-white/[0.03] sm:h-14 sm:w-14">
+                        <CalendarDays className="h-5 w-5 text-white/66 sm:h-[22px] sm:w-[22px]" />
                       </div>
-                      <span
-                        className="mt-2 h-2 w-2 rounded-full bg-white/80"
-                        aria-hidden="true"
-                      />
+                      <span className="mt-2 h-2 w-2 rounded-full bg-white/80" aria-hidden="true" />
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
+                    <div className="space-y-1">
+                      <p className="text-[1.18rem] font-semibold tracking-[-0.045em] text-white sm:text-[1.2rem]">
                         {entry.workTypeName}
                       </p>
-                      <p className="text-[1.05rem] tracking-[-0.03em] text-white/72">
+                      <p className="text-[1.02rem] tracking-[-0.03em] text-white/70">
                         {formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
                           `${entry.unitItems.length} unit row${entry.unitItems.length === 1 ? "" : "s"}`}
                       </p>
-                      <p className="text-[0.95rem] text-white/46">
+                      <p className="text-[0.92rem] text-white/46">
                         {formatMinutesAsDuration(Number(entry.calculatedMinutes))}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 pl-3">
-                    <p className="text-[1.05rem] font-medium tracking-[-0.03em] text-white/80">
+                  <div className="flex items-center gap-3 pl-3 pt-1">
+                    <p className="text-[1.02rem] font-medium tracking-[-0.03em] text-white/84 sm:text-[1.06rem]">
                       {formatCurrency(entry.grossAmount, entry.currencySnapshot)}
                     </p>
-                    <ArrowRight className="h-5 w-5 text-white/32" />
+                    <ArrowRight className="h-5 w-5 text-white/28" />
                   </div>
                 </div>
               </button>
             ))}
 
-            <div className="p-4">
+            <div className="p-4 sm:p-5">
               <Button
                 variant="secondary"
-                className="w-full justify-start gap-3 rounded-[999px] border-white/[0.08] bg-white/[0.02] px-5 py-4 text-base font-medium text-white/88 shadow-none hover:bg-white/[0.04]"
+                className="w-full justify-start gap-3 rounded-[999px] border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-base font-medium text-white/88 shadow-none hover:bg-white/[0.04]"
                 aria-label="Add entry for selected date"
                 onClick={onAddEntry}
               >
@@ -113,7 +110,7 @@ export function CalendarSelectedDayPanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center justify-between gap-4 rounded-[28px] border border-white/[0.04] bg-white/[0.02] px-5 py-5 shadow-[0_20px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
+            className="flex items-center justify-between gap-4 rounded-[28px] border border-white/[0.045] bg-white/[0.02] px-5 py-5 shadow-[0_20px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
           >
             <div className="space-y-1">
               <p className="text-base font-semibold text-white">No activity.</p>
@@ -136,30 +133,30 @@ export function CalendarSelectedDayPanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[30px] border border-white/[0.04] bg-white/[0.02] px-5 py-5 shadow-[0_22px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
+            className="rounded-[30px] border border-white/[0.045] bg-white/[0.022] px-5 py-5 shadow-[0_22px_50px_rgba(0,0,0,0.16)] backdrop-blur-[18px]"
           >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03]">
-                <MoonStar className="h-5 w-5 text-white/66" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03]">
+                  <MoonStar className="h-5 w-5 text-white/66" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
+                    {formatAbsenceType(absence.absenceType)}
+                  </p>
+                  <p className="text-sm text-white/56">
+                    {formatShortDate(absence.startDate)} - {formatShortDate(absence.endDate)}
+                  </p>
+                  <p className="text-sm text-white/42">{countAbsenceDays(absence)} days</p>
+                  {absence.notes ? (
+                    <p className="pt-1 text-sm leading-6 text-white/58">{absence.notes}</p>
+                  ) : null}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <p className="text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-                  {formatAbsenceType(absence.absenceType)}
-                </p>
-                <p className="text-sm text-white/52">
-                  {formatShortDate(absence.startDate)} - {formatShortDate(absence.endDate)}
-                </p>
-                <p className="text-sm text-white/44">{countAbsenceDays(absence)} days</p>
-                {absence.notes ? (
-                  <p className="pt-1 text-sm leading-6 text-white/58">{absence.notes}</p>
-                ) : null}
+              <div className="rounded-full border border-white/[0.05] bg-white/[0.04] px-4 py-2 text-sm text-white/68">
+                {absenceStatus}
               </div>
             </div>
-            <div className="rounded-full border border-white/[0.05] bg-white/[0.04] px-4 py-2 text-sm text-white/68">
-              {absenceStatus}
-            </div>
-          </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
