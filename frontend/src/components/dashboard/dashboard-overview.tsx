@@ -1,11 +1,12 @@
+import { useTranslation } from "react-i18next";
 import { RecentEntriesList } from "./recent-entries-list";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SectionHeading } from "../ui/section-heading";
-import type { RecentEntry, SummaryMetric } from "../../types/dashboard";
+import type { DashboardSummaryMetrics, RecentEntry } from "../../types/dashboard";
 
 type Props = {
-  summary: SummaryMetric[];
+  summary: DashboardSummaryMetrics | null;
   recentEntries: RecentEntry[];
   weeklyBars?: number[];
   weeklyDescription: string;
@@ -23,36 +24,39 @@ export function DashboardOverview({
   onEntrySelect,
   preview = false
 }: Props) {
+  const { t } = useTranslation("dashboard");
+
   return (
-    <div className="space-y-5 pb-6">
+    <div className="space-y-8 pb-6">
       <SectionHeading
-        eyebrow={preview ? "Preview" : "Overview"}
-        title="Today feels under control."
+        eyebrow={preview ? t("heading.previewEyebrow") : t("heading.eyebrow")}
+        title={t("heading.title")}
         description={
           preview
-            ? "Explicit local preview data for the approved Roomly visual language."
-            : "Live backend data, clean hierarchy, and no fake success fallbacks."
+            ? t("heading.previewDescription")
+            : t("heading.description")
         }
       />
       <button
         type="button"
         onClick={onQuickAdd}
-        className="section-card flex w-full items-center justify-between bg-white/[0.09] text-left transition focus:outline-none focus:ring-2 focus:ring-white/28 hover:bg-white/[0.11]"
+        aria-label={t("quickAdd.accessibleLabel")}
+        className="surface-muted flex w-full items-center justify-between px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24 hover:bg-white/[0.05]"
       >
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-white/48">
-            Quick Add
+          <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
+          <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.05em] text-white">
+            {t("quickAdd.description")}
           </p>
-          <p className="mt-2 text-lg font-semibold text-white">Save today&apos;s shift fast.</p>
         </div>
-        <span className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">
-          Add Entry
+        <span className="rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
+          {t("quickAdd.cta")}
         </span>
       </button>
-      <SummaryCards items={summary} />
+      <SummaryCards metrics={summary} />
       <RecentEntriesList
         entries={recentEntries}
-        emptyMessage="No entries yet for this period."
+        emptyMessage={t("recentEntries.emptyDescription")}
         onEntrySelect={onEntrySelect}
       />
       <WeeklyHoursCard

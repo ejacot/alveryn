@@ -6,15 +6,15 @@ type Props = {
 
 export function SectionHeading({ eyebrow, title, description }: Props) {
   return (
-    <div>
-      <p className="text-xs uppercase tracking-[0.24em] text-white/52">
+    <div className="space-y-2">
+      <p className="hairline-text">
         {eyebrow}
       </p>
-      <h1 className="mt-2 text-[2rem] font-semibold tracking-[-0.05em] text-white">
+      <h1 className="text-[2.25rem] font-semibold tracking-[-0.07em] text-white">
         {title}
       </h1>
       {description ? (
-        <p className="mt-2 max-w-md text-sm leading-6 text-white/66">
+        <p className="max-w-md text-sm leading-6 text-white/58">
           {description}
         </p>
       ) : null}

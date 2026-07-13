@@ -110,7 +110,7 @@ describe("DashboardPage", () => {
       });
     });
 
-    await user.click(screen.getByRole("button", { name: /add entry/i }));
+    await user.click(screen.getByRole("button", { name: /add a new work entry/i }));
     expect(navigateMock).toHaveBeenCalledWith("/entries/new");
 
     await user.click(screen.getByRole("button", { name: /regular shift/i }));

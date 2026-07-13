@@ -4,6 +4,12 @@ export type SummaryMetric = {
   hint: string;
 };
 
+export type DashboardSummaryMetrics = {
+  primaryMetric?: SummaryMetric | null;
+  secondaryMetrics?: SummaryMetric[];
+  tertiaryMetric?: SummaryMetric | null;
+};
+
 export type DashboardResponse = {
   currentMonth: string;
   workedHours: string;

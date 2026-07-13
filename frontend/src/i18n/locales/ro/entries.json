@@ -1,4 +1,19 @@
 {
   "saved": "Salvat",
-  "date": "Data"
+  "date": "Data",
+  "summary": {
+    "eyebrow": "Rezumat",
+    "title": "Gata de salvat",
+    "workedHours": "Ore lucrate",
+    "grossAmount": "Sumă brută",
+    "payRate": "Tarif",
+    "date": "Data",
+    "workType": "Tip de lucru"
+  },
+  "workTypePicker": {
+    "timeBased": "Bazat pe timp",
+    "unitBased": "Bazat pe unități",
+    "inactive": "Inactiv",
+    "optionLabel": "{{name}}, {{method}}"
+  }
 }

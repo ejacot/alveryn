@@ -1,15 +1,71 @@
 {
+  "heading": {
+    "eyebrow": "Überblick",
+    "previewEyebrow": "Vorschau",
+    "title": "Heute im Überblick",
+    "description": "Nur die Zahlen und Einträge, die gerade wirklich wichtig sind.",
+    "previewDescription": "Explizite lokale Vorschaudaten für die freigegebene Roomly-Designsprache.",
+    "previewError": "API-Fehlerzustand der Vorschau nur für die lokale Validierung."
+  },
   "summary": {
     "today": "Heute",
     "gross": "Brutto",
     "week": "Woche",
-    "recent": "Letzte",
-    "noEntries": "Noch keine Eintrage",
-    "liveSavedEntries": "Direkt aus gespeicherten Eintragen",
+    "recent": "Zuletzt",
+    "noEntries": "Noch keine Einträge",
+    "entryCount_one": "{{count}} erfasster Eintrag",
+    "entryCount_other": "{{count}} erfasste Einträge",
+    "weekEntryCount_one": "{{count}} Eintrag in dieser Woche",
+    "weekEntryCount_other": "{{count}} Einträge in dieser Woche",
+    "liveSavedEntries": "Direkt aus gespeicherten Einträgen",
     "loadedRealData": "Aus echten Backend-Daten geladen"
   },
   "recentEntries": {
-    "title": "Letzte Eintrage"
+    "eyebrow": "Zuletzt",
+    "title": "Letzte Einträge",
+    "trailingLabel": "Neueste",
+    "emptyTitle": "Noch keine Einträge",
+    "emptyDescription": "Lege deine erste Schicht an.",
+    "openEntry": "{{title}} öffnen",
+    "unitRows_one": "{{count}} Mengenzeile • {{date}}",
+    "unitRows_other": "{{count}} Mengenzeilen • {{date}}"
   },
-  "quickAdd": "Schnell hinzufugen"
+  "quickAdd": {
+    "eyebrow": "Schnell erfassen",
+    "description": "Erfasse eine Schicht, bevor der Moment vorbei ist.",
+    "cta": "Eintrag erfassen",
+    "accessibleLabel": "Neuen Arbeitseintrag erfassen"
+  },
+  "weeklyHours": {
+    "eyebrow": "Rhythmus",
+    "title": "Wochenstunden",
+    "empty": "Die Wochenaktivität erscheint, sobald du diese Woche Arbeit speicherst.",
+    "description": "{{total}} in dieser Woche erfasst. Die Balken reagieren auf echte gespeicherte Einträge.",
+    "emptyDescription": "Für diese Woche sind noch keine Einträge gespeichert. Erfasse deine erste Schicht über die Schnellaktion oben."
+  },
+  "preview": {
+    "weeklyDescription": "Rhythmusbalken nur für die lokale Designvalidierung.",
+    "entries": {
+      "morningRooms": {
+        "title": "Zimmer am Morgen",
+        "subtitle": "Housekeeping • 08:00 - 14:30"
+      },
+      "lateShift": {
+        "title": "Spätschicht",
+        "subtitle": "Lobby-Reset • Gestern"
+      },
+      "weekendPrep": {
+        "title": "Wochenendvorbereitung",
+        "subtitle": "Suite-Nachbereitung • Fr"
+      }
+    },
+    "summary": {
+      "earnings": "Verdienst",
+      "entries": "Einträge",
+      "focusedShift": "Fokusschicht",
+      "projectedGross": "Voraussichtliches Brutto",
+      "steadyRhythm": "Konstanter Rhythmus",
+      "recentActivity": "Letzte Aktivität"
+    }
+  }
 }

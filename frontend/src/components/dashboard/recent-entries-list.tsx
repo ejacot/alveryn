@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { RecentEntry } from "../../types/dashboard";
 import { cn } from "../../utils/cn";
 
@@ -9,16 +10,18 @@ type Props = {
 };
 
 export function RecentEntriesList({ entries, emptyMessage, onEntrySelect }: Props) {
+  const { t } = useTranslation("dashboard");
+
   return (
-    <section className="section-card space-y-4">
+    <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-white/54">
-            Recent
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">Recent entries</h2>
+          <p className="hairline-text">{t("recentEntries.eyebrow")}</p>
+          <h2 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.05em] text-white">
+            {t("recentEntries.title")}
+          </h2>
         </div>
-        <span className="text-sm text-white/52">See all</span>
+        <span className="text-sm text-white/34">{t("recentEntries.trailingLabel")}</span>
       </div>
       {entries.length ? (
         <div className="space-y-3">
@@ -30,25 +33,31 @@ export function RecentEntriesList({ entries, emptyMessage, onEntrySelect }: Prop
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: index * 0.04 }}
               onClick={() => onEntrySelect?.(entry.id)}
+              aria-label={t("recentEntries.openEntry", { title: entry.title })}
               className={cn(
-                "flex w-full items-center justify-between rounded-[24px] border border-white/10 bg-white/[0.06] px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/28",
-                onEntrySelect && "hover:bg-white/[0.08]"
+                "surface-muted flex w-full items-center justify-between px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
+                onEntrySelect && "hover:bg-white/[0.05]"
               )}
             >
               <div>
-                <p className="font-medium text-white">{entry.title}</p>
-                <p className="mt-1 text-sm text-white/62">{entry.subtitle}</p>
-                <p className="mt-1 text-sm text-white/44">{entry.duration}</p>
+                <p className="font-medium tracking-[-0.03em] text-white">{entry.title}</p>
+                <p className="mt-1 text-sm text-white/52">{entry.subtitle}</p>
+                <p className="mt-2 text-sm text-white/34">{entry.duration}</p>
               </div>
-              <span className="text-sm font-semibold text-white/82">
+              <span className="text-base font-semibold tracking-[-0.04em] text-white/90">
                 {entry.amount}
               </span>
             </motion.button>
           ))}
         </div>
       ) : (
-        <div className="rounded-[24px] border border-dashed border-white/[0.16] px-4 py-5 text-sm text-white/62">
-          {emptyMessage ?? "Nothing to show yet."}
+        <div className="surface-muted px-5 py-6">
+          <p className="text-base font-medium tracking-[-0.03em] text-white">
+            {t("recentEntries.emptyTitle")}
+          </p>
+          <p className="mt-2 text-sm text-white/46">
+            {emptyMessage ?? t("recentEntries.emptyDescription")}
+          </p>
         </div>
       )}
     </section>

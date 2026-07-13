@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { WorkType } from "../../types/configuration";
 import { cn } from "../../utils/cn";
 
@@ -9,10 +10,13 @@ type Props = {
 };
 
 export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
+  const { t } = useTranslation("entries");
+
   return (
     <div className="grid gap-3">
       {workTypes.map((workType, index) => {
         const selected = workType.id === selectedId;
+        const inactive = !workType.active;
 
         return (
           <motion.button
@@ -22,15 +26,25 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: index * 0.03 }}
             onClick={() => onChange(workType.id)}
+            aria-pressed={selected}
+            aria-label={t("workTypePicker.optionLabel", {
+              name: workType.name,
+              method:
+                workType.calculationMethod === "TIME_BASED"
+                  ? t("workTypePicker.timeBased")
+                  : t("workTypePicker.unitBased")
+            })}
+            disabled={inactive}
             className={cn(
-              "flex min-h-[72px] items-center gap-4 rounded-[28px] border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/30",
+              "surface-muted flex min-h-[72px] items-center gap-4 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
               selected
-                ? "border-white/24 bg-white/[0.11]"
-                : "border-white/10 bg-white/[0.05]"
+                ? "border-white/[0.12] bg-white/[0.07]"
+                : "hover:bg-white/[0.045]",
+              inactive && "cursor-not-allowed opacity-55 hover:bg-white/[0.03]"
             )}
           >
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10"
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06]"
               style={{ backgroundColor: `${workType.color}22`, color: workType.color }}
             >
               <span className="text-lg font-semibold">
@@ -38,14 +52,18 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-white">{workType.name}</p>
-              <p className="mt-1 text-sm text-white/58">
-                {workType.calculationMethod === "TIME_BASED" ? "Time based" : "Unit based"}
+              <p className="truncate text-base font-semibold tracking-[-0.03em] text-white">
+                {workType.name}
+              </p>
+              <p className="mt-1 text-sm text-white/46">
+                {workType.calculationMethod === "TIME_BASED"
+                  ? t("workTypePicker.timeBased")
+                  : t("workTypePicker.unitBased")}
               </p>
             </div>
-            {!workType.active ? (
+            {inactive ? (
               <span className="rounded-full border border-white/12 px-3 py-1 text-xs text-white/46">
-                Inactive
+                {t("workTypePicker.inactive")}
               </span>
             ) : null}
           </motion.button>

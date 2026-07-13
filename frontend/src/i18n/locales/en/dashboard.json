@@ -1,15 +1,71 @@
 {
+  "heading": {
+    "eyebrow": "Overview",
+    "previewEyebrow": "Preview",
+    "title": "Today at a glance",
+    "description": "Only the numbers and entries that matter right now.",
+    "previewDescription": "Explicit local preview data for the approved Roomly visual language.",
+    "previewError": "Preview-only API failure state for local validation."
+  },
   "summary": {
     "today": "Today",
     "gross": "Gross",
     "week": "Week",
     "recent": "Recent",
     "noEntries": "No entries yet",
+    "entryCount_one": "{{count}} tracked entry",
+    "entryCount_other": "{{count}} tracked entries",
+    "weekEntryCount_one": "{{count}} entry this week",
+    "weekEntryCount_other": "{{count}} entries this week",
     "liveSavedEntries": "Live from saved entries",
     "loadedRealData": "Loaded from real backend data"
   },
   "recentEntries": {
-    "title": "Recent entries"
+    "eyebrow": "Recent",
+    "title": "Recent entries",
+    "trailingLabel": "Latest",
+    "emptyTitle": "No entries yet",
+    "emptyDescription": "Add your first shift.",
+    "openEntry": "Open {{title}}",
+    "unitRows_one": "{{count}} unit row • {{date}}",
+    "unitRows_other": "{{count}} unit rows • {{date}}"
   },
-  "quickAdd": "Quick add"
+  "quickAdd": {
+    "eyebrow": "Quick add",
+    "description": "Add a shift before the moment passes.",
+    "cta": "Add entry",
+    "accessibleLabel": "Add a new work entry"
+  },
+  "weeklyHours": {
+    "eyebrow": "Rhythm",
+    "title": "Weekly hours",
+    "empty": "Weekly activity will appear after you save work this week.",
+    "description": "{{total}} tracked across this week. Bars react to real saved entries.",
+    "emptyDescription": "No entries saved for this week yet. Add your first shift from the quick action above."
+  },
+  "preview": {
+    "weeklyDescription": "Preview-only rhythm bars for local design validation.",
+    "entries": {
+      "morningRooms": {
+        "title": "Morning rooms",
+        "subtitle": "Housekeeping • 08:00 - 14:30"
+      },
+      "lateShift": {
+        "title": "Late shift",
+        "subtitle": "Lobby reset • Yesterday"
+      },
+      "weekendPrep": {
+        "title": "Weekend prep",
+        "subtitle": "Suite touch-up • Fri"
+      }
+    },
+    "summary": {
+      "earnings": "Earnings",
+      "entries": "Entries",
+      "focusedShift": "Focused shift",
+      "projectedGross": "Projected gross",
+      "steadyRhythm": "Steady rhythm",
+      "recentActivity": "Recent activity"
+    }
+  }
 }

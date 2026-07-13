@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
@@ -7,7 +8,7 @@ import { queryKeys } from "../api/query-keys";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
-import type { RecentEntry, SummaryMetric } from "../types/dashboard";
+import type { DashboardSummaryMetrics, RecentEntry } from "../types/dashboard";
 import type { WorkEntry } from "../types/work-entry";
 import { addDays, isSameDay, startOfWeek } from "../utils/date";
 import {
@@ -27,6 +28,7 @@ type MonthRequest = {
 };
 
 export function DashboardPage() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = outletContext?.selectedDate ?? new Date();
@@ -92,36 +94,47 @@ export function DashboardPage() {
     [allEntries, weekDays]
   );
 
-  const summary = useMemo<SummaryMetric[]>(() => {
+  const summary = useMemo<DashboardSummaryMetrics>(() => {
     const todayMinutes = sumMinutes(selectedDayEntries);
     const todayGross = sumGross(selectedDayEntries);
     const weeklyMinutes = sumMinutes(weeklyEntries);
+    const selectedEntriesLabel = t("dashboard:summary.entryCount", {
+      count: selectedDayEntries.length
+    });
+    const weeklyEntriesLabel = t("dashboard:summary.weekEntryCount", {
+      count: weeklyEntries.length
+    });
 
-    return [
-      {
-        label: "Today",
+    return {
+      primaryMetric: {
+        label: t("dashboard:summary.today"),
         value: formatMinutesAsDuration(todayMinutes),
         hint: selectedDayEntries.length
-          ? `${selectedDayEntries.length} tracked entr${selectedDayEntries.length === 1 ? "y" : "ies"}`
-          : "No entries yet"
+          ? selectedEntriesLabel
+          : t("dashboard:summary.noEntries")
       },
-      {
-        label: "Gross",
-        value: formatCurrency(String(todayGross), resolveCurrency(selectedDayEntries, weeklyEntries)),
-        hint: "Live from saved entries"
-      },
-      {
-        label: "Week",
-        value: formatMinutesAsDuration(weeklyMinutes),
-        hint: `${weeklyEntries.length} entr${weeklyEntries.length === 1 ? "y" : "ies"} this week`
-      },
-      {
-        label: "Recent",
+      secondaryMetrics: [
+        {
+          label: t("dashboard:summary.gross"),
+          value: formatCurrency(
+            String(todayGross),
+            resolveCurrency(selectedDayEntries, weeklyEntries)
+          ),
+          hint: t("dashboard:summary.liveSavedEntries")
+        },
+        {
+          label: t("dashboard:summary.week"),
+          value: formatMinutesAsDuration(weeklyMinutes),
+          hint: weeklyEntriesLabel
+        }
+      ],
+      tertiaryMetric: {
+        label: t("dashboard:summary.recent"),
         value: String(allEntries.length),
-        hint: "Loaded from real backend data"
+        hint: t("dashboard:summary.loadedRealData")
       }
-    ];
-  }, [allEntries.length, selectedDayEntries, weeklyEntries]);
+    };
+  }, [allEntries.length, selectedDayEntries, t, weeklyEntries]);
 
   const recentEntries = useMemo<RecentEntry[]>(
     () =>
@@ -130,20 +143,23 @@ export function DashboardPage() {
         title: entry.workTypeName,
         subtitle:
           formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
-          `${entry.unitItems.length} unit row${entry.unitItems.length === 1 ? "" : "s"} • ${entry.workDate}`,
+          t("dashboard:recentEntries.unitRows", {
+            count: entry.unitItems.length,
+            date: entry.workDate
+          }),
         duration: formatMinutesAsDuration(Number(entry.calculatedMinutes)),
         amount: formatCurrency(entry.grossAmount, entry.currencySnapshot)
       })),
-    [allEntries]
+    [allEntries, t]
   );
 
   const weeklyBars = useMemo(() => buildWeekBars(weekDays, weeklyEntries), [weekDays, weeklyEntries]);
   const weeklyDescription = useMemo(() => {
     const total = formatMinutesAsDuration(sumMinutes(weeklyEntries));
     return weeklyEntries.length
-      ? `${total} tracked across this week. Bars react to real saved entries.`
-      : "No entries saved for this week yet. Add your first shift from the quick action above.";
-  }, [weeklyEntries]);
+      ? t("dashboard:weeklyHours.description", { total })
+      : t("dashboard:weeklyHours.emptyDescription");
+  }, [t, weeklyEntries]);
 
   if (isLoading) {
     return <DashboardSkeleton />;

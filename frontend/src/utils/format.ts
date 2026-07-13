@@ -1,4 +1,5 @@
 import { i18n } from "../i18n";
+import { parseLocalIsoDate } from "./date";
 
 function formatDecimal(value: string, fractionDigits = 1) {
   const parsed = Number(value);
@@ -13,7 +14,7 @@ function formatDecimal(value: string, fractionDigits = 1) {
 }
 
 export function formatHours(value: string) {
-  return `${formatDecimal(value)}h`;
+  return `${formatDecimal(value)}${i18n.t("common:time.hoursShort")}`;
 }
 
 export function formatCurrency(value: string, currency: string) {
@@ -29,14 +30,26 @@ export function formatCurrency(value: string, currency: string) {
   }).format(parsed);
 }
 
+export function formatDisplayDate(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(parseLocalIsoDate(value));
+}
+
 export function formatMinutesAsDuration(value: number) {
   if (!Number.isFinite(value) || value <= 0) {
-    return "0h 00m";
+    return `0${i18n.t("common:time.hoursShort")} 00${i18n.t("common:time.minutesShort")}`;
   }
 
   const hours = Math.floor(value / 60);
   const minutes = Math.round(value % 60);
-  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  return `${hours}${i18n.t("common:time.hoursShort")} ${String(minutes).padStart(2, "0")}${i18n.t("common:time.minutesShort")}`;
 }
 
 export function formatTimeRange(startTime?: string | null, endTime?: string | null) {

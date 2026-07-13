@@ -1,4 +1,19 @@
 {
   "saved": "Gespeichert",
-  "date": "Datum"
+  "date": "Datum",
+  "summary": {
+    "eyebrow": "Zusammenfassung",
+    "title": "Bereit zum Speichern",
+    "workedHours": "Arbeitszeit",
+    "grossAmount": "Bruttobetrag",
+    "payRate": "Lohnsatz",
+    "date": "Datum",
+    "workType": "Arbeitsart"
+  },
+  "workTypePicker": {
+    "timeBased": "Zeitbasiert",
+    "unitBased": "Mengenbasiert",
+    "inactive": "Inaktiv",
+    "optionLabel": "{{name}}, {{method}}"
+  }
 }

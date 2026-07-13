@@ -28,7 +28,7 @@ export function UnitItemRows({
       {fields.map((field, index) => (
         <div
           key={field.id}
-          className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4"
+          className="surface-muted p-4"
         >
           <div className="grid gap-3 sm:grid-cols-[1fr,120px,56px]">
             <Select

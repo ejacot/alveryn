@@ -1,15 +1,74 @@
 {
+  "heading": {
+    "eyebrow": "Privire de ansamblu",
+    "previewEyebrow": "Previzualizare",
+    "title": "Astăzi, dintr-o privire",
+    "description": "Doar cifrele și intrările care contează acum.",
+    "previewDescription": "Date locale explicite de previzualizare pentru direcția vizuală aprobată Roomly.",
+    "previewError": "Stare de eroare doar pentru validarea locală a previzualizării."
+  },
   "summary": {
-    "today": "Astazi",
+    "today": "Astăzi",
     "gross": "Brut",
-    "week": "Saptamana",
+    "week": "Săptămâna",
     "recent": "Recente",
-    "noEntries": "Niciun pontaj inca",
+    "noEntries": "Niciun pontaj încă",
+    "entryCount_one": "{{count}} intrare înregistrată",
+    "entryCount_few": "{{count}} intrări înregistrate",
+    "entryCount_other": "{{count}} de intrări înregistrate",
+    "weekEntryCount_one": "{{count}} intrare săptămâna aceasta",
+    "weekEntryCount_few": "{{count}} intrări săptămâna aceasta",
+    "weekEntryCount_other": "{{count}} de intrări săptămâna aceasta",
     "liveSavedEntries": "Direct din datele salvate",
-    "loadedRealData": "Incarcat din backendul real"
+    "loadedRealData": "Încărcat din backendul real"
   },
   "recentEntries": {
-    "title": "Intrari recente"
+    "eyebrow": "Recente",
+    "title": "Intrări recente",
+    "trailingLabel": "Ultimele",
+    "emptyTitle": "Nicio intrare încă",
+    "emptyDescription": "Adauga prima ta tura.",
+    "openEntry": "Deschide {{title}}",
+    "unitRows_one": "{{count}} rând de unități • {{date}}",
+    "unitRows_few": "{{count}} rânduri de unități • {{date}}",
+    "unitRows_other": "{{count}} de rânduri de unități • {{date}}"
   },
-  "quickAdd": "Adaugare rapida"
+  "quickAdd": {
+    "eyebrow": "Adăugare rapidă",
+    "description": "Adaugă o tură înainte să treacă momentul.",
+    "cta": "Adaugă intrare",
+    "accessibleLabel": "Adauga o noua intrare de lucru"
+  },
+  "weeklyHours": {
+    "eyebrow": "Ritm",
+    "title": "Orele săptămânii",
+    "empty": "Activitatea săptămânii va apărea după ce salvezi lucru în această săptămână.",
+    "description": "{{total}} înregistrate în această săptămână. Barele reacționează la intrările reale salvate.",
+    "emptyDescription": "Nu există încă intrări salvate pentru această săptămână. Adaugă prima ta tură folosind acțiunea rapidă de mai sus."
+  },
+  "preview": {
+    "weeklyDescription": "Bare de ritm doar pentru validarea locală a designului.",
+    "entries": {
+      "morningRooms": {
+        "title": "Camere de dimineață",
+        "subtitle": "Housekeeping • 08:00 - 14:30"
+      },
+      "lateShift": {
+        "title": "Tură târzie",
+        "subtitle": "Reset lobby • Ieri"
+      },
+      "weekendPrep": {
+        "title": "Pregătire de weekend",
+        "subtitle": "Retuș suite • Vin"
+      }
+    },
+    "summary": {
+      "earnings": "Câștiguri",
+      "entries": "Intrări",
+      "focusedShift": "Tură concentrată",
+      "projectedGross": "Brut estimat",
+      "steadyRhythm": "Ritm constant",
+      "recentActivity": "Activitate recentă"
+    }
+  }
 }

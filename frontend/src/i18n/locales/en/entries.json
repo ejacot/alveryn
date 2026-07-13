@@ -1,4 +1,19 @@
 {
   "saved": "Saved",
-  "date": "Date"
+  "date": "Date",
+  "summary": {
+    "eyebrow": "Summary",
+    "title": "Ready to save",
+    "workedHours": "Worked hours",
+    "grossAmount": "Gross amount",
+    "payRate": "Pay rate",
+    "date": "Date",
+    "workType": "Work type"
+  },
+  "workTypePicker": {
+    "timeBased": "Time based",
+    "unitBased": "Unit based",
+    "inactive": "Inactive",
+    "optionLabel": "{{name}}, {{method}}"
+  }
 }
