@@ -2,6 +2,7 @@ package com.roomly.api.absence.repository;
 
 import com.roomly.api.absence.entity.Absence;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,4 +20,8 @@ public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpec
 
   boolean existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndIdNot(
       UUID userId, LocalDate rangeEnd, LocalDate rangeStart, UUID id);
+
+  List<Absence> findAllByUserIdAndImportSourceKeyIn(UUID userId, Collection<String> importSourceKeys);
+
+  List<Absence> findAllByImportBatchId(UUID importBatchId);
 }

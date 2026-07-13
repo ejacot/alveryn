@@ -1,6 +1,7 @@
 package com.roomly.api.absence.entity;
 
 import com.roomly.api.common.persistence.BaseEntity;
+import com.roomly.api.imports.entity.ExcelImportBatch;
 import com.roomly.api.user.entity.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +39,16 @@ public class Absence extends BaseEntity {
   @Column(length = 500)
   private String notes;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "import_batch_id")
+  private ExcelImportBatch importBatch;
+
+  @Column(name = "import_source_key", length = 255)
+  private String importSourceKey;
+
+  @Column(name = "import_fingerprint", length = 64)
+  private String importFingerprint;
+
   public Absence(
       UserAccount user, AbsenceType absenceType, LocalDate startDate, LocalDate endDate) {
     this.user = Objects.requireNonNull(user, "user is required");
@@ -62,5 +73,26 @@ public class Absence extends BaseEntity {
     if (value != null && value.length() > 500)
       throw new IllegalArgumentException("notes exceeds 500 characters");
     notes = value;
+  }
+
+  public void markImported(ExcelImportBatch importBatch, String importSourceKey, String importFingerprint) {
+    this.importBatch = Objects.requireNonNull(importBatch, "importBatch is required");
+    this.importSourceKey = requireImportText(importSourceKey, "importSourceKey is required", 255);
+    this.importFingerprint = requireImportText(importFingerprint, "importFingerprint is required", 64);
+  }
+
+  public boolean isImported() {
+    return importBatch != null;
+  }
+
+  private static String requireImportText(String value, String message, int maxLength) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(message);
+    }
+    String trimmed = value.trim();
+    if (trimmed.length() > maxLength) {
+      throw new IllegalArgumentException(message);
+    }
+    return trimmed;
   }
 }

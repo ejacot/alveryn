@@ -25,12 +25,12 @@ import org.springframework.validation.method.ParameterValidationResult;
 public class GlobalExceptionHandler {
   @ExceptionHandler(NotFoundException.class)
   ResponseEntity<ApiErrorResponse> handleNotFound(NotFoundException e, HttpServletRequest r) {
-    return response(HttpStatus.NOT_FOUND, e.getMessage(), r, List.of());
+    return response(HttpStatus.NOT_FOUND, e.getMessage(), e.getCode(), r, List.of());
   }
 
   @ExceptionHandler(ConflictException.class)
   ResponseEntity<ApiErrorResponse> handleConflict(ConflictException e, HttpServletRequest r) {
-    return response(HttpStatus.CONFLICT, e.getMessage(), r, List.of());
+    return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, List.of());
   }
 
   @ExceptionHandler({
@@ -53,13 +53,18 @@ public class GlobalExceptionHandler {
                 : e instanceof HandlerMethodValidationException v
                     ? v.getParameterValidationResults().stream().flatMap(this::parameterMessages).toList()
             : List.of(e.getMessage());
-    return response(HttpStatus.BAD_REQUEST, "Validation failed", r, errors);
+    return response(
+        HttpStatus.BAD_REQUEST,
+        "Validation failed",
+        e instanceof BusinessException businessException ? businessException.getCode() : null,
+        r,
+        errors);
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
   ResponseEntity<ApiErrorResponse> handleDataIntegrity(
       DataIntegrityViolationException e, HttpServletRequest r) {
-    return response(HttpStatus.CONFLICT, "Database constraint violated", r, List.of());
+    return response(HttpStatus.CONFLICT, "Database constraint violated", null, r, List.of());
   }
 
   @ExceptionHandler(MailException.class)
@@ -67,13 +72,14 @@ public class GlobalExceptionHandler {
     return response(
         HttpStatus.SERVICE_UNAVAILABLE,
         "Email delivery is temporarily unavailable",
+        null,
         r,
         List.of());
   }
 
   @ExceptionHandler({ExpiredCodeException.class})
   ResponseEntity<ApiErrorResponse> handleExpiredCode(ExpiredCodeException e, HttpServletRequest r) {
-    return response(HttpStatus.BAD_REQUEST, e.getMessage(), r, List.of());
+    return response(HttpStatus.BAD_REQUEST, e.getMessage(), null, r, List.of());
   }
 
   @ExceptionHandler({
@@ -82,7 +88,7 @@ public class GlobalExceptionHandler {
     EmailNotVerifiedException.class
   })
   ResponseEntity<ApiErrorResponse> handleUnauthorized(BusinessException e, HttpServletRequest r) {
-    return response(HttpStatus.UNAUTHORIZED, e.getMessage(), r, List.of());
+    return response(HttpStatus.UNAUTHORIZED, e.getMessage(), e.getCode(), r, List.of());
   }
 
   @ExceptionHandler(Exception.class)
@@ -90,14 +96,15 @@ public class GlobalExceptionHandler {
     return response(
         HttpStatus.INTERNAL_SERVER_ERROR,
         "Unexpected server error",
+        null,
         r,
         List.of());
   }
 
   private ResponseEntity<ApiErrorResponse> response(
-      HttpStatus s, String m, HttpServletRequest r, List<String> e) {
+      HttpStatus s, String m, String code, HttpServletRequest r, List<String> e) {
     return ResponseEntity.status(s)
-        .body(new ApiErrorResponse(OffsetDateTime.now(), s.value(), m, r.getRequestURI(), e));
+        .body(new ApiErrorResponse(OffsetDateTime.now(), s.value(), m, code, r.getRequestURI(), e));
   }
 
   private java.util.stream.Stream<String> parameterMessages(ParameterValidationResult result) {

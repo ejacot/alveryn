@@ -30,3 +30,6 @@ roomly:
     jwt-secret: local-development-jwt-secret-32-bytes-minimum
     refresh-cookie:
       secure: false
+  imports:
+    excel:
+      max-file-size-bytes: 10485760

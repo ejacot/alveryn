@@ -20,6 +20,10 @@ public class AuthTokenGenerator {
     return generateOpaqueToken(32);
   }
 
+  public String generateOpaqueToken() {
+    return generateOpaqueToken(32);
+  }
+
   public String generateVerificationCode() {
     return String.format("%06d", secureRandom.nextInt(1_000_000));
   }

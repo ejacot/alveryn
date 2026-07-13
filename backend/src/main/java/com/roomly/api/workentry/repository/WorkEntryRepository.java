@@ -3,6 +3,7 @@ package com.roomly.api.workentry.repository;
 import com.roomly.api.workentry.entity.WorkEntry;
 import java.util.List;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -38,4 +39,8 @@ public interface WorkEntryRepository extends JpaRepository<WorkEntry, UUID> {
   boolean existsByUserIdAndWorkTypeId(UUID userId, UUID workTypeId);
 
   boolean existsByUserIdAndWorkDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
+  List<WorkEntry> findAllByUserIdAndImportSourceKeyIn(UUID userId, Collection<String> importSourceKeys);
+
+  List<WorkEntry> findAllByImportBatchId(UUID importBatchId);
 }
