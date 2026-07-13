@@ -194,37 +194,35 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="space-y-7 pb-8">
-      <section className="space-y-4">
-        <div className="space-y-1.5">
-          <AppLogo />
-          <div className="space-y-1 text-center">
+    <div className="mx-auto max-w-[860px] space-y-8 pb-8">
+      <section className="space-y-6">
+        <div className="space-y-4">
+          <AppLogo className="justify-start" />
+          <div className="space-y-1">
             <h1 className="text-[2.15rem] font-semibold tracking-[-0.08em] text-white">
               {formatMonthLabel(activeMonth)}
             </h1>
-            <p className="text-sm font-medium tracking-[-0.01em] text-white/44">Calendar</p>
+            <p className="text-sm font-medium tracking-[0.01em] text-white/42">Calendar</p>
           </div>
         </div>
 
-        <div className="flex items-start justify-end gap-3">
-          <div className="hidden items-center gap-2 md:flex">
-            <Button
-              variant="ghost"
-              className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.025] px-4 text-white/54 hover:bg-white/[0.04]"
-              onClick={() => changeMonth(-1)}
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.025] px-4 text-white/54 hover:bg-white/[0.04]"
-              onClick={() => changeMonth(1)}
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="hidden items-center justify-end gap-2 md:flex">
+          <Button
+            variant="ghost"
+            className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.02] px-4 text-white/50 hover:bg-white/[0.035]"
+            onClick={() => changeMonth(-1)}
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.02] px-4 text-white/50 hover:bg-white/[0.035]"
+            onClick={() => changeMonth(1)}
+            aria-label="Next month"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
         <CalendarMonthGrid
@@ -248,31 +246,21 @@ export function CalendarPage() {
         />
       </section>
 
-      <div className="grid gap-7 md:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.88fr)] md:items-start">
-        <CalendarSelectedDayPanel
-          title={formatSelectedDate(selectedDate)}
-          entries={selectedEntries}
-          absence={selectedAbsence}
-          onAddEntry={() =>
-            navigate(`/entries/new?date=${toIsoDate(selectedDate)}`, {
-              state: { returnTo: "/calendar" }
-            })
-          }
-          onEntrySelect={(entryId) =>
-            navigate(`/entries/${entryId}`, { state: { returnTo: "/calendar" } })
-          }
-        />
+      <CalendarMonthSummary {...summary} />
 
-        <div className="space-y-5 md:pt-12">
-          <CalendarMonthSummary {...summary} />
-
-          <div className="rounded-[26px] border border-white/[0.04] bg-white/[0.02] px-5 py-4">
-            <p className="max-w-sm text-sm leading-6 text-white/52">
-              Work entries and absences are loaded from the real backend for this visible month.
-            </p>
-          </div>
-        </div>
-      </div>
+      <CalendarSelectedDayPanel
+        title={formatSelectedDate(selectedDate)}
+        entries={selectedEntries}
+        absence={selectedAbsence}
+        onAddEntry={() =>
+          navigate(`/entries/new?date=${toIsoDate(selectedDate)}`, {
+            state: { returnTo: "/calendar" }
+          })
+        }
+        onEntrySelect={(entryId) =>
+          navigate(`/entries/${entryId}`, { state: { returnTo: "/calendar" } })
+        }
+      />
     </div>
   );
 }

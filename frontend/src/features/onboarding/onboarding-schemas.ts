@@ -21,8 +21,7 @@ export type PreferencesStepValues = z.infer<typeof preferencesStepSchema>;
 
 export const hourlyRateStepSchema = z.object({
   hourlyRate: z.coerce.number().min(0, "Rate must be zero or positive"),
-  currency: z.string().trim().length(3, "Use a 3-letter currency"),
-  validFrom: z.string().min(1, "Start date is required")
+  currency: z.string().trim().length(3, "Use a 3-letter currency")
 });
 
 export type HourlyRateStepValues = z.infer<typeof hourlyRateStepSchema>;

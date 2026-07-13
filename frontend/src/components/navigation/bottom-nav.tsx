@@ -33,14 +33,14 @@ export function BottomNav() {
     <motion.nav
       aria-label="Primary navigation"
       animate={{
-        scale: compact ? 0.82 : 1,
+        scale: compact ? 0.84 : 1,
         y: compact ? 10 : 0,
         width: compact ? "calc(100% - 4.25rem)" : "calc(100% - 1.5rem)",
         paddingTop: compact ? 8 : 12,
         paddingBottom: compact ? 8 : 12
       }}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-      className="floating-nav ios-glass-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[34px] px-3"
+      className="floating-nav ios-glass-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[36px] px-3"
     >
       {items.map(({ to, icon: Icon, label, prominent }) => (
         <NavLink
@@ -59,8 +59,10 @@ export function BottomNav() {
               className={cn(
                 "flex items-center justify-center transition",
                 prominent
-                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.82] text-black shadow-[0_18px_40px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.34)] backdrop-blur-[16px]"
-                  : "h-11 w-11 text-white/52"
+                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.88] text-black shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.36)] backdrop-blur-[16px]"
+                  : isActive
+                    ? "h-11 w-11 rounded-[18px] bg-white/[0.07] text-white"
+                    : "h-11 w-11 text-white/52"
               )}
               title={label}
               aria-current={isActive ? "page" : undefined}

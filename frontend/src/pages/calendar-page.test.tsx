@@ -281,7 +281,7 @@ describe("CalendarPage", () => {
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
     expect(within(summary).getByText("€190.00")).toBeInTheDocument();
     expect(within(summary).getByText("Entries")).toBeInTheDocument();
-    expect(summary).toHaveTextContent("Absences");
+    expect(summary).toHaveTextContent("Absence days");
     expect(summary).toHaveTextContent("2");
 
     await user.click(screen.getByRole("gridcell", { name: /monday, july 20, 2026, absence/i }));

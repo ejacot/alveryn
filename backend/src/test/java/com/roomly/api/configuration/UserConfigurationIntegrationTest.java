@@ -482,7 +482,8 @@ class UserConfigurationIntegrationTest {
         .perform(get("/api/onboarding/status").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.preferencesConfigured").value(false))
-        .andExpect(jsonPath("$.data.missingSteps.length()").value(3));
+        .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -522,26 +523,16 @@ class UserConfigurationIntegrationTest {
         """);
 
     mockMvc
-        .perform(
-            post("/api/work-types")
-                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "name":"General",
-                      "calculationMethod":"TIME_BASED",
-                      "color":"#87C95A",
-                      "displayOrder":0
-                    }
-                    """))
-        .andExpect(status().isCreated());
-
-    mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.onboardingCompleted").value(true))
+        .andExpect(jsonPath("$.data.workTypeConfigured").value(true))
         .andExpect(jsonPath("$.data.missingSteps.length()").value(0));
+
+    assertThat(workTypes.findAll()).hasSize(1);
+    assertThat(workTypes.findAll().getFirst().getName()).isEqualTo("Regular Shift");
+    assertThat(workTypes.findAll().getFirst().getCalculationMethod())
+        .isEqualTo(CalculationMethod.TIME_BASED);
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))

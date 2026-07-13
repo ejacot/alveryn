@@ -11,6 +11,8 @@ public interface WorkTypeRepository extends JpaRepository<WorkType, UUID> {
 
   Optional<WorkType> findByIdAndUserId(UUID id, UUID userId);
 
+  Optional<WorkType> findByUserIdAndNormalizedName(UUID userId, String normalizedName);
+
   boolean existsByUserIdAndNormalizedName(UUID userId, String normalizedName);
 
   boolean existsByUserIdAndNormalizedNameAndIdNot(UUID userId, String normalizedName, UUID id);
