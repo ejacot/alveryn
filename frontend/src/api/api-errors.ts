@@ -61,6 +61,15 @@ function parseFieldErrors(errors: string[]) {
   }, {});
 }
 
+function isGenericValidationMessage(message?: string | null) {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.trim().toLowerCase();
+  return normalized === "validation failed";
+}
+
 export function getApiError(error: unknown): ParsedApiError {
   if (!axios.isAxiosError(error)) {
     return DEFAULT_ERROR;
@@ -93,7 +102,13 @@ export function getApiError(error: unknown): ParsedApiError {
 
   const fieldErrors = parseFieldErrors(data.errors);
   const fallbackFieldMessage = Object.values(fieldErrors)[0];
-  const message = localizeMessage(data.code, data.message || fallbackFieldMessage || DEFAULT_ERROR.message);
+  const fallbackErrorMessage = data.errors[0];
+  const message = localizeMessage(
+    data.code,
+    isGenericValidationMessage(data.message)
+      ? fallbackFieldMessage || fallbackErrorMessage || data.message
+      : data.message || fallbackFieldMessage || fallbackErrorMessage || DEFAULT_ERROR.message
+  );
 
   return {
     status: data.status,
