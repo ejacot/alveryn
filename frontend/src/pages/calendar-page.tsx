@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getAbsences, getWorkEntries } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
+import { AppLogo } from "../components/branding/app-logo";
 import { Button } from "../components/ui/button";
 import { CalendarErrorState } from "../components/calendar/calendar-error-state";
 import { CalendarMonthGrid } from "../components/calendar/calendar-month-grid";
@@ -193,19 +194,23 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <p className="hairline-text">Calendar</p>
-            <h1 className="text-[2.1rem] font-semibold tracking-[-0.07em] text-white">
+    <div className="space-y-7 pb-8">
+      <section className="space-y-4">
+        <div className="space-y-1.5">
+          <AppLogo />
+          <div className="space-y-1 text-center">
+            <h1 className="text-[2.15rem] font-semibold tracking-[-0.08em] text-white">
               {formatMonthLabel(activeMonth)}
             </h1>
+            <p className="text-sm font-medium tracking-[-0.01em] text-white/44">Calendar</p>
           </div>
+        </div>
+
+        <div className="flex items-start justify-end gap-3">
           <div className="hidden items-center gap-2 md:flex">
             <Button
               variant="ghost"
-              className="h-10 min-h-10 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 text-white/62 hover:bg-white/[0.05]"
+              className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.025] px-4 text-white/54 hover:bg-white/[0.04]"
               onClick={() => changeMonth(-1)}
               aria-label="Previous month"
             >
@@ -213,7 +218,7 @@ export function CalendarPage() {
             </Button>
             <Button
               variant="ghost"
-              className="h-10 min-h-10 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 text-white/62 hover:bg-white/[0.05]"
+              className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.025] px-4 text-white/54 hover:bg-white/[0.04]"
               onClick={() => changeMonth(1)}
               aria-label="Next month"
             >
@@ -243,7 +248,7 @@ export function CalendarPage() {
         />
       </section>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.9fr)] md:items-start">
+      <div className="grid gap-7 md:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.88fr)] md:items-start">
         <CalendarSelectedDayPanel
           title={formatSelectedDate(selectedDate)}
           entries={selectedEntries}
@@ -258,12 +263,11 @@ export function CalendarPage() {
           }
         />
 
-        <div className="space-y-4 md:pt-11">
+        <div className="space-y-5 md:pt-12">
           <CalendarMonthSummary {...summary} />
 
-          <div className="surface-muted p-5">
-            <p className="hairline-text">Month rhythm</p>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-white/58">
+          <div className="rounded-[26px] border border-white/[0.04] bg-white/[0.02] px-5 py-4">
+            <p className="max-w-sm text-sm leading-6 text-white/52">
               Work entries and absences are loaded from the real backend for this visible month.
             </p>
           </div>

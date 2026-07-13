@@ -12,26 +12,33 @@ export function CalendarMonthSummary({
   absenceDays
 }: Props) {
   return (
-    <section className="space-y-4" aria-label="Monthly summary">
+    <section
+      className="grid grid-cols-2 gap-x-5 gap-y-5 border-y border-white/[0.05] py-4 md:grid-cols-4"
+      aria-label="Monthly summary"
+    >
       <div className="space-y-1">
-        <p className="hairline-text">Month summary</p>
-        <div className="flex flex-wrap items-end gap-x-5 gap-y-1">
-          <p className="text-[2rem] font-semibold tracking-[-0.07em] text-white">
-            {workedHours}
-          </p>
-          <p className="text-lg font-medium tracking-[-0.03em] text-white/74">
-            {grossAmount}
-          </p>
-        </div>
+        <p className="text-[1.8rem] font-semibold tracking-[-0.07em] text-white">{workedHours}</p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/34">Worked</p>
       </div>
-
-      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/52">
-        <span>
-          {entriesCount} entr{entriesCount === 1 ? "y" : "ies"}
-        </span>
-        <span>
-          {absenceDays} absence day{absenceDays === 1 ? "" : "s"}
-        </span>
+      <div className="space-y-1">
+        <p className="text-[1.8rem] font-semibold tracking-[-0.07em] text-white">{grossAmount}</p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/34">Gross</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[1.8rem] font-semibold tracking-[-0.07em] text-white">
+          {entriesCount}
+        </p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/34">
+          Entr{entriesCount === 1 ? "y" : "ies"}
+        </p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[1.8rem] font-semibold tracking-[-0.07em] text-white">
+          {absenceDays}
+        </p>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/34">
+          Absence{absenceDays === 1 ? "" : "s"}
+        </p>
       </div>
     </section>
   );

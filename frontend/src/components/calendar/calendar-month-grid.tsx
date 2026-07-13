@@ -33,19 +33,19 @@ export function CalendarMonthGrid({
   onResolveSwipe
 }: Props) {
   return (
-    <section className="space-y-3" aria-label="Monthly calendar">
-      <div className="grid grid-cols-7 gap-2" role="row">
+    <section className="space-y-4" aria-label="Monthly calendar">
+      <div className="grid grid-cols-7 gap-2.5" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="text-center text-[10px] font-semibold tracking-[0.2em] text-white/34"
+            className="text-center text-[10px] font-semibold tracking-[0.22em] text-white/26"
           >
             {weekday}
           </div>
         ))}
       </div>
 
-      <div className="relative overflow-hidden touch-pan-y">
+      <div className="relative overflow-hidden rounded-[32px] touch-pan-y border border-white/[0.04] bg-white/[0.015] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.16)]">
         <AnimatePresence custom={slideDirection} initial={false} mode="wait">
           <motion.div
             key={monthKey}
@@ -77,7 +77,7 @@ export function CalendarMonthGrid({
             animate="center"
             exit="exit"
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-7 gap-2"
+            className="grid grid-cols-7 gap-2.5"
             role="grid"
           >
             {days.map((day) => {
@@ -117,21 +117,21 @@ export function CalendarMonthGrid({
                   data-state={selected ? "selected" : current ? "today" : "default"}
                   onClick={() => onSelect(day.date)}
                   className={cn(
-                    "surface-muted flex min-h-[74px] flex-col items-center justify-between rounded-[24px] px-1 py-1.5 text-center focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]",
-                    !day.inActiveMonth && "bg-white/[0.02] text-white/28"
+                    "flex min-h-[78px] flex-col items-center justify-between rounded-[24px] px-1 py-2 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-offset-2 focus:ring-offset-[#050505]",
+                    !day.inActiveMonth && "text-white/22"
                   )}
                 >
                   <span className="sr-only">{day.weekday}</span>
                   <div
                     className={cn(
-                      "flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-semibold transition",
+                      "flex h-12 w-12 items-center justify-center rounded-full text-[16px] font-semibold tracking-[-0.03em] transition",
                       selected
-                        ? "bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
+                        ? "bg-white text-black shadow-[0_14px_36px_rgba(255,255,255,0.14)]"
                         : current
-                          ? "border border-white/[0.08] bg-white/[0.1] text-white/88"
+                          ? "border border-white/[0.07] bg-white/[0.08] text-white/84"
                           : day.inActiveMonth
-                            ? "text-white/76"
-                            : "text-white/28"
+                            ? "text-white/78"
+                            : "text-white/26"
                     )}
                   >
                     {day.dayNumber}
@@ -139,15 +139,15 @@ export function CalendarMonthGrid({
 
                   <div className="flex min-h-[8px] items-center gap-1" aria-hidden="true">
                     {meta.hasAbsence ? (
-                      <span className="h-2 w-2 rounded-full border border-white/48" />
+                      <span className="h-1.5 w-1.5 rounded-full border border-white/44" />
                     ) : null}
                     {!meta.hasAbsence && meta.entriesCount > 0 ? (
                       meta.entriesCount <= 3 ? (
                         Array.from({ length: meta.entriesCount }, (_, index) => (
-                          <span key={index} className="h-1.5 w-1.5 rounded-full bg-white/48" />
+                          <span key={index} className="h-1 w-1 rounded-full bg-white/42" />
                         ))
                       ) : (
-                        <span className="text-[10px] font-semibold text-white/46">
+                        <span className="text-[10px] font-semibold text-white/38">
                           {meta.entriesCount}
                         </span>
                       )

@@ -59,7 +59,7 @@ export function BottomNav() {
               className={cn(
                 "flex items-center justify-center transition",
                 prominent
-                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.9] text-black shadow-[0_18px_40px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.28)]"
+                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.82] text-black shadow-[0_18px_40px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.34)] backdrop-blur-[16px]"
                   : "h-11 w-11 text-white/52"
               )}
               title={label}

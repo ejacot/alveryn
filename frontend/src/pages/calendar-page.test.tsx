@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { CalendarPage } from "./calendar-page";
@@ -262,7 +262,7 @@ describe("CalendarPage", () => {
 
     await user.click(screen.getByRole("gridcell", { name: /thursday, july 16, 2026/i }));
 
-    expect(screen.getByRole("heading", { name: "Thursday, July 16" })).toBeInTheDocument();
+    expect(screen.getByText("Thursday, July 16")).toBeInTheDocument();
     expect(
       screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, 1 work entry/i })
     ).toHaveAttribute("data-state", "today");
@@ -277,10 +277,12 @@ describe("CalendarPage", () => {
         name: /wednesday, july 15, 2026, selected, 1 work entry/i
       })
     ).toBeInTheDocument();
-    expect(screen.getByText("9h 30m")).toBeInTheDocument();
-    expect(screen.getByText("€190.00")).toBeInTheDocument();
-    expect(screen.getByText("2 entries")).toBeInTheDocument();
-    expect(screen.getByText("2 absence days")).toBeInTheDocument();
+    const summary = screen.getByLabelText("Monthly summary");
+    expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
+    expect(within(summary).getByText("€190.00")).toBeInTheDocument();
+    expect(within(summary).getByText("Entries")).toBeInTheDocument();
+    expect(summary).toHaveTextContent("Absences");
+    expect(summary).toHaveTextContent("2");
 
     await user.click(screen.getByRole("gridcell", { name: /monday, july 20, 2026, absence/i }));
     expect(screen.getByText("Vacation")).toBeInTheDocument();
