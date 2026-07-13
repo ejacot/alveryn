@@ -1,7 +1,7 @@
 import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearTokens, getStoredAccessToken, getStoredRefreshToken, storeTokens } from "./auth-storage";
+import { clearTokens, getStoredAccessToken, markSessionActive, setStoredAccessToken } from "./auth-storage";
 import { __resetHttpStateForTests, http, setAuthFailureHandler } from "./http";
 
 describe("http refresh queue", () => {
@@ -23,7 +23,8 @@ describe("http refresh queue", () => {
   });
 
   it("resumes pending requests after a single refresh", async () => {
-    storeTokens("expired-access", "valid-refresh");
+    setStoredAccessToken("expired-access");
+    markSessionActive();
 
     httpMock.onGet("/api/me").replyOnce(401);
     httpMock.onGet("/api/dashboard").replyOnce(401);
@@ -33,10 +34,8 @@ describe("http refresh queue", () => {
     axiosMock.onPost("/api/auth/refresh").reply(200, {
       data: {
         accessToken: "next-access",
-        refreshToken: "next-refresh",
         tokenType: "Bearer",
         accessTokenExpiresIn: 900,
-        refreshTokenExpiresAt: "2026-12-31T00:00:00Z",
         user: {
           id: "1",
           email: "roomly@example.com",
@@ -52,13 +51,13 @@ describe("http refresh queue", () => {
     expect(responses).toHaveLength(2);
     expect(axiosMock.history.post).toHaveLength(1);
     expect(getStoredAccessToken()).toBe("next-access");
-    expect(getStoredRefreshToken()).toBe("next-refresh");
   });
 
   it("rejects queued requests and clears session when refresh fails", async () => {
     const onFailure = vi.fn();
     setAuthFailureHandler(onFailure);
-    storeTokens("expired-access", "bad-refresh");
+    setStoredAccessToken("expired-access");
+    markSessionActive();
 
     httpMock.onGet("/api/me").replyOnce(401);
     httpMock.onGet("/api/dashboard").replyOnce(401);
@@ -74,7 +73,6 @@ describe("http refresh queue", () => {
 
     expect(results.every((result) => result.status === "rejected")).toBe(true);
     expect(getStoredAccessToken()).toBeNull();
-    expect(getStoredRefreshToken()).toBeNull();
     expect(onFailure).toHaveBeenCalledTimes(1);
   });
 

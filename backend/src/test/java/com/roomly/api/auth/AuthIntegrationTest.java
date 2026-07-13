@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.roomly.api.auth.config.AuthProperties;
+import com.roomly.api.auth.config.RefreshCookieProperties;
 import com.roomly.api.auth.email.AuthenticationEmailService;
 import com.roomly.api.auth.repository.PasswordResetTokenRepository;
 import com.roomly.api.auth.repository.RefreshTokenRepository;
@@ -21,6 +22,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import jakarta.servlet.http.Cookie;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,7 @@ class AuthIntegrationTest {
   @Autowired PasswordEncoder passwordEncoder;
   @Autowired TestAuthenticationEmailService emailService;
   @Autowired AuthProperties authProperties;
+  @Autowired RefreshCookieProperties refreshCookieProperties;
   @Autowired JdbcTemplate jdbcTemplate;
   @Autowired WebApplicationContext context;
 
@@ -195,7 +198,8 @@ class AuthIntegrationTest {
             .getResponse()
             .getContentAsString();
     assertThat(extractJsonValue(successBody, "accessToken")).isNotBlank();
-    assertThat(extractJsonValue(successBody, "refreshToken")).isNotBlank();
+    assertThat(successBody).doesNotContain("\"refreshToken\"");
+    assertThat(successBody).doesNotContain("\"refreshTokenExpiresAt\"");
     assertThat(users.findByEmailIgnoreCase("login@example.com").orElseThrow().getFailedLoginAttempts())
         .isZero();
 
@@ -280,34 +284,26 @@ class AuthIntegrationTest {
   void refreshRotationAndLogoutWork() throws Exception {
     registerUser("refresh@example.com", "super-secret");
     verifyUser("refresh@example.com");
-    String loginBody = login("refresh@example.com", "super-secret");
-    String refreshToken = extractJsonValue(loginBody, "refreshToken");
+    var loginResult = loginResult("refresh@example.com", "super-secret");
+    String refreshToken = extractCookieValue(loginResult.getResponse().getHeader(HttpHeaders.SET_COOKIE));
 
-    String refreshBody =
+    var refreshResult =
         mockMvc
-            .perform(
-                post("/api/auth/refresh")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+            .perform(post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
             .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    String rotatedRefreshToken = extractJsonValue(refreshBody, "refreshToken");
+            .andReturn();
+    String rotatedRefreshToken =
+        extractCookieValue(refreshResult.getResponse().getHeader(HttpHeaders.SET_COOKIE));
     assertThat(rotatedRefreshToken).isNotEqualTo(refreshToken);
 
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
         .andExpect(status().isUnauthorized());
 
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(rotatedRefreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), rotatedRefreshToken)))
         .andExpect(status().isOk());
 
     jdbcTemplate.update(
@@ -320,9 +316,7 @@ class AuthIntegrationTest {
         hash(rotatedRefreshToken));
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(rotatedRefreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), rotatedRefreshToken)))
         .andExpect(status().isUnauthorized());
 
     var stored = refreshTokens.findByTokenHash(hash(rotatedRefreshToken)).orElseThrow();
@@ -330,22 +324,14 @@ class AuthIntegrationTest {
     refreshTokens.save(stored);
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(rotatedRefreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), rotatedRefreshToken)))
         .andExpect(status().isUnauthorized());
 
     mockMvc
-        .perform(
-            post("/api/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(rotatedRefreshToken)))
+        .perform(post("/api/auth/logout").cookie(new Cookie(refreshCookieProperties.name(), rotatedRefreshToken)))
         .andExpect(status().isOk());
     mockMvc
-        .perform(
-            post("/api/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(rotatedRefreshToken)))
+        .perform(post("/api/auth/logout").cookie(new Cookie(refreshCookieProperties.name(), rotatedRefreshToken)))
         .andExpect(status().isOk());
   }
 
@@ -353,8 +339,8 @@ class AuthIntegrationTest {
   void forgotAndResetPasswordRemainGenericAndRevokeSessions() throws Exception {
     registerUser("reset@example.com", "super-secret");
     verifyUser("reset@example.com");
-    String loginBody = login("reset@example.com", "super-secret");
-    String refreshToken = extractJsonValue(loginBody, "refreshToken");
+    var loginResult = loginResult("reset@example.com", "super-secret");
+    String refreshToken = extractCookieValue(loginResult.getResponse().getHeader(HttpHeaders.SET_COOKIE));
 
     mockMvc
         .perform(
@@ -406,9 +392,7 @@ class AuthIntegrationTest {
         .andExpect(status().isOk());
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
         .andExpect(status().isUnauthorized());
   }
 
@@ -532,6 +516,11 @@ class AuthIntegrationTest {
   }
 
   private String login(String email, String password) throws Exception {
+    return loginResult(email, password).getResponse().getContentAsString();
+  }
+
+  private org.springframework.test.web.servlet.MvcResult loginResult(String email, String password)
+      throws Exception {
     return mockMvc
         .perform(
             post("/api/auth/login")
@@ -542,9 +531,7 @@ class AuthIntegrationTest {
                     """
                         .formatted(email, password)))
         .andExpect(status().isOk())
-        .andReturn()
-        .getResponse()
-        .getContentAsString();
+        .andReturn();
   }
 
   private String extractJsonValue(String body, String field) {
@@ -570,6 +557,14 @@ class AuthIntegrationTest {
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  private String extractCookieValue(String setCookieHeader) {
+    String marker = refreshCookieProperties.name() + "=";
+    int start = setCookieHeader.indexOf(marker);
+    int valueStart = start + marker.length();
+    int valueEnd = setCookieHeader.indexOf(';', valueStart);
+    return setCookieHeader.substring(valueStart, valueEnd);
   }
 
   @TestConfiguration

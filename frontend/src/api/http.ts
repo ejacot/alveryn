@@ -9,8 +9,9 @@ import { API_BASE_URL, buildApiUrl } from "./config";
 import {
   clearTokens,
   getStoredAccessToken,
-  getStoredRefreshToken,
-  storeTokens
+  hasStoredSession,
+  notifySessionChanged,
+  setStoredAccessToken
 } from "./auth-storage";
 
 type PendingRequest = {
@@ -24,6 +25,9 @@ type AuthFailureHandler = () => void;
 let isRefreshing = false;
 let pendingRequests: PendingRequest[] = [];
 let authFailureHandler: AuthFailureHandler | null = null;
+const REFRESH_LOCK_KEY = "roomly.refresh-lock";
+const REFRESH_LOCK_TTL_MS = 10_000;
+const TAB_ID = Math.random().toString(36).slice(2);
 
 const REFRESH_EXCLUDED_PATHS = [
   "/api/auth/login",
@@ -63,20 +67,76 @@ function handleAuthFailure() {
   authFailureHandler?.();
 }
 
-async function refreshTokens() {
-  const refreshToken = getStoredRefreshToken();
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
-  if (!refreshToken) {
-    throw new Error("Missing refresh token");
+function readRefreshLock() {
+  const raw = localStorage.getItem(REFRESH_LOCK_KEY);
+  if (!raw) {
+    return null;
   }
 
-  const response = await axios.post<ApiResponse<AuthTokens>>(
-    buildApiUrl("/api/auth/refresh"),
-    { refreshToken }
-  );
+  try {
+    const parsed = JSON.parse(raw) as { owner: string; expiresAt: number };
+    if (!parsed.owner || parsed.expiresAt <= Date.now()) {
+      localStorage.removeItem(REFRESH_LOCK_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    localStorage.removeItem(REFRESH_LOCK_KEY);
+    return null;
+  }
+}
 
-  storeTokens(response.data.data.accessToken, response.data.data.refreshToken);
-  return response.data.data.accessToken;
+async function acquireRefreshLock() {
+  for (;;) {
+    const currentLock = readRefreshLock();
+    if (!currentLock) {
+      const nextLock = {
+        owner: TAB_ID,
+        expiresAt: Date.now() + REFRESH_LOCK_TTL_MS
+      };
+      localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify(nextLock));
+      if (readRefreshLock()?.owner === TAB_ID) {
+        return true;
+      }
+    } else if (currentLock.owner === TAB_ID) {
+      return true;
+    } else {
+      await wait(120);
+    }
+  }
+}
+
+function releaseRefreshLock() {
+  if (readRefreshLock()?.owner === TAB_ID) {
+    localStorage.removeItem(REFRESH_LOCK_KEY);
+  }
+}
+
+async function refreshTokens() {
+  await acquireRefreshLock();
+
+  try {
+    const response = await axios.post<ApiResponse<AuthTokens>>(
+      buildApiUrl("/api/auth/refresh"),
+      {},
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    setStoredAccessToken(response.data.data.accessToken);
+    notifySessionChanged();
+    return response.data.data.accessToken;
+  } finally {
+    releaseRefreshLock();
+  }
 }
 
 export function setAuthFailureHandler(handler: AuthFailureHandler | null) {
@@ -85,6 +145,7 @@ export function setAuthFailureHandler(handler: AuthFailureHandler | null) {
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json"
   }
@@ -125,7 +186,7 @@ http.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (!getStoredRefreshToken()) {
+    if (!hasStoredSession()) {
       handleAuthFailure();
       return Promise.reject(error);
     }

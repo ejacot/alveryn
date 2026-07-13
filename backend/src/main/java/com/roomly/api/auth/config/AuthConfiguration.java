@@ -12,7 +12,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@EnableConfigurationProperties(AuthProperties.class)
+@EnableConfigurationProperties({
+  AuthProperties.class,
+  RefreshCookieProperties.class,
+  WebCorsProperties.class
+})
 public class AuthConfiguration implements EnvironmentAware {
   private static final String LOCAL_DEVELOPMENT_SECRET =
       "local-development-jwt-secret-32-bytes-minimum";

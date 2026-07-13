@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider } from "./auth-provider";
 import { useAuth } from "./use-auth";
+import { markSessionActive, setStoredAccessToken } from "../../api/auth-storage";
 
 vi.mock("../../api/endpoints", () => ({
   getCurrentUser: vi.fn(),
@@ -12,7 +13,7 @@ vi.mock("../../api/endpoints", () => ({
 }));
 
 import { getCurrentUser, login, logout } from "../../api/endpoints";
-import { getStoredAccessToken, getStoredRefreshToken } from "../../api/auth-storage";
+import { getStoredAccessToken, hasStoredSession } from "../../api/auth-storage";
 
 function Consumer() {
   const auth = useAuth();
@@ -59,10 +60,8 @@ describe("AuthProvider", () => {
   it("stores tokens and hydrates the user after login", async () => {
     vi.mocked(login).mockResolvedValue({
       accessToken: "access-token",
-      refreshToken: "refresh-token",
       tokenType: "Bearer",
       accessTokenExpiresIn: 900,
-      refreshTokenExpiresAt: "2026-12-31T00:00:00Z",
       user: {
         id: "1",
         email: "roomly@example.com",
@@ -79,13 +78,13 @@ describe("AuthProvider", () => {
 
     expect(await screen.findByText("roomly@example.com")).toBeInTheDocument();
     expect(getStoredAccessToken()).toBe("access-token");
-    expect(getStoredRefreshToken()).toBe("refresh-token");
+    expect(hasStoredSession()).toBe(true);
   });
 
   it("clears tokens on logout", async () => {
     vi.mocked(logout).mockResolvedValue({ message: "Logged out successfully" });
-    localStorage.setItem("roomly.access-token", "access-token");
-    localStorage.setItem("roomly.refresh-token", "refresh-token");
+    setStoredAccessToken("access-token");
+    markSessionActive();
 
     renderProvider();
     const user = userEvent.setup();
@@ -95,7 +94,7 @@ describe("AuthProvider", () => {
 
     await waitFor(() => {
       expect(getStoredAccessToken()).toBeNull();
-      expect(getStoredRefreshToken()).toBeNull();
+      expect(hasStoredSession()).toBe(false);
     });
   });
 });

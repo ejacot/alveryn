@@ -18,5 +18,11 @@ springdoc:
     enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
 
 roomly:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://127.0.0.1:5173
   auth:
     jwt-secret: local-development-jwt-secret-32-bytes-minimum
+    refresh-cookie:
+      secure: false

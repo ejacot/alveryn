@@ -16,9 +16,7 @@ export type CurrentUser = {
 
 export type AuthTokens = {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   accessTokenExpiresIn: number;
-  refreshTokenExpiresAt: string;
   user: AuthUser;
 };

@@ -5,10 +5,10 @@ import { queryKeys } from "../../api/query-keys";
 import {
   clearTokens,
   hasStoredSession,
-  getStoredRefreshToken,
-  storeTokens,
+  storeSession,
   subscribeToAuthStorage
 } from "../../api/auth-storage";
+import { applyAppLanguage } from "../../i18n";
 import { setAuthFailureHandler } from "../../api/http";
 import { AuthContext } from "./auth-context";
 import type { CurrentUser } from "../../types/auth";
@@ -27,13 +27,14 @@ export function AuthProvider({ children }: Props) {
     queryClient.setQueryData(queryKeys.currentUser(), nextUser);
     queryClient.setQueryData(queryKeys.profile(), nextUser.profile);
     queryClient.setQueryData(queryKeys.preferences(), nextUser.preferences);
+    applyAppLanguage(nextUser.preferences?.language);
     setUser(nextUser);
     return nextUser;
   }
 
   async function loginWithPassword(email: string, password: string) {
     const result = await login({ email, password });
-    storeTokens(result.accessToken, result.refreshToken);
+    storeSession(result.accessToken);
     await refreshCurrentUser();
   }
 
@@ -42,11 +43,9 @@ export function AuthProvider({ children }: Props) {
   }
 
   async function signOut() {
-    const refreshToken = getStoredRefreshToken();
-
     try {
-      if (refreshToken) {
-        await logout(refreshToken);
+      if (hasStoredSession()) {
+        await logout();
       }
     } finally {
       clearTokens();

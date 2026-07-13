@@ -91,7 +91,7 @@ public class AuthService {
   }
 
   @Transactional(noRollbackFor = AuthenticationFailureException.class)
-  public AuthResponse login(LoginRequest request) {
+  public IssuedAuthSession login(LoginRequest request) {
     UserAccount user =
         users
             .findByEmailIgnoreCase(normalizeEmail(request.email()))
@@ -123,18 +123,23 @@ public class AuthService {
   }
 
   @Transactional
-  public AuthResponse refresh(RefreshTokenRequest request) {
+  public IssuedAuthSession refresh(String refreshToken) {
+    if (refreshToken == null || refreshToken.isBlank()) {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
     OffsetDateTime now = OffsetDateTime.now(clock);
     RefreshTokenService.IssuedRefreshToken rotated =
         refreshTokenService.rotate(
-            request.refreshToken(),
+            refreshToken,
             user -> !user.isDeleted() && !user.isLockedAt(now) && user.isEmailVerified());
-    return buildAuthResponse(rotated.persistedToken().getUser(), rotated);
+    return buildAuthSession(rotated.persistedToken().getUser(), rotated);
   }
 
   @Transactional
-  public GenericSuccessResponse logout(RefreshTokenRequest request) {
-    refreshTokenService.revokeByPlainToken(request.refreshToken());
+  public GenericSuccessResponse logout(String refreshToken) {
+    if (refreshToken != null && !refreshToken.isBlank()) {
+      refreshTokenService.revokeByPlainToken(refreshToken);
+    }
     return new GenericSuccessResponse("Logged out successfully");
   }
 
@@ -167,19 +172,19 @@ public class AuthService {
     emailService.sendVerificationCode(user, verificationCode);
   }
 
-  private AuthResponse issueTokens(UserAccount user) {
-    return buildAuthResponse(user, refreshTokenService.issue(user));
+  private IssuedAuthSession issueTokens(UserAccount user) {
+    return buildAuthSession(user, refreshTokenService.issue(user));
   }
 
-  private AuthResponse buildAuthResponse(
+  private IssuedAuthSession buildAuthSession(
       UserAccount user, RefreshTokenService.IssuedRefreshToken refreshToken) {
-    return new AuthResponse(
-        jwtService.generateAccessToken(user),
-        refreshToken.plainToken(),
-        "Bearer",
-        jwtService.getAccessTokenExpiresInSeconds(),
-        refreshToken.persistedToken().getExpiresAt(),
-        toAuthUserResponse(user));
+    return new IssuedAuthSession(
+        new AuthResponse(
+            jwtService.generateAccessToken(user),
+            "Bearer",
+            jwtService.getAccessTokenExpiresInSeconds(),
+            toAuthUserResponse(user)),
+        refreshToken.plainToken());
   }
 
   private AuthUserResponse toAuthUserResponse(UserAccount user) {

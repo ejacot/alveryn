@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.roomly.api.auth.config.RefreshCookieProperties;
 import com.roomly.api.auth.repository.RefreshTokenRepository;
 import com.roomly.api.user.repository.UserAccountRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ class RefreshTokenConcurrencyTest {
   @Autowired UserAccountRepository users;
   @Autowired RefreshTokenRepository refreshTokens;
   @Autowired AuthIntegrationTest.TestAuthenticationEmailService emailService;
+  @Autowired RefreshCookieProperties refreshCookieProperties;
 
   @BeforeEach
   void setUp() {
@@ -54,7 +57,8 @@ class RefreshTokenConcurrencyTest {
   void exactlyOneConcurrentRefreshSucceeds() throws Exception {
     registerUser("concurrency@example.com", "super-secret");
     verifyUser("concurrency@example.com");
-    String refreshToken = extractJsonValue(login("concurrency@example.com", "super-secret"), "refreshToken");
+    String refreshToken =
+        extractCookieValue(loginResult("concurrency@example.com", "super-secret").getResponse().getHeader("Set-Cookie"));
 
     CountDownLatch ready = new CountDownLatch(2);
     CountDownLatch start = new CountDownLatch(1);
@@ -71,8 +75,7 @@ class RefreshTokenConcurrencyTest {
                     mockMvc
                         .perform(
                             post("/api/auth/refresh")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                                .cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
                         .andReturn();
                 return result.getResponse().getStatus();
               }));
@@ -102,40 +105,33 @@ class RefreshTokenConcurrencyTest {
   void rotatedOrRevokedRefreshTokenReturnsGenericFailure() throws Exception {
     registerUser("reuse@example.com", "super-secret");
     verifyUser("reuse@example.com");
-    String refreshToken = extractJsonValue(login("reuse@example.com", "super-secret"), "refreshToken");
+    String refreshToken =
+        extractCookieValue(loginResult("reuse@example.com", "super-secret").getResponse().getHeader("Set-Cookie"));
 
-    String refreshBody =
+    String refreshCookieHeader =
         mockMvc
             .perform(
-                post("/api/auth/refresh")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+                post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
-            .getContentAsString();
-    String newRefreshToken = extractJsonValue(refreshBody, "refreshToken");
+            .getHeader("Set-Cookie");
+    String newRefreshToken = extractCookieValue(refreshCookieHeader);
 
     mockMvc
         .perform(
-            post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(refreshToken)))
+            post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), refreshToken)))
         .andExpect(status().isUnauthorized());
 
     mockMvc
         .perform(
-            post("/api/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(newRefreshToken)))
+            post("/api/auth/logout").cookie(new Cookie(refreshCookieProperties.name(), newRefreshToken)))
         .andExpect(status().isOk());
 
     MvcResult result =
         mockMvc
             .perform(
-                post("/api/auth/refresh")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"refreshToken\":\"%s\"}".formatted(newRefreshToken)))
+                post("/api/auth/refresh").cookie(new Cookie(refreshCookieProperties.name(), newRefreshToken)))
             .andExpect(status().isUnauthorized())
             .andReturn();
 
@@ -166,27 +162,23 @@ class RefreshTokenConcurrencyTest {
         .andExpect(status().isOk());
   }
 
-  private String login(String email, String password) throws Exception {
+  private org.springframework.test.web.servlet.MvcResult loginResult(String email, String password)
+      throws Exception {
     return mockMvc
         .perform(
             post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)))
         .andExpect(status().isOk())
-        .andReturn()
-        .getResponse()
-        .getContentAsString();
+        .andReturn();
   }
 
-  private String extractJsonValue(String body, String field) {
-    String marker = "\"%s\":\"".formatted(field);
-    int start = body.indexOf(marker);
-    if (start < 0) {
-      return "";
-    }
+  private String extractCookieValue(String setCookieHeader) {
+    String marker = refreshCookieProperties.name() + "=";
+    int start = setCookieHeader.indexOf(marker);
     int valueStart = start + marker.length();
-    int valueEnd = body.indexOf('"', valueStart);
-    return body.substring(valueStart, valueEnd);
+    int valueEnd = setCookieHeader.indexOf(';', valueStart);
+    return setCookieHeader.substring(valueStart, valueEnd);
   }
 
   @TestConfiguration

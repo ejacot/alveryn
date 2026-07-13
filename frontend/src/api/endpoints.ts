@@ -136,11 +136,8 @@ export async function resendVerification(email: string) {
   return response.data.data;
 }
 
-export async function logout(refreshToken: string) {
-  const response = await http.post<ApiResponse<ApiMessage>>(
-    "/api/auth/logout",
-    { refreshToken }
-  );
+export async function logout() {
+  const response = await http.post<ApiResponse<ApiMessage>>("/api/auth/logout");
   return response.data.data;
 }
 

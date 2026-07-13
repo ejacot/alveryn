@@ -14,6 +14,9 @@ springdoc:
     enabled: false
 
 roomly:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
   auth:
     jwt-secret: test-jwt-secret-012345678901234567890123
     access-token-lifetime: 15m
@@ -23,3 +26,5 @@ roomly:
     verification-resend-cooldown: 1m
     login-max-failed-attempts: 5
     login-lock-duration: 15m
+    refresh-cookie:
+      secure: false

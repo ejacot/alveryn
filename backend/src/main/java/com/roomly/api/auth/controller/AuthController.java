@@ -2,12 +2,15 @@ package com.roomly.api.auth.controller;
 
 import com.roomly.api.auth.dto.*;
 import com.roomly.api.auth.service.AuthService;
+import com.roomly.api.auth.service.RefreshTokenCookieService;
 import com.roomly.api.common.response.ApiErrorResponse;
 import com.roomly.api.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Authentication", description = "Registration, verification, login and password recovery")
 public class AuthController {
   private final AuthService authService;
+  private final RefreshTokenCookieService refreshTokenCookieService;
 
   @PostMapping("/register")
   @ResponseStatus(HttpStatus.CREATED)
@@ -75,25 +79,36 @@ public class AuthController {
   @Operation(
       summary = "Log in",
       description =
-          "Authenticates verified credentials and returns a JWT access token together with a rotated opaque refresh token.")
-  public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-    return ApiResponse.of(authService.login(request));
+          "Authenticates verified credentials, returns a JWT access token and stores the rotated refresh token in an HttpOnly cookie.")
+  public ApiResponse<AuthResponse> login(
+      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    IssuedAuthSession session = authService.login(request);
+    refreshTokenCookieService.writeRefreshToken(response, session.refreshToken());
+    return ApiResponse.of(session.response());
   }
 
   @PostMapping("/refresh")
   @Operation(
       summary = "Refresh tokens",
-      description = "Validates the refresh token, rotates it and returns a new access token and refresh token pair.")
-  public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-    return ApiResponse.of(authService.refresh(request));
+      description = "Validates the refresh-token cookie, rotates it and returns a new access token.")
+  public ApiResponse<AuthResponse> refresh(
+      HttpServletRequest request, HttpServletResponse response) {
+    IssuedAuthSession session =
+        authService.refresh(refreshTokenCookieService.extractRefreshToken(request));
+    refreshTokenCookieService.writeRefreshToken(response, session.refreshToken());
+    return ApiResponse.of(session.response());
   }
 
   @PostMapping("/logout")
   @Operation(
       summary = "Log out",
-      description = "Revokes the submitted refresh token. The operation is idempotent and returns a generic success response.")
-  public ApiResponse<GenericSuccessResponse> logout(@Valid @RequestBody RefreshTokenRequest request) {
-    return ApiResponse.of(authService.logout(request));
+      description = "Revokes the refresh-token cookie. The operation is idempotent and returns a generic success response.")
+  public ApiResponse<GenericSuccessResponse> logout(
+      HttpServletRequest request, HttpServletResponse response) {
+    GenericSuccessResponse result =
+        authService.logout(refreshTokenCookieService.extractRefreshToken(request));
+    refreshTokenCookieService.clearRefreshToken(response);
+    return ApiResponse.of(result);
   }
 
   @PostMapping("/forgot-password")
@@ -111,7 +126,9 @@ public class AuthController {
       summary = "Reset password",
       description = "Validates the reset code, updates the password hash and revokes the user's active refresh tokens.")
   public ApiResponse<GenericSuccessResponse> resetPassword(
-      @Valid @RequestBody ResetPasswordRequest request) {
-    return ApiResponse.of(authService.resetPassword(request));
+      @Valid @RequestBody ResetPasswordRequest request, HttpServletResponse response) {
+    GenericSuccessResponse result = authService.resetPassword(request);
+    refreshTokenCookieService.clearRefreshToken(response);
+    return ApiResponse.of(result);
   }
 }
