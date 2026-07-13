@@ -153,6 +153,8 @@ export function ProfilePage() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:app")}>
+        <SettingsRow to="/settings/import" label={t("settings:import.title")} />
+        <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/about" label={t("settings:about")} />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/help" label={t("settings:help")} />

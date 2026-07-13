@@ -78,6 +78,11 @@ const HelpSupportPage = lazy(() =>
     default: module.HelpSupportPage
   }))
 );
+const SettingsImportPage = lazy(() =>
+  import("../pages/settings-import-page").then((module) => ({
+    default: module.SettingsImportPage
+  }))
+);
 const LoginPage = lazy(() =>
   import("../pages/login-page").then((module) => ({
     default: module.LoginPage
@@ -166,6 +171,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
               path: "/settings/work-types/:workTypeId/unit-types/:unitTypeId",
               element: withSuspense(<UnitTypeEditorPage />)
             },
+            { path: "/settings/import", element: withSuspense(<SettingsImportPage />) },
             { path: "/settings/about", element: withSuspense(<AboutRoomlyPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
           ]

@@ -9,6 +9,7 @@ import type {
 } from "../types/configuration";
 import type { DashboardResponse } from "../types/dashboard";
 import type { Absence, AbsenceType } from "../types/absence";
+import type { ExcelImportResult } from "../types/imports";
 import type { WorkEntry, WorkEntryRequest } from "../types/work-entry";
 import type { OnboardingStatus } from "../types/onboarding";
 import { http } from "./http";
@@ -355,6 +356,21 @@ export async function updateWorkEntry(id: string, payload: WorkEntryRequest) {
 
 export async function deleteWorkEntry(id: string) {
   await http.delete(`/api/work-entries/${id}`);
+}
+
+export async function importScheduleWorkbook(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await http.post<ApiResponse<ExcelImportResult>>(
+    "/api/imports/excel/schedule",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
+  return response.data.data;
 }
 
 export async function getAbsences(
