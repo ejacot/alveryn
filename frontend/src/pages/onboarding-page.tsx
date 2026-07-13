@@ -164,8 +164,8 @@ export function OnboardingPage() {
   const profileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async () => {
-      await refreshCurrentUser();
       setCurrentStep(STEP_HOURLY_RATE);
+      await refreshCurrentUser();
     }
   });
 
@@ -375,7 +375,7 @@ function FormLevelError({ error }: { error: unknown }) {
   return <p className="text-sm text-red-300">{getApiError(error).message}</p>;
 }
 
-function deriveCurrentStep({
+export function deriveCurrentStep({
   storedStep,
   profileComplete,
   hourlyRateComplete
@@ -388,7 +388,7 @@ function deriveCurrentStep({
     return STEP_PROFILE;
   }
   if (!hourlyRateComplete) {
-    return storedStep === STEP_PROFILE ? STEP_PROFILE : STEP_HOURLY_RATE;
+    return STEP_HOURLY_RATE;
   }
   return STEP_HOURLY_RATE;
 }
