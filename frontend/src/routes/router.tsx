@@ -33,6 +33,11 @@ const ProfilePage = lazy(() =>
     default: module.ProfilePage
   }))
 );
+const SettingsDetailPage = lazy(() =>
+  import("../pages/settings-detail-page").then((module) => ({
+    default: module.SettingsDetailPage
+  }))
+);
 const LoginPage = lazy(() =>
   import("../pages/login-page").then((module) => ({
     default: module.LoginPage
@@ -104,7 +109,43 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
-            { path: "/profile", element: withSuspense(<ProfilePage />) }
+            { path: "/profile", element: withSuspense(<ProfilePage />) },
+            { path: "/settings/profile", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/security", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/hourly-rates", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/work-types", element: withSuspense(<SettingsDetailPage />) },
+            {
+              path: "/settings/preferences/language",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/currency",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/timezone",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/appearance",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/date-format",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/time-format",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            {
+              path: "/settings/preferences/first-day-of-week",
+              element: withSuspense(<SettingsDetailPage />)
+            },
+            { path: "/settings/export-data", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/notifications", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/about", element: withSuspense(<SettingsDetailPage />) },
+            { path: "/settings/help", element: withSuspense(<SettingsDetailPage />) }
           ]
         },
         {
