@@ -61,11 +61,10 @@ export function WeekSelector({ value, onChange }: Props) {
   }
 
   return (
-    <section className="space-y-4 overflow-hidden">
+    <section className="space-y-2.5 overflow-hidden">
       <div className="flex items-end justify-between">
         <div>
-          <p className="hairline-text">Week flow</p>
-          <h2 className="mt-2 text-[1.1rem] font-semibold tracking-[-0.04em] text-white">
+          <h2 className="text-[1rem] font-medium tracking-[-0.03em] text-white/68">
             {monthLabel}
           </h2>
         </div>
@@ -124,7 +123,7 @@ export function WeekSelector({ value, onChange }: Props) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: index * 0.02 }}
                   onClick={() => onChange(day.date)}
-                  className="flex min-h-[78px] flex-col items-center justify-between rounded-[26px] px-1 py-2 focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]"
+                  className="flex min-h-[74px] flex-col items-center justify-between rounded-[24px] px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]"
                 >
                   <span className="text-[10px] font-semibold tracking-[0.2em] text-white/34">
                     {day.weekday.slice(0, 3)}

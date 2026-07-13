@@ -40,7 +40,7 @@ export function BottomNav() {
         paddingBottom: compact ? 8 : 12
       }}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-      className="floating-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[34px] border border-white/[0.07] bg-white/[0.035] px-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-[34px]"
+      className="floating-nav ios-glass-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[34px] px-3"
     >
       {items.map(({ to, icon: Icon, label, prominent }) => (
         <NavLink

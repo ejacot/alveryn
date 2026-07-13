@@ -94,6 +94,12 @@ describe("WeekSelector", () => {
     expect(screen.queryByLabelText(/next week/i)).not.toBeInTheDocument();
   });
 
+  it("does not render the removed WEEK FLOW label", () => {
+    renderSelector();
+
+    expect(screen.queryByText(/week flow/i)).not.toBeInTheDocument();
+  });
+
   it("keeps selected day stronger than today when both match", () => {
     renderSelector(new Date("2026-07-15T00:00:00Z"));
 

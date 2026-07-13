@@ -4,7 +4,7 @@ import { BottomNav } from "./bottom-nav";
 
 describe("BottomNav", () => {
   it("renders the five required navigation items accessibly", () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <BottomNav />
       </MemoryRouter>
@@ -15,5 +15,8 @@ describe("BottomNav", () => {
     expect(screen.getByLabelText("Add Entry")).toBeInTheDocument();
     expect(screen.getByLabelText("Statistics")).toBeInTheDocument();
     expect(screen.getByLabelText("Profile")).toBeInTheDocument();
+
+    const nav = container.querySelector("nav");
+    expect(nav).toHaveClass("ios-glass-nav");
   });
 });
