@@ -60,7 +60,7 @@ export function ProfilePage() {
   const hourlyRateValue = useMemo(() => {
     const rates = hourlyRatesQuery.data ?? [];
     if (!rates.length) {
-      return "Not set";
+      return t("settings:notSet");
     }
 
     const today = todayLocalIsoDate();
@@ -69,7 +69,7 @@ export function ProfilePage() {
       rates[0];
 
     return `${current.hourlyRate} ${current.currency}`;
-  }, [hourlyRatesQuery.data]);
+  }, [hourlyRatesQuery.data, t]);
 
   const workTypesValue = useMemo(() => {
     const items = workTypesQuery.data ?? [];
@@ -105,50 +105,20 @@ export function ProfilePage() {
       <SettingsGroup title={t("settings:preferences")}>
         <SettingsRow
           to="/settings/preferences"
-          label="Language"
+          label={t("settings:preferencesFields.language")}
           value={formatLanguage(preferences?.language)}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/preferences"
-          label="Currency"
+          label={t("settings:preferencesFields.currency")}
           value={preferences?.currency ?? "EUR"}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/preferences"
-          label="Timezone"
+          label={t("settings:preferencesFields.timezone")}
           value={preferences?.timezone ?? "Europe/Berlin"}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="Default break"
-          value={`${preferences?.defaultBreakMinutes ?? 30} min`}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="Daily target"
-          value={formatDailyTarget(preferences?.preferredDailyMinutes)}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="Appearance"
-          value={formatTheme(preferences?.theme)}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="Date format"
-          value={preferences?.dateFormat ?? "DD.MM.YYYY"}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label="Time format"
-          value={formatTimeFormat(preferences?.timeFormat)}
         />
       </SettingsGroup>
 
@@ -169,30 +139,4 @@ export function ProfilePage() {
 
 function formatLanguage(value?: string | null) {
   return getNativeLanguageName(normalizeLanguage(value));
-}
-
-function formatTheme(value?: "LIGHT" | "DARK" | "SYSTEM" | null) {
-  if (!value) {
-    return "System";
-  }
-
-  return value.charAt(0) + value.slice(1).toLowerCase();
-}
-
-function formatTimeFormat(value?: "H12" | "H24" | null) {
-  if (value === "H12") {
-    return "12-hour";
-  }
-
-  return "24-hour";
-}
-
-function formatDailyTarget(value?: number | null) {
-  if (!value) {
-    return "8h 00m";
-  }
-
-  const hours = Math.floor(value / 60);
-  const minutes = value % 60;
-  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 }

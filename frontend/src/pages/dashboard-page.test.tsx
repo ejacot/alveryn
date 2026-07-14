@@ -101,7 +101,7 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     expect(await screen.findAllByText("Regular Shift")).toHaveLength(3);
-    expect(screen.getAllByText("08:00 - 16:00")).toHaveLength(2);
+    expect(screen.getAllByText("08:00 – 16:00")).toHaveLength(2);
     expect(screen.getAllByText("Monday, July 13")).toHaveLength(2);
 
     await waitFor(() => {

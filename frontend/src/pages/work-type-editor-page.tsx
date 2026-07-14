@@ -43,8 +43,6 @@ type Schema = ReturnType<typeof createWorkTypeSchema>;
 type FormValues = z.infer<Schema>;
 type FormInput = z.input<Schema>;
 
-const palette = ["#FFFFFF", "#D4D4D8", "#A1A1AA", "#71717A", "#52525B", "#3F3F46"];
-
 export function WorkTypeEditorPage() {
   const navigate = useNavigate();
   const { t } = useTranslation(["settings", "common", "entries"]);
@@ -80,8 +78,6 @@ export function WorkTypeEditorPage() {
       active: true
     }
   });
-
-  const calculationMethod = form.watch("calculationMethod");
 
   useEffect(() => {
     if (!workTypeQuery.data) return;
@@ -194,30 +190,6 @@ export function WorkTypeEditorPage() {
               <option value="TIME_BASED">{t("entries:workTypePicker.timeBased")}</option>
               <option value="UNIT_BASED">{t("entries:workTypePicker.unitBased")}</option>
             </Select>
-            <Input label={t("settings:workTypeEditor.fields.color")} error={form.formState.errors.color?.message} {...form.register("color")} />
-            <div className="flex flex-wrap gap-2">
-              {palette.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => form.setValue("color", color, { shouldValidate: true })}
-                  className="h-9 w-9 rounded-full border border-white/[0.08]"
-                  style={{ backgroundColor: color }}
-                  aria-label={t("settings:workTypeEditor.chooseColor", { color })}
-                />
-              ))}
-            </div>
-            <Input label={t("settings:workTypeEditor.fields.icon")} error={form.formState.errors.icon?.message} {...form.register("icon")} />
-            {calculationMethod === "TIME_BASED" ? (
-              <Input
-                type="number"
-                min={0}
-                label={t("settings:workTypeEditor.fields.defaultBreakMinutes")}
-                error={form.formState.errors.defaultBreakMinutes?.message as string | undefined}
-                {...form.register("defaultBreakMinutes")}
-              />
-            ) : null}
-            <Input type="number" min={0} label={t("settings:workTypeEditor.fields.displayOrder")} error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
             {isEditing ? (
               <Select label={t("settings:workTypeEditor.fields.status")} error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
                 <option value="true">{t("settings:status.active")}</option>
@@ -230,12 +202,8 @@ export function WorkTypeEditorPage() {
         {isEditing && workTypeQuery.data?.calculationMethod === "UNIT_BASED" ? (
           <SettingsSection
             title={t("settings:unitTypes.sectionTitle")}
-            description={t("settings:unitTypes.explanation")}
           >
             <div className="space-y-4">
-              <Button type="button" variant="secondary" className="w-full" onClick={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}>
-                {t("settings:unitTypes.add")}
-              </Button>
               {unitTypesQuery.data?.length ? (
                 <div className="space-y-3">
                   {unitTypesQuery.data.map((unit) => (
@@ -254,9 +222,11 @@ export function WorkTypeEditorPage() {
                             {t("settings:unitTypes.rateLine", { value: unit.unitsPerHour })}
                           </p>
                         </div>
-                        <span className="text-xs uppercase tracking-[0.16em] text-white/28">
-                          {unit.active ? t("settings:status.active") : t("settings:status.inactive")}
-                        </span>
+                        {!unit.active ? (
+                          <span className="text-xs uppercase tracking-[0.16em] text-white/28">
+                            {t("settings:status.inactive")}
+                          </span>
+                        ) : null}
                       </div>
                     </button>
                   ))}
@@ -265,10 +235,15 @@ export function WorkTypeEditorPage() {
                 <SettingsEmptyState
                   title={t("settings:unitTypes.emptyTitle")}
                   description={t("settings:unitTypes.emptyDescription")}
-                  actionLabel={t("settings:unitTypes.add")}
+                  actionLabel={t("settings:unitTypes.addFirst")}
                   onAction={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}
                 />
               )}
+              {unitTypesQuery.data?.length ? (
+                <Button type="button" variant="secondary" className="w-full" onClick={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}>
+                  {t("settings:unitTypes.add")}
+                </Button>
+              ) : null}
             </div>
           </SettingsSection>
         ) : null}

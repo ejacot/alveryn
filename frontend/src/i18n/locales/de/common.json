@@ -34,6 +34,13 @@
     "settings": "Einstellungen",
     "primaryNavigation": "Primare Navigation"
   },
+  "statistics": {
+    "eyebrow": "Statistik",
+    "title": "Kommt spater",
+    "description": "Statistiken werden nach den Kernablaufen hinzugefugt.",
+    "cardTitle": "Noch nicht verfugbar",
+    "cardBody": "Erfasse Arbeit vorerst uber Start und Kalender."
+  },
   "time": {
     "today": "Heute",
     "current": "Aktuell",

@@ -121,17 +121,6 @@ function SelectedDayPanel({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.totalTime")}</p>
-          <p className="mt-2 text-lg font-semibold text-white">{selectedDay.totalDuration}</p>
-        </div>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.gross")}</p>
-          <p className="mt-2 text-lg font-semibold text-white">{selectedDay.totalGross}</p>
-        </div>
-      </div>
-
       <div className="space-y-3">
         {selectedDay.activities.map((activity) => (
           <button
@@ -157,6 +146,17 @@ function SelectedDayPanel({
             <p className="mt-3 text-sm text-white/40">{activity.duration}</p>
           </button>
         ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.totalTime")}</p>
+          <p className="mt-1 text-base font-semibold text-white/86">{selectedDay.totalDuration}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.gross")}</p>
+          <p className="mt-1 text-base font-semibold text-white/86">{selectedDay.totalGross}</p>
+        </div>
       </div>
     </section>
   );

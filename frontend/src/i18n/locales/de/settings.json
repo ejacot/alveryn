@@ -10,9 +10,8 @@
     "created": "Arbeitsart erstellt.",
     "updated": "Arbeitsart aktualisiert.",
     "unavailableTitle": "Arbeitsart ist nicht verfugbar",
-    "editorDescription": "Zeitbasiert erfasst Start, Ende und Pause. Mengenbasiert erfasst Mengen wie Zimmer, Bestellungen oder Stopps.",
-    "coreSettings": "Grundeinstellungen",
-    "chooseColor": "Farbe {{color}} wahlen",
+    "editorDescription": "Wahle, wie diese Arbeit gezahlt wird.",
+    "coreSettings": "Arbeitsart",
     "deactivate": "Arbeitsart deaktivieren",
     "deactivateTitle": "Arbeitsart deaktivieren?",
     "deactivateDescription": "Historische Arbeitseintrage bleiben erhalten. Diese Arbeitsart ist nur fur neue Eintrage nicht mehr verfugbar.",
@@ -21,10 +20,6 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Berechnungsmethode",
-      "color": "Farbe",
-      "icon": "Symbol",
-      "defaultBreakMinutes": "Standardpause (Minuten)",
-      "displayOrder": "Anzeigereihenfolge",
       "status": "Status"
     },
     "validation": {
@@ -35,18 +30,18 @@
   },
   "unitTypes": {
     "sectionTitle": "Einheiten",
-    "explanation": "Einheitstypen definieren, was du zahlst, zum Beispiel normale Zimmer, Junior-Zimmer oder Suiten.",
     "add": "Einheitstyp hinzufugen",
+    "addFirst": "Erste Einheit hinzufugen",
     "addTitle": "Einheitstyp hinzufugen",
     "editTitle": "Einheitstyp bearbeiten",
     "created": "Einheitstyp erstellt.",
     "updated": "Einheitstyp aktualisiert.",
     "unavailableTitle": "Einheitstyp ist nicht verfugbar",
-    "settingsTitle": "Einheitseinstellungen",
+    "settingsTitle": "Einheit",
     "emptyTitle": "Noch keine Einheitstypen",
-    "emptyDescription": "Fuge die Einheitstypen hinzu, die du bei der Arbeit zahlst.",
-    "rateLine": "Normalerweise schaffst du {{value}} dieser Einheiten in einer Stunde.",
-    "unitsPerHourHelper": "Normalerweise schaffst du so viele dieser Einheiten in einer Stunde.",
+    "emptyDescription": "Fuge die erste Einheit hinzu, die du bei der Arbeit zahlst.",
+    "rateLine": "{{value}} / Stunde",
+    "unitsPerHourHelper": "Wie viele du normalerweise in einer Stunde schaffst.",
     "deactivate": "Einheitstyp deaktivieren",
     "deactivateTitle": "Einheitstyp deaktivieren?",
     "deactivateDescription": "Historische Eintragssnapshots bleiben unverandert. Das entfernt die Einheit nur aus zukunftigen Eintragen.",
@@ -54,7 +49,6 @@
     "fields": {
       "name": "Name",
       "unitsPerHour": "Einheiten pro Stunde",
-      "displayOrder": "Anzeigereihenfolge",
       "status": "Status"
     },
     "validation": {
@@ -66,6 +60,12 @@
   "account": "Konto",
   "work": "Arbeit",
   "preferences": "Einstellungen",
+  "preferencesFields": {
+    "regional": "Regional",
+    "language": "Sprache",
+    "currency": "Wahrung",
+    "timezone": "Zeitzone"
+  },
   "app": "App",
   "profile": "Profil",
   "hourlyRates": "Stundensatze",
@@ -127,6 +127,7 @@
   },
   "about": "Uber Roomly",
   "help": "Hilfe & Support",
+  "notSet": "Nicht gesetzt",
   "logout": "Abmelden",
   "discardTitle": "Anderungen verwerfen?",
   "discardDescription": "Deine ungespeicherten Anderungen gehen verloren.",

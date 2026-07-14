@@ -156,7 +156,6 @@ export function UnitTypeEditorPage() {
               error={form.formState.errors.unitsPerHour?.message}
               {...form.register("unitsPerHour")}
             />
-            <Input type="number" min={0} label={t("unitTypes.fields.displayOrder")} error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
             {isEditing ? (
               <Select label={t("unitTypes.fields.status")} error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
                 <option value="true">{t("status.active")}</option>

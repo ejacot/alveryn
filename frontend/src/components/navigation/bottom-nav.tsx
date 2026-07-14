@@ -3,8 +3,7 @@ import {
   CalendarDays,
   CircleUserRound,
   House,
-  Plus,
-  ChartColumnIncreasing
+  Plus
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
@@ -26,7 +25,6 @@ export function BottomNav() {
     { to: "/", icon: House, label: t("nav.home") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
     { to: "/entries/new", icon: Plus, label: t("nav.addEntry"), prominent: true },
-    { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },
     { to: "/profile", icon: CircleUserRound, label: t("nav.settings") }
   ];
 

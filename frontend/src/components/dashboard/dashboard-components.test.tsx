@@ -17,7 +17,7 @@ const baseSummary: DashboardSummaryMetrics = {
     {
       label: "Gross",
       value: "EUR 160.00",
-      hint: "Live from saved entries"
+      hint: "This day"
     },
     {
       label: "Week",
@@ -28,7 +28,7 @@ const baseSummary: DashboardSummaryMetrics = {
   tertiaryMetric: {
     label: "Recent",
     value: "5",
-    hint: "Loaded from real backend data"
+    hint: "All saved entries"
   }
 };
 const baseSelectedDay: SelectedDayOverview = {
@@ -82,7 +82,7 @@ describe("dashboard components", () => {
           {
             id: "entry-1",
             title: "Regular Shift",
-            subtitle: "08:00 - 16:00",
+            subtitle: "08:00 – 16:00",
             duration: "8h 00m",
             amount: "EUR 160.00"
           }

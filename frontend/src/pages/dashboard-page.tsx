@@ -126,7 +126,9 @@ export function DashboardPage() {
             String(todayGross),
             resolveCurrency(selectedDayEntries, weeklyEntries)
           ),
-          hint: t("dashboard:summary.liveSavedEntries")
+          hint: selectedDayEntries.length
+            ? t("dashboard:summary.selectedDay")
+            : t("dashboard:summary.noEntries")
         },
         {
           label: t("dashboard:summary.week"),
@@ -137,7 +139,7 @@ export function DashboardPage() {
       tertiaryMetric: {
         label: t("dashboard:summary.recent"),
         value: String(allEntries.length),
-        hint: t("dashboard:summary.loadedRealData")
+        hint: t("dashboard:summary.allEntries")
       }
     };
   }, [allEntries.length, selectedDayEntries, selectedDayLabel, t, weeklyEntries]);

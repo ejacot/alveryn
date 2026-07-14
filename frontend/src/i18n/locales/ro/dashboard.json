@@ -1,6 +1,6 @@
 {
   "heading": {
-    "eyebrow": "Privire de ansamblu",
+    "eyebrow": "Astazi",
     "previewEyebrow": "Previzualizare",
     "title": "Astăzi, dintr-o privire",
     "description": "Doar cifrele și intrările care contează acum.",
@@ -8,8 +8,8 @@
     "activityDescription_one": "{{count}} activitate salvată pentru această zi.",
     "activityDescription_few": "{{count}} activități salvate pentru această zi.",
     "activityDescription_other": "{{count}} de activități salvate pentru această zi.",
-    "previewDescription": "Date locale explicite de previzualizare pentru direcția vizuală aprobată Roomly.",
-    "previewError": "Stare de eroare doar pentru validarea locală a previzualizării."
+    "previewDescription": "O privire simpla asupra zilei tale.",
+    "previewError": "Ceva nu a mers bine."
   },
   "selectedDay": {
     "today": "Astăzi",
@@ -35,8 +35,8 @@
     "weekEntryCount_one": "{{count}} intrare săptămâna aceasta",
     "weekEntryCount_few": "{{count}} intrări săptămâna aceasta",
     "weekEntryCount_other": "{{count}} de intrări săptămâna aceasta",
-    "liveSavedEntries": "Direct din datele salvate",
-    "loadedRealData": "Încărcat din backendul real"
+    "selectedDay": "Aceasta zi",
+    "allEntries": "Toate intrarile salvate"
   },
   "recentEntries": {
     "eyebrow": "Recente",
@@ -60,15 +60,15 @@
     "eyebrow": "Ritm",
     "title": "Orele săptămânii",
     "empty": "Activitatea săptămânii va apărea după ce salvezi lucru în această săptămână.",
-    "description": "{{total}} înregistrate în această săptămână. Barele reacționează la intrările reale salvate.",
-    "emptyDescription": "Nu există încă intrări salvate pentru această săptămână. Adaugă prima ta tură folosind acțiunea rapidă de mai sus."
+    "description": "{{total}} saptamana aceasta.",
+    "emptyDescription": "Nu exista intrari saptamana aceasta."
   },
   "preview": {
-    "weeklyDescription": "Bare de ritm doar pentru validarea locală a designului.",
+    "weeklyDescription": "Un ritm saptamanal simplu.",
     "entries": {
       "morningRooms": {
         "title": "Camere de dimineață",
-        "subtitle": "Housekeeping • 08:00 - 14:30"
+        "subtitle": "Housekeeping • 08:00 – 14:30"
       },
       "lateShift": {
         "title": "Tură târzie",

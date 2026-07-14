@@ -57,5 +57,14 @@ export function formatTimeRange(startTime?: string | null, endTime?: string | nu
     return null;
   }
 
-  return `${startTime} - ${endTime}`;
+  return `${formatClockTime(startTime)} – ${formatClockTime(endTime)}`;
+}
+
+function formatClockTime(value: string) {
+  const [hours, minutes, seconds] = value.split(":");
+  if (!hours || !minutes) {
+    return value;
+  }
+
+  return seconds && seconds !== "00" ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
 }

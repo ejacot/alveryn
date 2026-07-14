@@ -10,9 +10,8 @@
     "created": "Tip de lucru creat.",
     "updated": "Tip de lucru actualizat.",
     "unavailableTitle": "Tipul de lucru nu este disponibil",
-    "editorDescription": "Bazat pe timp inregistreaza inceput, sfarsit si pauza. Bazat pe unitati inregistreaza cantitati precum camere, comenzi sau opriri.",
-    "coreSettings": "Setari principale",
-    "chooseColor": "Alege culoarea {{color}}",
+    "editorDescription": "Alege cum se numara aceasta munca.",
+    "coreSettings": "Tip de lucru",
     "deactivate": "Dezactiveaza tipul de lucru",
     "deactivateTitle": "Dezactivezi tipul de lucru?",
     "deactivateDescription": "Inregistrarile istorice raman intacte. Tipul de lucru nu va mai fi disponibil pentru inregistrari noi.",
@@ -21,10 +20,6 @@
     "fields": {
       "name": "Nume",
       "calculationMethod": "Metoda de calcul",
-      "color": "Culoare",
-      "icon": "Pictograma",
-      "defaultBreakMinutes": "Pauza implicita (minute)",
-      "displayOrder": "Ordine afisare",
       "status": "Status"
     },
     "validation": {
@@ -35,18 +30,18 @@
   },
   "unitTypes": {
     "sectionTitle": "Unitati",
-    "explanation": "Unitatile definesc ce numeri, de exemplu camere normale, camere junior sau suite.",
     "add": "Adauga unitate",
+    "addFirst": "Adauga prima unitate",
     "addTitle": "Adauga unitate",
     "editTitle": "Editeaza unitatea",
     "created": "Unitate creata.",
     "updated": "Unitate actualizata.",
     "unavailableTitle": "Unitatea nu este disponibila",
-    "settingsTitle": "Setari unitate",
+    "settingsTitle": "Unitate",
     "emptyTitle": "Nu exista unitati inca",
-    "emptyDescription": "Adauga unitatile pe care le numeri in timpul lucrului.",
-    "rateLine": "In mod normal finalizezi {{value}} unitati de acest tip intr-o ora.",
-    "unitsPerHourHelper": "In mod normal finalizezi atatea unitati de acest tip intr-o ora.",
+    "emptyDescription": "Adauga prima unitate pe care o numeri in timpul lucrului.",
+    "rateLine": "{{value}} / ora",
+    "unitsPerHourHelper": "Cate finalizezi de obicei intr-o ora.",
     "deactivate": "Dezactiveaza unitatea",
     "deactivateTitle": "Dezactivezi unitatea?",
     "deactivateDescription": "Snapshoturile istorice raman neschimbate. Aceasta doar elimina unitatea din inregistrarile viitoare.",
@@ -54,7 +49,6 @@
     "fields": {
       "name": "Nume",
       "unitsPerHour": "Unitati pe ora",
-      "displayOrder": "Ordine afisare",
       "status": "Status"
     },
     "validation": {
@@ -66,6 +60,12 @@
   "account": "Cont",
   "work": "Munca",
   "preferences": "Preferinte",
+  "preferencesFields": {
+    "regional": "Regional",
+    "language": "Limba",
+    "currency": "Moneda",
+    "timezone": "Fus orar"
+  },
   "app": "Aplicatie",
   "profile": "Profil",
   "hourlyRates": "Tarife orare",
@@ -127,6 +127,7 @@
   },
   "about": "Despre Roomly",
   "help": "Ajutor si suport",
+  "notSet": "Nesetat",
   "logout": "Deconectare",
   "discardTitle": "Renunti la modificari?",
   "discardDescription": "Modificarile nesalvate vor fi pierdute.",

@@ -34,6 +34,13 @@
     "settings": "Settings",
     "primaryNavigation": "Primary navigation"
   },
+  "statistics": {
+    "eyebrow": "Statistics",
+    "title": "Coming later",
+    "description": "Statistics will be added after the core work flows are finished.",
+    "cardTitle": "Not available yet",
+    "cardBody": "Keep tracking work from Home and Calendar for now."
+  },
   "time": {
     "today": "Today",
     "current": "Current",

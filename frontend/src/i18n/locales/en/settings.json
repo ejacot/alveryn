@@ -10,9 +10,8 @@
     "created": "Work type created.",
     "updated": "Work type updated.",
     "unavailableTitle": "Work type is unavailable",
-    "editorDescription": "Time based tracks start, end and break. Unit based tracks quantities such as rooms, orders or stops.",
-    "coreSettings": "Core settings",
-    "chooseColor": "Choose color {{color}}",
+    "editorDescription": "Choose how this work is counted.",
+    "coreSettings": "Work type",
     "deactivate": "Deactivate work type",
     "deactivateTitle": "Deactivate work type?",
     "deactivateDescription": "Historical work entries stay intact. This work type simply becomes unavailable for new entries.",
@@ -21,10 +20,6 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Calculation method",
-      "color": "Color",
-      "icon": "Icon",
-      "defaultBreakMinutes": "Default break (minutes)",
-      "displayOrder": "Display order",
       "status": "Status"
     },
     "validation": {
@@ -35,18 +30,18 @@
   },
   "unitTypes": {
     "sectionTitle": "Units",
-    "explanation": "Unit types define what you count, such as normal rooms, junior rooms or suites.",
     "add": "Add unit type",
+    "addFirst": "Add first unit type",
     "addTitle": "Add unit type",
     "editTitle": "Edit unit type",
     "created": "Unit type created.",
     "updated": "Unit type updated.",
     "unavailableTitle": "Unit type is unavailable",
-    "settingsTitle": "Unit settings",
+    "settingsTitle": "Unit",
     "emptyTitle": "No unit types yet",
-    "emptyDescription": "Add the unit types you count during work.",
-    "rateLine": "You normally complete {{value}} of these units in one hour.",
-    "unitsPerHourHelper": "You normally complete this many of these units in one hour.",
+    "emptyDescription": "Add the first unit you count during work.",
+    "rateLine": "{{value}} / hour",
+    "unitsPerHourHelper": "How many you usually complete in one hour.",
     "deactivate": "Deactivate unit type",
     "deactivateTitle": "Deactivate unit type?",
     "deactivateDescription": "Historical entry snapshots remain unchanged. This only removes the unit from future entry creation.",
@@ -54,7 +49,6 @@
     "fields": {
       "name": "Name",
       "unitsPerHour": "Units per hour",
-      "displayOrder": "Display order",
       "status": "Status"
     },
     "validation": {
@@ -66,6 +60,12 @@
   "account": "Account",
   "work": "Work",
   "preferences": "Preferences",
+  "preferencesFields": {
+    "regional": "Regional",
+    "language": "Language",
+    "currency": "Currency",
+    "timezone": "Timezone"
+  },
   "app": "App",
   "profile": "Profile",
   "hourlyRates": "Hourly rates",
@@ -127,6 +127,7 @@
   },
   "about": "About Roomly",
   "help": "Help & Support",
+  "notSet": "Not set",
   "logout": "Log out",
   "discardTitle": "Discard changes?",
   "discardDescription": "Your unsaved edits will be lost.",

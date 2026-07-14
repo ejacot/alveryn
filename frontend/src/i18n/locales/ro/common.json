@@ -34,6 +34,13 @@
     "settings": "Setari",
     "primaryNavigation": "Navigare principala"
   },
+  "statistics": {
+    "eyebrow": "Statistici",
+    "title": "Disponibil mai tarziu",
+    "description": "Statisticile vor fi adaugate dupa finalizarea fluxurilor principale.",
+    "cardTitle": "Indisponibil momentan",
+    "cardBody": "Momentan, inregistreaza munca din Acasa si Calendar."
+  },
   "time": {
     "today": "Astazi",
     "current": "Curent",

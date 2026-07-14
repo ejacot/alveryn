@@ -1,14 +1,14 @@
 {
   "heading": {
-    "eyebrow": "Overview",
+    "eyebrow": "Today",
     "previewEyebrow": "Preview",
     "title": "Today at a glance",
     "description": "Only the numbers and entries that matter right now.",
     "emptyDescription": "No activity yet.",
     "activityDescription_one": "{{count}} activity saved for this day.",
     "activityDescription_other": "{{count}} activities saved for this day.",
-    "previewDescription": "Explicit local preview data for the approved Roomly visual language.",
-    "previewError": "Preview-only API failure state for local validation."
+    "previewDescription": "A quiet look at your day.",
+    "previewError": "Something went wrong."
   },
   "selectedDay": {
     "today": "Today",
@@ -31,8 +31,8 @@
     "entryCount_other": "{{count}} tracked entries",
     "weekEntryCount_one": "{{count}} entry this week",
     "weekEntryCount_other": "{{count}} entries this week",
-    "liveSavedEntries": "Live from saved entries",
-    "loadedRealData": "Loaded from real backend data"
+    "selectedDay": "This day",
+    "allEntries": "All saved entries"
   },
   "recentEntries": {
     "eyebrow": "Recent",
@@ -55,15 +55,15 @@
     "eyebrow": "Rhythm",
     "title": "Weekly hours",
     "empty": "Weekly activity will appear after you save work this week.",
-    "description": "{{total}} tracked across this week. Bars react to real saved entries.",
-    "emptyDescription": "No entries saved for this week yet. Add your first shift from the quick action above."
+    "description": "{{total}} this week.",
+    "emptyDescription": "No entries this week yet."
   },
   "preview": {
-    "weeklyDescription": "Preview-only rhythm bars for local design validation.",
+    "weeklyDescription": "A calm weekly rhythm.",
     "entries": {
       "morningRooms": {
         "title": "Morning rooms",
-        "subtitle": "Housekeeping • 08:00 - 14:30"
+        "subtitle": "Housekeeping • 08:00 – 14:30"
       },
       "lateShift": {
         "title": "Late shift",
