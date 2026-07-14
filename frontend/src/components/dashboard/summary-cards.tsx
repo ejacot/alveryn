@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { DashboardSummaryMetrics, SummaryMetric } from "../../types/dashboard";
+import type { DashboardSummaryMetrics } from "../../types/dashboard";
 
 type Props = {
   metrics?: DashboardSummaryMetrics | null;

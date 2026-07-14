@@ -14,7 +14,6 @@ import type { WorkEntry } from "../types/work-entry";
 import { addDays, formatLocalIsoDate, isSameDay, startOfWeek } from "../utils/date";
 import {
   formatCurrency,
-  formatHours,
   formatMinutesAsDuration,
   formatTimeRange
 } from "../utils/format";
