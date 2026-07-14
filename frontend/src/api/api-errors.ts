@@ -36,9 +36,21 @@ function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
   );
 }
 
+function extractTimeOverlapParams(message?: string | null) {
+  const match = message?.match(/\bfrom\s+(\d{2}:\d{2})\s+to\s+(\d{2}:\d{2})\b/i);
+  if (!match) {
+    return {};
+  }
+
+  return {
+    start: match[1],
+    end: match[2]
+  };
+}
+
 function localizeMessage(code?: string | null, fallback?: string | null) {
   if (code && i18n.exists(`errors:${code}`)) {
-    return i18n.t(`errors:${code}`);
+    return i18n.t(`errors:${code}`, extractTimeOverlapParams(fallback));
   }
   return fallback || DEFAULT_ERROR.message;
 }

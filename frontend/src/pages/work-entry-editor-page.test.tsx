@@ -288,6 +288,50 @@ describe("WorkEntryEditorPage", () => {
     });
   });
 
+  it("shows overlap conflicts near time fields and keeps entered values", async () => {
+    vi.mocked(createWorkEntry).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          timestamp: "2026-01-01T00:00:00Z",
+          status: 409,
+          message: "This work entry overlaps an existing activity from 09:00 to 17:00.",
+          code: "WORK_ENTRY_TIME_OVERLAP",
+          path: "/api/work-entries",
+          errors: []
+        }
+      }
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /regular shift/i }));
+    fireEvent.change(screen.getByLabelText("Work date"), {
+      target: { value: "2026-07-13" }
+    });
+    fireEvent.change(screen.getByLabelText("Start time"), {
+      target: { value: "14:00" }
+    });
+    fireEvent.change(screen.getByLabelText("End time"), {
+      target: { value: "19:00" }
+    });
+    fireEvent.change(screen.getByLabelText("Break (minutes)"), {
+      target: { value: "30" }
+    });
+
+    await new Promise((resolve) => window.setTimeout(resolve, 600));
+    navigateMock.mockClear();
+    await user.click(screen.getByRole("button", { name: /save entry/i }));
+
+    expect(
+      await screen.findByText("This activity overlaps an existing activity from 09:00 to 17:00.")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Start time")).toHaveValue("14:00");
+    expect(screen.getByLabelText("End time")).toHaveValue("19:00");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it("deletes an existing entry after confirmation", async () => {
     routeState.entryId = "entry-1";
     renderPage();

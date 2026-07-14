@@ -14,5 +14,6 @@
   "EXCEL_PREVIEW_ALREADY_USED": "This preview was already used.",
   "EXCEL_IMPORT_CONFLICT": "This workbook has blocking conflicts and cannot be imported yet.",
   "EXCEL_BATCH_NOT_FOUND": "This import batch could not be found.",
-  "EXCEL_BATCH_ALREADY_UNDONE": "This import batch was already undone."
+  "EXCEL_BATCH_ALREADY_UNDONE": "This import batch was already undone.",
+  "WORK_ENTRY_TIME_OVERLAP": "This activity overlaps an existing activity from {{start}} to {{end}}."
 }

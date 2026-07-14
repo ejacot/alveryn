@@ -1,4 +1,5 @@
 import axios from "axios";
+import { i18n } from "../i18n";
 import { getApiError } from "./api-errors";
 
 describe("getApiError", () => {
@@ -53,5 +54,39 @@ describe("getApiError", () => {
     const error = new axios.AxiosError("Network Error");
 
     expect(getApiError(error).message).toContain("could not reach the backend");
+  });
+
+  it("localizes work entry time overlap conflicts with the conflicting interval", async () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          timestamp: "2026-01-01T00:00:00Z",
+          status: 409,
+          message: "This work entry overlaps an existing activity from 09:00 to 17:00.",
+          code: "WORK_ENTRY_TIME_OVERLAP",
+          path: "/api/work-entries",
+          errors: []
+        }
+      }
+    };
+
+    await i18n.changeLanguage("en");
+    expect(getApiError(error as never).message).toBe(
+      "This activity overlaps an existing activity from 09:00 to 17:00."
+    );
+
+    await i18n.changeLanguage("de");
+    expect(getApiError(error as never).message).toBe(
+      "Diese Aktivität überschneidet sich mit einer bestehenden Aktivität von 09:00 bis 17:00."
+    );
+
+    await i18n.changeLanguage("ro");
+    expect(getApiError(error as never).message).toBe(
+      "Această activitate se suprapune cu o activitate existentă între 09:00 și 17:00."
+    );
+
+    await i18n.changeLanguage("en");
   });
 });

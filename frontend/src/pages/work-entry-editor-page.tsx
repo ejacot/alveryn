@@ -302,6 +302,15 @@ export function WorkEntryEditorPage() {
     );
   }
 
+  const saveApiError =
+    createMutation.error || updateMutation.error
+      ? getApiError(createMutation.error ?? updateMutation.error)
+      : null;
+  const timeOverlapError =
+    saveApiError?.code === "WORK_ENTRY_TIME_OVERLAP" ? saveApiError.message : null;
+  const generalSaveError =
+    saveApiError && saveApiError.code !== "WORK_ENTRY_TIME_OVERLAP" ? saveApiError.message : null;
+
   return (
     <div className="space-y-6 pb-6">
       <header className="flex items-center justify-between">
@@ -468,6 +477,9 @@ export function WorkEntryEditorPage() {
             <p className="text-sm text-white/46">
               {t("entries:editor.overnightHint")}
             </p>
+            {timeOverlapError ? (
+              <p className="text-sm text-red-300">{timeOverlapError}</p>
+            ) : null}
           </section>
         ) : null}
 
@@ -538,10 +550,8 @@ export function WorkEntryEditorPage() {
         {form.formState.errors.root?.message ? (
           <p className="text-sm text-red-300">{form.formState.errors.root.message}</p>
         ) : null}
-        {createMutation.error || updateMutation.error ? (
-          <p className="text-sm text-red-300">
-            {getApiError(createMutation.error ?? updateMutation.error).message}
-          </p>
+        {generalSaveError ? (
+          <p className="text-sm text-red-300">{generalSaveError}</p>
         ) : null}
 
         <Button

@@ -14,5 +14,6 @@
   "EXCEL_PREVIEW_ALREADY_USED": "Diese Vorschau wurde bereits verwendet.",
   "EXCEL_IMPORT_CONFLICT": "Diese Arbeitsmappe hat blockierende Konflikte und kann noch nicht importiert werden.",
   "EXCEL_BATCH_NOT_FOUND": "Dieser Importlauf wurde nicht gefunden.",
-  "EXCEL_BATCH_ALREADY_UNDONE": "Dieser Importlauf wurde bereits rückgängig gemacht."
+  "EXCEL_BATCH_ALREADY_UNDONE": "Dieser Importlauf wurde bereits rückgängig gemacht.",
+  "WORK_ENTRY_TIME_OVERLAP": "Diese Aktivität überschneidet sich mit einer bestehenden Aktivität von {{start}} bis {{end}}."
 }
