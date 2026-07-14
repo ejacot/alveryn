@@ -54,7 +54,8 @@
     "validation": {
       "nameRequired": "Name ist erforderlich",
       "nameTooLong": "Name ist zu lang",
-      "unitsPerHour": "Einheiten pro Stunde muss grosser als null sein"
+      "unitsPerHour": "Einheiten pro Stunde muss größer als null sein",
+      "fixErrors": "Prüfe die markierten Felder und versuche es erneut."
     }
   },
   "account": "Konto",

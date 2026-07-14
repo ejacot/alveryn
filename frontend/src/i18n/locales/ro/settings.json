@@ -54,7 +54,8 @@
     "validation": {
       "nameRequired": "Numele este obligatoriu",
       "nameTooLong": "Numele este prea lung",
-      "unitsPerHour": "Unitățile pe oră trebuie să fie mai mari decât zero"
+      "unitsPerHour": "Unitățile pe oră trebuie să fie mai mari decât zero",
+      "fixErrors": "Verifică câmpurile marcate și încearcă din nou."
     }
   },
   "account": "Cont",

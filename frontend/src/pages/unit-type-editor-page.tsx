@@ -24,10 +24,21 @@ import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
+function parseDecimalInput(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim().replace(",", ".");
+    return normalized === "" ? Number.NaN : Number(normalized);
+  }
+  return value;
+}
+
 function createUnitTypeSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().trim().min(1, t("unitTypes.validation.nameRequired")).max(100, t("unitTypes.validation.nameTooLong")),
-    unitsPerHour: z.coerce.number().gt(0, t("unitTypes.validation.unitsPerHour")),
+    unitsPerHour: z.preprocess(
+      parseDecimalInput,
+      z.number({ error: t("unitTypes.validation.unitsPerHour") }).gt(0, t("unitTypes.validation.unitsPerHour"))
+    ),
     displayOrder: z.coerce.number().min(0),
     active: z.boolean()
   });
@@ -107,6 +118,7 @@ export function UnitTypeEditorPage() {
       Object.entries(apiError.fieldErrors).forEach(([field, message]) => {
         form.setError(field as keyof FormValues, { message });
       });
+      form.setError("root", { message: apiError.message });
     }
   });
 
@@ -141,22 +153,38 @@ export function UnitTypeEditorPage() {
         onBack={() => confirmOrRun(safeBack)}
       />
       <form
+        noValidate
         className="space-y-6"
-        onSubmit={form.handleSubmit(async (values) => {
-          try {
-            await saveMutation.mutateAsync(values);
-          } catch {
-            // Mutation state renders the API error and keeps the user on the form.
+        onSubmit={form.handleSubmit(
+          async (values) => {
+            form.clearErrors("root");
+            try {
+              await saveMutation.mutateAsync(values);
+            } catch {
+              // Mutation state renders the API error and keeps the user on the form.
+            }
+          },
+          () => {
+            form.setError("root", {
+              message: t("unitTypes.validation.fixErrors")
+            });
           }
-        })}
+        )}
       >
+        {form.formState.errors.root?.message ? (
+          <p
+            role="alert"
+            className="rounded-[22px] border border-red-400/20 bg-red-400/[0.08] px-4 py-3 text-sm text-red-100"
+          >
+            {form.formState.errors.root.message}
+          </p>
+        ) : null}
         <SettingsSection title={t("unitTypes.settingsTitle")}>
           <div className="space-y-4">
             <Input label={t("unitTypes.fields.name")} error={form.formState.errors.name?.message} {...form.register("name")} />
             <Input
-              type="number"
-              min={0.01}
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               label={t("unitTypes.fields.unitsPerHour")}
               helperText={t("unitTypes.unitsPerHourHelper")}
               error={form.formState.errors.unitsPerHour?.message}
@@ -178,7 +206,6 @@ export function UnitTypeEditorPage() {
           deleteLabel={isEditing ? t("unitTypes.deactivate") : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
-        {saveMutation.error ? <p className="text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
       </form>
 
       <SettingsConfirmDialog

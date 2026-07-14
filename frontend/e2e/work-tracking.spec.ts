@@ -39,14 +39,14 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   await expect(page.getByText(/Add the first unit you count during work/i)).toBeVisible();
 
   for (const [name, rate] of [
-    ["Cameră normală", "2.4"],
+    ["Cameră normală", "2,4"],
     ["Cameră junior", "1.8"],
     ["Suită", "1.2"]
   ] as const) {
     await page.getByRole("button", { name: /add (first )?unit type/i }).first().click();
     await expect(page.getByRole("heading", { name: "Add unit type" })).toBeVisible();
     const nameInput = page.getByRole("textbox", { name: /^Name$/ });
-    const rateInput = page.getByRole("spinbutton", { name: /units per hour/i });
+    const rateInput = page.getByRole("textbox", { name: /units per hour/i });
     await nameInput.click();
     await nameInput.pressSequentially(name);
     await expect(nameInput).toHaveValue(name);
