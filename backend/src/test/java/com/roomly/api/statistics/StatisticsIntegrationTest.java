@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.roomly.api.auth.security.JwtService;
+import com.roomly.api.absence.entity.Absence;
+import com.roomly.api.absence.entity.AbsenceType;
+import com.roomly.api.absence.repository.AbsenceRepository;
 import com.roomly.api.salary.entity.HourlyRatePeriod;
 import com.roomly.api.salary.repository.HourlyRatePeriodRepository;
 import com.roomly.api.user.entity.UserAccount;
@@ -44,6 +47,7 @@ class StatisticsIntegrationTest {
   @Autowired WorkEntryRepository workEntries;
   @Autowired TimeEntryDetailsRepository timeEntryDetails;
   @Autowired UnitEntryItemRepository unitEntryItems;
+  @Autowired AbsenceRepository absences;
 
   private MockMvc mockMvc;
 
@@ -53,6 +57,7 @@ class StatisticsIntegrationTest {
     unitEntryItems.deleteAll();
     timeEntryDetails.deleteAll();
     workEntries.deleteAll();
+    absences.deleteAll();
     unitTypes.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
@@ -251,6 +256,115 @@ class StatisticsIntegrationTest {
                 .param("to", "2026-07-09"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("STATISTICS_INVALID_DATE_RANGE"));
+  }
+
+  @Test
+  void comparisonSupportsPeriodTotalsSeriesAndMultiCurrencyDifferences() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-comparison@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 7, 2));
+    createRate(user, "25.00", "CHF", LocalDate.of(2026, 7, 3), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "12:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "12:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 6, 1), "08:00:00", "10:00:00");
+
+    mockMvc
+        .perform(
+            post("/api/statistics/comparison")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "periodA":{"from":"2026-07-01","to":"2026-07-07"},
+                      "periodB":{"from":"2026-06-01","to":"2026-06-07"},
+                      "metric":"GROSS",
+                      "workTypeIds":[],
+                      "calculationMethods":[]
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.metric").value("GROSS"))
+        .andExpect(jsonPath("$.data.periodA.entries").value(2))
+        .andExpect(jsonPath("$.data.differences.length()").value(2))
+        .andExpect(jsonPath("$.data.differences[0].currency").value("CHF"))
+        .andExpect(jsonPath("$.data.differences[0].direction").value("NEW"))
+        .andExpect(jsonPath("$.data.differences[1].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.series.alignment").value("DAY_OF_WEEK"))
+        .andExpect(jsonPath("$.data.series.granularity").value("DAILY"))
+        .andExpect(jsonPath("$.data.series.points.length()").value(14));
+  }
+
+  @Test
+  void heatmapReturnsEveryDateAndAbsenceMetadata() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-heatmap@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "12:00:00");
+    absences.saveAndFlush(new Absence(user, AbsenceType.VACATION, LocalDate.of(2026, 7, 3), LocalDate.of(2026, 7, 3)));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03")
+                .param("metric", "WORKED_MINUTES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.metric").value("WORKED_MINUTES"))
+        .andExpect(jsonPath("$.data.days.length()").value(3))
+        .andExpect(jsonPath("$.data.days[0].value").value(0))
+        .andExpect(jsonPath("$.data.days[1].value").value(240.00))
+        .andExpect(jsonPath("$.data.days[1].entries").value(1))
+        .andExpect(jsonPath("$.data.days[2].hasAbsence").value(true));
+  }
+
+  @Test
+  void heatmapRejectsTooLargeRangeAndAmbiguousGrossCurrency() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-heatmap-errors@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 7, 2));
+    createRate(user, "25.00", "CHF", LocalDate.of(2026, 7, 3), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "12:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "12:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2025-01-01")
+                .param("to", "2026-12-31"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_HEATMAP_RANGE_TOO_LARGE"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03")
+                .param("metric", "GROSS"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION"));
+  }
+
+  @Test
+  void drilldownReturnsBucketTotalsAndWorkTypeBreakdown() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-drilldown@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "12:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/drilldown")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-07"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.totals.entries").value(1))
+        .andExpect(jsonPath("$.data.workTypes[0].name").value("Check"))
+        .andExpect(jsonPath("$.data.workTypes[0].percentageBasis").value("MINUTES"));
   }
 
   private void createTimeEntry(UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime)
