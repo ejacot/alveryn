@@ -12,6 +12,12 @@ import { StatisticsFilterBar } from "../components/statistics-filter-bar";
 import { StatisticsHeatmap } from "../components/statistics-heatmap";
 import { StatisticsPrimarySummary, StatisticsSummaryCards } from "../components/statistics-summary";
 import {
+  StatisticsForecastSection,
+  StatisticsHighlightsSection,
+  StatisticsInsightsSection,
+  StatisticsProductivitySection
+} from "../components/statistics-v2b-sections";
+import {
   StatisticsEmptyState,
   StatisticsErrorState,
   StatisticsSkeleton
@@ -145,9 +151,13 @@ export function StatisticsPage() {
             onPointSelect={setSelectedChartPoint}
           />
           <StatisticsDrilldownPanel filters={filters} point={selectedChartPoint} onClose={() => setSelectedChartPoint(null)} />
+          <StatisticsInsightsSection data={statistics.insights.data} />
           <StatisticsSummaryCards overview={overview} />
+          <StatisticsForecastSection data={statistics.forecast.data} />
           <StatisticsComparisonPanel filters={filters} />
           <WorkTypeBreakdown items={breakdown} />
+          <StatisticsProductivitySection data={statistics.productivity.data} />
+          <StatisticsHighlightsSection data={statistics.highlights.data} />
           <StatisticsHeatmap
             heatmap={statistics.heatmap.data}
             isLoading={statistics.heatmap.isLoading}

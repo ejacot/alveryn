@@ -90,6 +90,11 @@
       "entries": "Einträge",
       "averagePerDay": "Durchschnitt pro Tag"
     },
+    "confidence": {
+      "LOW": "Niedrige Sicherheit",
+      "MEDIUM": "Mittlere Sicherheit",
+      "HIGH": "Hohe Sicherheit"
+    },
     "trend": {
       "title": "Trend",
       "ariaLabel": "Statistik-Trenddiagramm",
@@ -176,6 +181,57 @@
       "openCalendar": "Kalender öffnen"
     },
     "comparisonUnavailable": "Kein vorheriger Zeitraum verfügbar.",
+    "insights": {
+      "eyebrow": "Einblicke",
+      "title": "Was sich geändert hat",
+      "empty": "Roomly braucht mehr Aktivität, um sinnvolle Muster zu erkennen.",
+      "hoursChange": "Du hast {{value}} mehr Stunden gearbeitet als im vorherigen Zeitraum.",
+      "workedDaysChange": "Die Arbeitstage haben sich um {{value}} verändert.",
+      "bestWeekday": "{{subject}} ist dein stärkster Wochentag.",
+      "mostUsedWorkType": "{{subject}} nimmt die meiste erfasste Zeit ein.",
+      "streak": "Deine aktuelle Arbeitsserie beträgt {{count}} Tage.",
+      "generic": "Ein neues Muster wurde erkannt."
+    },
+    "forecast": {
+      "eyebrow": "Prognose",
+      "title": "Geschätztes Periodenende",
+      "empty": "Noch nicht genug Daten für eine verlässliche Schätzung.",
+      "estimated": "Geschätzt",
+      "range": "Wahrscheinlicher Bereich {{from}}–{{to}}",
+      "current": "Aktuell {{value}}",
+      "reasons": {
+        "COMPLETED_PERIOD": "Prognosen sind nur für aktive Zeiträume verfügbar.",
+        "FUTURE_PERIOD": "Die Prognose ist verfügbar, sobald der Zeitraum beginnt.",
+        "INSUFFICIENT_DATA": "Noch nicht genug Daten für eine verlässliche Schätzung.",
+        "NO_GROSS_DATA": "Für diesen Zeitraum sind keine Verdienstwerte verfügbar."
+      }
+    },
+    "productivity": {
+      "eyebrow": "Produktivität",
+      "title": "Mengenproduktivität",
+      "empty": "Mengenbasierte Arbeit erscheint hier, sobald du Mengen einträgst.",
+      "units": "Einheiten",
+      "configuredPace": "{{value}} Einheiten/Stunde konfigurierte Pace",
+      "actualUnavailable": "Tatsächliche Produktivität ist nicht verfügbar, weil Mengeneinträge keine echten Start- und Endzeiten speichern.",
+      "equivalent": "Äquivalente Arbeitslast {{value}}"
+    },
+    "highlights": {
+      "eyebrow": "Highlights",
+      "title": "Persönliche Leistung",
+      "days": "{{count}} Tage",
+      "types": {
+        "BEST_GROSS_DAY": "Bester Verdiensttag",
+        "BEST_HOURS_DAY": "Bester Stundentag",
+        "LONGEST_SHIFT": "Längste Aktivität",
+        "AVERAGE_SHIFT": "Durchschnittliche Aktivität",
+        "MOST_USED_WORK_TYPE": "Häufigster Arbeitstyp",
+        "BUSIEST_WEEKDAY": "Aktivster Wochentag",
+        "CURRENT_STREAK": "Aktuelle Serie",
+        "LONGEST_STREAK": "Längste Serie",
+        "WEEKEND_WORK_COUNT": "Wochenendarbeit",
+        "OVERNIGHT_SHIFT_COUNT": "Nachtarbeit"
+      }
+    },
     "workTypes": {
       "title": "Aufteilung nach Arbeitstyp"
     },

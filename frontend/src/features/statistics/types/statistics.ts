@@ -10,6 +10,9 @@ export type StatisticsMetric =
   | "AVERAGE_MINUTES_PER_WORKED_DAY";
 export type StatisticsGranularity = "DAILY" | "WEEKLY" | "MONTHLY";
 export type StatisticsHeatmapMetric = "WORKED_HOURS" | "WORKED_MINUTES" | "ENTRIES" | "GROSS";
+export type ForecastMode = "CALENDAR_PACE" | "WORKDAY_PACE" | "RECENT_PACE";
+export type StatisticsConfidence = "LOW" | "MEDIUM" | "HIGH";
+export type ProductivityMetric = "TOTAL_UNITS" | "CONFIGURED_UNITS_PER_HOUR" | "EQUIVALENT_MINUTES";
 export type StatisticsComparisonAlignment =
   | "DAY_OF_WEEK"
   | "DAY_OF_MONTH"
@@ -146,4 +149,116 @@ export type StatisticsDrilldown = {
   to: string;
   totals: StatisticsPeriodTotals;
   workTypes: StatisticsWorkTypeBreakdown[];
+};
+
+export type StatisticsForecastItem = {
+  currency: string | null;
+  actualGross: string;
+  projectedGross: string;
+  lowerBound: string;
+  upperBound: string;
+  workedDays: number;
+  elapsedEligibleDays: number;
+  remainingEligibleDays: number;
+  averageGrossPerWorkedDay: string;
+  confidence: StatisticsConfidence;
+  available: boolean;
+  reason: "COMPLETED_PERIOD" | "FUTURE_PERIOD" | "INSUFFICIENT_DATA" | "NO_GROSS_DATA" | null;
+};
+
+export type StatisticsForecast = {
+  from: string;
+  to: string;
+  asOf: string;
+  mode: ForecastMode;
+  forecasts: StatisticsForecastItem[];
+};
+
+export type StatisticsProductivityUnitType = {
+  unitTypeId: string;
+  name: string;
+  workTypeName: string;
+  totalQuantity: string;
+  equivalentMinutes: string;
+  actualMinutes: string | null;
+  configuredUnitsPerHour: string;
+  actualUnitsPerHour: string | null;
+  performancePercentage: string | null;
+  actualProductivityAvailable: boolean;
+  entries: number;
+  percentageOfTotalUnits: string;
+};
+
+export type StatisticsProductivityPoint = {
+  bucketStart: string;
+  bucketEnd: string;
+  value: string;
+  metric: ProductivityMetric;
+  available: boolean;
+};
+
+export type StatisticsProductivity = {
+  totalUnits: string;
+  equivalentMinutes: string;
+  actualMinutes: string | null;
+  configuredUnitsPerHour: string;
+  actualUnitsPerHour: string | null;
+  performancePercentage: string | null;
+  actualProductivityAvailable: boolean;
+  available: boolean;
+  unitTypes: StatisticsProductivityUnitType[];
+  granularity: StatisticsGranularity;
+  metric: ProductivityMetric;
+  points: StatisticsProductivityPoint[];
+};
+
+export type StatisticsHighlight = {
+  type:
+    | "BEST_GROSS_DAY"
+    | "BEST_HOURS_DAY"
+    | "LONGEST_SHIFT"
+    | "AVERAGE_SHIFT"
+    | "MOST_USED_WORK_TYPE"
+    | "BUSIEST_WEEKDAY"
+    | "CURRENT_STREAK"
+    | "LONGEST_STREAK"
+    | "WEEKEND_WORK_COUNT"
+    | "OVERNIGHT_SHIFT_COUNT";
+  available: boolean;
+  label: string | null;
+  value: string | null;
+  from: string | null;
+  to: string | null;
+  numericValue: string | null;
+  currency: string | null;
+  grossByCurrency: MoneyAmount[];
+};
+
+export type StatisticsHighlights = {
+  highlights: StatisticsHighlight[];
+};
+
+export type StatisticsInsight = {
+  type:
+    | "HOURS_CHANGE"
+    | "GROSS_CHANGE"
+    | "WORKED_DAYS_CHANGE"
+    | "AVERAGE_SHIFT_CHANGE"
+    | "BEST_WEEKDAY"
+    | "MOST_USED_WORK_TYPE"
+    | "STREAK"
+    | "FORECAST_ABOVE_PREVIOUS_PERIOD"
+    | "FORECAST_BELOW_PREVIOUS_PERIOD";
+  direction: "UP" | "DOWN" | "FLAT" | "NEW" | "NO_DATA";
+  percentage: string | null;
+  currentValue: string | null;
+  previousValue: string | null;
+  currency: string | null;
+  subject: string | null;
+  severity: "POSITIVE" | "NEUTRAL" | "ATTENTION";
+  confidence: StatisticsConfidence;
+};
+
+export type StatisticsInsights = {
+  insights: StatisticsInsight[];
 };

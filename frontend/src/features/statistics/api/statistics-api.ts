@@ -7,7 +7,11 @@ import type {
   StatisticsDrilldown,
   StatisticsHeatmap,
   StatisticsHeatmapMetric,
+  StatisticsForecast,
   StatisticsOverview,
+  StatisticsProductivity,
+  StatisticsHighlights,
+  StatisticsInsights,
   StatisticsTimeSeries,
   StatisticsWorkTypeBreakdown
 } from "../types/statistics";
@@ -79,6 +83,38 @@ export async function getStatisticsHeatmap(
 export async function getStatisticsDrilldown(filters: StatisticsFilters) {
   const response = await http.get<ApiResponse<StatisticsDrilldown>>(
     "/api/statistics/drilldown",
+    { params: paramsFromFilters(filters) }
+  );
+  return response.data.data;
+}
+
+export async function getStatisticsForecast(filters: StatisticsFilters) {
+  const response = await http.get<ApiResponse<StatisticsForecast>>(
+    "/api/statistics/forecast",
+    { params: paramsFromFilters(filters) }
+  );
+  return response.data.data;
+}
+
+export async function getStatisticsProductivity(filters: StatisticsFilters) {
+  const response = await http.get<ApiResponse<StatisticsProductivity>>(
+    "/api/statistics/productivity",
+    { params: paramsFromFilters(filters) }
+  );
+  return response.data.data;
+}
+
+export async function getStatisticsHighlights(filters: StatisticsFilters) {
+  const response = await http.get<ApiResponse<StatisticsHighlights>>(
+    "/api/statistics/highlights",
+    { params: paramsFromFilters(filters) }
+  );
+  return response.data.data;
+}
+
+export async function getStatisticsInsights(filters: StatisticsFilters) {
+  const response = await http.get<ApiResponse<StatisticsInsights>>(
+    "/api/statistics/insights",
     { params: paramsFromFilters(filters) }
   );
   return response.data.data;

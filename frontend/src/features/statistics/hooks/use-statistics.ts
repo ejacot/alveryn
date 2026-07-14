@@ -4,7 +4,11 @@ import {
   getStatisticsOverview,
   getStatisticsTimeSeries,
   getStatisticsWorkTypes,
-  getStatisticsHeatmap
+  getStatisticsHeatmap,
+  getStatisticsForecast,
+  getStatisticsProductivity,
+  getStatisticsHighlights,
+  getStatisticsInsights
 } from "../api/statistics-api";
 import type { StatisticsFilters } from "../types/statistics";
 import type { StatisticsHeatmapMetric } from "../types/statistics";
@@ -43,12 +47,36 @@ export function useStatistics(
     queryFn: () => getStatisticsHeatmap(filters, heatmapMetric, heatmapCurrency),
     retry: false
   });
+  const forecast = useQuery({
+    queryKey: queryKeys.statistics.forecast(keyFilters),
+    queryFn: () => getStatisticsForecast(filters),
+    placeholderData: (previous) => previous
+  });
+  const productivity = useQuery({
+    queryKey: queryKeys.statistics.productivity(keyFilters),
+    queryFn: () => getStatisticsProductivity(filters),
+    placeholderData: (previous) => previous
+  });
+  const highlights = useQuery({
+    queryKey: queryKeys.statistics.highlights(keyFilters),
+    queryFn: () => getStatisticsHighlights(filters),
+    placeholderData: (previous) => previous
+  });
+  const insights = useQuery({
+    queryKey: queryKeys.statistics.insights(keyFilters),
+    queryFn: () => getStatisticsInsights(filters),
+    placeholderData: (previous) => previous
+  });
 
   return {
     overview,
     timeSeries,
     workTypes,
     heatmap,
+    forecast,
+    productivity,
+    highlights,
+    insights,
     isLoading: overview.isLoading || timeSeries.isLoading || workTypes.isLoading,
     isError: overview.isError || timeSeries.isError || workTypes.isError,
     refetch: () => {
@@ -56,6 +84,10 @@ export function useStatistics(
       void timeSeries.refetch();
       void workTypes.refetch();
       void heatmap.refetch();
+      void forecast.refetch();
+      void productivity.refetch();
+      void highlights.refetch();
+      void insights.refetch();
     }
   };
 }

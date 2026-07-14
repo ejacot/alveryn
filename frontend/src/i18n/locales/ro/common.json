@@ -90,6 +90,11 @@
       "entries": "Înregistrări",
       "averagePerDay": "Medie pe zi"
     },
+    "confidence": {
+      "LOW": "Încredere scăzută",
+      "MEDIUM": "Încredere medie",
+      "HIGH": "Încredere ridicată"
+    },
     "trend": {
       "title": "Tendință",
       "ariaLabel": "Grafic tendință statistici",
@@ -176,6 +181,57 @@
       "openCalendar": "Deschide Calendarul"
     },
     "comparisonUnavailable": "Nu există perioadă precedentă disponibilă.",
+    "insights": {
+      "eyebrow": "Observații",
+      "title": "Ce s-a schimbat",
+      "empty": "Roomly are nevoie de mai multă activitate ca să identifice tipare utile.",
+      "hoursChange": "Ai lucrat cu {{value}} mai multe ore decât în perioada precedentă.",
+      "workedDaysChange": "Zilele lucrate s-au schimbat cu {{value}}.",
+      "bestWeekday": "{{subject}} este cea mai puternică zi a ta.",
+      "mostUsedWorkType": "{{subject}} ocupă cea mai mare parte din timpul urmărit.",
+      "streak": "Seria ta curentă de muncă este de {{count}} zile.",
+      "generic": "A fost detectat un tipar nou."
+    },
+    "forecast": {
+      "eyebrow": "Estimare",
+      "title": "Estimare la final de perioadă",
+      "empty": "Nu există încă suficiente date pentru o estimare fiabilă.",
+      "estimated": "Estimat",
+      "range": "Interval probabil {{from}}–{{to}}",
+      "current": "Curent {{value}}",
+      "reasons": {
+        "COMPLETED_PERIOD": "Estimarea este disponibilă doar pentru o perioadă activă.",
+        "FUTURE_PERIOD": "Estimarea va fi disponibilă când începe perioada.",
+        "INSUFFICIENT_DATA": "Nu există încă suficiente date pentru o estimare fiabilă.",
+        "NO_GROSS_DATA": "Nu există câștiguri pentru această perioadă."
+      }
+    },
+    "productivity": {
+      "eyebrow": "Productivitate",
+      "title": "Productivitate pe unități",
+      "empty": "Munca bazată pe unități va apărea aici după ce adaugi cantități.",
+      "units": "unități",
+      "configuredPace": "{{value}} unități/oră ritm configurat",
+      "actualUnavailable": "Productivitatea reală nu este disponibilă deoarece înregistrările pe unități nu salvează ore reale de început și final.",
+      "equivalent": "Volum echivalent {{value}}"
+    },
+    "highlights": {
+      "eyebrow": "Repere",
+      "title": "Performanță personală",
+      "days": "{{count}} zile",
+      "types": {
+        "BEST_GROSS_DAY": "Cea mai bună zi ca venit",
+        "BEST_HOURS_DAY": "Cea mai bună zi ca ore",
+        "LONGEST_SHIFT": "Cea mai lungă activitate",
+        "AVERAGE_SHIFT": "Activitate medie",
+        "MOST_USED_WORK_TYPE": "Cel mai folosit tip de muncă",
+        "BUSIEST_WEEKDAY": "Cea mai activă zi",
+        "CURRENT_STREAK": "Seria curentă",
+        "LONGEST_STREAK": "Cea mai lungă serie",
+        "WEEKEND_WORK_COUNT": "Muncă în weekend",
+        "OVERNIGHT_SHIFT_COUNT": "Muncă peste noapte"
+      }
+    },
     "workTypes": {
       "title": "Împărțire pe tipuri de muncă"
     },

@@ -15,15 +15,23 @@ vi.mock("../api/statistics-api", () => ({
   getStatisticsWorkTypes: vi.fn(),
   getStatisticsHeatmap: vi.fn(),
   getStatisticsComparison: vi.fn(),
-  getStatisticsDrilldown: vi.fn()
+  getStatisticsDrilldown: vi.fn(),
+  getStatisticsForecast: vi.fn(),
+  getStatisticsProductivity: vi.fn(),
+  getStatisticsHighlights: vi.fn(),
+  getStatisticsInsights: vi.fn()
 }));
 
 import { listWorkTypes } from "../../../api/endpoints";
 import {
   getStatisticsComparison,
   getStatisticsDrilldown,
+  getStatisticsForecast,
   getStatisticsHeatmap,
+  getStatisticsHighlights,
+  getStatisticsInsights,
   getStatisticsOverview,
+  getStatisticsProductivity,
   getStatisticsTimeSeries,
   getStatisticsWorkTypes
 } from "../api/statistics-api";
@@ -161,6 +169,87 @@ describe("StatisticsPage", () => {
       },
       workTypes: []
     });
+    vi.mocked(getStatisticsForecast).mockResolvedValue({
+      from: "2026-07-01",
+      to: "2026-07-31",
+      asOf: "2026-07-14",
+      mode: "WORKDAY_PACE",
+      forecasts: [
+        {
+          currency: "EUR",
+          actualGross: "2480",
+          projectedGross: "3720",
+          lowerBound: "3480",
+          upperBound: "3910",
+          workedDays: 10,
+          elapsedEligibleDays: 10,
+          remainingEligibleDays: 12,
+          averageGrossPerWorkedDay: "248",
+          confidence: "MEDIUM",
+          available: true,
+          reason: null
+        }
+      ]
+    });
+    vi.mocked(getStatisticsProductivity).mockResolvedValue({
+      totalUnits: "482",
+      equivalentMinutes: "10360",
+      actualMinutes: null,
+      configuredUnitsPerHour: "2.79",
+      actualUnitsPerHour: null,
+      performancePercentage: null,
+      actualProductivityAvailable: false,
+      available: true,
+      unitTypes: [
+        {
+          unitTypeId: "unit-normal",
+          name: "Normal rooms",
+          workTypeName: "Rooms",
+          totalQuantity: "326",
+          equivalentMinutes: "8150",
+          actualMinutes: null,
+          configuredUnitsPerHour: "2.4",
+          actualUnitsPerHour: null,
+          performancePercentage: null,
+          actualProductivityAvailable: false,
+          entries: 8,
+          percentageOfTotalUnits: "67.63"
+        }
+      ],
+      granularity: "DAILY",
+      metric: "TOTAL_UNITS",
+      points: []
+    });
+    vi.mocked(getStatisticsHighlights).mockResolvedValue({
+      highlights: [
+        {
+          type: "CURRENT_STREAK",
+          available: true,
+          label: null,
+          value: null,
+          from: "2026-07-09",
+          to: "2026-07-14",
+          numericValue: "6",
+          currency: null,
+          grossByCurrency: []
+        }
+      ]
+    });
+    vi.mocked(getStatisticsInsights).mockResolvedValue({
+      insights: [
+        {
+          type: "HOURS_CHANGE",
+          direction: "UP",
+          percentage: "18.2",
+          currentValue: "176",
+          previousValue: "149",
+          currency: null,
+          subject: null,
+          severity: "POSITIVE",
+          confidence: "HIGH"
+        }
+      ]
+    });
   });
 
   it("renders backend summary, chart and breakdown", async () => {
@@ -174,6 +263,19 @@ describe("StatisticsPage", () => {
     expect(screen.getAllByText("€3,482")).toHaveLength(2);
     expect(screen.getByText("Activity heatmap")).toBeInTheDocument();
     expect(screen.getByText("Compare periods")).toBeInTheDocument();
+  });
+
+  it("renders V2B forecast, productivity, highlights and insights", async () => {
+    renderPage();
+
+    expect(await screen.findByText("What changed")).toBeInTheDocument();
+    expect(screen.getByText("You worked +18% more hours than the previous period.")).toBeInTheDocument();
+    expect(await screen.findByText("Estimated end of period")).toBeInTheDocument();
+    expect(getStatisticsForecast).toHaveBeenCalled();
+    expect(screen.getByText("Unit productivity")).toBeInTheDocument();
+    expect(screen.getByText("Normal rooms")).toBeInTheDocument();
+    expect(screen.getByText("Personal performance")).toBeInTheDocument();
+    expect(screen.getByText("Current streak")).toBeInTheDocument();
   });
 
   it("refetches statistics when filters change", async () => {

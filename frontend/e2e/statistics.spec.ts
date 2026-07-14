@@ -31,7 +31,11 @@ test("statistics page loads real backend data and refetches on filter change", a
   await expect(page.getByText("Gross income")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Check" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Statistics trend chart" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What changed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estimated end of period" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Compare periods" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Unit productivity" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Personal performance" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Activity heatmap" })).toBeVisible();
 
   const filters = page.getByLabel("Statistics filters");

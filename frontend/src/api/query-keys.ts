@@ -83,6 +83,10 @@ export const queryKeys = {
     workTypes: (filters: StatisticsQueryFilters) => ["statistics", "work-types", filters] as const,
     comparison: (request: StatisticsComparisonKey) => ["statistics", "comparison", request] as const,
     heatmap: (filters: StatisticsQueryFilters) => ["statistics", "heatmap", filters] as const,
+    forecast: (filters: StatisticsQueryFilters) => ["statistics", "forecast", filters] as const,
+    productivity: (filters: StatisticsQueryFilters) => ["statistics", "productivity", filters] as const,
+    highlights: (filters: StatisticsQueryFilters) => ["statistics", "highlights", filters] as const,
+    insights: (filters: StatisticsQueryFilters) => ["statistics", "insights", filters] as const,
     drilldown: (filters: Omit<StatisticsQueryFilters, "metric">) =>
       ["statistics", "drilldown", filters] as const
   }

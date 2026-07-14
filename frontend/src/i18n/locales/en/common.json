@@ -90,6 +90,11 @@
       "entries": "Entries",
       "averagePerDay": "Average per Day"
     },
+    "confidence": {
+      "LOW": "Low confidence",
+      "MEDIUM": "Medium confidence",
+      "HIGH": "High confidence"
+    },
     "trend": {
       "title": "Trend",
       "ariaLabel": "Statistics trend chart",
@@ -176,6 +181,57 @@
       "openCalendar": "Open Calendar"
     },
     "comparisonUnavailable": "No previous period available.",
+    "insights": {
+      "eyebrow": "Insights",
+      "title": "What changed",
+      "empty": "More activity is needed before Roomly can identify useful patterns.",
+      "hoursChange": "You worked {{value}} more hours than the previous period.",
+      "workedDaysChange": "Worked days changed by {{value}}.",
+      "bestWeekday": "{{subject}} is your strongest weekday.",
+      "mostUsedWorkType": "{{subject}} takes most of your tracked time.",
+      "streak": "Your current work streak is {{count}} days.",
+      "generic": "A new pattern was detected."
+    },
+    "forecast": {
+      "eyebrow": "Forecast",
+      "title": "Estimated end of period",
+      "empty": "Not enough data for a reliable estimate yet.",
+      "estimated": "Estimated",
+      "range": "Likely range {{from}}–{{to}}",
+      "current": "Current {{value}}",
+      "reasons": {
+        "COMPLETED_PERIOD": "Forecast is available only for an active period.",
+        "FUTURE_PERIOD": "Forecast will be available when the period starts.",
+        "INSUFFICIENT_DATA": "Not enough data for a reliable estimate yet.",
+        "NO_GROSS_DATA": "No earnings data is available for this period."
+      }
+    },
+    "productivity": {
+      "eyebrow": "Productivity",
+      "title": "Unit productivity",
+      "empty": "Unit-based work will appear here after you add quantities.",
+      "units": "units",
+      "configuredPace": "{{value}} units/hour configured pace",
+      "actualUnavailable": "Actual productivity is unavailable because unit entries do not store real start and end times.",
+      "equivalent": "Equivalent workload {{value}}"
+    },
+    "highlights": {
+      "eyebrow": "Highlights",
+      "title": "Personal performance",
+      "days": "{{count}} days",
+      "types": {
+        "BEST_GROSS_DAY": "Best earning day",
+        "BEST_HOURS_DAY": "Best hours day",
+        "LONGEST_SHIFT": "Longest activity",
+        "AVERAGE_SHIFT": "Average activity",
+        "MOST_USED_WORK_TYPE": "Most used work type",
+        "BUSIEST_WEEKDAY": "Busiest weekday",
+        "CURRENT_STREAK": "Current streak",
+        "LONGEST_STREAK": "Longest streak",
+        "WEEKEND_WORK_COUNT": "Weekend work",
+        "OVERNIGHT_SHIFT_COUNT": "Overnight work"
+      }
+    },
     "workTypes": {
       "title": "Work Type Breakdown"
     },
