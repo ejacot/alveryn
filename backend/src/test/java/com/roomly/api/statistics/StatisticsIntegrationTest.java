@@ -422,7 +422,35 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.forecasts[0].currency").value("EUR"))
         .andExpect(jsonPath("$.data.forecasts[0].available").value(true))
         .andExpect(jsonPath("$.data.forecasts[0].workedDays").value(3))
+        .andExpect(jsonPath("$.data.forecasts[0].todayIncludedInElapsed").value(false))
+        .andExpect(jsonPath("$.data.forecasts[0].calculationBasis").value("OBSERVED_WORKDAY_FREQUENCY"))
+        .andExpect(jsonPath("$.data.forecasts[0].observedWorkFrequency").exists())
         .andExpect(jsonPath("$.data.forecasts[0].confidence").value("LOW"));
+  }
+
+  @Test
+  void recentPaceUsesEligibleDaysAndTodayRule() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-recent-forecast@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "10.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 8), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 14), "08:00:00", "16:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/forecast")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31")
+                .param("forecastMode", "RECENT_PACE"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.forecasts[0].available").value(true))
+        .andExpect(jsonPath("$.data.forecasts[0].todayIncludedInElapsed").value(true))
+        .andExpect(jsonPath("$.data.forecasts[0].recentEligibleDays").value(10))
+        .andExpect(jsonPath("$.data.forecasts[0].recentWorkedDays").value(4))
+        .andExpect(jsonPath("$.data.forecasts[0].calculationBasis").value("RECENT_ELIGIBLE_DAY_PACE"));
   }
 
   @Test
@@ -447,7 +475,47 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.actualUnitsPerHour").doesNotExist())
         .andExpect(jsonPath("$.data.unitTypes.length()").value(2))
         .andExpect(jsonPath("$.data.unitTypes[0].name").value("Normal room"))
-        .andExpect(jsonPath("$.data.points.length()").value(31));
+        .andExpect(jsonPath("$.data.grouping").value("TOTAL"))
+        .andExpect(jsonPath("$.data.points.length()").value(1));
+  }
+
+  @Test
+  void productivityPreservesHistoricalUnitSnapshotsAfterRenameAndRateChange() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-productivity-history@example.com");
+    WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
+    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
+    createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
+    normalRoom.rename("Renamed room");
+    normalRoom.changeUnitsPerHour(new BigDecimal("4.0000"));
+    normalRoom.deactivate();
+    unitTypes.saveAndFlush(normalRoom);
+
+    mockMvc
+        .perform(
+            get("/api/statistics/productivity")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.unitTypes[0].name").value("Normal room"))
+        .andExpect(jsonPath("$.data.unitTypes[0].configuredUnitsPerHour").value(2.00))
+        .andExpect(jsonPath("$.data.unitTypes[0].equivalentMinutes").value(120.00));
+  }
+
+  @Test
+  void productivityRejectsUnsupportedGroupingInsteadOfIgnoringIt() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-productivity-grouping@example.com");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/productivity")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31")
+                .param("grouping", "WORK_TYPE"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_PRODUCTIVITY_INCOMPATIBLE_UNITS"));
   }
 
   @Test
@@ -470,7 +538,9 @@ class StatisticsIntegrationTest {
                 .param("to", "2026-07-31"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.highlights[0].type").value("BEST_GROSS_DAY"))
-        .andExpect(jsonPath("$.data.highlights[5].type").value("CURRENT_STREAK"));
+        .andExpect(content().string(containsString("\"type\":\"CURRENT_STREAK\"")))
+        .andExpect(content().string(containsString("\"type\":\"BUSIEST_WEEKDAY\"")))
+        .andExpect(content().string(containsString("\"type\":\"OVERNIGHT_SHIFT_COUNT\"")));
 
     mockMvc
         .perform(
@@ -482,6 +552,32 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.insights.length()").value(2))
         .andExpect(content().string(containsString("\"type\":\"STREAK\"")))
         .andExpect(content().string(containsString("\"type\":\"MOST_USED_WORK_TYPE\"")));
+  }
+
+  @Test
+  void highlightsKeepBestGrossDayPerCurrencyAndOldStreakIsNotCurrent() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-currency-highlights@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 7, 5));
+    createRate(user, "100.00", "RON", LocalDate.of(2026, 7, 6), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "13:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "10:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 6), "08:00:00", "10:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/highlights")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.highlights[0].type").value("BEST_GROSS_DAY"))
+        .andExpect(jsonPath("$.data.highlights[0].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.highlights[0].numericValue").value(100.00))
+        .andExpect(jsonPath("$.data.highlights[1].type").value("BEST_GROSS_DAY"))
+        .andExpect(jsonPath("$.data.highlights[1].currency").value("RON"))
+        .andExpect(jsonPath("$.data.highlights[1].numericValue").value(200.00))
+        .andExpect(content().string(containsString("\"type\":\"CURRENT_STREAK\",\"available\":true,\"label\":null,\"value\":null,\"from\":null,\"to\":null,\"numericValue\":0")));
   }
 
   private void createTimeEntry(UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime)

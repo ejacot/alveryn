@@ -116,7 +116,11 @@ public class StatisticsController {
   }
 
   @GetMapping("/forecast")
-  @Operation(summary = "Return deterministic salary forecast", security = @SecurityRequirement(name = "bearerAuth"))
+  @Operation(
+      summary = "Return deterministic salary forecast",
+      description =
+          "Forecasts are calculated per currency without conversion. WORKDAY_PACE uses observed work frequency over elapsed eligible days; RECENT_PACE uses gross per eligible day in the recent 14-day window. Today is included in elapsed days only when recorded work exists today. Likely range is based on eligible-day variance including zero-work eligible days.",
+      security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsForecastResponse> forecast(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
@@ -130,7 +134,11 @@ public class StatisticsController {
   }
 
   @GetMapping("/productivity")
-  @Operation(summary = "Return unit-based productivity analytics", security = @SecurityRequirement(name = "bearerAuth"))
+  @Operation(
+      summary = "Return unit-based productivity analytics",
+      description =
+          "Productivity uses UnitEntryItem historical snapshots. effectiveConfiguredUnitsPerHour is weighted as totalUnits * 60 / equivalentMinutes. Actual productivity remains unavailable unless real UNIT_BASED start/end time exists. Supported grouping values are TOTAL, DAILY, WEEKLY and MONTHLY; unsupported grouping values return STATISTICS_PRODUCTIVITY_INCOMPATIBLE_UNITS instead of being silently changed.",
+      security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsProductivityResponse> productivity(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
@@ -145,7 +153,11 @@ public class StatisticsController {
   }
 
   @GetMapping("/highlights")
-  @Operation(summary = "Return personal performance highlights", security = @SecurityRequirement(name = "bearerAuth"))
+  @Operation(
+      summary = "Return personal performance highlights",
+      description =
+          "Best gross day is returned separately per currency. Current streak uses CALENDAR_DAY semantics and is current only when the latest worked day is today or yesterday; longest streak is calculated independently.",
+      security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsHighlightsResponse> highlights(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
@@ -156,7 +168,11 @@ public class StatisticsController {
   }
 
   @GetMapping("/insights")
-  @Operation(summary = "Return deterministic structured insights", security = @SecurityRequirement(name = "bearerAuth"))
+  @Operation(
+      summary = "Return deterministic structured insights",
+      description =
+          "Insights are deterministic, thresholded by sample size, ranked by confidence, relevance and magnitude, and limited to the most useful five results.",
+      security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsInsightsResponse> insights(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,

@@ -46,7 +46,9 @@ import com.roomly.api.statistics.dto.StatisticsWorkTypeResponse;
 import com.roomly.api.statistics.model.StatisticsErrorCode;
 import com.roomly.api.statistics.repository.StatisticsRepository;
 import com.roomly.api.workentry.entity.UnitEntryItem;
+import com.roomly.api.workentry.entity.TimeEntryDetails;
 import com.roomly.api.workentry.entity.WorkEntry;
+import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
 import com.roomly.api.workentry.repository.UnitEntryItemRepository;
 import com.roomly.api.worktype.entity.CalculationMethod;
 import java.math.BigDecimal;
@@ -80,6 +82,7 @@ public class StatisticsService {
   private static final int MAX_HEATMAP_DAYS = 366;
 
   private final StatisticsRepository statisticsRepository;
+  private final TimeEntryDetailsRepository timeEntryDetailsRepository;
   private final UnitEntryItemRepository unitEntryItemRepository;
   private final AbsenceRepository absenceRepository;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
@@ -260,7 +263,8 @@ public class StatisticsService {
     ForecastMode resolvedMode = mode == null ? ForecastMode.WORKDAY_PACE : mode;
     LocalDate today = LocalDate.now();
     LocalDate asOf = today.isBefore(filters.from()) ? filters.from().minusDays(1) : today.isAfter(filters.to()) ? filters.to() : today;
-    List<WorkEntry> entries = findEntries(userId, filters, filters.from(), asOf.isBefore(filters.from()) ? filters.from() : asOf);
+    LocalDate queryTo = asOf.isBefore(filters.from()) ? filters.from() : asOf;
+    List<WorkEntry> entries = findEntries(userId, filters, filters.from(), queryTo);
     String selectedCurrency = normalizeCurrency(currency);
     List<String> currencies = currenciesFor(entries);
     if (selectedCurrency != null) {
@@ -282,6 +286,16 @@ public class StatisticsService {
               0,
               0,
               BigDecimal.ZERO.setScale(SCALE),
+              BigDecimal.ZERO.setScale(SCALE),
+              false,
+              resolvedMode.name(),
+              0,
+              null,
+              null,
+              0,
+              0,
+              BigDecimal.ZERO.setScale(SCALE),
+              BigDecimal.ZERO.setScale(SCALE),
               StatisticsConfidence.LOW,
               false,
               ForecastUnavailableReason.NO_GROSS_DATA));
@@ -301,11 +315,13 @@ public class StatisticsService {
     List<WorkEntry> entries = findEntries(userId, unitFilters);
     List<UnitEntryItem> items = unitItems(entries, unitTypeIds);
     ProductivityMetric resolvedMetric = metric == null ? ProductivityMetric.TOTAL_UNITS : metric;
-    StatisticsGranularity granularity = resolveGranularity(filters.from(), filters.to());
+    ProductivityGrouping resolvedGrouping = grouping == null ? ProductivityGrouping.TOTAL : grouping;
+    validateProductivityGrouping(resolvedGrouping);
+    StatisticsGranularity granularity = productivityGranularity(filters.from(), filters.to(), resolvedGrouping);
     ProductivityTotals totals = productivityTotals(items);
     List<StatisticsProductivityUnitTypeResponse> unitTypes = productivityUnitTypes(items, totals.totalUnits());
     List<StatisticsProductivityPointResponse> points =
-        productivityPoints(filters.from(), filters.to(), granularity, entries, items, resolvedMetric);
+        productivityPoints(filters.from(), filters.to(), granularity, resolvedGrouping, entries, items, resolvedMetric);
     return new StatisticsProductivityResponse(
         totals.totalUnits(),
         totals.equivalentMinutes(),
@@ -315,7 +331,10 @@ public class StatisticsService {
         null,
         false,
         !items.isEmpty(),
+        false,
+        0,
         unitTypes,
+        resolvedGrouping,
         granularity,
         resolvedMetric,
         points);
@@ -335,8 +354,10 @@ public class StatisticsService {
     Period previous = previousPeriod(filters.from(), filters.to());
     List<WorkEntry> previousEntries = findEntries(userId, filters, previous.from(), previous.to());
     List<StatisticsInsightResponse> insights = new ArrayList<>();
-    addChangeInsight(insights, InsightType.HOURS_CHANGE, null, sumMinutes(currentEntries), sumMinutes(previousEntries), BigDecimal.valueOf(60));
-    addWorkedDaysInsight(insights, currentEntries, previousEntries);
+    if (distinctWorkedDays(currentEntries) >= 3 && distinctWorkedDays(previousEntries) >= 3) {
+      addChangeInsight(insights, InsightType.HOURS_CHANGE, null, sumMinutes(currentEntries), sumMinutes(previousEntries), BigDecimal.valueOf(60));
+      addWorkedDaysInsight(insights, currentEntries, previousEntries);
+    }
     addBestWeekdayInsight(insights, currentEntries);
     addMostUsedWorkTypeInsight(insights, currentEntries);
     Streaks streaks = streaks(currentEntries);
@@ -353,7 +374,11 @@ public class StatisticsService {
               InsightSeverity.POSITIVE,
               streaks.currentLength() >= 5 ? StatisticsConfidence.HIGH : StatisticsConfidence.MEDIUM));
     }
-    return new StatisticsInsightsResponse(insights.stream().limit(5).toList());
+    return new StatisticsInsightsResponse(
+        insights.stream()
+            .sorted(Comparator.comparingInt(this::insightScore).reversed())
+            .limit(5)
+            .toList());
   }
 
   private StatisticsForecastItemResponse forecastForCurrency(
@@ -373,29 +398,69 @@ public class StatisticsService {
         .orElse(BigDecimal.ZERO.setScale(SCALE));
     int workedDays = distinctWorkedDays(currencyEntries);
     int entryCount = currencyEntries.size();
-    int elapsedEligibleDays = eligibleDays(userId, filters.from(), asOf, currencyEntries, mode);
-    int totalEligibleDays = eligibleDays(userId, filters.from(), filters.to(), currencyEntries, mode);
+    boolean todayHasEntry = currencyEntries.stream().anyMatch(entry -> entry.getWorkDate().equals(today));
+    boolean todayIncluded = !today.isBefore(filters.from()) && !today.isAfter(filters.to()) && todayHasEntry;
+    LocalDate elapsedTo = todayIncluded ? asOf : asOf.minusDays(1);
+    if (today.isAfter(filters.to())) {
+      elapsedTo = filters.to();
+    }
+    List<LocalDate> elapsedDates = eligibleDates(userId, filters.from(), elapsedTo, currencyEntries, mode);
+    List<LocalDate> totalDates = eligibleDates(userId, filters.from(), filters.to(), currencyEntries, mode);
+    int elapsedEligibleDays = elapsedDates.size();
+    int totalEligibleDays = totalDates.size();
     int remainingEligibleDays = Math.max(0, totalEligibleDays - elapsedEligibleDays);
+    BigDecimal observedWorkFrequency =
+        elapsedEligibleDays == 0
+            ? BigDecimal.ZERO.setScale(SCALE)
+            : BigDecimal.valueOf(workedDays)
+                .divide(BigDecimal.valueOf(elapsedEligibleDays), MATH_CONTEXT)
+                .min(BigDecimal.ONE)
+                .setScale(SCALE, RoundingMode.HALF_UP);
+    BigDecimal expectedRemainingWorkedDays =
+        observedWorkFrequency
+            .multiply(BigDecimal.valueOf(remainingEligibleDays), MATH_CONTEXT)
+            .setScale(SCALE, RoundingMode.HALF_UP);
     BigDecimal average = workedDays == 0
         ? BigDecimal.ZERO.setScale(SCALE)
         : actual.divide(BigDecimal.valueOf(workedDays), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
 
     if (today.isBefore(filters.from())) {
-      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, average, ForecastUnavailableReason.FUTURE_PERIOD);
+      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, observedWorkFrequency, expectedRemainingWorkedDays, todayIncluded, mode.name(), entryCount, average, ForecastUnavailableReason.FUTURE_PERIOD);
     }
     if (today.isAfter(filters.to())) {
-      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, average, ForecastUnavailableReason.COMPLETED_PERIOD);
+      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, observedWorkFrequency, expectedRemainingWorkedDays, todayIncluded, mode.name(), entryCount, average, ForecastUnavailableReason.COMPLETED_PERIOD);
     }
     if (workedDays < 3 && entryCount < 5) {
-      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, average, ForecastUnavailableReason.INSUFFICIENT_DATA);
+      return unavailable(currency, actual, workedDays, elapsedEligibleDays, remainingEligibleDays, observedWorkFrequency, expectedRemainingWorkedDays, todayIncluded, mode.name(), entryCount, average, ForecastUnavailableReason.INSUFFICIENT_DATA);
     }
-    BigDecimal paceBase = mode == ForecastMode.RECENT_PACE
-        ? recentDailyGross(currencyEntries, currency, asOf)
-        : elapsedEligibleDays == 0
+    LocalDate recentWindowStart = asOf.minusDays(13).isBefore(filters.from()) ? filters.from() : asOf.minusDays(13);
+    LocalDate recentWindowEnd = asOf;
+    List<WorkEntry> recentEntries = entriesInRange(currencyEntries, recentWindowStart, recentWindowEnd);
+    List<LocalDate> recentEligibleDates = eligibleDates(userId, recentWindowStart, recentWindowEnd, currencyEntries, mode);
+    int recentWorkedDays = distinctWorkedDays(recentEntries);
+    BigDecimal recentWorkFrequency =
+        recentEligibleDates.isEmpty()
             ? BigDecimal.ZERO.setScale(SCALE)
-            : actual.divide(BigDecimal.valueOf(elapsedEligibleDays), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
+            : BigDecimal.valueOf(recentWorkedDays)
+                .divide(BigDecimal.valueOf(recentEligibleDates.size()), MATH_CONTEXT)
+                .min(BigDecimal.ONE)
+                .setScale(SCALE, RoundingMode.HALF_UP);
+    BigDecimal paceBase =
+        mode == ForecastMode.RECENT_PACE
+            ? recentEligibleDates.isEmpty()
+                ? BigDecimal.ZERO.setScale(SCALE)
+                : grossByCurrency(recentEntries).stream()
+                    .filter(amount -> amount.currency().equals(currency))
+                    .findFirst()
+                    .map(MoneyAmountResponse::amount)
+                    .orElse(BigDecimal.ZERO.setScale(SCALE))
+                    .divide(BigDecimal.valueOf(recentEligibleDates.size()), MATH_CONTEXT)
+                    .setScale(SCALE, RoundingMode.HALF_UP)
+            : elapsedEligibleDays == 0
+                ? BigDecimal.ZERO.setScale(SCALE)
+                : actual.divide(BigDecimal.valueOf(elapsedEligibleDays), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
     BigDecimal projected = actual.add(paceBase.multiply(BigDecimal.valueOf(remainingEligibleDays), MATH_CONTEXT)).setScale(SCALE, RoundingMode.HALF_UP);
-    BigDecimal stdDev = dailyGrossStdDev(currencyEntries, currency);
+    BigDecimal stdDev = dailyGrossStdDev(currencyEntries, currency, mode == ForecastMode.RECENT_PACE ? recentEligibleDates : elapsedDates);
     BigDecimal range = stdDev.multiply(BigDecimal.valueOf(Math.sqrt(Math.max(remainingEligibleDays, 1))), MATH_CONTEXT)
         .setScale(SCALE, RoundingMode.HALF_UP);
     BigDecimal lower = projected.subtract(range).max(BigDecimal.ZERO).setScale(SCALE, RoundingMode.HALF_UP);
@@ -409,6 +474,16 @@ public class StatisticsService {
         workedDays,
         elapsedEligibleDays,
         remainingEligibleDays,
+        observedWorkFrequency,
+        expectedRemainingWorkedDays,
+        todayIncluded,
+        mode == ForecastMode.RECENT_PACE ? "RECENT_ELIGIBLE_DAY_PACE" : mode == ForecastMode.WORKDAY_PACE ? "OBSERVED_WORKDAY_FREQUENCY" : "CALENDAR_DAY_PACE",
+        entryCount,
+        mode == ForecastMode.RECENT_PACE ? recentWindowStart : null,
+        mode == ForecastMode.RECENT_PACE ? recentWindowEnd : null,
+        mode == ForecastMode.RECENT_PACE ? recentEligibleDates.size() : 0,
+        mode == ForecastMode.RECENT_PACE ? recentWorkedDays : 0,
+        mode == ForecastMode.RECENT_PACE ? recentWorkFrequency : BigDecimal.ZERO.setScale(SCALE),
         average,
         forecastConfidence(filters, workedDays, stdDev, average, today),
         true,
@@ -421,6 +496,11 @@ public class StatisticsService {
       int workedDays,
       int elapsedEligibleDays,
       int remainingEligibleDays,
+      BigDecimal observedWorkFrequency,
+      BigDecimal expectedRemainingWorkedDays,
+      boolean todayIncluded,
+      String calculationBasis,
+      int sampleSize,
       BigDecimal average,
       ForecastUnavailableReason reason) {
     return new StatisticsForecastItemResponse(
@@ -432,49 +512,48 @@ public class StatisticsService {
         workedDays,
         elapsedEligibleDays,
         remainingEligibleDays,
+        observedWorkFrequency,
+        expectedRemainingWorkedDays,
+        todayIncluded,
+        calculationBasis,
+        sampleSize,
+        null,
+        null,
+        0,
+        0,
+        BigDecimal.ZERO.setScale(SCALE),
         average,
         StatisticsConfidence.LOW,
         false,
         reason);
   }
 
-  private int eligibleDays(UUID userId, LocalDate from, LocalDate to, List<WorkEntry> entries, ForecastMode mode) {
+  private List<LocalDate> eligibleDates(UUID userId, LocalDate from, LocalDate to, List<WorkEntry> entries, ForecastMode mode) {
     if (to.isBefore(from)) {
-      return 0;
+      return List.of();
     }
     Set<LocalDate> absenceDays = absenceDates(userId, from, to);
     Set<DayOfWeek> workedWeekdays = entries.stream().map(entry -> entry.getWorkDate().getDayOfWeek()).collect(LinkedHashSet::new, Set::add, Set::addAll);
     boolean weekendWorker = workedWeekdays.contains(DayOfWeek.SATURDAY) || workedWeekdays.contains(DayOfWeek.SUNDAY);
-    int days = 0;
-    LocalDate recentStart = mode == ForecastMode.RECENT_PACE ? to.minusDays(13) : from;
-    LocalDate cursor = from.isBefore(recentStart) ? recentStart : from;
+    List<LocalDate> dates = new ArrayList<>();
+    LocalDate cursor = from;
     while (!cursor.isAfter(to)) {
       boolean weekend = cursor.getDayOfWeek() == DayOfWeek.SATURDAY || cursor.getDayOfWeek() == DayOfWeek.SUNDAY;
       if ((mode == ForecastMode.CALENDAR_PACE || !weekend || weekendWorker) && !absenceDays.contains(cursor)) {
-        days++;
+        dates.add(cursor);
       }
       cursor = cursor.plusDays(1);
     }
-    return days;
+    return dates;
   }
 
-  private BigDecimal recentDailyGross(List<WorkEntry> entries, String currency, LocalDate asOf) {
-    LocalDate from = asOf.minusDays(13);
-    List<WorkEntry> recent = entries.stream()
-        .filter(entry -> entry.getCurrencySnapshot().equals(currency))
-        .filter(entry -> !entry.getWorkDate().isBefore(from) && !entry.getWorkDate().isAfter(asOf))
-        .toList();
-    int days = distinctWorkedDays(recent);
-    if (days == 0) {
-      return BigDecimal.ZERO.setScale(SCALE);
-    }
-    return grossByCurrency(recent).getFirst().amount().divide(BigDecimal.valueOf(days), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
-  }
-
-  private BigDecimal dailyGrossStdDev(List<WorkEntry> entries, String currency) {
+  private BigDecimal dailyGrossStdDev(List<WorkEntry> entries, String currency, List<LocalDate> eligibleDates) {
     Map<LocalDate, BigDecimal> daily = new LinkedHashMap<>();
+    for (LocalDate date : eligibleDates) {
+      daily.put(date, BigDecimal.ZERO.setScale(SCALE));
+    }
     for (WorkEntry entry : entries) {
-      if (entry.getCurrencySnapshot().equals(currency)) {
+      if (entry.getCurrencySnapshot().equals(currency) && daily.containsKey(entry.getWorkDate())) {
         daily.merge(entry.getWorkDate(), entry.getGrossAmount(), BigDecimal::add);
       }
     }
@@ -557,6 +636,7 @@ public class StatisticsService {
       LocalDate from,
       LocalDate to,
       StatisticsGranularity granularity,
+      ProductivityGrouping grouping,
       List<WorkEntry> entries,
       List<UnitEntryItem> items,
       ProductivityMetric metric) {
@@ -565,6 +645,17 @@ public class StatisticsService {
       entriesById.put(entry.getId(), entry);
     }
     List<StatisticsProductivityPointResponse> points = new ArrayList<>();
+    if (grouping == ProductivityGrouping.TOTAL) {
+      ProductivityTotals totals = productivityTotals(items);
+      BigDecimal value =
+          switch (metric) {
+            case TOTAL_UNITS -> totals.totalUnits();
+            case CONFIGURED_UNITS_PER_HOUR -> totals.configuredUnitsPerHour();
+            case EQUIVALENT_MINUTES -> totals.equivalentMinutes();
+          };
+      points.add(new StatisticsProductivityPointResponse(from, to, value, metric, !items.isEmpty()));
+      return points;
+    }
     for (Bucket bucket : completeBuckets(from, to, granularity)) {
       List<UnitEntryItem> bucketItems = items.stream()
           .filter(item -> {
@@ -589,9 +680,34 @@ public class StatisticsService {
       return List.of();
     }
     List<StatisticsHighlightResponse> highlights = new ArrayList<>();
-    entriesByDate(entries).entrySet().stream()
-        .max(Comparator.comparing(entry -> sumGross(entry.getValue())))
-        .ifPresent(entry -> highlights.add(new StatisticsHighlightResponse(HighlightType.BEST_GROSS_DAY, true, null, null, entry.getKey(), entry.getKey(), sumGross(entry.getValue()), null, grossByCurrency(entry.getValue()))));
+    Map<String, Map<LocalDate, BigDecimal>> grossByCurrencyAndDate = new LinkedHashMap<>();
+    for (WorkEntry entry : entries) {
+      grossByCurrencyAndDate
+          .computeIfAbsent(entry.getCurrencySnapshot(), ignored -> new LinkedHashMap<>())
+          .merge(entry.getWorkDate(), entry.getGrossAmount(), BigDecimal::add);
+    }
+    grossByCurrencyAndDate.entrySet().stream()
+        .sorted(Map.Entry.comparingByKey())
+        .forEach(
+            currencyEntry ->
+                currencyEntry.getValue().entrySet().stream()
+                    .max(
+                        Comparator
+                            .<Map.Entry<LocalDate, BigDecimal>, BigDecimal>comparing(Map.Entry::getValue)
+                            .thenComparing(Map.Entry::getKey, Comparator.reverseOrder()))
+                    .ifPresent(
+                        dateEntry ->
+                            highlights.add(
+                                new StatisticsHighlightResponse(
+                                    HighlightType.BEST_GROSS_DAY,
+                                    true,
+                                    null,
+                                    null,
+                                    dateEntry.getKey(),
+                                    dateEntry.getKey(),
+                                    dateEntry.getValue().setScale(SCALE, RoundingMode.HALF_UP),
+                                    currencyEntry.getKey(),
+                                    List.of(new MoneyAmountResponse(currencyEntry.getKey(), dateEntry.getValue().setScale(SCALE, RoundingMode.HALF_UP)))))));
     entriesByDate(entries).entrySet().stream()
         .max(Comparator.comparing(entry -> sumMinutes(entry.getValue())))
         .ifPresent(entry -> highlights.add(new StatisticsHighlightResponse(HighlightType.BEST_HOURS_DAY, true, null, null, entry.getKey(), entry.getKey(), sumMinutes(entry.getValue()), null, grossByCurrency(entry.getValue()))));
@@ -601,16 +717,56 @@ public class StatisticsService {
     BigDecimal averageShift = entries.isEmpty() ? BigDecimal.ZERO.setScale(SCALE) : sumMinutes(entries).divide(BigDecimal.valueOf(entries.size()), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
     highlights.add(new StatisticsHighlightResponse(HighlightType.AVERAGE_SHIFT, true, null, null, null, null, averageShift, null, List.of()));
     workTypeBreakdown(entries).stream().findFirst().ifPresent(item -> highlights.add(new StatisticsHighlightResponse(HighlightType.MOST_USED_WORK_TYPE, true, item.name(), null, null, null, item.minutes(), null, item.grossByCurrency())));
+    busiestWeekday(entries).ifPresent(item -> highlights.add(item));
     Streaks streaks = streaks(entries);
     highlights.add(new StatisticsHighlightResponse(HighlightType.CURRENT_STREAK, true, null, null, streaks.currentStart(), streaks.currentEnd(), BigDecimal.valueOf(streaks.currentLength()).setScale(SCALE), null, List.of()));
     highlights.add(new StatisticsHighlightResponse(HighlightType.LONGEST_STREAK, true, null, null, streaks.longestStart(), streaks.longestEnd(), BigDecimal.valueOf(streaks.longestLength()).setScale(SCALE), null, List.of()));
     long weekends = entries.stream().filter(entry -> entry.getWorkDate().getDayOfWeek() == DayOfWeek.SATURDAY || entry.getWorkDate().getDayOfWeek() == DayOfWeek.SUNDAY).count();
     highlights.add(new StatisticsHighlightResponse(HighlightType.WEEKEND_WORK_COUNT, true, null, null, null, null, BigDecimal.valueOf(weekends).setScale(SCALE), null, List.of()));
+    highlights.add(new StatisticsHighlightResponse(HighlightType.OVERNIGHT_SHIFT_COUNT, true, null, null, null, null, BigDecimal.valueOf(overnightShiftCount(entries)).setScale(SCALE), null, List.of()));
     return highlights;
   }
 
   private BigDecimal sumGross(List<WorkEntry> entries) {
     return entries.stream().map(WorkEntry::getGrossAmount).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
+  }
+
+  private java.util.Optional<StatisticsHighlightResponse> busiestWeekday(List<WorkEntry> entries) {
+    Map<DayOfWeek, List<WorkEntry>> byWeekday = new LinkedHashMap<>();
+    for (WorkEntry entry : entries) {
+      byWeekday.computeIfAbsent(entry.getWorkDate().getDayOfWeek(), ignored -> new ArrayList<>()).add(entry);
+    }
+    return byWeekday.entrySet().stream()
+        .max(
+            Comparator
+                .<Map.Entry<DayOfWeek, List<WorkEntry>>, BigDecimal>comparing(entry -> sumMinutes(entry.getValue()))
+                .thenComparing(entry -> entry.getKey().getValue(), Comparator.reverseOrder()))
+        .map(
+            entry ->
+                new StatisticsHighlightResponse(
+                    HighlightType.BUSIEST_WEEKDAY,
+                    true,
+                    entry.getKey().name(),
+                    null,
+                    null,
+                    null,
+                    sumMinutes(entry.getValue()),
+                    null,
+                    grossByCurrency(entry.getValue())));
+  }
+
+  private long overnightShiftCount(List<WorkEntry> entries) {
+    List<UUID> entryIds =
+        entries.stream()
+            .filter(entry -> entry.getCalculationMethodSnapshot() == CalculationMethod.TIME_BASED)
+            .map(WorkEntry::getId)
+            .toList();
+    if (entryIds.isEmpty()) {
+      return 0;
+    }
+    return timeEntryDetailsRepository.findAllByWorkEntryIdIn(entryIds).stream()
+        .filter(detail -> !detail.getEndTime().isAfter(detail.getStartTime()))
+        .count();
   }
 
   private Streaks streaks(List<WorkEntry> entries) {
@@ -646,7 +802,16 @@ public class StatisticsService {
         break;
       }
     }
-    return new Streaks(trailing, trailingStart, dates.getLast(), longest, longestStart, longestEnd);
+    LocalDate lastWorkedDay = dates.getLast();
+    LocalDate today = LocalDate.now();
+    boolean currentStreakIsActive = lastWorkedDay.equals(today) || lastWorkedDay.equals(today.minusDays(1));
+    return new Streaks(
+        currentStreakIsActive ? trailing : 0,
+        currentStreakIsActive ? trailingStart : null,
+        currentStreakIsActive ? lastWorkedDay : null,
+        longest,
+        longestStart,
+        longestEnd);
   }
 
   private void addChangeInsight(
@@ -678,17 +843,75 @@ public class StatisticsService {
     }
     byWeekday.entrySet().stream()
         .filter(entry -> distinctWorkedDays(entry.getValue()) >= 2)
-        .max(Comparator.comparing(entry -> sumGross(entry.getValue()).divide(BigDecimal.valueOf(distinctWorkedDays(entry.getValue())), MATH_CONTEXT)))
-        .ifPresent(entry -> insights.add(new StatisticsInsightResponse(InsightType.BEST_WEEKDAY, ComparisonDirection.FLAT, null, sumGross(entry.getValue()), null, null, entry.getKey().name(), InsightSeverity.NEUTRAL, StatisticsConfidence.MEDIUM)));
+        .max(
+            Comparator
+                .<Map.Entry<DayOfWeek, List<WorkEntry>>, BigDecimal>comparing(
+                    entry -> sumMinutes(entry.getValue()).divide(BigDecimal.valueOf(distinctWorkedDays(entry.getValue())), MATH_CONTEXT))
+                .thenComparing(entry -> entry.getKey().getValue(), Comparator.reverseOrder()))
+        .ifPresent(
+            entry ->
+                insights.add(
+                    new StatisticsInsightResponse(
+                        InsightType.BEST_WEEKDAY,
+                        ComparisonDirection.FLAT,
+                        null,
+                        sumMinutes(entry.getValue())
+                            .divide(BigDecimal.valueOf(distinctWorkedDays(entry.getValue())), MATH_CONTEXT)
+                            .divide(BigDecimal.valueOf(60), MATH_CONTEXT)
+                            .setScale(SCALE, RoundingMode.HALF_UP),
+                        BigDecimal.valueOf(distinctWorkedDays(entry.getValue())).setScale(SCALE),
+                        null,
+                        entry.getKey().name(),
+                        InsightSeverity.NEUTRAL,
+                        distinctWorkedDays(entry.getValue()) >= 4 ? StatisticsConfidence.HIGH : StatisticsConfidence.MEDIUM)));
   }
 
   private void addMostUsedWorkTypeInsight(List<StatisticsInsightResponse> insights, List<WorkEntry> entries) {
+    if (entries.size() < 3) {
+      return;
+    }
     workTypeBreakdown(entries).stream().findFirst()
         .ifPresent(item -> insights.add(new StatisticsInsightResponse(InsightType.MOST_USED_WORK_TYPE, ComparisonDirection.FLAT, null, item.minutes(), null, null, item.name(), InsightSeverity.NEUTRAL, StatisticsConfidence.MEDIUM)));
   }
 
+  private int insightScore(StatisticsInsightResponse insight) {
+    int confidence =
+        switch (insight.confidence()) {
+          case HIGH -> 300;
+          case MEDIUM -> 200;
+          case LOW -> 100;
+        };
+    int severity =
+        switch (insight.severity()) {
+          case POSITIVE, ATTENTION -> 30;
+          case NEUTRAL -> 10;
+        };
+    int priority =
+        switch (insight.type()) {
+          case HOURS_CHANGE -> 60;
+          case GROSS_CHANGE -> 55;
+          case WORKED_DAYS_CHANGE -> 50;
+          case AVERAGE_SHIFT_CHANGE -> 45;
+          case FORECAST_ABOVE_PREVIOUS_PERIOD, FORECAST_BELOW_PREVIOUS_PERIOD -> 40;
+          case BEST_WEEKDAY -> 30;
+          case MOST_USED_WORK_TYPE -> 20;
+          case STREAK -> 10;
+        };
+    int magnitude = insight.percentage() == null ? 0 : insight.percentage().abs().min(BigDecimal.valueOf(100)).intValue();
+    return confidence + severity + priority + magnitude;
+  }
+
   private List<WorkEntry> findEntries(UUID userId, StatisticsFilters filters) {
     return findEntries(userId, filters, filters.from(), filters.to());
+  }
+
+  private List<WorkEntry> entriesInRange(List<WorkEntry> entries, LocalDate from, LocalDate to) {
+    if (to.isBefore(from)) {
+      return List.of();
+    }
+    return entries.stream()
+        .filter(entry -> !entry.getWorkDate().isBefore(from) && !entry.getWorkDate().isAfter(to))
+        .toList();
   }
 
   private void validateComparisonRequest(StatisticsComparisonRequest request) {
@@ -1039,6 +1262,23 @@ public class StatisticsService {
       return StatisticsGranularity.WEEKLY;
     }
     return StatisticsGranularity.MONTHLY;
+  }
+
+  private StatisticsGranularity productivityGranularity(LocalDate from, LocalDate to, ProductivityGrouping grouping) {
+    return switch (grouping) {
+      case DAILY -> StatisticsGranularity.DAILY;
+      case WEEKLY -> StatisticsGranularity.WEEKLY;
+      case MONTHLY -> StatisticsGranularity.MONTHLY;
+      case TOTAL, WORK_TYPE, UNIT_TYPE -> resolveGranularity(from, to);
+    };
+  }
+
+  private void validateProductivityGrouping(ProductivityGrouping grouping) {
+    if (grouping == ProductivityGrouping.WORK_TYPE || grouping == ProductivityGrouping.UNIT_TYPE) {
+      throw new ValidationException(
+          "productivity grouping is not supported yet",
+          StatisticsErrorCode.STATISTICS_PRODUCTIVITY_INCOMPATIBLE_UNITS.name());
+    }
   }
 
   private List<Bucket> completeBuckets(LocalDate from, LocalDate to, StatisticsGranularity granularity) {
