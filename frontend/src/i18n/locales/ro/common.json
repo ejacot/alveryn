@@ -199,6 +199,22 @@
       "estimated": "Estimat",
       "range": "Interval probabil {{from}}–{{to}}",
       "current": "Curent {{value}}",
+      "modes": {
+        "CALENDAR_PACE": "Ritm calendaristic",
+        "WORKDAY_PACE": "Ritm pe zile lucrătoare",
+        "RECENT_PACE": "Ritm recent"
+      },
+      "details": {
+        "title": "Cum este calculat",
+        "mode": "Mod",
+        "workedDays": "Zile lucrate",
+        "elapsedEligibleDays": "Zile eligibile trecute",
+        "workFrequency": "Frecvență de lucru",
+        "remainingEligibleDays": "Zile eligibile rămase",
+        "today": "Astăzi",
+        "todayIncluded": "inclusă",
+        "todayExcluded": "neinclusă încă"
+      },
       "reasons": {
         "COMPLETED_PERIOD": "Estimarea este disponibilă doar pentru o perioadă activă.",
         "FUTURE_PERIOD": "Estimarea va fi disponibilă când începe perioada.",
@@ -213,12 +229,26 @@
       "units": "unități",
       "configuredPace": "{{value}} unități/oră ritm configurat",
       "actualUnavailable": "Productivitatea reală nu este disponibilă deoarece înregistrările pe unități nu salvează ore reale de început și final.",
-      "equivalent": "Volum echivalent {{value}}"
+      "equivalent": "Volum echivalent {{value}}",
+      "metric": "Valoare productivitate",
+      "grouping": "Grupare",
+      "metrics": {
+        "TOTAL_UNITS": "Total unități",
+        "CONFIGURED_UNITS_PER_HOUR": "Ritm configurat",
+        "EQUIVALENT_MINUTES": "Volum echivalent"
+      },
+      "groupings": {
+        "TOTAL": "Total",
+        "DAILY": "Zilnic",
+        "WEEKLY": "Săptămânal",
+        "MONTHLY": "Lunar"
+      }
     },
     "highlights": {
       "eyebrow": "Repere",
       "title": "Performanță personală",
       "days": "{{count}} zile",
+      "bestGrossWithCurrency": "Cea mai bună zi ca venit · {{currency}}",
       "types": {
         "BEST_GROSS_DAY": "Cea mai bună zi ca venit",
         "BEST_HOURS_DAY": "Cea mai bună zi ca ore",
@@ -231,6 +261,11 @@
         "WEEKEND_WORK_COUNT": "Muncă în weekend",
         "OVERNIGHT_SHIFT_COUNT": "Muncă peste noapte"
       }
+    },
+    "sections": {
+      "loading": "Această secțiune se actualizează…",
+      "error": "Această secțiune nu a putut fi încărcată.",
+      "retry": "Reîncearcă"
     },
     "workTypes": {
       "title": "Împărțire pe tipuri de muncă"

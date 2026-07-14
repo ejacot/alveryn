@@ -199,6 +199,22 @@
       "estimated": "Geschätzt",
       "range": "Wahrscheinlicher Bereich {{from}}–{{to}}",
       "current": "Aktuell {{value}}",
+      "modes": {
+        "CALENDAR_PACE": "Kalender-Pace",
+        "WORKDAY_PACE": "Arbeitstags-Pace",
+        "RECENT_PACE": "Aktuelle Pace"
+      },
+      "details": {
+        "title": "So wird es berechnet",
+        "mode": "Modus",
+        "workedDays": "Gearbeitete Tage",
+        "elapsedEligibleDays": "Vergangene geeignete Tage",
+        "workFrequency": "Arbeitsfrequenz",
+        "remainingEligibleDays": "Geeignete Tage übrig",
+        "today": "Heute",
+        "todayIncluded": "enthalten",
+        "todayExcluded": "noch nicht enthalten"
+      },
       "reasons": {
         "COMPLETED_PERIOD": "Prognosen sind nur für aktive Zeiträume verfügbar.",
         "FUTURE_PERIOD": "Die Prognose ist verfügbar, sobald der Zeitraum beginnt.",
@@ -213,12 +229,26 @@
       "units": "Einheiten",
       "configuredPace": "{{value}} Einheiten/Stunde konfigurierte Pace",
       "actualUnavailable": "Tatsächliche Produktivität ist nicht verfügbar, weil Mengeneinträge keine echten Start- und Endzeiten speichern.",
-      "equivalent": "Äquivalente Arbeitslast {{value}}"
+      "equivalent": "Äquivalente Arbeitslast {{value}}",
+      "metric": "Produktivitätswert",
+      "grouping": "Gruppierung",
+      "metrics": {
+        "TOTAL_UNITS": "Gesamte Einheiten",
+        "CONFIGURED_UNITS_PER_HOUR": "Konfigurierte Pace",
+        "EQUIVALENT_MINUTES": "Äquivalente Arbeitslast"
+      },
+      "groupings": {
+        "TOTAL": "Gesamt",
+        "DAILY": "Täglich",
+        "WEEKLY": "Wöchentlich",
+        "MONTHLY": "Monatlich"
+      }
     },
     "highlights": {
       "eyebrow": "Highlights",
       "title": "Persönliche Leistung",
       "days": "{{count}} Tage",
+      "bestGrossWithCurrency": "Bester Verdiensttag · {{currency}}",
       "types": {
         "BEST_GROSS_DAY": "Bester Verdiensttag",
         "BEST_HOURS_DAY": "Bester Stundentag",
@@ -231,6 +261,11 @@
         "WEEKEND_WORK_COUNT": "Wochenendarbeit",
         "OVERNIGHT_SHIFT_COUNT": "Nachtarbeit"
       }
+    },
+    "sections": {
+      "loading": "Dieser Bereich wird aktualisiert…",
+      "error": "Dieser Bereich konnte nicht geladen werden.",
+      "retry": "Erneut versuchen"
     },
     "workTypes": {
       "title": "Aufteilung nach Arbeitstyp"

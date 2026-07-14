@@ -30,6 +30,8 @@ import type {
   StatisticsHeatmapMetric,
   StatisticsMetric,
   StatisticsPeriod,
+  ProductivityGrouping,
+  ProductivityMetric,
   StatisticsTimeSeriesPoint
 } from "../types/statistics";
 
@@ -65,10 +67,26 @@ function parseHeatmapMetric(searchParams: URLSearchParams): StatisticsHeatmapMet
     : "WORKED_HOURS";
 }
 
+function parseProductivityMetric(searchParams: URLSearchParams): ProductivityMetric {
+  const value = searchParams.get("productivityMetric");
+  return value && ["TOTAL_UNITS", "CONFIGURED_UNITS_PER_HOUR", "EQUIVALENT_MINUTES"].includes(value)
+    ? (value as ProductivityMetric)
+    : "TOTAL_UNITS";
+}
+
+function parseProductivityGrouping(searchParams: URLSearchParams): ProductivityGrouping {
+  const value = searchParams.get("productivityGrouping");
+  return value && ["TOTAL", "DAILY", "WEEKLY", "MONTHLY"].includes(value)
+    ? (value as ProductivityGrouping)
+    : "TOTAL";
+}
+
 function writeFilters(
   filters: StatisticsFilters,
   heatmapMetric: StatisticsHeatmapMetric,
   heatmapCurrency: string | null,
+  productivityMetric: ProductivityMetric,
+  productivityGrouping: ProductivityGrouping,
   currentParams: URLSearchParams
 ) {
   const params = new URLSearchParams(currentParams);
@@ -77,6 +95,8 @@ function writeFilters(
   params.set("to", filters.to);
   params.set("metric", filters.metric);
   params.set("heatmapMetric", heatmapMetric);
+  params.set("productivityMetric", productivityMetric);
+  params.set("productivityGrouping", productivityGrouping);
   params.delete("heatmapCurrency");
   params.delete("workTypeIds");
   params.delete("calculationMethods");
@@ -98,30 +118,50 @@ export function StatisticsPage() {
   const [filters, setFiltersState] = useState(() => parseFilters(searchParams));
   const [heatmapMetric, setHeatmapMetricState] = useState(() => parseHeatmapMetric(searchParams));
   const [heatmapCurrency, setHeatmapCurrencyState] = useState(() => searchParams.get("heatmapCurrency"));
+  const [productivityMetric, setProductivityMetricState] = useState(() => parseProductivityMetric(searchParams));
+  const [productivityGrouping, setProductivityGroupingState] = useState(() => parseProductivityGrouping(searchParams));
   const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<string | null>(null);
   const [selectedChartPoint, setSelectedChartPoint] = useState<StatisticsTimeSeriesPoint | null>(null);
   const workTypes = useQuery({
     queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
-  const statistics = useStatistics(filters, heatmapMetric, heatmapCurrency);
+  const statistics = useStatistics(filters, heatmapMetric, heatmapCurrency, productivityMetric, productivityGrouping);
 
   useEffect(() => {
     setFiltersState(parseFilters(searchParams));
     setHeatmapMetricState(parseHeatmapMetric(searchParams));
     setHeatmapCurrencyState(searchParams.get("heatmapCurrency"));
+    setProductivityMetricState(parseProductivityMetric(searchParams));
+    setProductivityGroupingState(parseProductivityGrouping(searchParams));
   }, [searchParams]);
 
   function setFilters(next: StatisticsFilters) {
     setFiltersState(next);
-    setSearchParams(writeFilters(next, heatmapMetric, heatmapCurrency, searchParams), { replace: false });
+    setSearchParams(
+      (currentParams) =>
+        writeFilters(next, heatmapMetric, heatmapCurrency, productivityMetric, productivityGrouping, currentParams),
+      { replace: false }
+    );
     setSelectedChartPoint(null);
   }
 
   function setHeatmapOptions(metric: StatisticsHeatmapMetric, currency: string | null) {
     setHeatmapMetricState(metric);
     setHeatmapCurrencyState(currency);
-    setSearchParams(writeFilters(filters, metric, currency, searchParams), { replace: false });
+    setSearchParams(
+      (currentParams) => writeFilters(filters, metric, currency, productivityMetric, productivityGrouping, currentParams),
+      { replace: false }
+    );
+  }
+
+  function setProductivityOptions(metric: ProductivityMetric, grouping: ProductivityGrouping) {
+    setProductivityMetricState(metric);
+    setProductivityGroupingState(grouping);
+    setSearchParams(
+      (currentParams) => writeFilters(filters, heatmapMetric, heatmapCurrency, metric, grouping, currentParams),
+      { replace: false }
+    );
   }
 
   if (statistics.isLoading) {
@@ -151,13 +191,36 @@ export function StatisticsPage() {
             onPointSelect={setSelectedChartPoint}
           />
           <StatisticsDrilldownPanel filters={filters} point={selectedChartPoint} onClose={() => setSelectedChartPoint(null)} />
-          <StatisticsInsightsSection data={statistics.insights.data} />
+          <StatisticsInsightsSection
+            data={statistics.insights.data}
+            isLoading={statistics.insights.isLoading}
+            isError={statistics.insights.isError}
+            onRetry={() => void statistics.insights.refetch()}
+          />
           <StatisticsSummaryCards overview={overview} />
-          <StatisticsForecastSection data={statistics.forecast.data} />
+          <StatisticsForecastSection
+            data={statistics.forecast.data}
+            isLoading={statistics.forecast.isLoading}
+            isError={statistics.forecast.isError}
+            onRetry={() => void statistics.forecast.refetch()}
+          />
           <StatisticsComparisonPanel filters={filters} />
           <WorkTypeBreakdown items={breakdown} />
-          <StatisticsProductivitySection data={statistics.productivity.data} />
-          <StatisticsHighlightsSection data={statistics.highlights.data} />
+          <StatisticsProductivitySection
+            data={statistics.productivity.data}
+            isLoading={statistics.productivity.isLoading}
+            isError={statistics.productivity.isError}
+            onRetry={() => void statistics.productivity.refetch()}
+            metric={productivityMetric}
+            grouping={productivityGrouping}
+            onOptionsChange={setProductivityOptions}
+          />
+          <StatisticsHighlightsSection
+            data={statistics.highlights.data}
+            isLoading={statistics.highlights.isLoading}
+            isError={statistics.highlights.isError}
+            onRetry={() => void statistics.highlights.refetch()}
+          />
           <StatisticsHeatmap
             heatmap={statistics.heatmap.data}
             isLoading={statistics.heatmap.isLoading}

@@ -199,6 +199,22 @@
       "estimated": "Estimated",
       "range": "Likely range {{from}}–{{to}}",
       "current": "Current {{value}}",
+      "modes": {
+        "CALENDAR_PACE": "Calendar pace",
+        "WORKDAY_PACE": "Workday pace",
+        "RECENT_PACE": "Recent pace"
+      },
+      "details": {
+        "title": "How this is calculated",
+        "mode": "Mode",
+        "workedDays": "Worked days",
+        "elapsedEligibleDays": "Elapsed eligible days",
+        "workFrequency": "Work frequency",
+        "remainingEligibleDays": "Eligible days remaining",
+        "today": "Today",
+        "todayIncluded": "included",
+        "todayExcluded": "not included yet"
+      },
       "reasons": {
         "COMPLETED_PERIOD": "Forecast is available only for an active period.",
         "FUTURE_PERIOD": "Forecast will be available when the period starts.",
@@ -213,12 +229,26 @@
       "units": "units",
       "configuredPace": "{{value}} units/hour configured pace",
       "actualUnavailable": "Actual productivity is unavailable because unit entries do not store real start and end times.",
-      "equivalent": "Equivalent workload {{value}}"
+      "equivalent": "Equivalent workload {{value}}",
+      "metric": "Productivity value",
+      "grouping": "Grouping",
+      "metrics": {
+        "TOTAL_UNITS": "Total units",
+        "CONFIGURED_UNITS_PER_HOUR": "Configured pace",
+        "EQUIVALENT_MINUTES": "Equivalent workload"
+      },
+      "groupings": {
+        "TOTAL": "Total",
+        "DAILY": "Daily",
+        "WEEKLY": "Weekly",
+        "MONTHLY": "Monthly"
+      }
     },
     "highlights": {
       "eyebrow": "Highlights",
       "title": "Personal performance",
       "days": "{{count}} days",
+      "bestGrossWithCurrency": "Best earning day · {{currency}}",
       "types": {
         "BEST_GROSS_DAY": "Best earning day",
         "BEST_HOURS_DAY": "Best hours day",
@@ -231,6 +261,11 @@
         "WEEKEND_WORK_COUNT": "Weekend work",
         "OVERNIGHT_SHIFT_COUNT": "Overnight work"
       }
+    },
+    "sections": {
+      "loading": "Updating this section…",
+      "error": "This section could not be loaded.",
+      "retry": "Retry"
     },
     "workTypes": {
       "title": "Work Type Breakdown"

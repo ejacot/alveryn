@@ -10,6 +10,8 @@ import type {
   StatisticsForecast,
   StatisticsOverview,
   StatisticsProductivity,
+  ProductivityGrouping,
+  ProductivityMetric,
   StatisticsHighlights,
   StatisticsInsights,
   StatisticsTimeSeries,
@@ -96,10 +98,17 @@ export async function getStatisticsForecast(filters: StatisticsFilters) {
   return response.data.data;
 }
 
-export async function getStatisticsProductivity(filters: StatisticsFilters) {
+export async function getStatisticsProductivity(
+  filters: StatisticsFilters,
+  metric: ProductivityMetric = "TOTAL_UNITS",
+  grouping: ProductivityGrouping = "TOTAL"
+) {
+  const params = paramsFromFilters(filters);
+  params.set("metric", metric);
+  params.set("grouping", grouping);
   const response = await http.get<ApiResponse<StatisticsProductivity>>(
     "/api/statistics/productivity",
-    { params: paramsFromFilters(filters) }
+    { params }
   );
   return response.data.data;
 }

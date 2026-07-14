@@ -4,6 +4,9 @@ import {
   createHourlyRate,
   createTimeBasedWorkType,
   createTimeEntry,
+  createUnitBasedWorkType,
+  createUnitEntry,
+  createUnitType,
   loginThroughUi
 } from "./helpers";
 
@@ -11,7 +14,12 @@ test("statistics page loads real backend data and refetches on filter change", a
   const user = await createE2eUser(testInfo.title);
   await createHourlyRate(user.accessToken);
   const workTypeId = await createTimeBasedWorkType(user.accessToken, "Check");
-  await createTimeEntry(user.accessToken, workTypeId);
+  await createTimeEntry(user.accessToken, workTypeId, "2026-07-01");
+  await createTimeEntry(user.accessToken, workTypeId, "2026-07-02");
+  await createTimeEntry(user.accessToken, workTypeId, "2026-07-03");
+  const unitWorkTypeId = await createUnitBasedWorkType(user.accessToken, "Rooms");
+  const unitTypeId = await createUnitType(user.accessToken, unitWorkTypeId, "Normal rooms", 2);
+  await createUnitEntry(user.accessToken, unitWorkTypeId, unitTypeId, "2026-07-04", 4);
 
   await loginThroughUi(page, user);
 
@@ -33,6 +41,10 @@ test("statistics page loads real backend data and refetches on filter change", a
   await expect(page.getByRole("img", { name: "Statistics trend chart" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "What changed" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Estimated end of period" })).toBeVisible();
+  await expect(page.getByText("Likely range")).toBeVisible();
+  await page.getByText("How this is calculated").click();
+  await expect(page.getByText("Work frequency")).toBeVisible();
+  await expect(page.getByText("not included yet")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Compare periods" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Unit productivity" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Personal performance" })).toBeVisible();
@@ -40,6 +52,10 @@ test("statistics page loads real backend data and refetches on filter change", a
 
   const filters = page.getByLabel("Statistics filters");
   await filters.getByLabel("Metric").selectOption("WORKED_HOURS");
+  await page.getByLabel("Productivity value").selectOption("EQUIVALENT_MINUTES");
+  await page.getByLabel("Grouping").selectOption("WEEKLY");
+  await expect(page).toHaveURL(/productivityMetric=EQUIVALENT_MINUTES/);
+  await expect(page).toHaveURL(/productivityGrouping=WEEKLY/);
   await filters.getByLabel("Calculation method").selectOption("TIME_BASED");
   await expect.poll(() => overviewRequests.length).toBeGreaterThanOrEqual(2);
   expect(overviewRequests.some((url) => url.includes("calculationMethods=TIME_BASED"))).toBe(true);

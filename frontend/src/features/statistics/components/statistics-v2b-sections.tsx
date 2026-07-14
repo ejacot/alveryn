@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { formatCurrency, formatMinutesAsDuration } from "../../../utils/format";
 import type {
+  ProductivityGrouping,
+  ProductivityMetric,
   StatisticsForecast,
   StatisticsHighlight,
   StatisticsHighlights,
@@ -8,6 +10,12 @@ import type {
   StatisticsInsights,
   StatisticsProductivity
 } from "../types/statistics";
+
+type SectionStateProps = {
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+};
 
 function numberValue(value: string | null | undefined) {
   return Number(value ?? 0);
@@ -21,9 +29,46 @@ function percent(value: string | null | undefined) {
   return `${numeric > 0 ? "+" : ""}${numeric.toFixed(0)}%`;
 }
 
-export function StatisticsInsightsSection({ data }: { data: StatisticsInsights | undefined }) {
+function SectionStatus({
+  isLoading,
+  isError,
+  onRetry
+}: SectionStateProps) {
+  const { t } = useTranslation("common");
+  if (isLoading) {
+    return <p className="text-sm text-white/50" role="status">{t("statistics.sections.loading")}</p>;
+  }
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-white/50">{t("statistics.sections.error")}</p>
+        <button type="button" onClick={onRetry} className="text-sm font-semibold text-white underline underline-offset-4">
+          {t("statistics.sections.retry")}
+        </button>
+      </div>
+    );
+  }
+  return null;
+}
+
+export function StatisticsInsightsSection({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: { data: StatisticsInsights | undefined } & SectionStateProps) {
   const { t } = useTranslation("common");
   const insights = data?.insights ?? [];
+  const status = <SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} />;
+  if (isLoading || isError) {
+    return (
+      <section className="section-card">
+        <p className="hairline-text">{t("statistics.insights.eyebrow")}</p>
+        <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.insights.title")}</h2>
+        <div className="mt-3">{status}</div>
+      </section>
+    );
+  }
   if (insights.length === 0) {
     return (
       <section className="section-card">
@@ -72,9 +117,15 @@ function insightText(t: ReturnType<typeof useTranslation<"common">>["t"], insigh
   return t("statistics.insights.generic");
 }
 
-export function StatisticsForecastSection({ data }: { data: StatisticsForecast | undefined }) {
+export function StatisticsForecastSection({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: { data: StatisticsForecast | undefined } & SectionStateProps) {
   const { t } = useTranslation("common");
   const forecasts = data?.forecasts ?? [];
+  const status = <SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} />;
   return (
     <section className="section-card space-y-4" aria-labelledby="statistics-forecast-title">
       <div>
@@ -83,7 +134,9 @@ export function StatisticsForecastSection({ data }: { data: StatisticsForecast |
           {t("statistics.forecast.title")}
         </h2>
       </div>
-      {forecasts.length === 0 ? (
+      {isLoading || isError ? (
+        status
+      ) : forecasts.length === 0 ? (
         <p className="text-sm text-white/50">{t("statistics.forecast.empty")}</p>
       ) : (
         <div className="space-y-3">
@@ -111,6 +164,35 @@ export function StatisticsForecastSection({ data }: { data: StatisticsForecast |
                       {t(`statistics.confidence.${item.confidence}`)}
                     </span>
                   </div>
+                  <details className="mt-4 rounded-2xl bg-black/20 px-3 py-2 text-xs text-white/50">
+                    <summary className="cursor-pointer text-white/70">{t("statistics.forecast.details.title")}</summary>
+                    <dl className="mt-3 grid gap-2">
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.mode")}</dt>
+                        <dd>{t(`statistics.forecast.modes.${data?.mode}`)}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.workedDays")}</dt>
+                        <dd>{item.workedDays}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.elapsedEligibleDays")}</dt>
+                        <dd>{item.elapsedEligibleDays}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.workFrequency")}</dt>
+                        <dd>{percentFromRatio(item.observedWorkFrequency)}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.remainingEligibleDays")}</dt>
+                        <dd>{item.remainingEligibleDays}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt>{t("statistics.forecast.details.today")}</dt>
+                        <dd>{item.todayIncludedInElapsed ? t("statistics.forecast.details.todayIncluded") : t("statistics.forecast.details.todayExcluded")}</dd>
+                      </div>
+                    </dl>
+                  </details>
                 </>
               ) : (
                 <p className="text-sm text-white/55">{t(`statistics.forecast.reasons.${item.reason}` as never)}</p>
@@ -123,8 +205,30 @@ export function StatisticsForecastSection({ data }: { data: StatisticsForecast |
   );
 }
 
-export function StatisticsProductivitySection({ data }: { data: StatisticsProductivity | undefined }) {
+export function StatisticsProductivitySection({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+  metric,
+  grouping,
+  onOptionsChange
+}: {
+  data: StatisticsProductivity | undefined;
+  metric: ProductivityMetric;
+  grouping: ProductivityGrouping;
+  onOptionsChange: (metric: ProductivityMetric, grouping: ProductivityGrouping) => void;
+} & SectionStateProps) {
   const { t } = useTranslation("common");
+  if (isLoading || isError) {
+    return (
+      <section className="section-card">
+        <p className="hairline-text">{t("statistics.productivity.eyebrow")}</p>
+        <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.productivity.title")}</h2>
+        <div className="mt-3"><SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} /></div>
+      </section>
+    );
+  }
   if (!data?.available) {
     return (
       <section className="section-card">
@@ -142,12 +246,39 @@ export function StatisticsProductivitySection({ data }: { data: StatisticsProduc
           {t("statistics.productivity.title")}
         </h2>
       </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-xs text-white/45">
+          {t("statistics.productivity.metric")}
+          <select
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+            value={metric}
+            onChange={(event) => onOptionsChange(event.target.value as ProductivityMetric, grouping)}
+          >
+            <option value="TOTAL_UNITS">{t("statistics.productivity.metrics.TOTAL_UNITS")}</option>
+            <option value="CONFIGURED_UNITS_PER_HOUR">{t("statistics.productivity.metrics.CONFIGURED_UNITS_PER_HOUR")}</option>
+            <option value="EQUIVALENT_MINUTES">{t("statistics.productivity.metrics.EQUIVALENT_MINUTES")}</option>
+          </select>
+        </label>
+        <label className="text-xs text-white/45">
+          {t("statistics.productivity.grouping")}
+          <select
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+            value={grouping}
+            onChange={(event) => onOptionsChange(metric, event.target.value as ProductivityGrouping)}
+          >
+            <option value="TOTAL">{t("statistics.productivity.groupings.TOTAL")}</option>
+            <option value="DAILY">{t("statistics.productivity.groupings.DAILY")}</option>
+            <option value="WEEKLY">{t("statistics.productivity.groupings.WEEKLY")}</option>
+            <option value="MONTHLY">{t("statistics.productivity.groupings.MONTHLY")}</option>
+          </select>
+        </label>
+      </div>
       <div className="rounded-[26px] bg-white/[0.035] p-4">
         <p className="text-3xl font-semibold text-white">{new Intl.NumberFormat().format(numberValue(data.totalUnits))}</p>
         <p className="mt-1 text-sm text-white/50">{t("statistics.productivity.units")}</p>
         <p className="mt-3 text-sm text-white/65">
           {t("statistics.productivity.configuredPace", {
-            value: new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(numberValue(data.configuredUnitsPerHour))
+            value: new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(numberValue(data.effectiveConfiguredUnitsPerHour))
           })}
         </p>
         <p className="mt-1 text-xs text-white/40">{t("statistics.productivity.actualUnavailable")}</p>
@@ -174,9 +305,23 @@ export function StatisticsProductivitySection({ data }: { data: StatisticsProduc
   );
 }
 
-export function StatisticsHighlightsSection({ data }: { data: StatisticsHighlights | undefined }) {
+export function StatisticsHighlightsSection({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: { data: StatisticsHighlights | undefined } & SectionStateProps) {
   const { t } = useTranslation("common");
   const highlights = (data?.highlights ?? []).slice(0, 4);
+  if (isLoading || isError) {
+    return (
+      <section className="section-card">
+        <p className="hairline-text">{t("statistics.highlights.eyebrow")}</p>
+        <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.highlights.title")}</h2>
+        <div className="mt-3"><SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} /></div>
+      </section>
+    );
+  }
   if (highlights.length === 0) {
     return null;
   }
@@ -189,10 +334,15 @@ export function StatisticsHighlightsSection({ data }: { data: StatisticsHighligh
         </h2>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {highlights.map((highlight) => (
-          <article key={highlight.type} className="rounded-2xl bg-white/[0.035] p-4">
-            <h3 className="text-xs text-white/40">{t(`statistics.highlights.types.${highlight.type}` as never)}</h3>
+        {highlights.map((highlight, index) => (
+          <article key={`${highlight.type}-${highlight.currency ?? index}`} className="rounded-2xl bg-white/[0.035] p-4">
+            <h3 className="text-xs text-white/40">
+              {highlight.type === "BEST_GROSS_DAY" && highlight.currency
+                ? t("statistics.highlights.bestGrossWithCurrency", { currency: highlight.currency })
+                : t(`statistics.highlights.types.${highlight.type}` as never)}
+            </h3>
             <p className="mt-2 text-lg font-semibold text-white">{highlightValue(t, highlight)}</p>
+            {highlight.from ? <p className="mt-1 text-xs text-white/40">{highlight.from}</p> : null}
           </article>
         ))}
       </div>
@@ -201,8 +351,8 @@ export function StatisticsHighlightsSection({ data }: { data: StatisticsHighligh
 }
 
 function highlightValue(t: ReturnType<typeof useTranslation<"common">>["t"], highlight: StatisticsHighlight) {
-  if (highlight.type === "BEST_GROSS_DAY" && highlight.grossByCurrency[0]) {
-    return formatCurrency(highlight.grossByCurrency[0].amount, highlight.grossByCurrency[0].currency);
+  if (highlight.type === "BEST_GROSS_DAY" && highlight.currency && highlight.numericValue) {
+    return formatCurrency(highlight.numericValue, highlight.currency);
   }
   if (highlight.type === "BEST_HOURS_DAY" || highlight.type === "LONGEST_SHIFT" || highlight.type === "AVERAGE_SHIFT") {
     return formatMinutesAsDuration(numberValue(highlight.numericValue));
@@ -214,4 +364,8 @@ function highlightValue(t: ReturnType<typeof useTranslation<"common">>["t"], hig
     return t("statistics.highlights.days", { count: numberValue(highlight.numericValue) });
   }
   return new Intl.NumberFormat().format(numberValue(highlight.numericValue));
+}
+
+function percentFromRatio(value: string | null | undefined) {
+  return `${Math.round(numberValue(value) * 100)}%`;
 }

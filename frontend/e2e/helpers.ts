@@ -134,7 +134,52 @@ export async function createTimeBasedWorkType(accessToken: string, name: string)
   return body.data.id;
 }
 
-export async function createTimeEntry(accessToken: string, workTypeId: string) {
+export async function createUnitBasedWorkType(accessToken: string, name: string) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-types", {
+    data: { name, calculationMethod: "UNIT_BASED" }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create unit work type");
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create unit work type did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createUnitType(
+  accessToken: string,
+  workTypeId: string,
+  name: string,
+  unitsPerHour: number
+) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post(`/api/work-types/${workTypeId}/unit-types`, {
+    data: { name, unitsPerHour, active: true }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create unit type");
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create unit type did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createTimeEntry(
+  accessToken: string,
+  workTypeId: string,
+  workDate = "2026-07-14",
+  startTime = "09:00:00",
+  endTime = "17:00:00"
+) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
@@ -142,12 +187,34 @@ export async function createTimeEntry(accessToken: string, workTypeId: string) {
   const response = await api.post("/api/work-entries", {
     data: {
       workTypeId,
-      workDate: "2026-07-14",
-      startTime: "09:00:00",
-      endTime: "17:00:00",
+      workDate,
+      startTime,
+      endTime,
       unpaidBreakMinutes: 0
     }
   });
   await requireSuccessfulResponse(response, "Create time entry");
+  await api.dispose();
+}
+
+export async function createUnitEntry(
+  accessToken: string,
+  workTypeId: string,
+  unitTypeId: string,
+  workDate = "2026-07-04",
+  quantity = 4
+) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-entries", {
+    data: {
+      workTypeId,
+      workDate,
+      unitItems: [{ unitTypeId, quantity }]
+    }
+  });
+  await requireSuccessfulResponse(response, "Create unit entry");
   await api.dispose();
 }

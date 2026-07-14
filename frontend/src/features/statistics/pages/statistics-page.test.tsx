@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import { within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { StatisticsPage } from "./statistics-page";
@@ -184,6 +185,16 @@ describe("StatisticsPage", () => {
           workedDays: 10,
           elapsedEligibleDays: 10,
           remainingEligibleDays: 12,
+          observedWorkFrequency: "0.71",
+          expectedRemainingWorkedDays: "8.52",
+          todayIncludedInElapsed: false,
+          calculationBasis: "OBSERVED_WORKDAY_FREQUENCY",
+          sampleSize: 12,
+          recentWindowStart: null,
+          recentWindowEnd: null,
+          recentEligibleDays: 0,
+          recentWorkedDays: 0,
+          recentWorkFrequency: "0",
           averageGrossPerWorkedDay: "248",
           confidence: "MEDIUM",
           available: true,
@@ -195,11 +206,13 @@ describe("StatisticsPage", () => {
       totalUnits: "482",
       equivalentMinutes: "10360",
       actualMinutes: null,
-      configuredUnitsPerHour: "2.79",
+      effectiveConfiguredUnitsPerHour: "2.79",
       actualUnitsPerHour: null,
       performancePercentage: null,
       actualProductivityAvailable: false,
       available: true,
+      partial: false,
+      incompleteItems: 0,
       unitTypes: [
         {
           unitTypeId: "unit-normal",
@@ -216,6 +229,7 @@ describe("StatisticsPage", () => {
           percentageOfTotalUnits: "67.63"
         }
       ],
+      grouping: "TOTAL",
       granularity: "DAILY",
       metric: "TOTAL_UNITS",
       points: []
@@ -283,17 +297,24 @@ describe("StatisticsPage", () => {
     const user = userEvent.setup();
 
     await screen.findAllByText("€3,482");
-    await user.selectOptions(screen.getByLabelText("Metric"), "WORKED_HOURS");
-    await user.selectOptions(screen.getByLabelText("Calculation method"), "TIME_BASED");
-    await user.selectOptions(screen.getByLabelText("Work type"), "work-type-check");
+    const filterControls = within(screen.getByLabelText("Statistics filters")).getAllByRole("combobox");
+    await user.selectOptions(filterControls[1], "WORKED_HOURS");
+    await waitFor(() => expect(getStatisticsOverview).toHaveBeenCalledWith(expect.objectContaining({ metric: "WORKED_HOURS" })));
+  });
+
+  it("persists productivity controls and requests the selected contract", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("Unit productivity");
+    await user.selectOptions(screen.getByLabelText("Productivity value"), "EQUIVALENT_MINUTES");
+    await user.selectOptions(screen.getByLabelText("Grouping"), "WEEKLY");
 
     await waitFor(() => {
-      expect(getStatisticsOverview).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metric: "WORKED_HOURS",
-          calculationMethods: ["TIME_BASED"],
-          workTypeIds: ["work-type-check"]
-        })
+      expect(getStatisticsProductivity).toHaveBeenCalledWith(
+        expect.anything(),
+        "EQUIVALENT_MINUTES",
+        "WEEKLY"
       );
     });
   });

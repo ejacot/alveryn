@@ -13,6 +13,7 @@ export type StatisticsHeatmapMetric = "WORKED_HOURS" | "WORKED_MINUTES" | "ENTRI
 export type ForecastMode = "CALENDAR_PACE" | "WORKDAY_PACE" | "RECENT_PACE";
 export type StatisticsConfidence = "LOW" | "MEDIUM" | "HIGH";
 export type ProductivityMetric = "TOTAL_UNITS" | "CONFIGURED_UNITS_PER_HOUR" | "EQUIVALENT_MINUTES";
+export type ProductivityGrouping = "TOTAL" | "DAILY" | "WEEKLY" | "MONTHLY" | "WORK_TYPE" | "UNIT_TYPE";
 export type StatisticsComparisonAlignment =
   | "DAY_OF_WEEK"
   | "DAY_OF_MONTH"
@@ -160,6 +161,16 @@ export type StatisticsForecastItem = {
   workedDays: number;
   elapsedEligibleDays: number;
   remainingEligibleDays: number;
+  observedWorkFrequency: string;
+  expectedRemainingWorkedDays: string;
+  todayIncludedInElapsed: boolean;
+  calculationBasis: string;
+  sampleSize: number;
+  recentWindowStart: string | null;
+  recentWindowEnd: string | null;
+  recentEligibleDays: number;
+  recentWorkedDays: number;
+  recentWorkFrequency: string;
   averageGrossPerWorkedDay: string;
   confidence: StatisticsConfidence;
   available: boolean;
@@ -201,12 +212,15 @@ export type StatisticsProductivity = {
   totalUnits: string;
   equivalentMinutes: string;
   actualMinutes: string | null;
-  configuredUnitsPerHour: string;
+  effectiveConfiguredUnitsPerHour: string;
   actualUnitsPerHour: string | null;
   performancePercentage: string | null;
   actualProductivityAvailable: boolean;
   available: boolean;
+  partial: boolean;
+  incompleteItems: number;
   unitTypes: StatisticsProductivityUnitType[];
+  grouping: ProductivityGrouping;
   granularity: StatisticsGranularity;
   metric: ProductivityMetric;
   points: StatisticsProductivityPoint[];

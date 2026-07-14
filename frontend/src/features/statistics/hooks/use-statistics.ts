@@ -12,6 +12,7 @@ import {
 } from "../api/statistics-api";
 import type { StatisticsFilters } from "../types/statistics";
 import type { StatisticsHeatmapMetric } from "../types/statistics";
+import type { ProductivityGrouping, ProductivityMetric } from "../types/statistics";
 
 function normalizedFilters(filters: StatisticsFilters) {
   return {
@@ -26,10 +27,13 @@ function normalizedFilters(filters: StatisticsFilters) {
 export function useStatistics(
   filters: StatisticsFilters,
   heatmapMetric: StatisticsHeatmapMetric = "WORKED_HOURS",
-  heatmapCurrency: string | null = null
+  heatmapCurrency: string | null = null,
+  productivityMetric: ProductivityMetric = "TOTAL_UNITS",
+  productivityGrouping: ProductivityGrouping = "TOTAL"
 ) {
   const keyFilters = normalizedFilters(filters);
   const heatmapKeyFilters = { ...keyFilters, heatmapMetric, heatmapCurrency };
+  const productivityKeyFilters = { ...keyFilters, productivityMetric, productivityGrouping };
   const overview = useQuery({
     queryKey: queryKeys.statistics.overview(keyFilters),
     queryFn: () => getStatisticsOverview(filters)
@@ -53,8 +57,8 @@ export function useStatistics(
     placeholderData: (previous) => previous
   });
   const productivity = useQuery({
-    queryKey: queryKeys.statistics.productivity(keyFilters),
-    queryFn: () => getStatisticsProductivity(filters),
+    queryKey: queryKeys.statistics.productivity(productivityKeyFilters),
+    queryFn: () => getStatisticsProductivity(filters, productivityMetric, productivityGrouping),
     placeholderData: (previous) => previous
   });
   const highlights = useQuery({
