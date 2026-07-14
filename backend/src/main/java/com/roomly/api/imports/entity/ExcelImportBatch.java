@@ -149,6 +149,13 @@ public class ExcelImportBatch extends BaseEntity {
     clearPreviewTokenState();
   }
 
+  public void markConfirming() {
+    if (status != ExcelImportBatchStatus.PREVIEWED) {
+      throw new IllegalStateException("Only previewed imports can be confirmed");
+    }
+    status = ExcelImportBatchStatus.CONFIRMING;
+  }
+
   public void markUndone(OffsetDateTime undoneAt) {
     this.status = ExcelImportBatchStatus.UNDONE;
     this.undoneAt = Objects.requireNonNull(undoneAt, "undoneAt is required");

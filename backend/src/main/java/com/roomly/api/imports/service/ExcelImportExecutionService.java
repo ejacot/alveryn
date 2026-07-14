@@ -80,7 +80,7 @@ public class ExcelImportExecutionService {
     String previewTokenHash = sha256(previewToken);
     ExcelImportBatch batch =
         importBatches
-            .findByUserIdAndPreviewTokenHashAndStatus(userId, previewTokenHash, ExcelImportBatchStatus.PREVIEWED)
+            .findClaimablePreviewForUpdate(userId, previewTokenHash, ExcelImportBatchStatus.PREVIEWED)
             .orElseThrow(
                 () ->
                     new ConflictException(
@@ -99,6 +99,7 @@ public class ExcelImportExecutionService {
           "This import preview has blocking conflicts",
           ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name());
     }
+    batch.markConfirming();
 
     UserAccount user = users.findById(userId).orElseThrow();
     WorkType importedWorkType = null;

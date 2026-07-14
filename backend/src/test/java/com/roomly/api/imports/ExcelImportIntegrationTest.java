@@ -1,6 +1,7 @@
 package com.roomly.api.imports;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -17,13 +18,19 @@ import com.roomly.api.salary.entity.HourlyRatePeriod;
 import com.roomly.api.salary.repository.HourlyRatePeriodRepository;
 import com.roomly.api.user.entity.UserAccount;
 import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.workentry.entity.WorkEntry;
 import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -49,6 +57,7 @@ class ExcelImportIntegrationTest {
   @Autowired AbsenceRepository absences;
   @Autowired HourlyRatePeriodRepository hourlyRates;
   @Autowired ExcelImportBatchRepository importBatches;
+  @Autowired JdbcTemplate jdbcTemplate;
 
   private MockMvc mockMvc;
 
@@ -130,6 +139,74 @@ class ExcelImportIntegrationTest {
   }
 
   @Test
+  void concurrentConfirmClaimsPreviewOnlyOnce() throws Exception {
+    UserAccount user = createVerifiedUser("concurrent@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+
+    String previewToken = previewToken(user, createWorkbookBytes("09:00-17:30", "Liste+CH"));
+    Callable<Integer> confirmCall = () -> confirmStatus(user, previewToken);
+
+    try (var executor = Executors.newFixedThreadPool(2)) {
+      var results = executor.invokeAll(List.of(confirmCall, confirmCall));
+      executor.shutdown();
+      assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+      assertThat(results).extracting(result -> result.get()).containsExactlyInAnyOrder(201, 409);
+    }
+
+    assertThat(importBatches.findAll()).hasSize(1);
+    assertThat(importBatches.findAll().getFirst().getStatus()).isEqualTo(ExcelImportBatchStatus.COMPLETED);
+    assertThat(workEntries.findAll()).hasSize(1);
+    assertThat(absences.findAll()).hasSize(1);
+    assertThat(workTypes.findAll()).hasSize(1);
+
+    assertThat(confirmStatus(user, previewToken)).isEqualTo(409);
+  }
+
+  @Test
+  void confirmRejectsExpiredPreviewAndForeignToken() throws Exception {
+    UserAccount owner = createVerifiedUser("owner@example.com");
+    UserAccount other = createVerifiedUser("other@example.com");
+    createRate(owner, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+    createRate(other, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+
+    String previewToken = previewToken(owner, createWorkbookBytes("09:00-17:30", "Liste+CH"));
+    assertThat(confirmStatus(other, previewToken)).isEqualTo(409);
+
+    jdbcTemplate.update("update excel_import_batches set preview_expires_at = now() - interval '1 minute'");
+    assertThat(confirmStatus(owner, previewToken)).isEqualTo(409);
+    assertThat(workEntries.findAll()).isEmpty();
+    assertThat(absences.findAll()).isEmpty();
+  }
+
+  @Test
+  void databaseRejectsDuplicateImportedWorkEntrySourceKey() throws Exception {
+    UserAccount user = createVerifiedUser("unique-source@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+
+    String previewToken = previewToken(user, createWorkbookBytes("09:00-17:30", "Liste+CH"));
+    confirm(user, previewToken);
+
+    var existing = workEntries.findAll().getFirst();
+    var workType = workTypes.findById(existing.getWorkType().getId()).orElseThrow();
+    var duplicate =
+        new WorkEntry(
+            user,
+            workType,
+            LocalDate.of(2025, 1, 3),
+            new BigDecimal("20.00"),
+            "EUR",
+            60);
+    duplicate.markImported(
+        importBatches.findAll().getFirst(),
+        existing.getImportSourceKey(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+
+    assertThatThrownBy(() -> workEntries.saveAndFlush(duplicate))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
   void previewBlocksChangedImportedRowConflict() throws Exception {
     UserAccount user = createVerifiedUser("changed@example.com");
     createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
@@ -204,6 +281,18 @@ class ExcelImportIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsBytes(Map.of("previewToken", previewToken))))
         .andExpect(status().isCreated());
+  }
+
+  private int confirmStatus(UserAccount user, String previewToken) throws Exception {
+    return mockMvc
+        .perform(
+            post("/api/imports/excel/schedule/confirm")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(Map.of("previewToken", previewToken))))
+        .andReturn()
+        .getResponse()
+        .getStatus();
   }
 
   private MockMultipartFile workbookFile(String fileName, byte[] bytes) {

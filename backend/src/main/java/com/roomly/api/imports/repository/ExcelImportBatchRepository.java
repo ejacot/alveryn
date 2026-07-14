@@ -6,7 +6,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ExcelImportBatchRepository extends JpaRepository<ExcelImportBatch, UUID> {
@@ -19,6 +21,18 @@ public interface ExcelImportBatchRepository extends JpaRepository<ExcelImportBat
   List<ExcelImportBatch> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
 
   Optional<ExcelImportBatch> findByUserIdAndPreviewTokenHashAndStatus(
+      UUID userId, String previewTokenHash, ExcelImportBatchStatus status);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select batch
+      from ExcelImportBatch batch
+      where batch.user.id = :userId
+        and batch.previewTokenHash = :previewTokenHash
+        and batch.status = :status
+      """)
+  Optional<ExcelImportBatch> findClaimablePreviewForUpdate(
       UUID userId, String previewTokenHash, ExcelImportBatchStatus status);
 
   @Query(
