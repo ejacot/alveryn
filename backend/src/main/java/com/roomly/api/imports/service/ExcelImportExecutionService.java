@@ -19,6 +19,7 @@ import com.roomly.api.workentry.entity.TimeEntryDetails;
 import com.roomly.api.workentry.entity.WorkEntry;
 import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
+import com.roomly.api.workentry.service.WorkEntryTimeOverlapService;
 import com.roomly.api.worktype.entity.CalculationMethod;
 import com.roomly.api.worktype.entity.WorkType;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
@@ -49,6 +50,7 @@ public class ExcelImportExecutionService {
   private final TimeEntryDetailsRepository timeEntryDetails;
   private final AbsenceRepository absences;
   private final SalaryCalculationService salaryCalculationService;
+  private final WorkEntryTimeOverlapService timeOverlapService;
   private final Clock clock;
 
   public ExcelImportExecutionService(
@@ -61,6 +63,7 @@ public class ExcelImportExecutionService {
       TimeEntryDetailsRepository timeEntryDetails,
       AbsenceRepository absences,
       SalaryCalculationService salaryCalculationService,
+      WorkEntryTimeOverlapService timeOverlapService,
       Clock clock) {
     this.authenticatedUserAccessor = authenticatedUserAccessor;
     this.importBatches = importBatches;
@@ -71,6 +74,7 @@ public class ExcelImportExecutionService {
     this.timeEntryDetails = timeEntryDetails;
     this.absences = absences;
     this.salaryCalculationService = salaryCalculationService;
+    this.timeOverlapService = timeOverlapService;
     this.clock = clock;
   }
 
@@ -111,12 +115,14 @@ public class ExcelImportExecutionService {
       if (item.disposition() != ExcelImportPreviewPayload.ItemDisposition.NEW) {
         continue;
       }
-      if (!workEntries.findAllByUserIdAndWorkDateOrderByCreatedAt(userId, item.workDate()).isEmpty()
-          || absences.existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+      if (absences.existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
               userId, item.workDate(), item.workDate())) {
         throw new ConflictException(
             "Import data changed after preview. Generate a new preview before importing.",
             ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name());
+      }
+      if (item.startTime() != null && item.endTime() != null) {
+        timeOverlapService.validateNoOverlap(userId, null, item.workDate(), item.startTime(), item.endTime());
       }
       if (!workEntries.findAllByUserIdAndImportSourceKeyIn(userId, List.of(item.sourceKey())).isEmpty()) {
         throw new ConflictException(
@@ -159,7 +165,7 @@ public class ExcelImportExecutionService {
       if (item.disposition() != ExcelImportPreviewPayload.ItemDisposition.NEW) {
         continue;
       }
-      if (!workEntries.findAllByUserIdAndWorkDateOrderByCreatedAt(userId, item.workDate()).isEmpty()
+      if (workEntries.existsByUserIdAndWorkDateBetween(userId, item.workDate(), item.workDate())
           || absences.existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
               userId, item.workDate(), item.workDate())) {
         throw new ConflictException(

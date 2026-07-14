@@ -294,6 +294,150 @@ class WorkEntryIntegrationTest {
   }
 
   @Test
+  void timeOverlapValidationRejectsOverlappingIntervalsAndAllowsAdjacentOnes() throws Exception {
+    UserAccount user = createVerifiedUser("overlap@example.com");
+    WorkType workType = createWorkType(user, "Regular Shift", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "09:00:00", "17:00:00", 30);
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "14:00:00", "19:00:00", 0)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"))
+        .andExpect(jsonPath("$.message").value("This work entry overlaps an existing activity from 09:00 to 17:00."));
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "10:00:00", "12:00:00", 0)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"));
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "08:00:00", "18:00:00", 0)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"));
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "17:00:00", "20:00:00", 0)
+        .andExpect(status().isCreated());
+
+    assertThat(workEntries.findAll()).hasSize(2);
+  }
+
+  @Test
+  void timeOverlapValidationUsesActualDateTimeIntervalsAcrossMidnight() throws Exception {
+    UserAccount user = createVerifiedUser("overnight-overlap@example.com");
+    WorkType workType = createWorkType(user, "Night Shift", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "22:00:00", "06:00:00", 0);
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 15), "05:00:00", "08:00:00", 0)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"));
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 13), "23:00:00", "23:30:00", 0)
+        .andExpect(status().isCreated());
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 15), "06:00:00", "08:00:00", 0)
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void sameTimesOnDifferentDatesAndDifferentUsersAreAllowed() throws Exception {
+    UserAccount user = createVerifiedUser("same-times@example.com");
+    UserAccount other = createVerifiedUser("same-times-other@example.com");
+    WorkType workType = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    WorkType otherWorkType = createWorkType(other, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createRate(other, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "09:00:00", "17:00:00", 0);
+
+    postTimeEntry(user, workType, LocalDate.of(2026, 7, 16), "09:00:00", "17:00:00", 0)
+        .andExpect(status().isCreated());
+    postTimeEntry(other, otherWorkType, LocalDate.of(2026, 7, 14), "09:00:00", "17:00:00", 0)
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void updateExcludesCurrentEntryButRejectsOverlapWithAnotherEntry() throws Exception {
+    UserAccount user = createVerifiedUser("update-overlap@example.com");
+    WorkType workType = createWorkType(user, "Update Shift", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    String firstBody =
+        postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "08:00:00", "12:00:00", 0)
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String firstId = extractJsonValue(firstBody, "id");
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "13:00:00", "15:00:00", 0);
+
+    mockMvc
+        .perform(
+            put("/api/work-entries/" + firstId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-14",
+                      "startTime":"08:00:00",
+                      "endTime":"12:00:00",
+                      "unpaidBreakMinutes":0
+                    }
+                    """
+                        .formatted(workType.getId())))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(
+            put("/api/work-entries/" + firstId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-14",
+                      "startTime":"14:00:00",
+                      "endTime":"16:00:00",
+                      "unpaidBreakMinutes":0
+                    }
+                    """
+                        .formatted(workType.getId())))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"));
+  }
+
+  @Test
+  void unitBasedEntriesWithoutTimesDoNotParticipateInTimeOverlapValidation() throws Exception {
+    UserAccount user = createVerifiedUser("unit-overlap-ignore@example.com");
+    WorkType timeWork = createWorkType(user, "Time", CalculationMethod.TIME_BASED);
+    WorkType unitWork = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
+    UnitType room = createUnitType(unitWork, "Room", "2.0000");
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-14",
+                      "unitItems":[{"unitTypeId":"%s","quantity":4}]
+                    }
+                    """
+                        .formatted(unitWork.getId(), room.getId())))
+        .andExpect(status().isCreated());
+
+    postTimeEntry(user, timeWork, LocalDate.of(2026, 7, 14), "09:00:00", "17:00:00", 0)
+        .andExpect(status().isCreated());
+  }
+
+  @Test
   void absenceConflictsAndInvalidRequestsAreRejected() throws Exception {
     UserAccount user = createVerifiedUser("validation@example.com");
     WorkType timeWork = createWorkType(user, "Validation Time", CalculationMethod.TIME_BASED);
@@ -450,23 +594,27 @@ class WorkEntryIntegrationTest {
   private void createTimeEntry(
       UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime, int breakMinutes)
       throws Exception {
-    mockMvc
-        .perform(
-            post("/api/work-entries")
-                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "workTypeId":"%s",
-                      "workDate":"%s",
-                      "startTime":"%s",
-                      "endTime":"%s",
-                      "unpaidBreakMinutes":%d
-                    }
-                    """
-                        .formatted(workType.getId(), workDate, startTime, endTime, breakMinutes)))
-        .andExpect(status().isCreated());
+    postTimeEntry(user, workType, workDate, startTime, endTime, breakMinutes).andExpect(status().isCreated());
+  }
+
+  private org.springframework.test.web.servlet.ResultActions postTimeEntry(
+      UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime, int breakMinutes)
+      throws Exception {
+    return mockMvc.perform(
+        post("/api/work-entries")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+                {
+                  "workTypeId":"%s",
+                  "workDate":"%s",
+                  "startTime":"%s",
+                  "endTime":"%s",
+                  "unpaidBreakMinutes":%d
+                }
+                """
+                    .formatted(workType.getId(), workDate, startTime, endTime, breakMinutes)));
   }
 
   private UserAccount createVerifiedUser(String email) {

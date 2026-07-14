@@ -19,8 +19,11 @@ import com.roomly.api.salary.repository.HourlyRatePeriodRepository;
 import com.roomly.api.user.entity.UserAccount;
 import com.roomly.api.user.repository.UserAccountRepository;
 import com.roomly.api.workentry.entity.WorkEntry;
+import com.roomly.api.workentry.entity.TimeEntryDetails;
 import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
+import com.roomly.api.worktype.entity.CalculationMethod;
+import com.roomly.api.worktype.entity.WorkType;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -225,6 +228,62 @@ class ExcelImportIntegrationTest {
   }
 
   @Test
+  void previewDetectsTimeOverlapWithExistingEntry() throws Exception {
+    UserAccount user = createVerifiedUser("preview-overlap-existing@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+    WorkType workType = createWorkType(user, "Manual", CalculationMethod.TIME_BASED);
+    createManualTimeEntry(user, workType, LocalDate.of(2025, 1, 1), "09:00", "17:00", 0);
+
+    mockMvc
+        .perform(
+            multipart("/api/imports/excel/schedule/preview")
+                .file(workbookFile("Mariana 2025.xlsx", workbookWithWorkRows(new WorkRow(1, "14:00-19:00", "Overlap"))))
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.canImport").value(false))
+        .andExpect(jsonPath("$.data.conflicts[0].code").value("WORK_ENTRY_TIME_OVERLAP"));
+  }
+
+  @Test
+  void previewDetectsTimeOverlapInsideWorkbook() throws Exception {
+    UserAccount user = createVerifiedUser("preview-overlap-workbook@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+
+    mockMvc
+        .perform(
+            multipart("/api/imports/excel/schedule/preview")
+                .file(
+                    workbookFile(
+                        "Mariana 2025.xlsx",
+                        workbookWithWorkRows(
+                            new WorkRow(1, "22:00-06:00", "Night"),
+                            new WorkRow(2, "05:00-08:00", "Overlap"))))
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.canImport").value(false))
+        .andExpect(jsonPath("$.data.conflicts[0].code").value("WORK_ENTRY_TIME_OVERLAP"));
+  }
+
+  @Test
+  void confirmRechecksTimeOverlapAgainstCurrentDatabaseState() throws Exception {
+    UserAccount user = createVerifiedUser("confirm-overlap@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+    String previewToken = previewToken(user, workbookWithWorkRows(new WorkRow(1, "09:00-17:00", "Preview")));
+
+    WorkType workType = createWorkType(user, "Manual", CalculationMethod.TIME_BASED);
+    createManualTimeEntry(user, workType, LocalDate.of(2025, 1, 1), "14:00", "19:00", 0);
+
+    mockMvc
+        .perform(
+            post("/api/imports/excel/schedule/confirm")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsBytes(Map.of("previewToken", previewToken))))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_ENTRY_TIME_OVERLAP"));
+  }
+
+  @Test
   void historyAndUndoWorkPerBatch() throws Exception {
     UserAccount user = createVerifiedUser("undo@example.com");
     createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
@@ -337,6 +396,30 @@ class ExcelImportIntegrationTest {
     }
   }
 
+  private byte[] workbookWithWorkRows(WorkRow... rows) throws Exception {
+    try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+      var sheet = workbook.createSheet("Januar");
+      var header = sheet.createRow(0);
+      header.createCell(5).setCellValue("CH");
+      header.createCell(1).setCellValue("2025");
+
+      var secondHeader = sheet.createRow(1);
+      secondHeader.createCell(1).setCellValue("Normal");
+
+      for (int index = 0; index < rows.length; index++) {
+        WorkRow row = rows[index];
+        var workRow = sheet.createRow(index + 2);
+        workRow.createCell(0).setCellValue(row.day());
+        workRow.createCell(5).setCellValue(8);
+        workRow.createCell(16).setCellValue(row.shiftRange());
+        workRow.createCell(17).setCellValue(row.noteText());
+      }
+
+      workbook.write(output);
+      return output.toByteArray();
+    }
+  }
+
   private UserAccount createVerifiedUser(String email) {
     UserAccount user = new UserAccount(email, "hash");
     user.verifyEmail();
@@ -349,7 +432,38 @@ class ExcelImportIntegrationTest {
         new HourlyRatePeriod(user, new BigDecimal(rate), currency, validFrom, validTo));
   }
 
+  private WorkType createWorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
+    WorkType workType = new WorkType(user, name, calculationMethod);
+    workType.changeColor("#E5E7EB");
+    return workTypes.saveAndFlush(workType);
+  }
+
+  private void createManualTimeEntry(
+      UserAccount user,
+      WorkType workType,
+      LocalDate workDate,
+      String startTime,
+      String endTime,
+      int breakMinutes) {
+    WorkEntry entry =
+        workEntries.saveAndFlush(
+            new WorkEntry(
+                user,
+                workType,
+                workDate,
+                new BigDecimal("20.00"),
+                "EUR",
+                TimeEntryDetails.intervalMinutes(
+                    java.time.LocalTime.parse(startTime), java.time.LocalTime.parse(endTime))
+                    - breakMinutes));
+    timeEntryDetails.saveAndFlush(
+        new TimeEntryDetails(
+            entry, java.time.LocalTime.parse(startTime), java.time.LocalTime.parse(endTime), breakMinutes));
+  }
+
   private String bearerToken(UserAccount user) {
     return "Bearer " + jwtService.generateAccessToken(user);
   }
+
+  private record WorkRow(int day, String shiftRange, String noteText) {}
 }

@@ -7,6 +7,7 @@ import com.roomly.api.workentry.entity.WorkEntry;
 import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
 import com.roomly.api.workentry.repository.UnitEntryItemRepository;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
+import com.roomly.api.worktype.entity.CalculationMethod;
 import com.roomly.api.worktype.entity.WorkType;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class WorkEntryService {
   private final UnitEntryItemRepository unitEntryItems;
   private final WorkEntryCalculationService calculationService;
   private final WorkEntryValidationService validationService;
+  private final WorkEntryTimeOverlapService timeOverlapService;
   private final WorkEntryQueryService queryService;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
 
@@ -37,6 +39,7 @@ public class WorkEntryService {
 
     WorkEntryCalculationService.PreparedWorkEntry prepared =
         calculationService.prepareEntry(userId, workType, request);
+    validateTimeOverlap(userId, null, workType, request, prepared);
     WorkEntry saved =
         workEntries.save(
             new WorkEntry(
@@ -72,6 +75,7 @@ public class WorkEntryService {
 
     WorkEntryCalculationService.PreparedWorkEntry prepared =
         calculationService.prepareEntry(userId, workType, request);
+    validateTimeOverlap(userId, id, workType, request, prepared);
     entry.recalculate(
         workType,
         request.workDate(),
@@ -91,5 +95,18 @@ public class WorkEntryService {
   @Transactional
   public void delete(UUID id) {
     workEntries.delete(queryService.findEntry(authenticatedUserAccessor.requireUserId(), id));
+  }
+
+  private void validateTimeOverlap(
+      UUID userId,
+      UUID excludedEntryId,
+      WorkType workType,
+      WorkEntryRequest request,
+      WorkEntryCalculationService.PreparedWorkEntry prepared) {
+    if (workType.getCalculationMethod() != CalculationMethod.TIME_BASED) {
+      return;
+    }
+    timeOverlapService.validateNoOverlap(
+        userId, excludedEntryId, request.workDate(), prepared.startTime(), prepared.endTime());
   }
 }

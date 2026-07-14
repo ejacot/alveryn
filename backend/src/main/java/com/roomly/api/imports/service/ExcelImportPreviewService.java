@@ -22,6 +22,7 @@ import com.roomly.api.user.entity.UserAccount;
 import com.roomly.api.user.repository.UserAccountRepository;
 import com.roomly.api.workentry.entity.WorkEntry;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
+import com.roomly.api.workentry.service.WorkEntryTimeOverlapService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -54,6 +55,7 @@ public class ExcelImportPreviewService {
   private final AuthTokenGenerator tokenGenerator;
   private final Clock clock;
   private final ObjectMapper objectMapper;
+  private final WorkEntryTimeOverlapService timeOverlapService;
 
   public ExcelImportPreviewService(
       AuthenticatedUserAccessor authenticatedUserAccessor,
@@ -67,7 +69,8 @@ public class ExcelImportPreviewService {
       ExcelImportProperties properties,
       AuthTokenGenerator tokenGenerator,
       Clock clock,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      WorkEntryTimeOverlapService timeOverlapService) {
     this.authenticatedUserAccessor = authenticatedUserAccessor;
     this.users = users;
     this.workbookValidator = workbookValidator;
@@ -80,6 +83,7 @@ public class ExcelImportPreviewService {
     this.tokenGenerator = tokenGenerator;
     this.clock = clock;
     this.objectMapper = objectMapper;
+    this.timeOverlapService = timeOverlapService;
   }
 
   @Transactional
@@ -192,7 +196,14 @@ public class ExcelImportPreviewService {
 
     for (ParsedWorkbook.ParsedWorkItem item : parsed.workItems()) {
       ExcelImportPreviewPayload.ItemDisposition disposition =
-          classifyWorkItem(item, importedEntriesBySourceKey, workEntriesByDate, absencesByDate, conflicts, duplicates);
+          classifyWorkItem(
+              userId,
+              item,
+              importedEntriesBySourceKey,
+              absencesByDate,
+              workPlans,
+              conflicts,
+              duplicates);
       workPlans.add(
           new ExcelImportPreviewPayload.WorkItemPlan(
               item.workDate(),
@@ -257,10 +268,11 @@ public class ExcelImportPreviewService {
   }
 
   private ExcelImportPreviewPayload.ItemDisposition classifyWorkItem(
+      UUID userId,
       ParsedWorkbook.ParsedWorkItem item,
       Map<String, List<WorkEntry>> importedEntriesBySourceKey,
-      Map<LocalDate, List<WorkEntry>> workEntriesByDate,
       Map<LocalDate, List<Absence>> absencesByDate,
+      List<ExcelImportPreviewPayload.WorkItemPlan> existingWorkPlans,
       List<ExcelImportPreviewPayload.Conflict> conflicts,
       List<ExcelImportPreviewPayload.DuplicateCandidate> duplicates) {
     List<WorkEntry> importedMatches = importedEntriesBySourceKey.getOrDefault(item.sourceKey(), List.of());
@@ -275,13 +287,39 @@ public class ExcelImportPreviewService {
       return ExcelImportPreviewPayload.ItemDisposition.CONFLICT;
     }
 
-    if (!workEntriesByDate.getOrDefault(item.workDate(), List.of()).isEmpty()) {
-      conflicts.add(new ExcelImportPreviewPayload.Conflict(ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name(), item.workDate(), item.sourceKey(), "A work entry already exists on this date"));
-      return ExcelImportPreviewPayload.ItemDisposition.CONFLICT;
-    }
     if (!absencesByDate.getOrDefault(item.workDate(), List.of()).isEmpty()) {
       conflicts.add(new ExcelImportPreviewPayload.Conflict(ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name(), item.workDate(), item.sourceKey(), "An absence already exists on this date"));
       return ExcelImportPreviewPayload.ItemDisposition.CONFLICT;
+    }
+    if (item.startTime() != null && item.endTime() != null) {
+      var databaseConflict =
+          timeOverlapService.findDatabaseConflict(
+              userId, null, item.workDate(), item.startTime(), item.endTime());
+      if (databaseConflict.isPresent()) {
+        conflicts.add(
+            new ExcelImportPreviewPayload.Conflict(
+                WorkEntryTimeOverlapService.ERROR_CODE,
+                item.workDate(),
+                item.sourceKey(),
+                timeOverlapService.previewMessage(databaseConflict.get())));
+        return ExcelImportPreviewPayload.ItemDisposition.CONFLICT;
+      }
+
+      var workbookConflict =
+          timeOverlapService.findWorkbookConflict(
+              timeOverlapService.newTimeItems(existingWorkPlans),
+              item.workDate(),
+              item.startTime(),
+              item.endTime());
+      if (workbookConflict.isPresent()) {
+        conflicts.add(
+            new ExcelImportPreviewPayload.Conflict(
+                WorkEntryTimeOverlapService.ERROR_CODE,
+                item.workDate(),
+                item.sourceKey(),
+                timeOverlapService.workbookPreviewMessage(workbookConflict.get().interval())));
+        return ExcelImportPreviewPayload.ItemDisposition.CONFLICT;
+      }
     }
     return ExcelImportPreviewPayload.ItemDisposition.NEW;
   }
