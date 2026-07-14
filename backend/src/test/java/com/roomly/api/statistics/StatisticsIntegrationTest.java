@@ -402,6 +402,88 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.workTypes[0].percentageBasis").value("MINUTES"));
   }
 
+  @Test
+  void forecastReturnsDeterministicCurrentPeriodProjection() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-forecast@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "16:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/forecast")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.mode").value("WORKDAY_PACE"))
+        .andExpect(jsonPath("$.data.forecasts[0].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.forecasts[0].available").value(true))
+        .andExpect(jsonPath("$.data.forecasts[0].workedDays").value(3))
+        .andExpect(jsonPath("$.data.forecasts[0].confidence").value("LOW"));
+  }
+
+  @Test
+  void productivityUsesUnitSnapshotsAndDoesNotInventActualProductivity() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-productivity@example.com");
+    WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
+    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
+    UnitType suite = createUnitType(rooms, "Suite", "1.0000");
+    createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
+    createUnitEntry(user, rooms, suite, LocalDate.of(2026, 7, 4), "2");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/productivity")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.available").value(true))
+        .andExpect(jsonPath("$.data.actualProductivityAvailable").value(false))
+        .andExpect(jsonPath("$.data.actualUnitsPerHour").doesNotExist())
+        .andExpect(jsonPath("$.data.unitTypes.length()").value(2))
+        .andExpect(jsonPath("$.data.unitTypes[0].name").value("Normal room"))
+        .andExpect(jsonPath("$.data.points.length()").value(31));
+  }
+
+  @Test
+  void highlightsAndInsightsReturnDeterministicPersonalPatterns() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-insights@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 10), "08:00:00", "12:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 11), "08:00:00", "14:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 12), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 13), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 14), "08:00:00", "16:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "10:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/highlights")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.highlights[0].type").value("BEST_GROSS_DAY"))
+        .andExpect(jsonPath("$.data.highlights[5].type").value("CURRENT_STREAK"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/insights")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-10")
+                .param("to", "2026-07-14"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.insights.length()").value(2))
+        .andExpect(content().string(containsString("\"type\":\"STREAK\"")))
+        .andExpect(content().string(containsString("\"type\":\"MOST_USED_WORK_TYPE\"")));
+  }
+
   private void createTimeEntry(UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime)
       throws Exception {
     mockMvc

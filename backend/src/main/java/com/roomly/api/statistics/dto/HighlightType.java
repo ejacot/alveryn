@@ -1,0 +1,14 @@
+package com.roomly.api.statistics.dto;
+
+public enum HighlightType {
+  BEST_GROSS_DAY,
+  BEST_HOURS_DAY,
+  LONGEST_SHIFT,
+  AVERAGE_SHIFT,
+  MOST_USED_WORK_TYPE,
+  BUSIEST_WEEKDAY,
+  CURRENT_STREAK,
+  LONGEST_STREAK,
+  WEEKEND_WORK_COUNT,
+  OVERNIGHT_SHIFT_COUNT
+}
