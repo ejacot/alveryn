@@ -24,6 +24,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { formatLocalIsoDate } from "../utils/date";
 import {
   calculateGrossAmount,
@@ -68,6 +70,7 @@ export function WorkEntryEditorPage() {
   }, [outletContext?.selectedDate, prefilledDate]);
   const returnTo =
     (location.state as { returnTo?: string } | null)?.returnTo ?? "/";
+  const safeBack = useSafeBackNavigation({ fallback: returnTo });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successState, setSuccessState] = useState<"idle" | "saved" | "deleted">("idle");
   const hydratedUnitRowsForEntry = useRef<string | null>(null);
@@ -209,6 +212,7 @@ export function WorkEntryEditorPage() {
 
   async function afterSuccessfulMutation(state: "saved" | "deleted") {
     setSuccessState(state);
+    form.reset(form.getValues());
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
@@ -274,6 +278,14 @@ export function WorkEntryEditorPage() {
     hourlyRatesQuery.error ??
     entryQuery.error ??
     unitTypesQuery.error;
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty:
+      form.formState.isDirty &&
+      successState === "idle" &&
+      !createMutation.isPending &&
+      !updateMutation.isPending &&
+      !deleteMutation.isPending
+  });
 
   if (isLoading) {
     return (
@@ -314,7 +326,7 @@ export function WorkEntryEditorPage() {
   return (
     <div className="space-y-6 pb-6">
       <header className="flex items-center justify-between">
-        <Button variant="ghost" className="px-0" onClick={() => navigate(-1)}>
+        <Button variant="ghost" className="px-0" onClick={() => confirmOrRun(safeBack)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t("common:actions.back")}
         </Button>
@@ -589,6 +601,7 @@ export function WorkEntryEditorPage() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+      {dialog}
     </div>
   );
 }

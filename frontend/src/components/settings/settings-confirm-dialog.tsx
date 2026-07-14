@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 
 type Props = {
@@ -20,6 +21,7 @@ export function SettingsConfirmDialog({
   onCancel,
   onConfirm
 }: Props) {
+  const { t } = useTranslation("common");
   const titleId = useId();
   const descriptionId = useId();
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -83,6 +85,7 @@ export function SettingsConfirmDialog({
   return (
     <div
       ref={overlayRef}
+      role="presentation"
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 px-4 pb-6 pt-10 backdrop-blur-sm sm:items-center"
       onMouseDown={(event) => {
         if (event.target === overlayRef.current) {
@@ -104,7 +107,7 @@ export function SettingsConfirmDialog({
         </div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button ref={cancelButtonRef} type="button" variant="secondary" onClick={onCancel} disabled={pending}>
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button
             type="button"
@@ -112,7 +115,7 @@ export function SettingsConfirmDialog({
             disabled={pending}
             className="bg-white text-black hover:bg-white/90"
           >
-            {pending ? "Working..." : confirmLabel}
+            {pending ? t("actions.working") : confirmLabel}
           </Button>
         </div>
       </div>

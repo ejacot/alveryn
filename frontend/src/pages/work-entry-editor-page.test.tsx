@@ -81,6 +81,13 @@ vi.mock("../components/work-entry/work-entry-summary-card", () => ({
   WorkEntrySummaryCard: () => <div>Summary</div>
 }));
 
+vi.mock("../hooks/use-unsaved-changes-guard", () => ({
+  useUnsavedChangesGuard: () => ({
+    confirmOrRun: (action: () => void) => action(),
+    dialog: null
+  })
+}));
+
 import {
   createWorkEntry,
   deleteWorkEntry,

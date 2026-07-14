@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useBeforeUnload, useBlocker } from "react-router-dom";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 
@@ -7,6 +8,7 @@ type Options = {
 };
 
 export function useUnsavedChangesGuard({ isDirty }: Options) {
+  const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
   const blocker = useBlocker(isDirty);
@@ -62,9 +64,9 @@ export function useUnsavedChangesGuard({ isDirty }: Options) {
   const dialog = (
     <SettingsConfirmDialog
       open={open}
-      title="Discard changes?"
-      description="Your unsaved edits will be lost."
-      confirmLabel="Discard"
+      title={t("unsaved.title")}
+      description={t("unsaved.description")}
+      confirmLabel={t("unsaved.confirm")}
       onCancel={cancelDiscard}
       onConfirm={discardChanges}
     />

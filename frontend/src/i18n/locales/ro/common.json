@@ -1,48 +1,53 @@
 {
   "actions": {
-    "back": "Inapoi",
-    "cancel": "Anuleaza",
-    "close": "Inchide",
-    "continue": "Continua",
-    "delete": "Sterge",
-    "retry": "Incearca din nou",
-    "save": "Salveaza",
-    "saveChanges": "Salveaza modificarile",
-    "saving": "Se salveaza...",
+    "back": "Înapoi",
+    "cancel": "Anulează",
+    "close": "Închide",
+    "continue": "Continuă",
+    "delete": "Șterge",
+    "retry": "Încearcă din nou",
+    "save": "Salvează",
+    "saveChanges": "Salvează modificările",
+    "saving": "Se salvează...",
     "working": "Se proceseaza..."
   },
   "labels": {
     "email": "Email",
-    "password": "Parola",
-    "newPassword": "Parola noua",
+    "password": "Parolă",
+    "newPassword": "Parolă nouă",
     "verificationCode": "Cod de verificare"
   },
   "messages": {
-    "genericError": "Ceva nu a mers bine. Incearca din nou.",
-    "networkError": "Roomly nu a putut contacta backendul. Verifica serverul si incearca din nou.",
-    "serverUnavailable": "Roomly este temporar indisponibil. Incearca din nou peste cateva momente.",
-    "unexpectedResponse": "Backendul a returnat un raspuns neasteptat.",
+    "genericError": "Ceva nu a mers bine. Încearcă din nou.",
+    "networkError": "Roomly nu a putut contacta backendul. Verifică serverul și încearcă din nou.",
+    "serverUnavailable": "Roomly este temporar indisponibil. Încearcă din nou peste câteva momente.",
+    "unexpectedResponse": "Backendul a returnat un răspuns neașteptat.",
     "saved": "Salvat",
-    "changesSaved": "Modificarile au fost salvate.",
-    "loading": "Se incarca..."
+    "changesSaved": "Modificările au fost salvate.",
+    "loading": "Se încarcă..."
+  },
+  "unsaved": {
+    "title": "Renunți la modificări?",
+    "description": "Modificările nesalvate se vor pierde.",
+    "confirm": "Renunță"
   },
   "nav": {
-    "home": "Acasa",
+    "home": "Acasă",
     "calendar": "Calendar",
-    "addEntry": "Adauga",
+    "addEntry": "Adaugă",
     "statistics": "Statistici",
-    "settings": "Setari",
-    "primaryNavigation": "Navigare principala"
+    "settings": "Setări",
+    "primaryNavigation": "Navigare principală"
   },
   "statistics": {
     "eyebrow": "Statistici",
-    "title": "Disponibil mai tarziu",
-    "description": "Statisticile vor fi adaugate dupa finalizarea fluxurilor principale.",
+    "title": "Disponibil mai târziu",
+    "description": "Statisticile vor fi adăugate după finalizarea fluxurilor principale.",
     "cardTitle": "Indisponibil momentan",
-    "cardBody": "Momentan, inregistreaza munca din Acasa si Calendar."
+    "cardBody": "Momentan, înregistrează munca din Acasă și Calendar."
   },
   "time": {
-    "today": "Astazi",
+    "today": "Astăzi",
     "current": "Curent",
     "hoursShort": "h",
     "minutesShort": "m"

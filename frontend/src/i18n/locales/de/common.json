@@ -1,13 +1,13 @@
 {
   "actions": {
-    "back": "Zuruck",
+    "back": "Zurück",
     "cancel": "Abbrechen",
-    "close": "Schliessen",
+    "close": "Schließen",
     "continue": "Weiter",
-    "delete": "Loschen",
+    "delete": "Löschen",
     "retry": "Erneut versuchen",
     "save": "Speichern",
-    "saveChanges": "Anderungen speichern",
+    "saveChanges": "Änderungen speichern",
     "saving": "Speichert...",
     "working": "Wird verarbeitet..."
   },
@@ -15,16 +15,21 @@
     "email": "E-Mail",
     "password": "Passwort",
     "newPassword": "Neues Passwort",
-    "verificationCode": "Bestatigungscode"
+    "verificationCode": "Bestätigungscode"
   },
   "messages": {
     "genericError": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
-    "networkError": "Roomly konnte das Backend nicht erreichen. Prufe den Server und versuche es erneut.",
-    "serverUnavailable": "Roomly ist vorubergehend nicht verfugbar. Bitte versuche es gleich noch einmal.",
-    "unexpectedResponse": "Das Backend hat eine unerwartete Antwort zuruckgegeben.",
+    "networkError": "Roomly konnte das Backend nicht erreichen. Prüfe den Server und versuche es erneut.",
+    "serverUnavailable": "Roomly ist vorübergehend nicht verfügbar. Bitte versuche es gleich noch einmal.",
+    "unexpectedResponse": "Das Backend hat eine unerwartete Antwort zurückgegeben.",
     "saved": "Gespeichert",
     "changesSaved": "Anderungen gespeichert.",
-    "loading": "Ladt..."
+    "loading": "Lädt..."
+  },
+  "unsaved": {
+    "title": "Änderungen verwerfen?",
+    "description": "Deine ungespeicherten Änderungen gehen verloren.",
+    "confirm": "Verwerfen"
   },
   "nav": {
     "home": "Start",
@@ -32,14 +37,14 @@
     "addEntry": "Eintrag",
     "statistics": "Statistik",
     "settings": "Einstellungen",
-    "primaryNavigation": "Primare Navigation"
+    "primaryNavigation": "Primäre Navigation"
   },
   "statistics": {
     "eyebrow": "Statistik",
-    "title": "Kommt spater",
-    "description": "Statistiken werden nach den Kernablaufen hinzugefugt.",
-    "cardTitle": "Noch nicht verfugbar",
-    "cardBody": "Erfasse Arbeit vorerst uber Start und Kalender."
+    "title": "Kommt später",
+    "description": "Statistiken werden nach den Kernabläufen hinzugefügt.",
+    "cardTitle": "Noch nicht verfügbar",
+    "cardBody": "Erfasse Arbeit vorerst über Start und Kalender."
   },
   "time": {
     "today": "Heute",
