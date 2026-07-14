@@ -112,6 +112,44 @@ describe("UnitTypeEditorPage", () => {
     });
   });
 
+  it("creates a unit type with hidden defaults omitted from the visible form", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    const rateInput = screen.getByRole("textbox", { name: /units per hour/i });
+
+    await user.clear(rateInput);
+    await user.type(screen.getByLabelText("Name"), "Junior room");
+    await user.type(rateInput, "1.8");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(createUnitType).toHaveBeenCalledWith("work-type-1", {
+        name: "Junior room",
+        unitsPerHour: 1.8,
+        active: true
+      });
+      expect(screen.queryByText("Check the highlighted fields and try again.")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not keep NaN text in the units-per-hour field", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    const rateInput = screen.getByRole("textbox", { name: /units per hour/i });
+
+    await user.clear(rateInput);
+    await user.type(screen.getByLabelText("Name"), "Junior room");
+    await user.type(rateInput, "NaN");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    expect(rateInput).toHaveValue("");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Check the highlighted fields and try again."
+    );
+    expect(screen.getByText("Units per hour must be greater than zero")).toBeInTheDocument();
+    expect(createUnitType).not.toHaveBeenCalled();
+  });
+
   it("shows visible validation instead of silently blocking submit", async () => {
     renderPage();
     const user = userEvent.setup();

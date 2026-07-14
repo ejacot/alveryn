@@ -48,7 +48,7 @@
     "deactivateConfirm": "Dezactiveaza",
     "fields": {
       "name": "Nume",
-      "unitsPerHour": "Unitati pe ora",
+      "unitsPerHour": "Unități pe oră",
       "status": "Status"
     },
     "validation": {

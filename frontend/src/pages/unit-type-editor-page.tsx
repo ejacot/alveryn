@@ -39,8 +39,8 @@ function createUnitTypeSchema(t: (key: string) => string) {
       parseDecimalInput,
       z.number({ error: t("unitTypes.validation.unitsPerHour") }).gt(0, t("unitTypes.validation.unitsPerHour"))
     ),
-    displayOrder: z.coerce.number().min(0),
-    active: z.boolean()
+    displayOrder: z.coerce.number().min(0).optional().default(0),
+    active: z.boolean().optional().default(true)
   });
 }
 
@@ -145,6 +145,8 @@ export function UnitTypeEditorPage() {
     return <ScreenMessage title={t("unitTypes.unavailableTitle")} description={getApiError(unitTypeQuery.error).message} />;
   }
 
+  const unitsPerHourField = form.register("unitsPerHour");
+
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
@@ -188,7 +190,14 @@ export function UnitTypeEditorPage() {
               label={t("unitTypes.fields.unitsPerHour")}
               helperText={t("unitTypes.unitsPerHourHelper")}
               error={form.formState.errors.unitsPerHour?.message}
-              {...form.register("unitsPerHour")}
+              {...unitsPerHourField}
+              onChange={(event) => {
+                const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
+                if (event.currentTarget.value !== sanitized) {
+                  event.currentTarget.value = sanitized;
+                }
+                void unitsPerHourField.onChange(event);
+              }}
             />
             {isEditing ? (
               <Select label={t("unitTypes.fields.status")} error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
