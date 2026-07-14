@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#050505",
+        ink: "#000000",
         panel: "#111111",
         line: "#242424",
         mist: "#b5b5b5",

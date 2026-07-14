@@ -57,9 +57,9 @@ export function BottomNav() {
               className={cn(
                 "flex items-center justify-center transition",
                 prominent
-                  ? "h-12 w-12 rounded-full border border-white/[0.08] bg-white/[0.88] text-black shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.36)] backdrop-blur-[16px]"
+                  ? "h-12 w-12 rounded-full border border-white/[0.66] bg-white/[0.78] text-black shadow-[0_18px_42px_rgba(0,0,0,0.3),0_0_26px_rgba(255,255,255,0.12),inset_0_1px_0_rgba(255,255,255,0.96),inset_0_-14px_24px_rgba(0,0,0,0.12)] backdrop-blur-[8px]"
                   : isActive
-                    ? "h-11 w-11 rounded-[18px] bg-white/[0.07] text-white"
+                    ? "h-11 w-11 rounded-[19px] border border-white/[0.24] bg-white/[0.13] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.42),inset_0_-10px_18px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[8px]"
                     : "h-11 w-11 text-white/52"
               )}
               title={label}
