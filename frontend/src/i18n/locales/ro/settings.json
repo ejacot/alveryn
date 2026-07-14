@@ -1,5 +1,8 @@
 {
   "title": "Setari",
+  "unitTypes": {
+    "unitsPerHourHelper": "In mod normal finalizezi atatea unitati de acest tip intr-o ora."
+  },
   "account": "Cont",
   "work": "Munca",
   "preferences": "Preferinte",

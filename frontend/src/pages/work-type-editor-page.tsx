@@ -90,12 +90,16 @@ export function WorkTypeEditorPage() {
     });
   }, [form, workTypeQuery.data]);
 
-  async function afterSuccess(targetId?: string) {
+  async function afterSuccess(targetId?: string, calculationMethod?: FormValues["calculationMethod"]) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() })
     ]);
-    navigate(targetId ? `/settings/work-types/${targetId}` : "/settings/work-types");
+    if (targetId && (isEditing || calculationMethod === "UNIT_BASED")) {
+      navigate(`/settings/work-types/${targetId}`);
+      return;
+    }
+    navigate("/settings/work-types");
   }
 
   const saveMutation = useMutation({
@@ -126,7 +130,7 @@ export function WorkTypeEditorPage() {
     },
     onSuccess: async (workType) => {
       setSuccessMessage(isEditing ? "Work type updated." : "Work type created.");
-      await afterSuccess(workType.id);
+      await afterSuccess(workType.id, workType.calculationMethod);
     },
     onError: (error) => {
       const apiError = getApiError(error);
@@ -170,7 +174,11 @@ export function WorkTypeEditorPage() {
       <form
         className="space-y-6"
         onSubmit={form.handleSubmit(async (values) => {
-          await saveMutation.mutateAsync(values);
+          try {
+            await saveMutation.mutateAsync(values);
+          } catch {
+            // Mutation state renders field and global API errors without leaving the form.
+          }
         })}
       >
         <SettingsSection title="Core settings">
@@ -214,7 +222,10 @@ export function WorkTypeEditorPage() {
         </SettingsSection>
 
         {isEditing && workTypeQuery.data?.calculationMethod === "UNIT_BASED" ? (
-          <SettingsSection title="Units">
+          <SettingsSection
+            title="Units"
+            description="Unit types define what you count, such as normal rooms, junior rooms or suites."
+          >
             <div className="space-y-4">
               <Button type="button" variant="secondary" className="w-full" onClick={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}>
                 Add unit type
@@ -233,7 +244,9 @@ export function WorkTypeEditorPage() {
                           <p className={`text-[1rem] font-medium ${unit.active ? "text-white" : "text-white/44"}`}>
                             {unit.name}
                           </p>
-                          <p className="mt-1 text-sm text-white/46">{unit.unitsPerHour} per hour</p>
+                          <p className="mt-1 text-sm text-white/46">
+                            You normally complete {unit.unitsPerHour} of these units in one hour.
+                          </p>
                         </div>
                         <span className="text-xs uppercase tracking-[0.16em] text-white/28">
                           {unit.active ? "Active" : "Inactive"}
@@ -245,7 +258,9 @@ export function WorkTypeEditorPage() {
               ) : (
                 <SettingsEmptyState
                   title="No unit types yet"
-                  description="Add units such as rooms, apartments or suites for this work type."
+                  description="Add the unit types you count during work."
+                  actionLabel="Add unit type"
+                  onAction={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}
                 />
               )}
             </div>

@@ -1,5 +1,8 @@
 {
   "title": "Einstellungen",
+  "unitTypes": {
+    "unitsPerHourHelper": "Normalerweise schaffst du so viele dieser Einheiten in einer Stunde."
+  },
   "account": "Konto",
   "work": "Arbeit",
   "preferences": "Einstellungen",

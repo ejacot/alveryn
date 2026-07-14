@@ -1,5 +1,8 @@
 {
   "title": "Settings",
+  "unitTypes": {
+    "unitsPerHourHelper": "You normally complete this many of these units in one hour."
+  },
   "account": "Account",
   "work": "Work",
   "preferences": "Preferences",

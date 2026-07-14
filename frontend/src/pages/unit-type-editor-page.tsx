@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
@@ -35,6 +36,7 @@ type FormInput = z.input<typeof schema>;
 
 export function UnitTypeEditorPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
   const { workTypeId, unitTypeId } = useParams();
   const isEditing = Boolean(unitTypeId);
@@ -131,13 +133,25 @@ export function UnitTypeEditorPage() {
       <form
         className="space-y-6"
         onSubmit={form.handleSubmit(async (values) => {
-          await saveMutation.mutateAsync(values);
+          try {
+            await saveMutation.mutateAsync(values);
+          } catch {
+            // Mutation state renders the API error and keeps the user on the form.
+          }
         })}
       >
         <SettingsSection title="Unit settings">
           <div className="space-y-4">
             <Input label="Name" error={form.formState.errors.name?.message} {...form.register("name")} />
-            <Input type="number" min={0.01} step="0.01" label="Units per hour" error={form.formState.errors.unitsPerHour?.message} {...form.register("unitsPerHour")} />
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              label="Units per hour"
+              helperText={t("unitTypes.unitsPerHourHelper")}
+              error={form.formState.errors.unitsPerHour?.message}
+              {...form.register("unitsPerHour")}
+            />
             <Input type="number" min={0} label="Display order" error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
             {isEditing ? (
               <Select label="Status" error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
