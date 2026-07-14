@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ConflictException.class)
   ResponseEntity<ApiErrorResponse> handleConflict(ConflictException e, HttpServletRequest r) {
-    return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, List.of());
+    return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, e.getErrors());
   }
 
   @ExceptionHandler({

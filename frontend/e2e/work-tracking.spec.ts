@@ -90,10 +90,74 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   await expect((await unitRequest).ok()).toBeTruthy();
   await expect(page.getByText("Camere").first()).toBeVisible();
   await expect(page.getByText("Cameră normală").first()).toBeVisible();
-  await expect(page.getByText("12").first()).toBeVisible();
+  await page.getByRole("button", { name: /open camere/i }).click();
+  await expect(page.getByLabel("Cameră normală Units")).toHaveValue("12");
+  await expect(page.getByLabel("Cameră junior Units")).toHaveValue("4");
+  await expect(page.getByLabel("Suită Units")).toHaveValue("2");
 
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-types"))).toBe(true);
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-entries"))).toBe(true);
+  expect(consoleErrors).toEqual([]);
+});
+
+test("creates a unit-based work type from an iPhone-sized viewport", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const user = await createE2eUser(testInfo.title);
+  await loginThroughUi(page, user);
+
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      const text = message.text();
+      if (
+        !text.includes("401 (Unauthorized)") &&
+        !text.includes("409 (Conflict)")
+      ) {
+        consoleErrors.push(text);
+      }
+    }
+  });
+
+  await page.goto("/settings/work-types/new");
+  await page.getByLabel("Name").fill("Rooms");
+  await page.getByLabel("Calculation method").selectOption("UNIT_BASED");
+
+  const saveButton = page.getByRole("button", { name: /save changes/i });
+  await expect(saveButton).toBeVisible();
+
+  const workTypeRequest = page.waitForResponse((response) =>
+    response.url().includes("/api/work-types") && response.request().method() === "POST"
+  );
+  await saveButton.click();
+
+  const response = await workTypeRequest;
+  expect(response.ok()).toBeTruthy();
+  const responseBody = await response.json();
+  const workTypeId = responseBody.data.id;
+  expect(response.request().postDataJSON()).toEqual({
+    name: "Rooms",
+    calculationMethod: "UNIT_BASED"
+  });
+  await expect(page.getByText("No unit types yet")).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(new RegExp(`/settings/work-types/${workTypeId}$`));
+  await expect(page.getByLabel("Name")).toHaveValue("Rooms");
+
+  await page.goto("/settings/work-types/new");
+  await page.getByLabel("Name").fill("Rooms");
+  await page.getByLabel("Calculation method").selectOption("UNIT_BASED");
+  const duplicateRequest = page.waitForResponse((duplicateResponse) =>
+    duplicateResponse.url().includes("/api/work-types") && duplicateResponse.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: /save changes/i }).click();
+  const duplicateResponse = await duplicateRequest;
+  expect(duplicateResponse.status()).toBe(409);
+  expect(await duplicateResponse.json()).toMatchObject({
+    code: "WORK_TYPE_NAME_EXISTS",
+    errors: ["name: Work type name already exists"]
+  });
+  await expect(page.getByText("A work type with this name already exists.").first()).toBeVisible();
+  await expect(page.getByLabel("Name")).toHaveValue("Rooms");
   expect(consoleErrors).toEqual([]);
 });
 

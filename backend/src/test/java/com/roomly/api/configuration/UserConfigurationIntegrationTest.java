@@ -272,7 +272,9 @@ class UserConfigurationIntegrationTest {
                       "displayOrder":2
                     }
                     """))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WORK_TYPE_NAME_EXISTS"))
+        .andExpect(jsonPath("$.errors[0]").value("name: Work type name already exists"));
 
     mockMvc
         .perform(

@@ -41,7 +41,7 @@ type FormInput = z.input<Schema>;
 
 export function WorkTypeEditorPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation(["settings", "common", "entries"]);
+  const { t } = useTranslation(["settings", "common", "entries", "errors"]);
   const queryClient = useQueryClient();
   const { workTypeId } = useParams();
   const isEditing = Boolean(workTypeId);
@@ -121,6 +121,10 @@ export function WorkTypeEditorPage() {
     },
     onError: (error) => {
       const apiError = getApiError(error);
+      if (apiError.code === "WORK_TYPE_NAME_EXISTS") {
+        form.setError("name", { message: t("errors:WORK_TYPE_NAME_EXISTS") });
+        return;
+      }
       Object.entries(apiError.fieldErrors).forEach(([field, message]) => {
         form.setError(field as keyof FormValues, { message });
       });

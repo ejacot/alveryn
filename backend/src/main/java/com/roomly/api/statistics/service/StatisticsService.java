@@ -55,6 +55,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.time.temporal.ChronoUnit;
@@ -86,6 +87,7 @@ public class StatisticsService {
   private final UnitEntryItemRepository unitEntryItemRepository;
   private final AbsenceRepository absenceRepository;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
+  private final Clock clock;
 
   @Transactional(readOnly = true)
   public StatisticsOverviewResponse overview(StatisticsFilters filters) {
@@ -261,7 +263,7 @@ public class StatisticsService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     validateRange(filters.from(), filters.to());
     ForecastMode resolvedMode = mode == null ? ForecastMode.WORKDAY_PACE : mode;
-    LocalDate today = LocalDate.now();
+    LocalDate today = LocalDate.now(clock);
     LocalDate asOf = today.isBefore(filters.from()) ? filters.from().minusDays(1) : today.isAfter(filters.to()) ? filters.to() : today;
     LocalDate queryTo = asOf.isBefore(filters.from()) ? filters.from() : asOf;
     List<WorkEntry> entries = findEntries(userId, filters, filters.from(), queryTo);
@@ -803,7 +805,7 @@ public class StatisticsService {
       }
     }
     LocalDate lastWorkedDay = dates.getLast();
-    LocalDate today = LocalDate.now();
+    LocalDate today = LocalDate.now(clock);
     boolean currentStreakIsActive = lastWorkedDay.equals(today) || lastWorkedDay.equals(today.minusDays(1));
     return new Streaks(
         currentStreakIsActive ? trailing : 0,

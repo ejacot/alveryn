@@ -39,7 +39,12 @@ public class JwtService {
   }
 
   public Claims parse(String token) {
-    return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+    return Jwts.parser()
+        .clock(() -> Date.from(clock.instant()))
+        .verifyWith(secretKey)
+        .build()
+        .parseSignedClaims(token)
+        .getPayload();
   }
 
   public long getAccessTokenExpiresInSeconds() {

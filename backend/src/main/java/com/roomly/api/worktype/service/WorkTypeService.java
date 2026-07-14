@@ -27,6 +27,8 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @RequiredArgsConstructor
 public class WorkTypeService {
+  public static final String WORK_TYPE_NAME_EXISTS = "WORK_TYPE_NAME_EXISTS";
+
   private static final String[] DEFAULT_COLORS = {
     "#87C95A", "#60A5FA", "#F59E0B", "#F472B6", "#A78BFA", "#2DD4BF", "#FB7185"
   };
@@ -46,7 +48,7 @@ public class WorkTypeService {
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
     var entity = new WorkType(user, dto.name(), dto.calculationMethod());
     if (repository.existsByUserIdAndNormalizedName(userId, entity.getNormalizedName()))
-      throw new ConflictException("WorkType name already exists");
+      throw workTypeNameExists();
     applyCreateDefaults(entity, userId, dto);
     return mapper.toWorkTypeResponse(repository.save(entity));
   }
@@ -58,7 +60,7 @@ public class WorkTypeService {
     validateCalculationMethodChange(userId, entity, dto);
     entity.rename(dto.name());
     if (repository.existsByUserIdAndNormalizedNameAndIdNot(userId, entity.getNormalizedName(), id))
-      throw new ConflictException("WorkType name already exists");
+      throw workTypeNameExists();
     applyUpdate(entity, dto);
     return mapper.toWorkTypeResponse(entity);
   }
@@ -123,6 +125,13 @@ public class WorkTypeService {
       return requested;
     }
     return preferences.findByUserId(userId).map(pref -> pref.getDefaultBreakMinutes()).orElse(30);
+  }
+
+  private ConflictException workTypeNameExists() {
+    return new ConflictException(
+        "Work type name already exists",
+        WORK_TYPE_NAME_EXISTS,
+        List.of("name: Work type name already exists"));
   }
 
   private void validateCalculationMethodChange(UUID userId, WorkType entity, UpdateWorkTypeRequest request) {

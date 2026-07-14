@@ -25,11 +25,17 @@ import com.roomly.api.worktype.entity.WorkType;
 import com.roomly.api.worktype.repository.UnitTypeRepository;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -641,5 +647,14 @@ class StatisticsIntegrationTest {
 
   private String bearerToken(UserAccount user) {
     return "Bearer " + jwtService.generateAccessToken(user);
+  }
+
+  @TestConfiguration
+  static class StatisticsTestConfiguration {
+    @Bean
+    @Primary
+    Clock fixedStatisticsClock() {
+      return Clock.fixed(Instant.parse("2026-07-14T12:00:00Z"), ZoneOffset.UTC);
+    }
   }
 }

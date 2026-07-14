@@ -15,6 +15,7 @@
   "EXCEL_IMPORT_CONFLICT": "Acest fisier are conflicte care blocheaza importul.",
   "EXCEL_BATCH_NOT_FOUND": "Acest lot de import nu a fost gasit.",
   "EXCEL_BATCH_ALREADY_UNDONE": "Acest lot de import a fost deja anulat.",
+  "WORK_TYPE_NAME_EXISTS": "Există deja un tip de lucru cu acest nume.",
   "WORK_ENTRY_TIME_OVERLAP": "Această activitate se suprapune cu o activitate existentă între {{start}} și {{end}}.",
   "STATISTICS_INVALID_DATE_RANGE": "Alege o perioadă validă pentru statistici.",
   "STATISTICS_INVALID_COMPARISON_RANGE": "Alege perioade valide pentru comparație.",

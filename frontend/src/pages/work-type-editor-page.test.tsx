@@ -71,6 +71,21 @@ function validationError(message = "Validation failed", errors = ["name: Name al
   };
 }
 
+function workTypeNameExistsError() {
+  return {
+    isAxiosError: true,
+    response: {
+      status: 409,
+      data: {
+        status: 409,
+        code: "WORK_TYPE_NAME_EXISTS",
+        message: "Work type name already exists",
+        errors: ["name: Work type name already exists"]
+      }
+    }
+  };
+}
+
 describe("WorkTypeEditorPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -152,6 +167,19 @@ describe("WorkTypeEditorPage", () => {
       });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit", { replace: true });
     });
+  });
+
+  it("shows duplicate name conflicts next to the name field and preserves form values", async () => {
+    vi.mocked(createWorkType).mockRejectedValue(workTypeNameExistsError());
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Name"), "Check");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    expect(await screen.findAllByText("A work type with this name already exists.")).toHaveLength(2);
+    expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("shows backend validation and preserves form values", async () => {
