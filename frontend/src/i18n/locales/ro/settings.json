@@ -53,22 +53,84 @@
     "validation": {
       "nameRequired": "Numele este obligatoriu",
       "nameTooLong": "Numele este prea lung",
-      "unitsPerHour": "Unitatile pe ora trebuie sa fie mai mari decat zero"
+      "unitsPerHour": "Unitățile pe oră trebuie să fie mai mari decât zero"
     }
   },
   "account": "Cont",
-  "work": "Munca",
-  "preferences": "Preferinte",
+  "work": "Muncă",
+  "preferences": "Preferințe",
   "preferencesFields": {
     "regional": "Regional",
-    "language": "Limba",
-    "currency": "Moneda",
+    "language": "Limbă",
+    "currency": "Monedă",
     "timezone": "Fus orar"
   },
-  "app": "Aplicatie",
+  "app": "Aplicație",
   "profile": "Profil",
+  "profileEditor": {
+    "title": "Profil",
+    "description": "Păstrează datele importante corecte. Câmpurile avansate rămân discrete.",
+    "updated": "Profil actualizat.",
+    "unavailableTitle": "Profilul nu este disponibil",
+    "basicInformation": "Informații de bază",
+    "employment": "Angajare",
+    "address": "Adresă",
+    "fields": {
+      "firstName": "Prenume",
+      "lastName": "Nume",
+      "displayName": "Nume afișat",
+      "phone": "Telefon",
+      "dateOfBirth": "Data nașterii",
+      "employmentStart": "Început angajare",
+      "employmentEnd": "Sfârșit angajare",
+      "countryCode": "Cod țară",
+      "city": "Oraș",
+      "postalCode": "Cod poștal",
+      "street": "Stradă",
+      "houseNumber": "Număr",
+      "apartment": "Apartament"
+    },
+    "validation": {
+      "firstNameRequired": "Prenumele este obligatoriu",
+      "lastNameRequired": "Numele este obligatoriu",
+      "displayNameTooLong": "Numele afișat este prea lung",
+      "phoneTooLong": "Telefonul este prea lung",
+      "countryCode": "Folosește un cod de țară din două litere",
+      "cityTooLong": "Orașul este prea lung",
+      "postalCodeTooLong": "Codul poștal este prea lung",
+      "streetTooLong": "Strada este prea lungă",
+      "houseNumberTooLong": "Numărul este prea lung",
+      "apartmentTooLong": "Apartamentul este prea lung",
+      "employmentEndBeforeStart": "Sfârșitul angajării nu poate fi înainte de început"
+    }
+  },
   "hourlyRates": "Tarife orare",
-  "workTypes": "Tipuri de munca",
+  "hourlyRateEditor": {
+    "addTitle": "Adaugă tarif orar",
+    "editTitle": "Editează tariful orar",
+    "description": "Sumele deja salvate în pontaje rămân neschimbate chiar dacă un interval de tarif este modificat sau șters.",
+    "sectionTitle": "Interval tarif",
+    "created": "Tarif orar adăugat.",
+    "updated": "Tarif orar actualizat.",
+    "unavailableTitle": "Tariful orar nu este disponibil",
+    "deleteLabel": "Șterge intervalul de tarif",
+    "deleteTitle": "Ștergi intervalul de tarif?",
+    "deleteDescription": "Intervalul este șters, dar sumele deja salvate în pontaje rămân neschimbate.",
+    "deleteConfirm": "Șterge intervalul",
+    "fields": {
+      "hourlyRate": "Tarif orar",
+      "currency": "Monedă",
+      "validFrom": "Valabil de la",
+      "validTo": "Valabil până la"
+    },
+    "validation": {
+      "hourlyRate": "Tariful orar trebuie să fie zero sau pozitiv",
+      "currency": "Folosește un cod de monedă din trei litere",
+      "validFrom": "Data de început este obligatorie",
+      "validToBeforeFrom": "Data de final nu poate fi înainte de data de început"
+    }
+  },
+  "workTypes": "Tipuri de muncă",
   "import": {
     "title": "Import Excel",
     "description": "Previzualizeaza fisierul de program inainte ca datele sa fie salvate in contul tau.",

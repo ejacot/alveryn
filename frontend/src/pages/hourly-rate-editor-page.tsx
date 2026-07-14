@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
@@ -24,22 +25,25 @@ import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { todayLocalIsoDate } from "../utils/date";
 
-const schema = z
+function createSchema(t: (key: string) => string) {
+  return z
   .object({
-    hourlyRate: z.coerce.number().min(0, "Hourly rate must be zero or positive"),
-    currency: z.string().length(3, "Use a three-letter currency code"),
-    validFrom: z.string().min(1, "Start date is required"),
+    hourlyRate: z.coerce.number().min(0, t("hourlyRateEditor.validation.hourlyRate")),
+    currency: z.string().length(3, t("hourlyRateEditor.validation.currency")),
+    validFrom: z.string().min(1, t("hourlyRateEditor.validation.validFrom")),
     validTo: z.string().optional()
   })
   .refine((values) => !values.validTo || values.validTo >= values.validFrom, {
     path: ["validTo"],
-    message: "End date cannot be before start date"
+    message: t("hourlyRateEditor.validation.validToBeforeFrom")
   });
+}
 
-type FormValues = z.infer<typeof schema>;
-type FormInput = z.input<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof createSchema>>;
+type FormInput = z.input<ReturnType<typeof createSchema>>;
 
 export function HourlyRateEditorPage() {
+  const { t } = useTranslation("settings");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { rateId } = useParams();
@@ -55,7 +59,7 @@ export function HourlyRateEditorPage() {
   });
 
   const form = useForm<FormInput, undefined, FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(createSchema(t)),
     defaultValues: {
       hourlyRate: 0,
       currency: "EUR",
@@ -89,7 +93,7 @@ export function HourlyRateEditorPage() {
         ? updateHourlyRate(rateId!, toRatePayload(values))
         : createHourlyRate(toRatePayload(values)),
     onSuccess: async () => {
-      setSuccessMessage(isEditing ? "Hourly rate updated." : "Hourly rate added.");
+      setSuccessMessage(isEditing ? t("hourlyRateEditor.updated") : t("hourlyRateEditor.created"));
       await afterSuccess();
     },
     onError: (error) => {
@@ -120,14 +124,14 @@ export function HourlyRateEditorPage() {
   }
 
   if (rateQuery.error) {
-    return <ScreenMessage title="Hourly rate is unavailable" description={getApiError(rateQuery.error).message} />;
+    return <ScreenMessage title={t("hourlyRateEditor.unavailableTitle")} description={getApiError(rateQuery.error).message} />;
   }
 
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
-        title={isEditing ? "Edit hourly rate" : "Add hourly rate"}
-        description="Saved work-entry amounts stay unchanged even when a rate period is updated or removed."
+        title={isEditing ? t("hourlyRateEditor.editTitle") : t("hourlyRateEditor.addTitle")}
+        description={t("hourlyRateEditor.description")}
         fallbackHref="/settings/hourly-rates"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -137,18 +141,18 @@ export function HourlyRateEditorPage() {
           await saveMutation.mutateAsync(values);
         })}
       >
-        <SettingsSection title="Rate period">
+        <SettingsSection title={t("hourlyRateEditor.sectionTitle")}>
           <div className="space-y-4">
-            <Input type="number" step="0.01" min={0} label="Hourly rate" error={form.formState.errors.hourlyRate?.message} {...form.register("hourlyRate")} />
-            <Select label="Currency" error={form.formState.errors.currency?.message} {...form.register("currency")}>
+            <Input type="number" step="0.01" min={0} label={t("hourlyRateEditor.fields.hourlyRate")} error={form.formState.errors.hourlyRate?.message} {...form.register("hourlyRate")} />
+            <Select label={t("hourlyRateEditor.fields.currency")} error={form.formState.errors.currency?.message} {...form.register("currency")}>
               {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
                 <option key={currency} value={currency}>
                   {currency}
                 </option>
               ))}
             </Select>
-            <Input type="date" label="Valid from" error={form.formState.errors.validFrom?.message} {...form.register("validFrom")} />
-            <Input type="date" label="Valid to" error={form.formState.errors.validTo?.message} {...form.register("validTo")} />
+            <Input type="date" label={t("hourlyRateEditor.fields.validFrom")} error={form.formState.errors.validFrom?.message} {...form.register("validFrom")} />
+            <Input type="date" label={t("hourlyRateEditor.fields.validTo")} error={form.formState.errors.validTo?.message} {...form.register("validTo")} />
           </div>
         </SettingsSection>
 
@@ -156,7 +160,7 @@ export function HourlyRateEditorPage() {
           submitting={saveMutation.isPending}
           successMessage={successMessage}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? "Delete rate period" : undefined}
+          deleteLabel={isEditing ? t("hourlyRateEditor.deleteLabel") : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
         {saveMutation.error ? <p className="text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
@@ -164,9 +168,9 @@ export function HourlyRateEditorPage() {
 
       <SettingsConfirmDialog
         open={showConfirm}
-        title="Delete rate period?"
-        description="This removes the rate period, but saved work-entry amounts remain unchanged."
-        confirmLabel="Delete period"
+        title={t("hourlyRateEditor.deleteTitle")}
+        description={t("hourlyRateEditor.deleteDescription")}
+        confirmLabel={t("hourlyRateEditor.deleteConfirm")}
         pending={deleteMutation.isPending}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}

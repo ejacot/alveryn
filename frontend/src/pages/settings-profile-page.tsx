@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -16,19 +17,20 @@ import { Input } from "../components/ui/input";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
-const schema = z
+function createSchema(t: (key: string) => string) {
+  return z
   .object({
-    firstName: z.string().trim().min(1, "First name is required"),
-    lastName: z.string().trim().min(1, "Last name is required"),
-    displayName: z.string().trim().max(100, "Display name is too long").optional(),
-    phone: z.string().trim().max(50, "Phone is too long").optional(),
+    firstName: z.string().trim().min(1, t("profileEditor.validation.firstNameRequired")),
+    lastName: z.string().trim().min(1, t("profileEditor.validation.lastNameRequired")),
+    displayName: z.string().trim().max(100, t("profileEditor.validation.displayNameTooLong")).optional(),
+    phone: z.string().trim().max(50, t("profileEditor.validation.phoneTooLong")).optional(),
     dateOfBirth: z.string().optional(),
-    countryCode: z.string().trim().max(2, "Use a two-letter country code").optional(),
-    city: z.string().trim().max(100, "City is too long").optional(),
-    postalCode: z.string().trim().max(20, "Postal code is too long").optional(),
-    street: z.string().trim().max(120, "Street is too long").optional(),
-    houseNumber: z.string().trim().max(20, "House number is too long").optional(),
-    apartment: z.string().trim().max(20, "Apartment is too long").optional(),
+    countryCode: z.string().trim().max(2, t("profileEditor.validation.countryCode")).optional(),
+    city: z.string().trim().max(100, t("profileEditor.validation.cityTooLong")).optional(),
+    postalCode: z.string().trim().max(20, t("profileEditor.validation.postalCodeTooLong")).optional(),
+    street: z.string().trim().max(120, t("profileEditor.validation.streetTooLong")).optional(),
+    houseNumber: z.string().trim().max(20, t("profileEditor.validation.houseNumberTooLong")).optional(),
+    apartment: z.string().trim().max(20, t("profileEditor.validation.apartmentTooLong")).optional(),
     employmentStartDate: z.string().optional(),
     employmentEndDate: z.string().optional()
   })
@@ -39,13 +41,15 @@ const schema = z
       values.employmentEndDate >= values.employmentStartDate,
     {
       path: ["employmentEndDate"],
-      message: "Employment end cannot be before employment start"
+      message: t("profileEditor.validation.employmentEndBeforeStart")
     }
   );
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
 export function SettingsProfilePage() {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -58,7 +62,7 @@ export function SettingsProfilePage() {
   });
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(createSchema(t)),
     defaultValues: toFormValues(profileQuery.data)
   });
 
@@ -71,7 +75,7 @@ export function SettingsProfilePage() {
     onSuccess: async (nextProfile) => {
       queryClient.setQueryData(queryKeys.profile(), nextProfile);
       await refreshCurrentUser();
-      setSuccessMessage("Profile updated.");
+      setSuccessMessage(t("profileEditor.updated"));
     },
     onError: (error) => {
       const apiError = getApiError(error);
@@ -90,14 +94,14 @@ export function SettingsProfilePage() {
   }
 
   if (profileQuery.error) {
-    return <ScreenMessage title="Profile is unavailable" description={getApiError(profileQuery.error).message} />;
+    return <ScreenMessage title={t("profileEditor.unavailableTitle")} description={getApiError(profileQuery.error).message} />;
   }
 
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
-        title="Profile"
-        description="Keep the essentials accurate. Advanced fields stay calm and out of the way."
+        title={t("profileEditor.title")}
+        description={t("profileEditor.description")}
         fallbackHref="/profile"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -108,31 +112,31 @@ export function SettingsProfilePage() {
           await mutation.mutateAsync(toProfilePayload(values));
         })}
       >
-        <SettingsSection title="Basic information">
+        <SettingsSection title={t("profileEditor.basicInformation")}>
           <div className="space-y-4">
-            <Input label="First name" error={form.formState.errors.firstName?.message} {...form.register("firstName")} />
-            <Input label="Last name" error={form.formState.errors.lastName?.message} {...form.register("lastName")} />
-            <Input label="Display name" error={form.formState.errors.displayName?.message} {...form.register("displayName")} />
-            <Input label="Phone" error={form.formState.errors.phone?.message} {...form.register("phone")} />
-            <Input type="date" label="Date of birth" error={form.formState.errors.dateOfBirth?.message} {...form.register("dateOfBirth")} />
+            <Input label={t("profileEditor.fields.firstName")} error={form.formState.errors.firstName?.message} {...form.register("firstName")} />
+            <Input label={t("profileEditor.fields.lastName")} error={form.formState.errors.lastName?.message} {...form.register("lastName")} />
+            <Input label={t("profileEditor.fields.displayName")} error={form.formState.errors.displayName?.message} {...form.register("displayName")} />
+            <Input label={t("profileEditor.fields.phone")} error={form.formState.errors.phone?.message} {...form.register("phone")} />
+            <Input type="date" label={t("profileEditor.fields.dateOfBirth")} error={form.formState.errors.dateOfBirth?.message} {...form.register("dateOfBirth")} />
           </div>
         </SettingsSection>
 
-        <SettingsSection title="Employment">
+        <SettingsSection title={t("profileEditor.employment")}>
           <div className="space-y-4">
-            <Input type="date" label="Employment start" error={form.formState.errors.employmentStartDate?.message} {...form.register("employmentStartDate")} />
-            <Input type="date" label="Employment end" error={form.formState.errors.employmentEndDate?.message} {...form.register("employmentEndDate")} />
+            <Input type="date" label={t("profileEditor.fields.employmentStart")} error={form.formState.errors.employmentStartDate?.message} {...form.register("employmentStartDate")} />
+            <Input type="date" label={t("profileEditor.fields.employmentEnd")} error={form.formState.errors.employmentEndDate?.message} {...form.register("employmentEndDate")} />
           </div>
         </SettingsSection>
 
-        <SettingsSection title="Address">
+        <SettingsSection title={t("profileEditor.address")}>
           <div className="space-y-4">
-            <Input label="Country code" error={form.formState.errors.countryCode?.message} {...form.register("countryCode")} />
-            <Input label="City" error={form.formState.errors.city?.message} {...form.register("city")} />
-            <Input label="Postal code" error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
-            <Input label="Street" error={form.formState.errors.street?.message} {...form.register("street")} />
-            <Input label="House number" error={form.formState.errors.houseNumber?.message} {...form.register("houseNumber")} />
-            <Input label="Apartment" error={form.formState.errors.apartment?.message} {...form.register("apartment")} />
+            <Input label={t("profileEditor.fields.countryCode")} error={form.formState.errors.countryCode?.message} {...form.register("countryCode")} />
+            <Input label={t("profileEditor.fields.city")} error={form.formState.errors.city?.message} {...form.register("city")} />
+            <Input label={t("profileEditor.fields.postalCode")} error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
+            <Input label={t("profileEditor.fields.street")} error={form.formState.errors.street?.message} {...form.register("street")} />
+            <Input label={t("profileEditor.fields.houseNumber")} error={form.formState.errors.houseNumber?.message} {...form.register("houseNumber")} />
+            <Input label={t("profileEditor.fields.apartment")} error={form.formState.errors.apartment?.message} {...form.register("apartment")} />
           </div>
         </SettingsSection>
 

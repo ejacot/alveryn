@@ -67,7 +67,69 @@
   },
   "app": "App",
   "profile": "Profile",
+  "profileEditor": {
+    "title": "Profile",
+    "description": "Keep the essentials accurate. Advanced fields stay calm and out of the way.",
+    "updated": "Profile updated.",
+    "unavailableTitle": "Profile is unavailable",
+    "basicInformation": "Basic information",
+    "employment": "Employment",
+    "address": "Address",
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "displayName": "Display name",
+      "phone": "Phone",
+      "dateOfBirth": "Date of birth",
+      "employmentStart": "Employment start",
+      "employmentEnd": "Employment end",
+      "countryCode": "Country code",
+      "city": "City",
+      "postalCode": "Postal code",
+      "street": "Street",
+      "houseNumber": "House number",
+      "apartment": "Apartment"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "displayNameTooLong": "Display name is too long",
+      "phoneTooLong": "Phone is too long",
+      "countryCode": "Use a two-letter country code",
+      "cityTooLong": "City is too long",
+      "postalCodeTooLong": "Postal code is too long",
+      "streetTooLong": "Street is too long",
+      "houseNumberTooLong": "House number is too long",
+      "apartmentTooLong": "Apartment is too long",
+      "employmentEndBeforeStart": "Employment end cannot be before employment start"
+    }
+  },
   "hourlyRates": "Hourly rates",
+  "hourlyRateEditor": {
+    "addTitle": "Add hourly rate",
+    "editTitle": "Edit hourly rate",
+    "description": "Saved work-entry amounts stay unchanged even when a rate period is updated or removed.",
+    "sectionTitle": "Rate period",
+    "created": "Hourly rate added.",
+    "updated": "Hourly rate updated.",
+    "unavailableTitle": "Hourly rate is unavailable",
+    "deleteLabel": "Delete rate period",
+    "deleteTitle": "Delete rate period?",
+    "deleteDescription": "This removes the rate period, but saved work-entry amounts remain unchanged.",
+    "deleteConfirm": "Delete period",
+    "fields": {
+      "hourlyRate": "Hourly rate",
+      "currency": "Currency",
+      "validFrom": "Valid from",
+      "validTo": "Valid to"
+    },
+    "validation": {
+      "hourlyRate": "Hourly rate must be zero or positive",
+      "currency": "Use a three-letter currency code",
+      "validFrom": "Start date is required",
+      "validToBeforeFrom": "End date cannot be before start date"
+    }
+  },
   "workTypes": "Work types",
   "import": {
     "title": "Import Excel",
