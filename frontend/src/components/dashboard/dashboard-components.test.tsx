@@ -5,7 +5,7 @@ import { RecentEntriesList } from "./recent-entries-list";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { i18n } from "../../i18n";
-import type { DashboardSummaryMetrics } from "../../types/dashboard";
+import type { DashboardSummaryMetrics, SelectedDayOverview } from "../../types/dashboard";
 
 const baseSummary: DashboardSummaryMetrics = {
   primaryMetric: {
@@ -31,6 +31,13 @@ const baseSummary: DashboardSummaryMetrics = {
     hint: "Loaded from real backend data"
   }
 };
+const baseSelectedDay: SelectedDayOverview = {
+  label: "Today",
+  entriesCount: 0,
+  totalDuration: "0h 00m",
+  totalGross: "EUR 0.00",
+  activities: []
+};
 
 describe("dashboard components", () => {
   beforeEach(async () => {
@@ -45,13 +52,14 @@ describe("dashboard components", () => {
       <DashboardOverview
         summary={baseSummary}
         recentEntries={[]}
+        selectedDay={baseSelectedDay}
         weeklyBars={[]}
         weeklyDescription="No entries saved for this week yet."
         onQuickAdd={onQuickAdd}
       />
     );
 
-    expect(screen.getByText("Today at a glance")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a new work entry" })).toBeInTheDocument();
     expect(screen.getByText("Add entry")).toBeInTheDocument();
 

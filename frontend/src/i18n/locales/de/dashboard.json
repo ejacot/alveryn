@@ -4,8 +4,22 @@
     "previewEyebrow": "Vorschau",
     "title": "Heute im Überblick",
     "description": "Nur die Zahlen und Einträge, die gerade wirklich wichtig sind.",
+    "emptyDescription": "Noch keine Aktivität.",
+    "activityDescription_one": "{{count}} Aktivität für diesen Tag gespeichert.",
+    "activityDescription_other": "{{count}} Aktivitäten für diesen Tag gespeichert.",
     "previewDescription": "Explizite lokale Vorschaudaten für die freigegebene Roomly-Designsprache.",
     "previewError": "API-Fehlerzustand der Vorschau nur für die lokale Validierung."
+  },
+  "selectedDay": {
+    "today": "Heute",
+    "activity": "Aktivität",
+    "activities_one": "{{count}} Aktivität",
+    "activities_other": "{{count}} Aktivitäten",
+    "totalTime": "Gesamtzeit",
+    "gross": "Brutto",
+    "workedTime": "{{duration}} gearbeitet",
+    "equivalentTime": "Entsprechende Arbeitszeit: {{duration}}",
+    "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {
     "today": "Heute",
@@ -33,6 +47,7 @@
   "quickAdd": {
     "eyebrow": "Schnell erfassen",
     "description": "Erfasse eine Schicht, bevor der Moment vorbei ist.",
+    "emptyDescription": "Noch keine Aktivität",
     "cta": "Eintrag erfassen",
     "accessibleLabel": "Neuen Arbeitseintrag erfassen"
   },

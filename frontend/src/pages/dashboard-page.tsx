@@ -5,12 +5,13 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
+import { i18n } from "../i18n";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
 import type { DashboardSummaryMetrics, RecentEntry } from "../types/dashboard";
 import type { WorkEntry } from "../types/work-entry";
-import { addDays, isSameDay, startOfWeek } from "../utils/date";
+import { addDays, formatLocalIsoDate, isSameDay, startOfWeek } from "../utils/date";
 import {
   formatCurrency,
   formatHours,
@@ -94,6 +95,11 @@ export function DashboardPage() {
     [allEntries, weekDays]
   );
 
+  const selectedDayLabel = useMemo(
+    () => formatSelectedDayLabel(selectedDate, t("dashboard:selectedDay.today")),
+    [selectedDate, t]
+  );
+
   const summary = useMemo<DashboardSummaryMetrics>(() => {
     const todayMinutes = sumMinutes(selectedDayEntries);
     const todayGross = sumGross(selectedDayEntries);
@@ -107,7 +113,7 @@ export function DashboardPage() {
 
     return {
       primaryMetric: {
-        label: t("dashboard:summary.today"),
+        label: selectedDayLabel,
         value: formatMinutesAsDuration(todayMinutes),
         hint: selectedDayEntries.length
           ? selectedEntriesLabel
@@ -134,7 +140,7 @@ export function DashboardPage() {
         hint: t("dashboard:summary.loadedRealData")
       }
     };
-  }, [allEntries.length, selectedDayEntries, t, weeklyEntries]);
+  }, [allEntries.length, selectedDayEntries, selectedDayLabel, t, weeklyEntries]);
 
   const recentEntries = useMemo<RecentEntry[]>(
     () =>
@@ -154,6 +160,43 @@ export function DashboardPage() {
   );
 
   const weeklyBars = useMemo(() => buildWeekBars(weekDays, weeklyEntries), [weekDays, weeklyEntries]);
+  const selectedDayOverview = useMemo(
+    () => ({
+      label: selectedDayLabel,
+      entriesCount: selectedDayEntries.length,
+      totalDuration: formatMinutesAsDuration(sumMinutes(selectedDayEntries)),
+      totalGross: formatCurrency(
+        String(sumGross(selectedDayEntries)),
+        resolveCurrency(selectedDayEntries, weeklyEntries)
+      ),
+      activities: selectedDayEntries.map((entry) => ({
+        id: entry.id,
+        title: entry.workTypeName,
+        kind: entry.calculationMethod,
+        subtitle:
+          formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
+          t("dashboard:selectedDay.equivalentTime", {
+            duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
+          }),
+        duration:
+          entry.calculationMethod === "UNIT_BASED"
+            ? t("dashboard:selectedDay.equivalentTime", {
+                duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
+              })
+            : t("dashboard:selectedDay.workedTime", {
+                duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
+              }),
+        amount: formatCurrency(entry.grossAmount, entry.currencySnapshot),
+        unitBreakdown: entry.unitItems.map((item) =>
+          t("dashboard:selectedDay.unitLine", {
+            name: item.unitName,
+            quantity: formatQuantity(item.quantity)
+          })
+        )
+      }))
+    }),
+    [selectedDayEntries, selectedDayLabel, t, weeklyEntries]
+  );
   const weeklyDescription = useMemo(() => {
     const total = formatMinutesAsDuration(sumMinutes(weeklyEntries));
     return weeklyEntries.length
@@ -179,14 +222,15 @@ export function DashboardPage() {
   }
 
   return (
-    <DashboardOverview
-      summary={summary}
-      recentEntries={recentEntries}
-      weeklyBars={weeklyBars}
-      weeklyDescription={weeklyDescription}
-      onQuickAdd={() => navigate("/entries/new")}
-      onEntrySelect={(entryId) => navigate(`/entries/${entryId}`)}
-    />
+      <DashboardOverview
+        summary={summary}
+        recentEntries={recentEntries}
+        selectedDay={selectedDayOverview}
+        weeklyBars={weeklyBars}
+        weeklyDescription={weeklyDescription}
+        onQuickAdd={() => navigate(`/entries/new?date=${formatLocalIsoDate(selectedDate)}`)}
+        onEntrySelect={(entryId) => navigate(`/entries/${entryId}`)}
+      />
   );
 }
 
@@ -215,4 +259,26 @@ function buildWeekBars(days: Date[], entries: WorkEntry[]) {
   }
 
   return minutesPerDay.map((value) => Math.round((value / maxMinutes) * 100));
+}
+
+function formatSelectedDayLabel(date: Date, todayLabel: string) {
+  if (isSameDay(date, new Date())) {
+    return todayLabel;
+  }
+
+  return new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  }).format(date);
+}
+
+function formatQuantity(value: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return value;
+  }
+  return new Intl.NumberFormat(i18n.resolvedLanguage, {
+    maximumFractionDigits: 2
+  }).format(parsed);
 }

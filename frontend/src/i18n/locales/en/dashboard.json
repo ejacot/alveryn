@@ -4,8 +4,22 @@
     "previewEyebrow": "Preview",
     "title": "Today at a glance",
     "description": "Only the numbers and entries that matter right now.",
+    "emptyDescription": "No activity yet.",
+    "activityDescription_one": "{{count}} activity saved for this day.",
+    "activityDescription_other": "{{count}} activities saved for this day.",
     "previewDescription": "Explicit local preview data for the approved Roomly visual language.",
     "previewError": "Preview-only API failure state for local validation."
+  },
+  "selectedDay": {
+    "today": "Today",
+    "activity": "Activity",
+    "activities_one": "{{count}} activity",
+    "activities_other": "{{count}} activities",
+    "totalTime": "Total time",
+    "gross": "Gross",
+    "workedTime": "{{duration}} worked",
+    "equivalentTime": "Equivalent worked time: {{duration}}",
+    "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {
     "today": "Today",
@@ -33,6 +47,7 @@
   "quickAdd": {
     "eyebrow": "Quick add",
     "description": "Add a shift before the moment passes.",
+    "emptyDescription": "No activity yet",
     "cta": "Add entry",
     "accessibleLabel": "Add a new work entry"
   },

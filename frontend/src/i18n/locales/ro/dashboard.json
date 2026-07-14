@@ -4,8 +4,24 @@
     "previewEyebrow": "Previzualizare",
     "title": "Astăzi, dintr-o privire",
     "description": "Doar cifrele și intrările care contează acum.",
+    "emptyDescription": "Nu există activitate încă.",
+    "activityDescription_one": "{{count}} activitate salvată pentru această zi.",
+    "activityDescription_few": "{{count}} activități salvate pentru această zi.",
+    "activityDescription_other": "{{count}} de activități salvate pentru această zi.",
     "previewDescription": "Date locale explicite de previzualizare pentru direcția vizuală aprobată Roomly.",
     "previewError": "Stare de eroare doar pentru validarea locală a previzualizării."
+  },
+  "selectedDay": {
+    "today": "Astăzi",
+    "activity": "Activitate",
+    "activities_one": "{{count}} activitate",
+    "activities_few": "{{count}} activități",
+    "activities_other": "{{count}} de activități",
+    "totalTime": "Timp total",
+    "gross": "Brut",
+    "workedTime": "{{duration}} lucrate",
+    "equivalentTime": "Timp lucrat echivalent: {{duration}}",
+    "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {
     "today": "Astăzi",
@@ -36,6 +52,7 @@
   "quickAdd": {
     "eyebrow": "Adăugare rapidă",
     "description": "Adaugă o tură înainte să treacă momentul.",
+    "emptyDescription": "Nu există activitate încă",
     "cta": "Adaugă intrare",
     "accessibleLabel": "Adauga o noua intrare de lucru"
   },

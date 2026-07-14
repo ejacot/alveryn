@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
-import type { DashboardSummaryMetrics, RecentEntry } from "../types/dashboard";
+import type { DashboardSummaryMetrics, RecentEntry, SelectedDayOverview } from "../types/dashboard";
 
 const previewWeeklyBars = [42, 58, 36, 70, 55, 18, 12];
 
@@ -78,11 +78,29 @@ export function PreviewDashboardPage() {
       amount: "3.5h"
     }
   ];
+  const previewSelectedDay: SelectedDayOverview = {
+    label: t("selectedDay.today"),
+    entriesCount: 1,
+    totalDuration: "6.5h",
+    totalGross: "EUR 126",
+    activities: [
+      {
+        id: "1",
+        title: t("preview.entries.morningRooms.title"),
+        kind: "UNIT_BASED",
+        subtitle: t("selectedDay.equivalentTime", { duration: "6.5h" }),
+        duration: t("selectedDay.equivalentTime", { duration: "6.5h" }),
+        amount: "EUR 126",
+        unitBreakdown: []
+      }
+    ]
+  };
 
   return (
     <DashboardOverview
       summary={previewSummary}
       recentEntries={previewEntries}
+      selectedDay={previewSelectedDay}
       weeklyBars={previewWeeklyBarsState}
       weeklyDescription={t("preview.weeklyDescription")}
       onQuickAdd={() => undefined}

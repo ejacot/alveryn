@@ -27,6 +27,24 @@ export type RecentEntry = {
   amount: string;
 };
 
+export type SelectedDayActivity = {
+  id: string;
+  title: string;
+  kind: "TIME_BASED" | "UNIT_BASED";
+  subtitle: string;
+  duration: string;
+  amount: string;
+  unitBreakdown: string[];
+};
+
+export type SelectedDayOverview = {
+  label: string;
+  entriesCount: number;
+  totalDuration: string;
+  totalGross: string;
+  activities: SelectedDayActivity[];
+};
+
 export type WorkEntrySummary = {
   id: string;
   workTypeId: string;

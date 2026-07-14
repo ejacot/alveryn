@@ -100,8 +100,9 @@ describe("DashboardPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
-    expect(screen.getByText("08:00 - 16:00")).toBeInTheDocument();
+    expect(await screen.findAllByText("Regular Shift")).toHaveLength(3);
+    expect(screen.getAllByText("08:00 - 16:00")).toHaveLength(2);
+    expect(screen.getAllByText("Monday, July 13")).toHaveLength(2);
 
     await waitFor(() => {
       expect(listWorkEntriesInRange).toHaveBeenCalledWith({
@@ -110,10 +111,10 @@ describe("DashboardPage", () => {
       });
     });
 
-    await user.click(screen.getByRole("button", { name: /add a new work entry/i }));
-    expect(navigateMock).toHaveBeenCalledWith("/entries/new");
+    await user.click(screen.getByRole("button", { name: /^add entry$/i }));
+    expect(navigateMock).toHaveBeenCalledWith("/entries/new?date=2026-07-13");
 
-    await user.click(screen.getByRole("button", { name: /regular shift/i }));
+    await user.click(screen.getByRole("button", { name: /^regular shift/i }));
     expect(navigateMock).toHaveBeenCalledWith("/entries/entry-1");
   });
 });
