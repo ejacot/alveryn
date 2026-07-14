@@ -105,20 +105,70 @@
       "previousYear": "Vorjahr"
     },
     "entriesCount": "{{count}} Einträge",
+    "months": {
+      "january": "Jan.",
+      "february": "Feb.",
+      "march": "März",
+      "april": "Apr.",
+      "may": "Mai",
+      "june": "Juni",
+      "july": "Juli",
+      "august": "Aug.",
+      "september": "Sept.",
+      "october": "Okt.",
+      "november": "Nov.",
+      "december": "Dez."
+    },
+    "weekdays": {
+      "monday": "Mo.",
+      "tuesday": "Di.",
+      "wednesday": "Mi.",
+      "thursday": "Do.",
+      "friday": "Fr.",
+      "saturday": "Sa.",
+      "sunday": "So."
+    },
     "comparison": {
       "eyebrow": "Vergleich",
       "title": "Zeiträume vergleichen",
       "preset": "Vergleichsauswahl",
+      "metric": "Vergleichsmetrik",
       "periodA": "Zeitraum A",
       "periodB": "Zeitraum B",
+      "periodAFrom": "Zeitraum A von",
+      "periodATo": "Zeitraum A bis",
+      "periodBFrom": "Zeitraum B von",
+      "periodBTo": "Zeitraum B bis",
       "percentage": "{{value}} %",
       "unavailable": "Vergleich nicht verfügbar",
+      "invalidRange": "Wähle gültige Datumsbereiche.",
+      "chartAriaLabel": "Ausgerichtetes Vergleichsdiagramm",
+      "pointAriaLabel": "Vergleichsdetails für {{label}} öffnen",
+      "details": "Vergleichsdetails",
       "presets": {
+        "week": "Diese Woche vs. vorherige Woche",
         "month": "Dieser Monat vs. vorheriger Monat",
         "year": "Dieses Jahr vs. Vorjahr",
         "sameMonthPreviousYear": "Gleicher Monat im Vorjahr",
         "ytd": "Jahr bis heute vs. Vorjahr",
-        "custom": "Ausgewählter Zeitraum vs. vorheriger Zeitraum"
+        "custom": "Eigene Zeiträume"
+      },
+      "quick": {
+        "month": "Aktueller Monat vs. vorheriger Monat",
+        "year": "Aktuelles Jahr vs. Vorjahr",
+        "ytd": "Jahr bis heute vs. Vorjahr",
+        "firstHalf": "Erstes Halbjahr vs. Vorjahr",
+        "sameDuration": "Gleiche Dauer vor A"
+      },
+      "alignment": {
+        "DAY_OF_WEEK": "Wochentage",
+        "DAY_OF_MONTH": "Tage",
+        "MONTH_OF_YEAR": "Monate",
+        "RELATIVE_DAY": "Relative Tage",
+        "RELATIVE_WEEK": "Relative Wochen",
+        "CALENDAR_BUCKET": "Kalenderabschnitte",
+        "relativeDay": "Tag {{count}}",
+        "relativeWeek": "Woche {{count}}"
       }
     },
     "drilldown": {
@@ -132,8 +182,13 @@
     "heatmap": {
       "eyebrow": "Kalender",
       "title": "Aktivitäts-Heatmap",
+      "metric": "Heatmap-Metrik",
+      "currency": "Heatmap-Währung",
+      "chooseCurrency": "Währung wählen",
+      "grossCurrencyRequired": "Die Brutto-Heatmap benötigt jeweils eine Währung.",
+      "error": "Heatmap konnte nicht geladen werden.",
       "ariaLabel": "Aktivitätstage als Heatmap",
-      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} Einträge",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} Einträge {{absence}}",
       "absence": "Abwesenheit",
       "openCalendar": "Tag öffnen",
       "addEntry": "Eintrag hinzufügen"

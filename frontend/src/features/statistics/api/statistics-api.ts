@@ -6,6 +6,7 @@ import type {
   StatisticsComparisonRequest,
   StatisticsDrilldown,
   StatisticsHeatmap,
+  StatisticsHeatmapMetric,
   StatisticsOverview,
   StatisticsTimeSeries,
   StatisticsWorkTypeBreakdown
@@ -59,9 +60,16 @@ export async function getStatisticsComparison(request: StatisticsComparisonReque
   return response.data.data;
 }
 
-export async function getStatisticsHeatmap(filters: StatisticsFilters) {
+export async function getStatisticsHeatmap(
+  filters: StatisticsFilters,
+  metric: StatisticsHeatmapMetric,
+  currency?: string | null
+) {
   const params = paramsFromFilters(filters);
-  params.set("metric", filters.metric === "GROSS" ? "WORKED_MINUTES" : filters.metric);
+  params.set("metric", metric);
+  if (currency) {
+    params.set("currency", currency);
+  }
   const response = await http.get<ApiResponse<StatisticsHeatmap>>("/api/statistics/heatmap", {
     params
   });

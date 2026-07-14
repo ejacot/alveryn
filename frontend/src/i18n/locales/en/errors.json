@@ -20,5 +20,7 @@
   "STATISTICS_INVALID_COMPARISON_RANGE": "Choose valid comparison periods.",
   "STATISTICS_INCOMPATIBLE_COMPARISON": "These periods cannot be compared clearly.",
   "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "The heatmap can show up to one year at a time.",
-  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Gross heatmap needs one currency at a time."
+  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Gross heatmap needs one currency at a time.",
+  "STATISTICS_UNSUPPORTED_HEATMAP_METRIC": "This heatmap metric is not supported.",
+  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Choose a valid heatmap currency."
 }

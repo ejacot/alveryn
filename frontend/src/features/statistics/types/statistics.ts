@@ -9,6 +9,7 @@ export type StatisticsMetric =
   | "ENTRIES"
   | "AVERAGE_MINUTES_PER_WORKED_DAY";
 export type StatisticsGranularity = "DAILY" | "WEEKLY" | "MONTHLY";
+export type StatisticsHeatmapMetric = "WORKED_HOURS" | "WORKED_MINUTES" | "ENTRIES" | "GROSS";
 export type StatisticsComparisonAlignment =
   | "DAY_OF_WEEK"
   | "DAY_OF_MONTH"
@@ -133,7 +134,7 @@ export type StatisticsHeatmapDay = {
 };
 
 export type StatisticsHeatmap = {
-  metric: StatisticsMetric;
+  metric: StatisticsHeatmapMetric;
   currency: string | null;
   minimum: string;
   maximum: string;

@@ -3,7 +3,7 @@ import { CalendarDays, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { queryKeys } from "../../../api/query-keys";
-import { formatCurrency, formatMinutesAsDuration } from "../../../utils/format";
+import { formatCurrency, formatHours, formatMinutesAsDuration } from "../../../utils/format";
 import { getStatisticsDrilldown } from "../api/statistics-api";
 import type { StatisticsFilters, StatisticsTimeSeriesPoint } from "../types/statistics";
 
@@ -12,6 +12,19 @@ type Props = {
   point: StatisticsTimeSeriesPoint | null;
   onClose: () => void;
 };
+
+function formatMetricValue(point: StatisticsTimeSeriesPoint) {
+  if (point.currency) {
+    return formatCurrency(point.value, point.currency);
+  }
+  if (point.metric === "WORKED_HOURS") {
+    return formatHours(point.value);
+  }
+  if (point.metric === "WORKED_MINUTES") {
+    return formatMinutesAsDuration(Number(point.value));
+  }
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(Number(point.value));
+}
 
 export function StatisticsDrilldownPanel({ filters, point, onClose }: Props) {
   const { t } = useTranslation("common");
@@ -54,6 +67,10 @@ export function StatisticsDrilldownPanel({ filters, point, onClose }: Props) {
       </div>
       {drilldown.data ? (
         <>
+          <div className="rounded-[24px] bg-white/[0.035] p-4">
+            <p className="text-xs text-white/40">{t(`statistics.metrics.${point.metric}` as never)}</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{formatMetricValue(point)}</p>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/[0.035] p-3">
               <p className="text-xs text-white/40">{t("statistics.cards.hours")}</p>

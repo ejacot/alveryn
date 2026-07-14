@@ -105,20 +105,70 @@
       "previousYear": "Anul precedent"
     },
     "entriesCount": "{{count}} înregistrări",
+    "months": {
+      "january": "ian.",
+      "february": "feb.",
+      "march": "mar.",
+      "april": "apr.",
+      "may": "mai",
+      "june": "iun.",
+      "july": "iul.",
+      "august": "aug.",
+      "september": "sept.",
+      "october": "oct.",
+      "november": "nov.",
+      "december": "dec."
+    },
+    "weekdays": {
+      "monday": "lun.",
+      "tuesday": "mar.",
+      "wednesday": "mie.",
+      "thursday": "joi",
+      "friday": "vin.",
+      "saturday": "sâm.",
+      "sunday": "dum."
+    },
     "comparison": {
       "eyebrow": "Comparație",
       "title": "Compară perioade",
       "preset": "Presetare comparație",
+      "metric": "Metrica comparației",
       "periodA": "Perioada A",
       "periodB": "Perioada B",
+      "periodAFrom": "Perioada A de la",
+      "periodATo": "Perioada A până la",
+      "periodBFrom": "Perioada B de la",
+      "periodBTo": "Perioada B până la",
       "percentage": "{{value}}%",
       "unavailable": "Comparația nu este disponibilă",
+      "invalidRange": "Alege intervale de date valide.",
+      "chartAriaLabel": "Grafic comparativ aliniat",
+      "pointAriaLabel": "Deschide detalii comparație pentru {{label}}",
+      "details": "Detalii comparație",
       "presets": {
+        "week": "Săptămâna aceasta vs săptămâna precedentă",
         "month": "Luna aceasta vs luna precedentă",
         "year": "Anul acesta vs anul precedent",
         "sameMonthPreviousYear": "Aceeași lună, anul precedent",
         "ytd": "Anul curent până azi vs anul precedent",
-        "custom": "Perioada selectată vs perioada precedentă"
+        "custom": "Perioade personalizate"
+      },
+      "quick": {
+        "month": "Luna curentă vs luna precedentă",
+        "year": "Anul curent vs anul precedent",
+        "ytd": "Anul curent până azi vs anul precedent",
+        "firstHalf": "Prima jumătate vs anul precedent",
+        "sameDuration": "Aceeași durată înainte de A"
+      },
+      "alignment": {
+        "DAY_OF_WEEK": "Zilele săptămânii",
+        "DAY_OF_MONTH": "Zile",
+        "MONTH_OF_YEAR": "Luni",
+        "RELATIVE_DAY": "Zile relative",
+        "RELATIVE_WEEK": "Săptămâni relative",
+        "CALENDAR_BUCKET": "Intervale calendaristice",
+        "relativeDay": "Ziua {{count}}",
+        "relativeWeek": "Săptămâna {{count}}"
       }
     },
     "drilldown": {
@@ -132,8 +182,13 @@
     "heatmap": {
       "eyebrow": "Calendar",
       "title": "Heatmap activitate",
+      "metric": "Metrica heatmap-ului",
+      "currency": "Moneda heatmap-ului",
+      "chooseCurrency": "Alege moneda",
+      "grossCurrencyRequired": "Heatmap-ul pentru brut are nevoie de o singură monedă.",
+      "error": "Heatmap-ul nu a putut fi încărcat.",
       "ariaLabel": "Zile de activitate în heatmap",
-      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} înregistrări",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} înregistrări {{absence}}",
       "absence": "Absență",
       "openCalendar": "Deschide ziua",
       "addEntry": "Adaugă înregistrare"

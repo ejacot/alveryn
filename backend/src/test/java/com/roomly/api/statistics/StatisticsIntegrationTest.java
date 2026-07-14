@@ -346,6 +346,41 @@ class StatisticsIntegrationTest {
                 .param("metric", "GROSS"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03")
+                .param("metric", "GROSS")
+                .param("currency", "EUR"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.metric").value("GROSS"))
+        .andExpect(jsonPath("$.data.currency").value("EUR"))
+        .andExpect(jsonPath("$.data.days[0].value").value(80.00))
+        .andExpect(jsonPath("$.data.days[2].value").value(0));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03")
+                .param("metric", "GROSS")
+                .param("currency", "RON"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_INVALID_HEATMAP_CURRENCY"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/heatmap")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03")
+                .param("metric", "WORKED_DAYS"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_UNSUPPORTED_HEATMAP_METRIC"));
   }
 
   @Test

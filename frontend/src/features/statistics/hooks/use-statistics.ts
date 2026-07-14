@@ -7,6 +7,7 @@ import {
   getStatisticsHeatmap
 } from "../api/statistics-api";
 import type { StatisticsFilters } from "../types/statistics";
+import type { StatisticsHeatmapMetric } from "../types/statistics";
 
 function normalizedFilters(filters: StatisticsFilters) {
   return {
@@ -18,8 +19,13 @@ function normalizedFilters(filters: StatisticsFilters) {
   };
 }
 
-export function useStatistics(filters: StatisticsFilters) {
+export function useStatistics(
+  filters: StatisticsFilters,
+  heatmapMetric: StatisticsHeatmapMetric = "WORKED_HOURS",
+  heatmapCurrency: string | null = null
+) {
   const keyFilters = normalizedFilters(filters);
+  const heatmapKeyFilters = { ...keyFilters, heatmapMetric, heatmapCurrency };
   const overview = useQuery({
     queryKey: queryKeys.statistics.overview(keyFilters),
     queryFn: () => getStatisticsOverview(filters)
@@ -33,8 +39,9 @@ export function useStatistics(filters: StatisticsFilters) {
     queryFn: () => getStatisticsWorkTypes(filters)
   });
   const heatmap = useQuery({
-    queryKey: queryKeys.statistics.heatmap(keyFilters),
-    queryFn: () => getStatisticsHeatmap(filters)
+    queryKey: queryKeys.statistics.heatmap(heatmapKeyFilters),
+    queryFn: () => getStatisticsHeatmap(filters, heatmapMetric, heatmapCurrency),
+    retry: false
   });
 
   return {
@@ -42,8 +49,8 @@ export function useStatistics(filters: StatisticsFilters) {
     timeSeries,
     workTypes,
     heatmap,
-    isLoading: overview.isLoading || timeSeries.isLoading || workTypes.isLoading || heatmap.isLoading,
-    isError: overview.isError || timeSeries.isError || workTypes.isError || heatmap.isError,
+    isLoading: overview.isLoading || timeSeries.isLoading || workTypes.isLoading,
+    isError: overview.isError || timeSeries.isError || workTypes.isError,
     refetch: () => {
       void overview.refetch();
       void timeSeries.refetch();

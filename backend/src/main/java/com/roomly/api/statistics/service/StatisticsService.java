@@ -43,6 +43,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -152,28 +153,47 @@ public class StatisticsService {
   }
 
   @Transactional(readOnly = true)
-  public StatisticsHeatmapResponse heatmap(StatisticsFilters filters, StatisticsMetric metric) {
+  public StatisticsHeatmapResponse heatmap(StatisticsFilters filters, StatisticsMetric metric, String currency) {
     validateRange(filters.from(), filters.to());
     long days = ChronoUnit.DAYS.between(filters.from(), filters.to()) + 1;
     if (days > MAX_HEATMAP_DAYS) {
       throw new ValidationException(
           "heatmap range is too large", StatisticsErrorCode.STATISTICS_HEATMAP_RANGE_TOO_LARGE.name());
     }
+    if (!List.of(StatisticsMetric.WORKED_HOURS, StatisticsMetric.WORKED_MINUTES, StatisticsMetric.ENTRIES, StatisticsMetric.GROSS).contains(metric)) {
+      throw new ValidationException(
+          "unsupported heatmap metric", StatisticsErrorCode.STATISTICS_UNSUPPORTED_HEATMAP_METRIC.name());
+    }
     UUID userId = authenticatedUserAccessor.requireUserId();
     List<WorkEntry> entries = findEntries(userId, filters);
     List<String> currencies = currenciesFor(entries);
-    if (metric == StatisticsMetric.GROSS && currencies.size() > 1) {
-      throw new ValidationException(
-          "gross heatmap requires a single currency result",
-          StatisticsErrorCode.STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION.name());
+    String normalizedCurrency = normalizeCurrency(currency);
+    if (metric == StatisticsMetric.GROSS) {
+      if (normalizedCurrency != null && !currencies.contains(normalizedCurrency)) {
+        throw new ValidationException(
+            "currency is not present in heatmap result", StatisticsErrorCode.STATISTICS_INVALID_HEATMAP_CURRENCY.name());
+      }
+      if (normalizedCurrency == null && currencies.size() > 1) {
+        throw new ValidationException(
+            "gross heatmap requires a single currency result",
+            StatisticsErrorCode.STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION.name());
+      }
+      if (normalizedCurrency == null && currencies.size() == 1) {
+        normalizedCurrency = currencies.getFirst();
+      }
     }
     Map<LocalDate, List<WorkEntry>> entriesByDate = entriesByDate(entries);
     Set<LocalDate> absenceDates = absenceDates(userId, filters.from(), filters.to());
+    String selectedCurrency = normalizedCurrency;
     List<StatisticsHeatmapDayResponse> heatmapDays = new ArrayList<>();
     BigDecimal max = BigDecimal.ZERO.setScale(SCALE);
     for (LocalDate date = filters.from(); !date.isAfter(filters.to()); date = date.plusDays(1)) {
       List<WorkEntry> dayEntries = entriesByDate.getOrDefault(date, List.of());
-      BigDecimal value = aggregateMetric(dayEntries, metric).setScale(SCALE, RoundingMode.HALF_UP);
+      List<WorkEntry> valueEntries =
+          metric == StatisticsMetric.GROSS && selectedCurrency != null
+              ? dayEntries.stream().filter(entry -> entry.getCurrencySnapshot().equals(selectedCurrency)).toList()
+              : dayEntries;
+      BigDecimal value = aggregateMetric(valueEntries, metric).setScale(SCALE, RoundingMode.HALF_UP);
       max = max.max(value);
       heatmapDays.add(
           new StatisticsHeatmapDayResponse(
@@ -186,10 +206,22 @@ public class StatisticsService {
     }
     return new StatisticsHeatmapResponse(
         metric,
-        metric == StatisticsMetric.GROSS && currencies.size() == 1 ? currencies.getFirst() : null,
+        metric == StatisticsMetric.GROSS ? selectedCurrency : null,
         BigDecimal.ZERO.setScale(SCALE),
         max,
         heatmapDays);
+  }
+
+  private String normalizeCurrency(String currency) {
+    if (currency == null || currency.isBlank()) {
+      return null;
+    }
+    String normalized = currency.trim().toUpperCase(Locale.ROOT);
+    if (!normalized.matches("[A-Z]{3}")) {
+      throw new ValidationException(
+          "invalid heatmap currency", StatisticsErrorCode.STATISTICS_INVALID_HEATMAP_CURRENCY.name());
+    }
+    return normalized;
   }
 
   @Transactional(readOnly = true)

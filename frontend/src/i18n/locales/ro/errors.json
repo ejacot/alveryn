@@ -20,5 +20,7 @@
   "STATISTICS_INVALID_COMPARISON_RANGE": "Alege perioade valide pentru comparație.",
   "STATISTICS_INCOMPATIBLE_COMPARISON": "Aceste perioade nu pot fi comparate clar.",
   "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "Heatmap-ul poate afișa cel mult un an odată.",
-  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Heatmap-ul pentru brut are nevoie de o singură monedă."
+  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Heatmap-ul pentru brut are nevoie de o singură monedă.",
+  "STATISTICS_UNSUPPORTED_HEATMAP_METRIC": "Această metrică nu este disponibilă pentru heatmap.",
+  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Alege o monedă validă pentru heatmap."
 }

@@ -6,10 +6,18 @@ import { listWorkEntriesForDay } from "../../../api/endpoints";
 import { queryKeys } from "../../../api/query-keys";
 import { formatCurrency, formatMinutesAsDuration } from "../../../utils/format";
 import type { WorkEntry } from "../../../types/work-entry";
-import type { StatisticsHeatmap, StatisticsHeatmapDay } from "../types/statistics";
+import { formatLocalDate } from "../filters/statistics-date-utils";
+import type { StatisticsHeatmap, StatisticsHeatmapDay, StatisticsHeatmapMetric } from "../types/statistics";
 
 type Props = {
   heatmap: StatisticsHeatmap | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  metric: StatisticsHeatmapMetric;
+  currency: string | null;
+  availableCurrencies: string[];
+  onOptionsChange: (metric: StatisticsHeatmapMetric, currency: string | null) => void;
+  onRetry: () => void;
   selectedDay: string | null;
   onSelectDay: (date: string) => void;
 };
@@ -29,7 +37,18 @@ function entryLabel(entry: WorkEntry) {
   return entry.timeEntry ? `${entry.timeEntry.startTime.slice(0, 5)} – ${entry.timeEntry.endTime.slice(0, 5)}` : "";
 }
 
-export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) {
+export function StatisticsHeatmap({
+  heatmap,
+  isLoading,
+  isError,
+  metric,
+  currency,
+  availableCurrencies,
+  onOptionsChange,
+  onRetry,
+  selectedDay,
+  onSelectDay
+}: Props) {
   const { t, i18n } = useTranslation("common");
   const navigate = useNavigate();
   const dayEntries = useQuery({
@@ -38,11 +57,7 @@ export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) 
     enabled: Boolean(selectedDay)
   });
 
-  if (!heatmap) {
-    return null;
-  }
-
-  const selected = heatmap.days.find((day) => day.date === selectedDay);
+  const selected = heatmap?.days.find((day) => day.date === selectedDay);
 
   return (
     <section className="section-card space-y-4" aria-labelledby="statistics-heatmap-title">
@@ -53,13 +68,53 @@ export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) 
             {t("statistics.heatmap.title")}
           </h2>
         </div>
-        <p className="text-xs text-white/45">{t(`statistics.metrics.${heatmap.metric}` as never)}</p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <select
+            aria-label={t("statistics.heatmap.metric")}
+            value={metric}
+            onChange={(event) => onOptionsChange(event.target.value as StatisticsHeatmapMetric, null)}
+            className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+          >
+            <option value="WORKED_HOURS">{t("statistics.metrics.WORKED_HOURS")}</option>
+            <option value="WORKED_MINUTES">{t("statistics.metrics.WORKED_MINUTES")}</option>
+            <option value="ENTRIES">{t("statistics.metrics.ENTRIES")}</option>
+            <option value="GROSS">{t("statistics.metrics.GROSS")}</option>
+          </select>
+          {metric === "GROSS" && availableCurrencies.length > 1 ? (
+            <select
+              aria-label={t("statistics.heatmap.currency")}
+              value={currency ?? ""}
+              onChange={(event) => onOptionsChange(metric, event.target.value || null)}
+              className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+            >
+              <option value="">{t("statistics.heatmap.chooseCurrency")}</option>
+              {availableCurrencies.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          ) : null}
+        </div>
       </div>
-      <div className="grid grid-cols-7 gap-1.5" role="grid" aria-label={t("statistics.heatmap.ariaLabel")}>
+      {isError ? (
+        <div className="rounded-[24px] bg-white/[0.035] p-4">
+          <p className="text-sm font-medium text-white">
+            {metric === "GROSS" ? t("statistics.heatmap.grossCurrencyRequired") : t("statistics.heatmap.error")}
+          </p>
+          <button type="button" onClick={onRetry} className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">
+            {t("actions.retry")}
+          </button>
+        </div>
+      ) : isLoading || !heatmap ? (
+        <div className="h-36 rounded-[24px] bg-white/[0.035]" />
+      ) : (
+        <>
+          <div className="grid grid-cols-7 gap-1.5" role="grid" aria-label={t("statistics.heatmap.ariaLabel")}>
         {heatmap.days.map((day) => {
           const level = intensity(day, heatmap.maximum);
           const isSelected = day.date === selectedDay;
-          const isToday = day.date === new Date().toISOString().slice(0, 10);
+          const isToday = day.date === formatLocalDate(new Date());
           return (
             <button
               key={day.date}
@@ -69,7 +124,8 @@ export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) 
               aria-label={t("statistics.heatmap.dayAriaLabel", {
                 date: new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(`${day.date}T00:00:00`)),
                 hours: formatMinutesAsDuration(Number(day.workedMinutes)),
-                entries: day.entries
+                entries: day.entries,
+                absence: day.hasAbsence ? t("statistics.heatmap.absence") : ""
               })}
               onClick={() => onSelectDay(day.date)}
               className={[
@@ -86,8 +142,8 @@ export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) 
             </button>
           );
         })}
-      </div>
-      {selected ? (
+          </div>
+          {selected ? (
         <div className="rounded-[26px] bg-white/[0.035] p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -145,7 +201,9 @@ export function StatisticsHeatmap({ heatmap, selectedDay, onSelectDay }: Props) 
             </button>
           </div>
         </div>
-      ) : null}
+          ) : null}
+        </>
+      )}
     </section>
   );
 }

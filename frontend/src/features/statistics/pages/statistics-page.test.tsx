@@ -42,7 +42,7 @@ const overview = {
   }
 };
 
-function renderPage() {
+function renderPage(initialEntries = ["/statistics"]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false }
@@ -50,7 +50,7 @@ function renderPage() {
   });
 
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <QueryClientProvider client={queryClient}>
         <StatisticsPage />
       </QueryClientProvider>
@@ -95,7 +95,7 @@ describe("StatisticsPage", () => {
       }
     ]);
     vi.mocked(getStatisticsHeatmap).mockResolvedValue({
-      metric: "WORKED_MINUTES",
+      metric: "WORKED_HOURS",
       currency: null,
       minimum: "0",
       maximum: "480",
@@ -246,5 +246,43 @@ describe("StatisticsPage", () => {
     expect(screen.getAllByText("€3,482")).toHaveLength(2);
     expect(screen.getByText(/CHF\s*420/)).toBeInTheDocument();
     expect(screen.getByText("No previous period available.")).toBeInTheDocument();
+  });
+
+  it("uses an explicit heatmap metric instead of falling back from the trend metric", async () => {
+    renderPage(["/statistics?metric=GROSS"]);
+    const user = userEvent.setup();
+
+    await screen.findByText("Activity heatmap");
+    await waitFor(() => {
+      expect(getStatisticsHeatmap).toHaveBeenCalledWith(
+        expect.objectContaining({ metric: "GROSS" }),
+        "WORKED_HOURS",
+        null
+      );
+    });
+
+    await user.selectOptions(screen.getByLabelText("Heatmap metric"), "GROSS");
+
+    await waitFor(() => {
+      expect(getStatisticsHeatmap).toHaveBeenCalledWith(
+        expect.objectContaining({ metric: "GROSS" }),
+        "GROSS",
+        null
+      );
+    });
+  });
+
+  it("restores heatmap metric and currency from the URL", async () => {
+    renderPage(["/statistics?heatmapMetric=GROSS&heatmapCurrency=EUR"]);
+
+    await screen.findByText("Activity heatmap");
+
+    await waitFor(() => {
+      expect(getStatisticsHeatmap).toHaveBeenCalledWith(
+        expect.any(Object),
+        "GROSS",
+        "EUR"
+      );
+    });
   });
 });

@@ -19,7 +19,13 @@ import {
 import { WorkTypeBreakdown } from "../components/work-type-breakdown";
 import { createDefaultStatisticsFilters, updateStatisticsCustomRange } from "../filters/statistics-filter-state";
 import { useStatistics } from "../hooks/use-statistics";
-import type { StatisticsFilters, StatisticsMetric, StatisticsPeriod, StatisticsTimeSeriesPoint } from "../types/statistics";
+import type {
+  StatisticsFilters,
+  StatisticsHeatmapMetric,
+  StatisticsMetric,
+  StatisticsPeriod,
+  StatisticsTimeSeriesPoint
+} from "../types/statistics";
 
 function parseFilters(searchParams: URLSearchParams): StatisticsFilters {
   const defaults = createDefaultStatisticsFilters();
@@ -46,13 +52,31 @@ function parseFilters(searchParams: URLSearchParams): StatisticsFilters {
   return parsed;
 }
 
-function writeFilters(filters: StatisticsFilters) {
-  const params = new URLSearchParams({
-    period: filters.period,
-    from: filters.from,
-    to: filters.to,
-    metric: filters.metric
-  });
+function parseHeatmapMetric(searchParams: URLSearchParams): StatisticsHeatmapMetric {
+  const value = searchParams.get("heatmapMetric");
+  return value && ["WORKED_HOURS", "WORKED_MINUTES", "ENTRIES", "GROSS"].includes(value)
+    ? (value as StatisticsHeatmapMetric)
+    : "WORKED_HOURS";
+}
+
+function writeFilters(
+  filters: StatisticsFilters,
+  heatmapMetric: StatisticsHeatmapMetric,
+  heatmapCurrency: string | null,
+  currentParams: URLSearchParams
+) {
+  const params = new URLSearchParams(currentParams);
+  params.set("period", filters.period);
+  params.set("from", filters.from);
+  params.set("to", filters.to);
+  params.set("metric", filters.metric);
+  params.set("heatmapMetric", heatmapMetric);
+  params.delete("heatmapCurrency");
+  params.delete("workTypeIds");
+  params.delete("calculationMethods");
+  if (heatmapCurrency) {
+    params.set("heatmapCurrency", heatmapCurrency);
+  }
   for (const workTypeId of filters.workTypeIds) {
     params.append("workTypeIds", workTypeId);
   }
@@ -66,22 +90,32 @@ export function StatisticsPage() {
   const { t } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFiltersState] = useState(() => parseFilters(searchParams));
+  const [heatmapMetric, setHeatmapMetricState] = useState(() => parseHeatmapMetric(searchParams));
+  const [heatmapCurrency, setHeatmapCurrencyState] = useState(() => searchParams.get("heatmapCurrency"));
   const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<string | null>(null);
   const [selectedChartPoint, setSelectedChartPoint] = useState<StatisticsTimeSeriesPoint | null>(null);
   const workTypes = useQuery({
     queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
-  const statistics = useStatistics(filters);
+  const statistics = useStatistics(filters, heatmapMetric, heatmapCurrency);
 
   useEffect(() => {
     setFiltersState(parseFilters(searchParams));
+    setHeatmapMetricState(parseHeatmapMetric(searchParams));
+    setHeatmapCurrencyState(searchParams.get("heatmapCurrency"));
   }, [searchParams]);
 
   function setFilters(next: StatisticsFilters) {
     setFiltersState(next);
-    setSearchParams(writeFilters(next), { replace: false });
+    setSearchParams(writeFilters(next, heatmapMetric, heatmapCurrency, searchParams), { replace: false });
     setSelectedChartPoint(null);
+  }
+
+  function setHeatmapOptions(metric: StatisticsHeatmapMetric, currency: string | null) {
+    setHeatmapMetricState(metric);
+    setHeatmapCurrencyState(currency);
+    setSearchParams(writeFilters(filters, metric, currency, searchParams), { replace: false });
   }
 
   if (statistics.isLoading) {
@@ -116,6 +150,13 @@ export function StatisticsPage() {
           <WorkTypeBreakdown items={breakdown} />
           <StatisticsHeatmap
             heatmap={statistics.heatmap.data}
+            isLoading={statistics.heatmap.isLoading}
+            isError={statistics.heatmap.isError}
+            onRetry={() => void statistics.heatmap.refetch()}
+            metric={heatmapMetric}
+            currency={heatmapCurrency}
+            availableCurrencies={overview.grossByCurrency.map((amount) => amount.currency)}
+            onOptionsChange={setHeatmapOptions}
             selectedDay={selectedHeatmapDay}
             onSelectDay={setSelectedHeatmapDay}
           />

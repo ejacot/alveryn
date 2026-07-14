@@ -105,20 +105,70 @@
       "previousYear": "Previous year"
     },
     "entriesCount": "{{count}} entries",
+    "months": {
+      "january": "Jan",
+      "february": "Feb",
+      "march": "Mar",
+      "april": "Apr",
+      "may": "May",
+      "june": "Jun",
+      "july": "Jul",
+      "august": "Aug",
+      "september": "Sep",
+      "october": "Oct",
+      "november": "Nov",
+      "december": "Dec"
+    },
+    "weekdays": {
+      "monday": "Mon",
+      "tuesday": "Tue",
+      "wednesday": "Wed",
+      "thursday": "Thu",
+      "friday": "Fri",
+      "saturday": "Sat",
+      "sunday": "Sun"
+    },
     "comparison": {
       "eyebrow": "Compare",
       "title": "Compare periods",
       "preset": "Comparison preset",
+      "metric": "Comparison metric",
       "periodA": "Period A",
       "periodB": "Period B",
+      "periodAFrom": "Period A from",
+      "periodATo": "Period A to",
+      "periodBFrom": "Period B from",
+      "periodBTo": "Period B to",
       "percentage": "{{value}}%",
       "unavailable": "Comparison unavailable",
+      "invalidRange": "Choose valid date ranges.",
+      "chartAriaLabel": "Aligned comparison chart",
+      "pointAriaLabel": "Open comparison details for {{label}}",
+      "details": "Comparison details",
       "presets": {
+        "week": "This week vs previous week",
         "month": "This month vs previous month",
         "year": "This year vs previous year",
         "sameMonthPreviousYear": "Same month, previous year",
         "ytd": "Year to date vs previous year",
-        "custom": "Selected period vs previous period"
+        "custom": "Custom periods"
+      },
+      "quick": {
+        "month": "Current month vs previous month",
+        "year": "Current year vs previous year",
+        "ytd": "Year to date vs previous year",
+        "firstHalf": "First half vs previous year",
+        "sameDuration": "Same duration before A"
+      },
+      "alignment": {
+        "DAY_OF_WEEK": "Weekdays",
+        "DAY_OF_MONTH": "Days",
+        "MONTH_OF_YEAR": "Months",
+        "RELATIVE_DAY": "Relative days",
+        "RELATIVE_WEEK": "Relative weeks",
+        "CALENDAR_BUCKET": "Calendar buckets",
+        "relativeDay": "Day {{count}}",
+        "relativeWeek": "Week {{count}}"
       }
     },
     "drilldown": {
@@ -132,8 +182,13 @@
     "heatmap": {
       "eyebrow": "Calendar",
       "title": "Activity heatmap",
+      "metric": "Heatmap metric",
+      "currency": "Heatmap currency",
+      "chooseCurrency": "Choose currency",
+      "grossCurrencyRequired": "Gross heatmap needs one currency at a time.",
+      "error": "Heatmap could not load.",
       "ariaLabel": "Activity heatmap days",
-      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} entries",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} entries {{absence}}",
       "absence": "Absence",
       "openCalendar": "Open day",
       "addEntry": "Add Entry"

@@ -85,13 +85,16 @@ public class StatisticsController {
   public ApiResponse<StatisticsHeatmapResponse> heatmap(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
-      @Parameter(description = "Metric to render", example = "WORKED_MINUTES")
-          @RequestParam(defaultValue = "WORKED_MINUTES")
+      @Parameter(description = "Metric to render. Gross requires a single currency when multiple currencies exist.", example = "WORKED_HOURS")
+          @RequestParam(defaultValue = "WORKED_HOURS")
           StatisticsMetric metric,
+      @Parameter(description = "Currency for gross heatmap", example = "EUR")
+          @RequestParam(required = false)
+          String currency,
       @RequestParam(required = false) List<UUID> workTypeIds,
       @RequestParam(required = false) List<CalculationMethod> calculationMethods) {
     return ApiResponse.of(
-        statisticsService.heatmap(new StatisticsFilters(from, to, workTypeIds, calculationMethods), metric));
+        statisticsService.heatmap(new StatisticsFilters(from, to, workTypeIds, calculationMethods), metric, currency));
   }
 
   @GetMapping("/drilldown")
