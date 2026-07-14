@@ -89,6 +89,16 @@ export function UnitTypeEditorPage() {
     });
   }, [form, unitTypeQuery.data]);
 
+  useEffect(() => {
+    if (isEditing) return;
+    form.reset({
+      name: "",
+      unitsPerHour: "",
+      displayOrder: 0,
+      active: true
+    });
+  }, [form, isEditing]);
+
   async function afterSuccess() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
@@ -189,9 +199,19 @@ export function UnitTypeEditorPage() {
               inputMode="decimal"
               placeholder={t("unitTypes.unitsPerHourPlaceholder")}
               label={t("unitTypes.fields.unitsPerHour")}
-              helperText={t("unitTypes.unitsPerHourHelper")}
+              autoComplete="off"
               error={form.formState.errors.unitsPerHour?.message}
               {...unitsPerHourField}
+              onFocus={(event) => {
+                if (event.currentTarget.value === "NaN") {
+                  event.currentTarget.value = "";
+                  form.setValue("unitsPerHour", "", {
+                    shouldDirty: false,
+                    shouldTouch: false,
+                    shouldValidate: false
+                  });
+                }
+              }}
               onChange={(event) => {
                 const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
                 if (event.currentTarget.value !== sanitized) {

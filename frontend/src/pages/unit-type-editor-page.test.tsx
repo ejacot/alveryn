@@ -118,7 +118,7 @@ describe("UnitTypeEditorPage", () => {
 
     expect(rateInput).toHaveValue("");
     expect(rateInput).toHaveAttribute("placeholder", "Example: 2.4");
-    expect(screen.getByText("Enter how many of this unit you usually complete in one hour.")).toBeInTheDocument();
+    expect(screen.queryByText("Enter how many of this unit you usually complete in one hour.")).not.toBeInTheDocument();
   });
 
   it("creates a unit type with hidden defaults omitted from the visible form", async () => {
