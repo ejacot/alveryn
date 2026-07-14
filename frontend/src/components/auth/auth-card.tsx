@@ -23,7 +23,7 @@ export function AuthCard({
   const { t } = useTranslation(["auth"]);
 
   return (
-    <div className="screen-shell flex min-h-screen items-center justify-center pb-10">
+    <div className="screen-shell flex min-h-screen items-start justify-center pb-10 pt-[max(2.75rem,calc(env(safe-area-inset-top)+1.75rem))]">
       <div className="glass-panel w-full rounded-[36px] p-6">
         <AppLogo />
         <div className="mt-8 space-y-2">
