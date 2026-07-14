@@ -12,6 +12,8 @@ import com.roomly.api.worktype.entity.WorkType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -64,6 +66,16 @@ public class WorkEntryService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     WorkEntryValidationService.DateRange range = validationService.resolveRange(year, month);
     return queryService.list(userId, range.fromDate(), range.toDate(), workTypeId, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public List<WorkEntryResponse> listDay(LocalDate date) {
+    return queryService.listDay(authenticatedUserAccessor.requireUserId(), date);
+  }
+
+  @Transactional(readOnly = true)
+  public List<WorkEntryResponse> listRecent(int limit) {
+    return queryService.listRecent(authenticatedUserAccessor.requireUserId(), limit);
   }
 
   @Transactional(readOnly = true)

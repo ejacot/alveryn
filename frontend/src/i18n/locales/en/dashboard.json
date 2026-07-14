@@ -32,6 +32,7 @@
     "weekEntryCount_one": "{{count}} entry this week",
     "weekEntryCount_other": "{{count}} entries this week",
     "selectedDay": "This day",
+    "mixedCurrencies": "Mixed currencies",
     "allEntries": "All saved entries"
   },
   "recentEntries": {

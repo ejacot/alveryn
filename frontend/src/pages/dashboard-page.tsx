@@ -1,8 +1,12 @@
 import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { listWorkEntriesInRange } from "../api/endpoints";
+import {
+  listRecentWorkEntries,
+  listWorkEntriesForDay,
+  listWorkEntriesInRange
+} from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { i18n } from "../i18n";
@@ -31,7 +35,11 @@ export function DashboardPage() {
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
-  const selectedDate = outletContext?.selectedDate ?? new Date();
+  const selectedDate = useMemo(
+    () => outletContext?.selectedDate ?? new Date(),
+    [outletContext?.selectedDate]
+  );
+  const selectedDateKey = formatLocalIsoDate(selectedDate);
 
   const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
   const weekDays = useMemo(
@@ -57,9 +65,23 @@ export function DashboardPage() {
       queryFn: () => listWorkEntriesInRange({ year, month })
     }))
   });
+  const selectedDayQuery = useQuery({
+    queryKey: queryKeys.workEntries.day(selectedDateKey),
+    queryFn: () => listWorkEntriesForDay(selectedDateKey)
+  });
+  const recentQuery = useQuery({
+    queryKey: queryKeys.workEntries.recent(5),
+    queryFn: () => listRecentWorkEntries(5)
+  });
 
-  const isLoading = monthQueries.some((query) => query.isLoading);
-  const errorQuery = monthQueries.find((query) => query.error);
+  const isLoading =
+    monthQueries.some((query) => query.isLoading) ||
+    selectedDayQuery.isLoading ||
+    recentQuery.isLoading;
+  const errorQuery =
+    monthQueries.find((query) => query.error) ??
+    (selectedDayQuery.error ? selectedDayQuery : null) ??
+    (recentQuery.error ? recentQuery : null);
 
   const allEntries = useMemo<WorkEntry[]>(() => {
     const merged = new Map<string, WorkEntry>();
@@ -77,13 +99,8 @@ export function DashboardPage() {
     });
   }, [monthQueries]);
 
-  const selectedDayEntries = useMemo(
-    () =>
-      allEntries.filter((entry) =>
-        isSameDay(new Date(`${entry.workDate}T00:00:00`), selectedDate)
-      ),
-    [allEntries, selectedDate]
-  );
+  const selectedDayEntries = useMemo(() => selectedDayQuery.data ?? [], [selectedDayQuery.data]);
+  const recentEntriesData = useMemo(() => recentQuery.data ?? [], [recentQuery.data]);
 
   const weeklyEntries = useMemo(
     () =>
@@ -121,10 +138,7 @@ export function DashboardPage() {
       secondaryMetrics: [
         {
           label: t("dashboard:summary.gross"),
-          value: formatCurrency(
-            String(todayGross),
-            resolveCurrency(selectedDayEntries, weeklyEntries)
-          ),
+          value: formatGrossTotal(selectedDayEntries, todayGross, t("dashboard:summary.mixedCurrencies")),
           hint: selectedDayEntries.length
             ? t("dashboard:summary.selectedDay")
             : t("dashboard:summary.noEntries")
@@ -134,18 +148,13 @@ export function DashboardPage() {
           value: formatMinutesAsDuration(weeklyMinutes),
           hint: weeklyEntriesLabel
         }
-      ],
-      tertiaryMetric: {
-        label: t("dashboard:summary.recent"),
-        value: String(allEntries.length),
-        hint: t("dashboard:summary.allEntries")
-      }
+      ]
     };
-  }, [allEntries.length, selectedDayEntries, selectedDayLabel, t, weeklyEntries]);
+  }, [selectedDayEntries, selectedDayLabel, t, weeklyEntries]);
 
   const recentEntries = useMemo<RecentEntry[]>(
     () =>
-      allEntries.slice(0, 5).map((entry) => ({
+      recentEntriesData.map((entry) => ({
         id: entry.id,
         title: entry.workTypeName,
         subtitle:
@@ -157,7 +166,7 @@ export function DashboardPage() {
         duration: formatMinutesAsDuration(Number(entry.calculatedMinutes)),
         amount: formatCurrency(entry.grossAmount, entry.currencySnapshot)
       })),
-    [allEntries, t]
+    [recentEntriesData, t]
   );
 
   const weeklyBars = useMemo(() => buildWeekBars(weekDays, weeklyEntries), [weekDays, weeklyEntries]);
@@ -166,9 +175,10 @@ export function DashboardPage() {
       label: selectedDayLabel,
       entriesCount: selectedDayEntries.length,
       totalDuration: formatMinutesAsDuration(sumMinutes(selectedDayEntries)),
-      totalGross: formatCurrency(
-        String(sumGross(selectedDayEntries)),
-        resolveCurrency(selectedDayEntries, weeklyEntries)
+      totalGross: formatGrossTotal(
+        selectedDayEntries,
+        sumGross(selectedDayEntries),
+        t("dashboard:summary.mixedCurrencies")
       ),
       activities: selectedDayEntries.map((entry) => ({
         id: entry.id,
@@ -196,7 +206,7 @@ export function DashboardPage() {
         )
       }))
     }),
-    [selectedDayEntries, selectedDayLabel, t, weeklyEntries]
+    [selectedDayEntries, selectedDayLabel, t]
   );
   const weeklyDescription = useMemo(() => {
     const total = formatMinutesAsDuration(sumMinutes(weeklyEntries));
@@ -217,6 +227,8 @@ export function DashboardPage() {
           monthQueries.forEach((query) => {
             void query.refetch();
           });
+          void selectedDayQuery.refetch();
+          void recentQuery.refetch();
         }}
       />
     );
@@ -229,7 +241,7 @@ export function DashboardPage() {
         selectedDay={selectedDayOverview}
         weeklyBars={weeklyBars}
         weeklyDescription={weeklyDescription}
-        onQuickAdd={() => navigate(`/entries/new?date=${formatLocalIsoDate(selectedDate)}`)}
+        onQuickAdd={() => navigate(`/entries/new?date=${selectedDateKey}`)}
         onEntrySelect={(entryId) => navigate(`/entries/${entryId}`)}
       />
   );
@@ -243,8 +255,14 @@ function sumGross(entries: WorkEntry[]) {
   return entries.reduce((total, entry) => total + Number(entry.grossAmount), 0);
 }
 
-function resolveCurrency(primary: WorkEntry[], fallback: WorkEntry[]) {
-  return primary[0]?.currencySnapshot ?? fallback[0]?.currencySnapshot ?? "EUR";
+function formatGrossTotal(entries: WorkEntry[], total: number, mixedCurrencyLabel: string) {
+  const currencies = new Set(entries.map((entry) => entry.currencySnapshot));
+
+  if (currencies.size > 1) {
+    return mixedCurrencyLabel;
+  }
+
+  return formatCurrency(String(total), entries[0]?.currencySnapshot ?? "EUR");
 }
 
 function buildWeekBars(days: Date[], entries: WorkEntry[]) {

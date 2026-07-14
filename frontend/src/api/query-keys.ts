@@ -44,6 +44,8 @@ export const queryKeys = {
     all: () => ["work-entries"] as const,
     list: (params: WorkEntriesParams) => ["work-entries", "list", params] as const,
     range: (params: WorkEntriesRangeParams) => ["work-entries", "range", params] as const,
+    day: (date: string) => ["work-entries", "day", date] as const,
+    recent: (limit: number) => ["work-entries", "recent", limit] as const,
     detail: (id: string) => ["work-entries", "detail", id] as const
   },
   absences: {

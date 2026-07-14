@@ -341,6 +341,20 @@ export function listWorkEntriesInRange(params: {
   return fetchAllPages<WorkEntry>("/api/work-entries", params);
 }
 
+export async function listWorkEntriesForDay(date: string) {
+  const response = await http.get<ApiResponse<WorkEntry[]>>("/api/work-entries/day", {
+    params: { date }
+  });
+  return response.data.data;
+}
+
+export async function listRecentWorkEntries(limit = 5) {
+  const response = await http.get<ApiResponse<WorkEntry[]>>("/api/work-entries/recent", {
+    params: { limit }
+  });
+  return response.data.data;
+}
+
 export async function getWorkEntry(id: string) {
   const response = await http.get<ApiResponse<WorkEntry>>(`/api/work-entries/${id}`);
   return response.data.data;

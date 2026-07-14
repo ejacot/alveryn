@@ -1,6 +1,6 @@
 {
   "heading": {
-    "eyebrow": "Astazi",
+    "eyebrow": "Astăzi",
     "previewEyebrow": "Previzualizare",
     "title": "Astăzi, dintr-o privire",
     "description": "Doar cifrele și intrările care contează acum.",
@@ -8,7 +8,7 @@
     "activityDescription_one": "{{count}} activitate salvată pentru această zi.",
     "activityDescription_few": "{{count}} activități salvate pentru această zi.",
     "activityDescription_other": "{{count}} de activități salvate pentru această zi.",
-    "previewDescription": "O privire simpla asupra zilei tale.",
+    "previewDescription": "O privire simplă asupra zilei tale.",
     "previewError": "Ceva nu a mers bine."
   },
   "selectedDay": {
@@ -35,15 +35,16 @@
     "weekEntryCount_one": "{{count}} intrare săptămâna aceasta",
     "weekEntryCount_few": "{{count}} intrări săptămâna aceasta",
     "weekEntryCount_other": "{{count}} de intrări săptămâna aceasta",
-    "selectedDay": "Aceasta zi",
-    "allEntries": "Toate intrarile salvate"
+    "selectedDay": "Această zi",
+    "mixedCurrencies": "Monede diferite",
+    "allEntries": "Toate intrările salvate"
   },
   "recentEntries": {
     "eyebrow": "Recente",
     "title": "Intrări recente",
     "trailingLabel": "Ultimele",
     "emptyTitle": "Nicio intrare încă",
-    "emptyDescription": "Adauga prima ta tura.",
+    "emptyDescription": "Adaugă prima ta tură.",
     "openEntry": "Deschide {{title}}",
     "unitRows_one": "{{count}} rând de unități • {{date}}",
     "unitRows_few": "{{count}} rânduri de unități • {{date}}",
@@ -54,17 +55,17 @@
     "description": "Adaugă o tură înainte să treacă momentul.",
     "emptyDescription": "Nu există activitate încă",
     "cta": "Adaugă intrare",
-    "accessibleLabel": "Adauga o noua intrare de lucru"
+    "accessibleLabel": "Adaugă o nouă intrare de lucru"
   },
   "weeklyHours": {
     "eyebrow": "Ritm",
     "title": "Orele săptămânii",
     "empty": "Activitatea săptămânii va apărea după ce salvezi lucru în această săptămână.",
-    "description": "{{total}} saptamana aceasta.",
-    "emptyDescription": "Nu exista intrari saptamana aceasta."
+    "description": "{{total}} săptămâna aceasta.",
+    "emptyDescription": "Nu există intrări săptămâna aceasta."
   },
   "preview": {
-    "weeklyDescription": "Un ritm saptamanal simplu.",
+    "weeklyDescription": "Un ritm săptămânal simplu.",
     "entries": {
       "morningRooms": {
         "title": "Camere de dimineață",

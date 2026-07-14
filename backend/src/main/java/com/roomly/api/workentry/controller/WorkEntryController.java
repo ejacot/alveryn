@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -100,6 +102,32 @@ public class WorkEntryController {
           Pageable pageable) {
     Page<WorkEntryResponse> entries = workEntryService.list(year, month, workTypeId, pageable);
     return ApiResponse.of(PageResponse.from(entries));
+  }
+
+  @GetMapping("/day")
+  @Operation(
+      summary = "List work entries for one local date",
+      description = "Returns all work entries for exactly one authenticated user's local work date.",
+      security = @SecurityRequirement(name = "bearerAuth"))
+  public ApiResponse<List<WorkEntryResponse>> day(
+      @Parameter(description = "Local work date", example = "2026-07-14")
+          @RequestParam
+          LocalDate date) {
+    return ApiResponse.of(workEntryService.listDay(date));
+  }
+
+  @GetMapping("/recent")
+  @Operation(
+      summary = "List recent work entries",
+      description = "Returns the authenticated user's latest work entries globally, sorted by work date and creation time.",
+      security = @SecurityRequirement(name = "bearerAuth"))
+  public ApiResponse<List<WorkEntryResponse>> recent(
+      @Parameter(description = "Maximum number of entries to return", example = "5")
+          @RequestParam(defaultValue = "5")
+          @Min(1)
+          @Max(20)
+          Integer limit) {
+    return ApiResponse.of(workEntryService.listRecent(limit));
   }
 
   @GetMapping("/{id}")

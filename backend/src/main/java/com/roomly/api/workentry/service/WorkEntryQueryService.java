@@ -18,8 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +44,22 @@ public class WorkEntryQueryService {
   @Transactional(readOnly = true)
   public WorkEntryResponse getResponse(UUID userId, UUID id) {
     return toResponse(findEntry(userId, id));
+  }
+
+  @Transactional(readOnly = true)
+  public List<WorkEntryResponse> listDay(UUID userId, LocalDate date) {
+    return toResponses(workEntries.findAllByUserIdAndWorkDateOrderByCreatedAt(userId, date));
+  }
+
+  @Transactional(readOnly = true)
+  public List<WorkEntryResponse> listRecent(UUID userId, int limit) {
+    Pageable pageable =
+        PageRequest.of(
+            0,
+            limit,
+            Sort.by(Sort.Direction.DESC, "workDate")
+                .and(Sort.by(Sort.Direction.DESC, "createdAt")));
+    return toResponses(workEntries.findAllByUserId(userId, pageable).getContent());
   }
 
   @Transactional(readOnly = true)
@@ -73,6 +91,14 @@ public class WorkEntryQueryService {
     Map<UUID, TimeEntryDetails> timeByEntryId = loadTimeDetails(List.of(entry));
     Map<UUID, List<UnitEntryItem>> unitItemsByEntryId = loadUnitItems(List.of(entry));
     return mapper.toResponse(entry, mapTime(timeByEntryId, entry), mapItems(unitItemsByEntryId, entry));
+  }
+
+  private List<WorkEntryResponse> toResponses(List<WorkEntry> entries) {
+    Map<UUID, TimeEntryDetails> timeByEntryId = loadTimeDetails(entries);
+    Map<UUID, List<UnitEntryItem>> unitItemsByEntryId = loadUnitItems(entries);
+    return entries.stream()
+        .map(entry -> mapper.toResponse(entry, mapTime(timeByEntryId, entry), mapItems(unitItemsByEntryId, entry)))
+        .toList();
   }
 
   private Page<WorkEntry> findPage(

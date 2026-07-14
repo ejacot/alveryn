@@ -223,6 +223,37 @@ class WorkEntryIntegrationTest {
   }
 
   @Test
+  void dayAndRecentEndpointsReturnExactDayAndGlobalLatestEntries() throws Exception {
+    UserAccount user = createVerifiedUser("day-recent@example.com");
+    WorkType workType = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 12), "08:00:00", "10:00:00", 0);
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 13), "08:00:00", "11:00:00", 0);
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "08:00:00", "12:00:00", 0);
+
+    mockMvc
+        .perform(
+            get("/api/work-entries/day")
+                .param("date", "2026-07-13")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.data[0].workDate").value("2026-07-13"))
+        .andExpect(jsonPath("$.data[0].timeEntry.workedMinutes").value(180));
+
+    mockMvc
+        .perform(
+            get("/api/work-entries/recent")
+                .param("limit", "2")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(2))
+        .andExpect(jsonPath("$.data[0].workDate").value("2026-07-14"))
+        .andExpect(jsonPath("$.data[1].workDate").value("2026-07-13"));
+  }
+
+  @Test
   void paginationValidationRejectsOversizedPageRequests() throws Exception {
     UserAccount user = createVerifiedUser("page@example.com");
 
