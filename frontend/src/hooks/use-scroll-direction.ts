@@ -1,31 +1,63 @@
 import { useEffect, useRef, useState } from "react";
+import { getNextScrollNavState, type ScrollNavState } from "./scroll-nav-state";
 
 export function useScrollDirection(threshold = 8) {
   const [direction, setDirection] = useState<"up" | "down">("up");
+  const stateRef = useRef<ScrollNavState>("expanded");
   const lastValue = useRef(0);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("compactNav") === "true") {
       setDirection("down");
+      stateRef.current = "compact";
     }
 
-    lastValue.current = window.scrollY;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    lastValue.current = getNextScrollNavState({
+      currentState: stateRef.current,
+      previousScrollTop: 0,
+      rawScrollTop: window.scrollY,
+      viewportHeight,
+      documentHeight: document.documentElement.scrollHeight,
+      deltaThreshold: threshold
+    }).scrollTop;
 
     function handleScroll() {
-      const current = window.scrollY;
-      const delta = current - lastValue.current;
-
-      if (Math.abs(delta) < threshold) {
+      if (frameRef.current !== null) {
         return;
       }
 
-      setDirection(delta > 0 ? "down" : "up");
-      lastValue.current = current;
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null;
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        const next = getNextScrollNavState({
+          currentState: stateRef.current,
+          previousScrollTop: lastValue.current,
+          rawScrollTop: window.scrollY,
+          viewportHeight,
+          documentHeight: document.documentElement.scrollHeight,
+          deltaThreshold: threshold
+        });
+
+        lastValue.current = next.scrollTop;
+        if (next.state === stateRef.current) {
+          return;
+        }
+
+        stateRef.current = next.state;
+        setDirection(next.state === "compact" ? "down" : "up");
+      });
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
   }, [threshold]);
 
   return direction;

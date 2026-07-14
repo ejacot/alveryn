@@ -84,7 +84,7 @@ export function UnitTypeEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() })
     ]);
-    navigate(`/settings/work-types/${workTypeId}`);
+    navigate(`/settings/work-types/${workTypeId}`, { replace: true });
   }
 
   const saveMutation = useMutation({

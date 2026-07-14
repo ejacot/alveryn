@@ -10,7 +10,6 @@ export function AppLayout() {
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const isSettingsOverview = location.pathname === "/profile";
-  const isSettingsDetail = location.pathname.startsWith("/settings/");
 
   const showWeekSelector = useMemo(
     () =>
@@ -18,11 +17,11 @@ export function AppLayout() {
       (PREVIEW_ROUTES_ENABLED && location.pathname.startsWith("/preview")),
     [location.pathname]
   );
-  const showAppLogo = !isSettingsOverview && !isSettingsDetail;
-  const showBottomNav = !isSettingsDetail;
+  const showAppLogo = !isSettingsOverview && !location.pathname.startsWith("/settings/");
 
   return (
     <>
+      <div className="app-background" aria-hidden="true" />
       <main className="screen-shell space-y-4">
         {showAppLogo || showWeekSelector ? (
           <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
@@ -38,7 +37,7 @@ export function AppLayout() {
           <Outlet context={{ selectedDate }} />
         </PageTransition>
       </main>
-      {showBottomNav ? <BottomNav /> : null}
+      <BottomNav />
     </>
   );
 }

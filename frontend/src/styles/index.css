@@ -17,6 +17,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  min-height: 100dvh;
 }
 
 html {
@@ -41,6 +42,20 @@ body {
 }
 
 @layer components {
+  .app-background {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background:
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 24%),
+      radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.035), transparent 30%),
+      radial-gradient(circle at bottom, rgba(255, 255, 255, 0.02), transparent 22%),
+      #050505;
+    pointer-events: none;
+  }
+
   .glass-panel {
     @apply border border-white/[0.08] bg-white/[0.06] shadow-glass backdrop-blur-glass;
     box-shadow:
@@ -49,8 +64,10 @@ body {
   }
 
   .screen-shell {
-    @apply mx-auto min-h-screen w-full max-w-[560px] px-5 pb-32;
+    @apply mx-auto min-h-screen w-full max-w-[560px] px-5 pb-40;
+    min-height: 100dvh;
     padding-top: max(0.2rem, env(safe-area-inset-top));
+    padding-bottom: max(10rem, calc(env(safe-area-inset-bottom) + 8rem));
   }
 
   .floating-nav {

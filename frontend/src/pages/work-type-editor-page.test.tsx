@@ -123,7 +123,7 @@ describe("WorkTypeEditorPage", () => {
         name: "Check",
         calculationMethod: "TIME_BASED"
       });
-      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types");
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types", { replace: true });
     });
   });
 
@@ -150,7 +150,7 @@ describe("WorkTypeEditorPage", () => {
         name: "Camere",
         calculationMethod: "UNIT_BASED"
       });
-      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit");
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit", { replace: true });
     });
   });
 

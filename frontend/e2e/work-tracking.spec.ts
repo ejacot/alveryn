@@ -23,6 +23,7 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   });
 
   await page.goto("/settings/work-types/new");
+  await expect(page.getByLabel("Primary navigation")).toBeVisible();
   await page.getByLabel("Name").fill("Check");
   await page.getByLabel("Calculation method").selectOption("TIME_BASED");
   await page.getByRole("button", { name: /save changes/i }).click();
@@ -58,6 +59,10 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   await expect(page.getByText("Cameră normală")).toBeVisible();
   await expect(page.getByText("Cameră junior")).toBeVisible();
   await expect(page.getByText("Suită")).toBeVisible();
+  await page.getByRole("button", { name: /go back/i }).click();
+  await expect(page.getByRole("heading", { name: "Work types" })).toBeVisible();
+  await page.getByRole("button", { name: /go back/i }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
   await page.goto("/entries/new?date=2026-07-13");
   await page.getByRole("button", { name: "Check" }).click();
@@ -90,6 +95,40 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-types"))).toBe(true);
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-entries"))).toBe(true);
   expect(consoleErrors).toEqual([]);
+});
+
+test("settings subpage keeps bottom navigation and protects dirty forms", async ({ page }, testInfo) => {
+  const user = await createE2eUser(testInfo.title);
+  await loginThroughUi(page, user);
+
+  await page.goto("/settings/work-types/new");
+  await expect(page.getByLabel("Primary navigation")).toBeVisible();
+  await page.getByLabel("Home").click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.goto("/settings/work-types/new");
+  await page.getByLabel("Name").fill("Dirty type");
+  await page.getByLabel("Calendar").click();
+  await expect(page.getByRole("dialog", { name: "Discard changes?" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/settings\/work-types\/new/);
+
+  await page.getByLabel("Calendar").click();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await expect(page).toHaveURL(/\/calendar/);
+});
+
+test("settings shows one profile destination", async ({ page }, testInfo) => {
+  const user = await createE2eUser(testInfo.title);
+  await loginThroughUi(page, user);
+
+  await page.goto("/profile");
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Profile" })).toHaveCount(1);
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+  await page.getByRole("button", { name: /go back/i }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 });
 
 test("selected-day home updates quick add target", async ({ page }, testInfo) => {

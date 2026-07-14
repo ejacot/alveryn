@@ -35,13 +35,10 @@ export function BottomNav() {
       aria-label={t("nav.primaryNavigation")}
       animate={{
         scale: compact ? 0.84 : 1,
-        y: compact ? 10 : 0,
-        width: compact ? "calc(100% - 4.25rem)" : "calc(100% - 1.5rem)",
-        paddingTop: compact ? 8 : 12,
-        paddingBottom: compact ? 8 : 12
+        y: compact ? 8 : 0
       }}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-      className="floating-nav ios-glass-nav fixed inset-x-0 z-50 mx-auto flex max-w-[430px] items-center justify-between rounded-[36px] px-3"
+      className="floating-nav ios-glass-nav fixed inset-x-0 z-50 mx-auto flex w-[calc(100%_-_1.5rem)] max-w-[430px] origin-bottom items-center justify-between rounded-[36px] px-3 py-3 will-change-transform"
     >
       {items.map(({ to, icon: Icon, label, prominent }) => (
         <NavLink

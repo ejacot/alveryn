@@ -87,10 +87,10 @@ export function WorkTypeEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
     if (targetId && (isEditing || calculationMethod === "UNIT_BASED")) {
-      navigate(`/settings/work-types/${targetId}`);
+      navigate(`/settings/work-types/${targetId}`, { replace: true });
       return;
     }
-    navigate("/settings/work-types");
+    navigate("/settings/work-types", { replace: true });
   }
 
   const saveMutation = useMutation({

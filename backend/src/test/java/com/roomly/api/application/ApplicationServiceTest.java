@@ -68,6 +68,26 @@ class ApplicationServiceTest {
   }
 
   @Test
+  void createsWorkTypesFromMinimalPayloadWithBackendDefaults() {
+    var timeBased =
+        workTypes.create(
+            new CreateWorkTypeRequest("Check", CalculationMethod.TIME_BASED, null, null, null, null));
+    var unitBased =
+        workTypes.create(
+            new CreateWorkTypeRequest("Rooms", CalculationMethod.UNIT_BASED, null, null, null, null));
+
+    assertThat(timeBased.name()).isEqualTo("Check");
+    assertThat(timeBased.color()).matches("#[0-9A-F]{6}");
+    assertThat(timeBased.defaultBreakMinutes()).isEqualTo(30);
+    assertThat(timeBased.displayOrder()).isGreaterThanOrEqualTo(0);
+    assertThat(unitBased.name()).isEqualTo("Rooms");
+    assertThat(unitBased.color()).matches("#[0-9A-F]{6}");
+    assertThat(unitBased.defaultBreakMinutes()).isNull();
+    assertThat(unitBased.displayOrder()).isGreaterThan(timeBased.displayOrder());
+    assertThat(workTypes.list()).extracting(WorkTypeResponse::id).contains(timeBased.id(), unitBased.id());
+  }
+
+  @Test
   void workTypeUpdatePreservesCalculationMethod() {
     var created =
         workTypes.create(

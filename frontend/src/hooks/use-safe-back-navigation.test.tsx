@@ -29,23 +29,8 @@ describe("useSafeBackNavigation", () => {
     navigateMock.mockReset();
   });
 
-  it("uses history when Roomly navigation exists", async () => {
+  it("always uses the explicit app parent route", async () => {
     window.history.replaceState({ idx: 2 }, "", "/settings/profile");
-    const user = userEvent.setup();
-
-    render(
-      <MemoryRouter>
-        <Harness />
-      </MemoryRouter>
-    );
-
-    await user.click(screen.getByRole("button", { name: "Back" }));
-
-    expect(navigateMock).toHaveBeenCalledWith(-1);
-  });
-
-  it("falls back to the provided route when opened directly", async () => {
-    window.history.replaceState({ idx: 0 }, "", "/settings/profile");
     const user = userEvent.setup();
 
     render(

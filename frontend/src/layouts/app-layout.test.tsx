@@ -59,4 +59,25 @@ describe("AppLayout", () => {
     expect(header?.className).not.toMatch(/\bfixed\b/);
     expect(screen.getByText("Roomly")).toBeInTheDocument();
   });
+
+  it("keeps full-screen background and primary navigation on settings subroutes", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false }
+      }
+    });
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/settings/work-types/new"]}>
+        <QueryClientProvider client={queryClient}>
+          <AppLayout />
+        </QueryClientProvider>
+      </MemoryRouter>
+    );
+
+    expect(container.querySelector(".app-background")).not.toBeNull();
+    expect(screen.getByLabelText("Primary navigation")).toBeInTheDocument();
+    expect(screen.getByLabelText("Home")).toBeInTheDocument();
+    expect(screen.getByLabelText("Settings")).toBeInTheDocument();
+  });
 });

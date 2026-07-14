@@ -85,7 +85,7 @@ export function HourlyRateEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
-    navigate("/settings/hourly-rates");
+    navigate("/settings/hourly-rates", { replace: true });
   }
 
   const saveMutation = useMutation({

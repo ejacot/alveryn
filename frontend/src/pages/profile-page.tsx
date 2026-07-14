@@ -41,7 +41,7 @@ export function ProfilePage() {
       .join(" ");
 
     return composed || profile?.displayName?.trim() || user?.account.email || "Roomly";
-  }, [profile?.displayName, profile?.firstName, profile?.lastName]);
+  }, [profile?.displayName, profile?.firstName, profile?.lastName, user?.account.email]);
 
   const initials = useMemo(() => {
     const source =
@@ -90,11 +90,8 @@ export function ProfilePage() {
         initials={initials}
         fullName={fullName}
         email={user?.account.email ?? ""}
+        ariaLabel={t("settings:profile")}
       />
-
-      <SettingsGroup title={t("settings:account")}>
-        <SettingsRow to="/settings/profile" label={t("settings:profile")} />
-      </SettingsGroup>
 
       <SettingsGroup title={t("settings:work")}>
         <SettingsRow to="/settings/hourly-rates" label={t("settings:hourlyRates")} value={hourlyRateValue} />

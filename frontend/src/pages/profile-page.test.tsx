@@ -126,7 +126,8 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByText("Eusebiu Jacot")).toBeInTheDocument();
     expect(screen.getByText("roomly000app@gmail.com")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("href", "/settings/profile");
+    expect(screen.getAllByRole("link", { name: /^profile$/i })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/settings/profile");
     expect(screen.getByText("Hourly rates")).toBeInTheDocument();
     expect(await screen.findByText("17.50 EUR")).toBeInTheDocument();
     expect(screen.getByText("Language")).toBeInTheDocument();
