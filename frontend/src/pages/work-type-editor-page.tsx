@@ -94,29 +94,25 @@ export function WorkTypeEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const payload = {
-        name: values.name.trim(),
-        calculationMethod: values.calculationMethod,
-        color: workTypeQuery.data?.color ?? "#FFFFFF",
-        icon: workTypeQuery.data?.icon ?? null,
-        defaultBreakMinutes:
-          values.calculationMethod === "TIME_BASED"
-            ? workTypeQuery.data?.defaultBreakMinutes ?? 30
-            : null,
-        displayOrder: workTypeQuery.data?.displayOrder ?? 0,
-        active: values.active
-      };
+      if (isEditing) {
+        return updateWorkType(workTypeId!, {
+          name: values.name.trim(),
+          calculationMethod: values.calculationMethod,
+          color: workTypeQuery.data?.color,
+          icon: workTypeQuery.data?.icon ?? null,
+          defaultBreakMinutes:
+            values.calculationMethod === "TIME_BASED"
+              ? workTypeQuery.data?.defaultBreakMinutes
+              : null,
+          displayOrder: workTypeQuery.data?.displayOrder ?? 0,
+          active: values.active
+        });
+      }
 
-      return isEditing
-        ? updateWorkType(workTypeId!, payload)
-        : createWorkType({
-            name: payload.name,
-            calculationMethod: payload.calculationMethod,
-            color: payload.color,
-            icon: payload.icon,
-            defaultBreakMinutes: payload.defaultBreakMinutes,
-            displayOrder: payload.displayOrder
-          });
+      return createWorkType({
+        name: values.name.trim(),
+        calculationMethod: values.calculationMethod
+      });
     },
     onSuccess: async (workType) => {
       setSuccessMessage(isEditing ? t("settings:workTypeEditor.updated") : t("settings:workTypeEditor.created"));

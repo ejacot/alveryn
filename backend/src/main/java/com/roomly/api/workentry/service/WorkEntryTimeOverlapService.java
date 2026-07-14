@@ -48,7 +48,10 @@ public class WorkEntryTimeOverlapService {
 
   public Optional<TimeInterval> findDatabaseConflict(
       UUID userId, UUID excludedEntryId, TimeInterval candidate) {
-    return timeEntryDetails.findAllForUserWithEntryAndWorkType(userId).stream()
+    return timeEntryDetails
+        .findPotentialOverlapsForUser(
+            userId, candidate.start().toLocalDate().minusDays(1), candidate.end().toLocalDate())
+        .stream()
         .filter(detail -> excludedEntryId == null || !detail.getWorkEntry().getId().equals(excludedEntryId))
         .map(this::toInterval)
         .filter(candidate::overlaps)

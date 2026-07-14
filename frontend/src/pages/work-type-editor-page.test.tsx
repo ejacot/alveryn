@@ -121,11 +121,7 @@ describe("WorkTypeEditorPage", () => {
       expect(createWorkType).toHaveBeenCalled();
       expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
         name: "Check",
-        calculationMethod: "TIME_BASED",
-        color: "#FFFFFF",
-        icon: null,
-        defaultBreakMinutes: 30,
-        displayOrder: 0
+        calculationMethod: "TIME_BASED"
       });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types");
     });
@@ -152,11 +148,7 @@ describe("WorkTypeEditorPage", () => {
     await waitFor(() => {
       expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
         name: "Camere",
-        calculationMethod: "UNIT_BASED",
-        color: "#FFFFFF",
-        icon: null,
-        defaultBreakMinutes: null,
-        displayOrder: 0
+        calculationMethod: "UNIT_BASED"
       });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit");
     });

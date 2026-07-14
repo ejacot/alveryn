@@ -34,6 +34,11 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -318,6 +323,39 @@ class WorkEntryIntegrationTest {
         .andExpect(status().isCreated());
 
     assertThat(workEntries.findAll()).hasSize(2);
+  }
+
+  @Test
+  void concurrentOverlappingCreatesSerializePerUserAndOnlyOneSucceeds() throws Exception {
+    UserAccount user = createVerifiedUser("overlap-concurrent@example.com");
+    WorkType workType = createWorkType(user, "Regular Shift", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    CountDownLatch ready = new CountDownLatch(2);
+    CountDownLatch start = new CountDownLatch(1);
+    var executor = Executors.newFixedThreadPool(2);
+
+    Callable<Integer> request =
+        () -> {
+          ready.countDown();
+          start.await(5, TimeUnit.SECONDS);
+          return postTimeEntry(user, workType, LocalDate.of(2026, 7, 14), "09:00:00", "17:00:00", 0)
+              .andReturn()
+              .getResponse()
+              .getStatus();
+        };
+
+    try {
+      var first = executor.submit(request);
+      var second = executor.submit(request);
+      assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+      start.countDown();
+
+      List<Integer> statuses = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+      assertThat(statuses).contains(201, 409);
+      assertThat(workEntries.findAll()).hasSize(1);
+    } finally {
+      executor.shutdownNow();
+    }
   }
 
   @Test

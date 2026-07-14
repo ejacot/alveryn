@@ -12,5 +12,5 @@ import java.math.BigDecimal;
 public record UnitTypeRequest(
     @NotBlank @Size(max = 100) String name,
     @NotNull @Positive BigDecimal unitsPerHour,
-    @PositiveOrZero int displayOrder,
+    @PositiveOrZero Integer displayOrder,
     boolean active) {}

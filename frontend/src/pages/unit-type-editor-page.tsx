@@ -88,10 +88,16 @@ export function UnitTypeEditorPage() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      isEditing
-        ? updateUnitType(workTypeId!, unitTypeId!, values)
-        : createUnitType(workTypeId!, values),
+    mutationFn: (values: FormValues) => {
+      if (isEditing) {
+        return updateUnitType(workTypeId!, unitTypeId!, values);
+      }
+      return createUnitType(workTypeId!, {
+        name: values.name,
+        unitsPerHour: values.unitsPerHour,
+        active: values.active
+      });
+    },
     onSuccess: async () => {
       setSuccessMessage(isEditing ? t("unitTypes.updated") : t("unitTypes.created"));
       await afterSuccess();

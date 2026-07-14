@@ -9,6 +9,8 @@ import com.roomly.api.workentry.repository.UnitEntryItemRepository;
 import com.roomly.api.workentry.repository.WorkEntryRepository;
 import com.roomly.api.worktype.entity.CalculationMethod;
 import com.roomly.api.worktype.entity.WorkType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,8 @@ public class WorkEntryService {
   private final WorkEntryQueryService queryService;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
 
+  @PersistenceContext private EntityManager entityManager;
+
   @Transactional
   public WorkEntryResponse create(@Valid WorkEntryRequest request) {
     UUID userId = authenticatedUserAccessor.requireUserId();
@@ -39,6 +43,7 @@ public class WorkEntryService {
 
     WorkEntryCalculationService.PreparedWorkEntry prepared =
         calculationService.prepareEntry(userId, workType, request);
+    lockTimeScheduleIfNeeded(userId, workType);
     validateTimeOverlap(userId, null, workType, request, prepared);
     WorkEntry saved =
         workEntries.save(
@@ -75,6 +80,7 @@ public class WorkEntryService {
 
     WorkEntryCalculationService.PreparedWorkEntry prepared =
         calculationService.prepareEntry(userId, workType, request);
+    lockTimeScheduleIfNeeded(userId, workType);
     validateTimeOverlap(userId, id, workType, request, prepared);
     entry.recalculate(
         workType,
@@ -108,5 +114,15 @@ public class WorkEntryService {
     }
     timeOverlapService.validateNoOverlap(
         userId, excludedEntryId, request.workDate(), prepared.startTime(), prepared.endTime());
+  }
+
+  private void lockTimeScheduleIfNeeded(UUID userId, WorkType workType) {
+    if (workType.getCalculationMethod() != CalculationMethod.TIME_BASED) {
+      return;
+    }
+    entityManager
+        .createNativeQuery("select pg_advisory_xact_lock(hashtextextended(:lockKey, 0))")
+        .setParameter("lockKey", "work-entry-time:" + userId)
+        .getSingleResult();
   }
 }

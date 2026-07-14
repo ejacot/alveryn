@@ -38,7 +38,7 @@ public class UnitTypeService {
     var e = new UnitType(wt, dto.name(), dto.unitsPerHour());
     if (repository.existsByWorkTypeIdAndNormalizedName(wt.getId(), e.getNormalizedName()))
       throw new ConflictException("UnitType name already exists");
-    apply(e, dto);
+    applyCreateDefaults(e, wt.getId(), dto);
     return mapper.toUnitTypeResponse(repository.save(e));
   }
 
@@ -51,7 +51,9 @@ public class UnitTypeService {
         workTypeId, e.getNormalizedName(), id))
       throw new ConflictException("UnitType name already exists");
     e.changeUnitsPerHour(dto.unitsPerHour());
-    e.changeDisplayOrder(dto.displayOrder());
+    if (dto.displayOrder() != null) {
+      e.changeDisplayOrder(dto.displayOrder());
+    }
     if (dto.active()) e.activate();
     else e.deactivate();
     return mapper.toUnitTypeResponse(e);
@@ -84,8 +86,11 @@ public class UnitTypeService {
         .orElseThrow(() -> new NotFoundException("UnitType", id));
   }
 
-  private void apply(UnitType e, UnitTypeRequest d) {
-    e.changeDisplayOrder(d.displayOrder());
+  private void applyCreateDefaults(UnitType e, UUID workTypeId, UnitTypeRequest d) {
+    e.changeDisplayOrder(
+        d.displayOrder() != null
+            ? d.displayOrder()
+            : repository.findMaxDisplayOrderByWorkTypeId(workTypeId) + 1);
     if (d.active()) e.activate();
     else e.deactivate();
   }

@@ -4,6 +4,7 @@ import com.roomly.api.worktype.entity.UnitType;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface UnitTypeRepository extends JpaRepository<UnitType, UUID> {
   List<UnitType> findAllByWorkTypeIdOrderByDisplayOrderAscNameAsc(UUID workTypeId);
@@ -19,4 +20,7 @@ public interface UnitTypeRepository extends JpaRepository<UnitType, UUID> {
       UUID workTypeId, String normalizedName, UUID id);
 
   boolean existsByWorkTypeId(UUID workTypeId);
+
+  @Query("select coalesce(max(u.displayOrder), -1) from UnitType u where u.workType.id = :workTypeId")
+  int findMaxDisplayOrderByWorkTypeId(UUID workTypeId);
 }
