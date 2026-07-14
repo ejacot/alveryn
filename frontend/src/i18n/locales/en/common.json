@@ -41,10 +41,55 @@
   },
   "statistics": {
     "eyebrow": "Statistics",
-    "title": "Coming later",
-    "description": "Statistics will be added after the core work flows are finished.",
-    "cardTitle": "Not available yet",
-    "cardBody": "Keep tracking work from Home and Calendar for now."
+    "title": "Statistics",
+    "primarySummary": "Gross income",
+    "comparedToPrevious": "compared to previous period",
+    "filters": {
+      "label": "Statistics filters",
+      "period": "Period",
+      "workType": "Work type",
+      "calculationMethod": "Calculation method",
+      "all": "All"
+    },
+    "periods": {
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month",
+      "year": "This Year",
+      "custom": "Custom"
+    },
+    "methods": {
+      "time": "Time Based",
+      "unit": "Unit Based"
+    },
+    "cards": {
+      "label": "Statistics summary",
+      "hours": "Hours",
+      "workedDays": "Worked Days",
+      "entries": "Entries",
+      "averagePerDay": "Average per Day"
+    },
+    "trend": {
+      "title": "Trend",
+      "value": "Gross",
+      "ariaLabel": "Gross income trend chart"
+    },
+    "workTypes": {
+      "title": "Work Type Breakdown"
+    },
+    "heatmap": {
+      "eyebrow": "Calendar",
+      "title": "Heatmap comes next"
+    },
+    "empty": {
+      "title": "No statistics yet.",
+      "description": "Start tracking work to see trends.",
+      "action": "Add Entry"
+    },
+    "error": {
+      "title": "Statistics could not load.",
+      "description": "Try again in a moment."
+    }
   },
   "time": {
     "today": "Today",

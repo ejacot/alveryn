@@ -116,3 +116,38 @@ export async function createHourlyRate(accessToken: string) {
   });
   await api.dispose();
 }
+
+export async function createTimeBasedWorkType(accessToken: string, name: string) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-types", {
+    data: { name, calculationMethod: "TIME_BASED" }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create work type");
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create work type did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createTimeEntry(accessToken: string, workTypeId: string) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-entries", {
+    data: {
+      workTypeId,
+      workDate: "2026-07-14",
+      startTime: "09:00:00",
+      endTime: "17:00:00",
+      unpaidBreakMinutes: 0
+    }
+  });
+  await requireSuccessfulResponse(response, "Create time entry");
+  await api.dispose();
+}

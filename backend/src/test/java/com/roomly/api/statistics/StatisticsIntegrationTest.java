@@ -1,0 +1,198 @@
+package com.roomly.api.statistics;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.roomly.api.auth.security.JwtService;
+import com.roomly.api.salary.entity.HourlyRatePeriod;
+import com.roomly.api.salary.repository.HourlyRatePeriodRepository;
+import com.roomly.api.user.entity.UserAccount;
+import com.roomly.api.user.repository.UserAccountRepository;
+import com.roomly.api.workentry.repository.TimeEntryDetailsRepository;
+import com.roomly.api.workentry.repository.UnitEntryItemRepository;
+import com.roomly.api.workentry.repository.WorkEntryRepository;
+import com.roomly.api.worktype.entity.CalculationMethod;
+import com.roomly.api.worktype.entity.UnitType;
+import com.roomly.api.worktype.entity.WorkType;
+import com.roomly.api.worktype.repository.UnitTypeRepository;
+import com.roomly.api.worktype.repository.WorkTypeRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+@SpringBootTest
+class StatisticsIntegrationTest {
+  @Autowired WebApplicationContext context;
+  @Autowired JwtService jwtService;
+  @Autowired UserAccountRepository users;
+  @Autowired WorkTypeRepository workTypes;
+  @Autowired UnitTypeRepository unitTypes;
+  @Autowired HourlyRatePeriodRepository hourlyRates;
+  @Autowired WorkEntryRepository workEntries;
+  @Autowired TimeEntryDetailsRepository timeEntryDetails;
+  @Autowired UnitEntryItemRepository unitEntryItems;
+
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+    unitEntryItems.deleteAll();
+    timeEntryDetails.deleteAll();
+    workEntries.deleteAll();
+    unitTypes.deleteAll();
+    workTypes.deleteAll();
+    hourlyRates.deleteAll();
+    users.deleteAll();
+  }
+
+  @Test
+  void overviewReturnsTotalsAndPreviousPeriodComparison() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-overview@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "12:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "10:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 6, 30), "08:00:00", "11:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-02")
+                .param("timezone", "Europe/Berlin"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.currency").value("EUR"))
+        .andExpect(jsonPath("$.data.workedDays").value(2))
+        .andExpect(jsonPath("$.data.entries").value(2))
+        .andExpect(content().string(containsString("\"workedMinutes\":360.000000000000000")))
+        .andExpect(content().string(containsString("\"grossAmount\":120.000000000000000")))
+        .andExpect(content().string(containsString("\"averageMinutesPerDay\":180.000000000000000")))
+        .andExpect(jsonPath("$.data.comparisonDirection").value("UP"))
+        .andExpect(jsonPath("$.data.comparisonPercentage").value(100.00));
+  }
+
+  @Test
+  void filtersTimeseriesAndWorkTypeBreakdownUseBackendAggregations() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-filter@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
+    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
+    createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "10:00:00");
+    createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 4), "08:00:00", "09:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31")
+                .param("calculationMethods", "UNIT_BASED"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.data[0].date").value("2026-07-03"))
+        .andExpect(content().string(containsString("\"value\":60.000000000000000")));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/work-types")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].name").value("Check"))
+        .andExpect(jsonPath("$.data[0].entries").value(2))
+        .andExpect(jsonPath("$.data[1].name").value("Rooms"))
+        .andExpect(jsonPath("$.data[1].percentage").value(40.00));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31")
+                .param("workTypeIds", rooms.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.entries").value(1))
+        .andExpect(content().string(containsString("\"workedMinutes\":120.000000000000000")));
+  }
+
+  private void createTimeEntry(UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime)
+      throws Exception {
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"%s",
+                      "startTime":"%s",
+                      "endTime":"%s"
+                    }
+                    """
+                        .formatted(workType.getId(), workDate, startTime, endTime)))
+        .andExpect(status().isCreated());
+  }
+
+  private void createUnitEntry(UserAccount user, WorkType workType, UnitType unitType, LocalDate workDate, String quantity)
+      throws Exception {
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"%s",
+                      "unitItems":[{"unitTypeId":"%s","quantity":%s}]
+                    }
+                    """
+                        .formatted(workType.getId(), workDate, unitType.getId(), quantity)))
+        .andExpect(status().isCreated());
+  }
+
+  private UserAccount createVerifiedUser(String email) {
+    UserAccount user = new UserAccount(email, "hash");
+    user.verifyEmail();
+    return users.saveAndFlush(user);
+  }
+
+  private WorkType createWorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
+    return workTypes.saveAndFlush(new WorkType(user, name, calculationMethod));
+  }
+
+  private UnitType createUnitType(WorkType workType, String name, String unitsPerHour) {
+    return unitTypes.saveAndFlush(new UnitType(workType, name, new BigDecimal(unitsPerHour)));
+  }
+
+  private HourlyRatePeriod createRate(
+      UserAccount user, String rate, String currency, LocalDate validFrom, LocalDate validTo) {
+    return hourlyRates.saveAndFlush(
+        new HourlyRatePeriod(user, new BigDecimal(rate), currency, validFrom, validTo));
+  }
+
+  private String bearerToken(UserAccount user) {
+    return "Bearer " + jwtService.generateAccessToken(user);
+  }
+}

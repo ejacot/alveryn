@@ -41,10 +41,55 @@
   },
   "statistics": {
     "eyebrow": "Statistik",
-    "title": "Kommt später",
-    "description": "Statistiken werden nach den Kernabläufen hinzugefügt.",
-    "cardTitle": "Noch nicht verfügbar",
-    "cardBody": "Erfasse Arbeit vorerst über Start und Kalender."
+    "title": "Statistik",
+    "primarySummary": "Bruttoeinkommen",
+    "comparedToPrevious": "im Vergleich zum vorherigen Zeitraum",
+    "filters": {
+      "label": "Statistikfilter",
+      "period": "Zeitraum",
+      "workType": "Arbeitstyp",
+      "calculationMethod": "Berechnung",
+      "all": "Alle"
+    },
+    "periods": {
+      "today": "Heute",
+      "week": "Diese Woche",
+      "month": "Dieser Monat",
+      "year": "Dieses Jahr",
+      "custom": "Benutzerdefiniert"
+    },
+    "methods": {
+      "time": "Zeitbasiert",
+      "unit": "Einheitenbasiert"
+    },
+    "cards": {
+      "label": "Statistikübersicht",
+      "hours": "Stunden",
+      "workedDays": "Arbeitstage",
+      "entries": "Einträge",
+      "averagePerDay": "Durchschnitt pro Tag"
+    },
+    "trend": {
+      "title": "Trend",
+      "value": "Brutto",
+      "ariaLabel": "Diagramm für Bruttoeinkommen"
+    },
+    "workTypes": {
+      "title": "Aufteilung nach Arbeitstyp"
+    },
+    "heatmap": {
+      "eyebrow": "Kalender",
+      "title": "Heatmap folgt später"
+    },
+    "empty": {
+      "title": "Noch keine Statistik.",
+      "description": "Erfasse Arbeit, um Trends zu sehen.",
+      "action": "Eintrag hinzufügen"
+    },
+    "error": {
+      "title": "Statistik konnte nicht geladen werden.",
+      "description": "Versuche es gleich noch einmal."
+    }
   },
   "time": {
     "today": "Heute",

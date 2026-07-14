@@ -20,6 +20,14 @@ type AbsencesParams = {
 
 type AbsencesRangeParams = Omit<AbsencesParams, "page" | "size">;
 
+type StatisticsQueryFilters = {
+  from: string;
+  to: string;
+  workTypeIds: readonly string[];
+  calculationMethods: readonly string[];
+  timezone: string;
+};
+
 export const queryKeys = {
   currentUser: () => ["current-user"] as const,
   profile: () => ["profile"] as const,
@@ -57,5 +65,10 @@ export const queryKeys = {
     all: () => ["imports"] as const,
     history: () => ["imports", "history"] as const,
     detail: (batchId: string) => ["imports", "detail", batchId] as const
+  },
+  statistics: {
+    overview: (filters: StatisticsQueryFilters) => ["statistics", "overview", filters] as const,
+    timeseries: (filters: StatisticsQueryFilters) => ["statistics", "timeseries", filters] as const,
+    workTypes: (filters: StatisticsQueryFilters) => ["statistics", "work-types", filters] as const
   }
 } as const;

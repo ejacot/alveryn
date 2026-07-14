@@ -41,10 +41,55 @@
   },
   "statistics": {
     "eyebrow": "Statistici",
-    "title": "Disponibil mai târziu",
-    "description": "Statisticile vor fi adăugate după finalizarea fluxurilor principale.",
-    "cardTitle": "Indisponibil momentan",
-    "cardBody": "Momentan, înregistrează munca din Acasă și Calendar."
+    "title": "Statistici",
+    "primarySummary": "Venit brut",
+    "comparedToPrevious": "față de perioada precedentă",
+    "filters": {
+      "label": "Filtre statistici",
+      "period": "Perioadă",
+      "workType": "Tip de muncă",
+      "calculationMethod": "Calcul",
+      "all": "Toate"
+    },
+    "periods": {
+      "today": "Astăzi",
+      "week": "Săptămâna aceasta",
+      "month": "Luna aceasta",
+      "year": "Anul acesta",
+      "custom": "Personalizat"
+    },
+    "methods": {
+      "time": "Bazat pe timp",
+      "unit": "Bazat pe unități"
+    },
+    "cards": {
+      "label": "Rezumat statistici",
+      "hours": "Ore",
+      "workedDays": "Zile lucrate",
+      "entries": "Înregistrări",
+      "averagePerDay": "Medie pe zi"
+    },
+    "trend": {
+      "title": "Tendință",
+      "value": "Brut",
+      "ariaLabel": "Grafic pentru venitul brut"
+    },
+    "workTypes": {
+      "title": "Împărțire pe tipuri de muncă"
+    },
+    "heatmap": {
+      "eyebrow": "Calendar",
+      "title": "Heatmap-ul urmează"
+    },
+    "empty": {
+      "title": "Nu există statistici încă.",
+      "description": "Înregistrează munca pentru a vedea tendințe.",
+      "action": "Adaugă înregistrare"
+    },
+    "error": {
+      "title": "Statisticile nu au putut fi încărcate.",
+      "description": "Încearcă din nou peste câteva momente."
+    }
   },
   "time": {
     "today": "Astăzi",
