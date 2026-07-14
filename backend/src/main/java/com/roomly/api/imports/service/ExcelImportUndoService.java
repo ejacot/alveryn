@@ -17,6 +17,7 @@ import com.roomly.api.workentry.repository.WorkEntryRepository;
 import com.roomly.api.worktype.repository.WorkTypeRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,12 +76,16 @@ public class ExcelImportUndoService {
           ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name());
     }
 
-    for (WorkEntry entry : workEntries.findAllByImportBatchId(batchId)) {
+    List<WorkEntry> importedEntries = workEntries.findAllByImportBatchId(batchId);
+    List<Absence> importedAbsences = absences.findAllByImportBatchId(batchId);
+    ensureImportedRecordsWereNotEdited(batch, importedEntries, importedAbsences);
+
+    for (WorkEntry entry : importedEntries) {
       timeEntryDetails.deleteByWorkEntryId(entry.getId());
       unitEntryItems.deleteAllByWorkEntryId(entry.getId());
       workEntries.delete(entry);
     }
-    for (Absence absence : absences.findAllByImportBatchId(batchId)) {
+    for (Absence absence : importedAbsences) {
       absences.delete(absence);
     }
 
@@ -93,5 +98,25 @@ public class ExcelImportUndoService {
 
     batch.markUndone(OffsetDateTime.now(clock));
     return historyService.get(batchId);
+  }
+
+  private void ensureImportedRecordsWereNotEdited(
+      ExcelImportBatch batch, List<WorkEntry> importedEntries, List<Absence> importedAbsences) {
+    if (batch.getConfirmedAt() == null) {
+      throw new ConflictException(
+          "Only completed import batches can be undone",
+          ExcelImportErrorCode.EXCEL_IMPORT_CONFLICT.name());
+    }
+    OffsetDateTime importCompletedAt = batch.getUpdatedAt();
+    boolean hasEditedEntry =
+        importedEntries.stream().anyMatch(entry -> entry.getUpdatedAt().isAfter(importCompletedAt));
+    boolean hasEditedAbsence =
+        importedAbsences.stream().anyMatch(absence -> absence.getUpdatedAt().isAfter(importCompletedAt));
+
+    if (hasEditedEntry || hasEditedAbsence) {
+      throw new ConflictException(
+          "This import contains records that were edited after import. Review them before undoing.",
+          ExcelImportErrorCode.EXCEL_IMPORT_UNDO_MODIFIED_RECORDS.name());
+    }
   }
 }

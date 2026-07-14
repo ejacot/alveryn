@@ -308,6 +308,27 @@ class ExcelImportIntegrationTest {
   }
 
   @Test
+  void undoBlocksWhenImportedWorkEntryWasEditedAfterImport() throws Exception {
+    UserAccount user = createVerifiedUser("undo-edited@example.com");
+    createRate(user, "20.00", "EUR", LocalDate.of(2025, 1, 1), null);
+
+    String previewToken = previewToken(user, createWorkbookBytes("09:00-17:30", "Liste+CH"));
+    confirm(user, previewToken);
+    var batch = importBatches.findAll().getFirst();
+    WorkEntry importedEntry = workEntries.findAll().getFirst();
+    importedEntry.updateNotes("User edited after import");
+    workEntries.saveAndFlush(importedEntry);
+
+    mockMvc
+        .perform(post("/api/imports/excel/schedule/{batchId}/undo", batch.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("EXCEL_IMPORT_UNDO_MODIFIED_RECORDS"));
+
+    assertThat(workEntries.findAll()).hasSize(1);
+    assertThat(importBatches.findAll().getFirst().getStatus()).isEqualTo(ExcelImportBatchStatus.COMPLETED);
+  }
+
+  @Test
   void previewRejectsWorkbookWithoutSupportedSheets() throws Exception {
     UserAccount user = createVerifiedUser("ignored@example.com");
 
