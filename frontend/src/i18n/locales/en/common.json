@@ -47,6 +47,7 @@
     "filters": {
       "label": "Statistics filters",
       "period": "Period",
+      "metric": "Metric",
       "workType": "Work type",
       "calculationMethod": "Calculation method",
       "all": "All"
@@ -62,6 +63,23 @@
       "time": "Time Based",
       "unit": "Unit Based"
     },
+    "metrics": {
+      "gross": "Gross",
+      "GROSS": "Gross",
+      "workedMinutes": "Worked Minutes",
+      "WORKED_MINUTES": "Worked Minutes",
+      "workedHours": "Worked Hours",
+      "WORKED_HOURS": "Worked Hours",
+      "workedDays": "Worked Days",
+      "WORKED_DAYS": "Worked Days",
+      "entries": "Entries",
+      "ENTRIES": "Entries"
+    },
+    "granularity": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
     "cards": {
       "label": "Statistics summary",
       "hours": "Hours",
@@ -71,9 +89,9 @@
     },
     "trend": {
       "title": "Trend",
-      "value": "Gross",
       "ariaLabel": "Gross income trend chart"
     },
+    "comparisonUnavailable": "No previous period available.",
     "workTypes": {
       "title": "Work Type Breakdown"
     },

@@ -10,5 +10,4 @@ public record StatisticsFilters(
     @NotNull LocalDate from,
     @NotNull LocalDate to,
     List<UUID> workTypeIds,
-    List<CalculationMethod> calculationMethods,
-    String timezone) {}
+    List<CalculationMethod> calculationMethods) {}

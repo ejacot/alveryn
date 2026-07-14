@@ -4,6 +4,8 @@ import type { StatisticsTimeSeriesPoint } from "../types/statistics";
 
 type Props = {
   points: StatisticsTimeSeriesPoint[];
+  metric: string;
+  granularity: string;
 };
 
 function toPath(points: StatisticsTimeSeriesPoint[]) {
@@ -24,9 +26,18 @@ function toPath(points: StatisticsTimeSeriesPoint[]) {
     .join(" ");
 }
 
-export function StatisticsLineChart({ points }: Props) {
+function groupedSeries(points: StatisticsTimeSeriesPoint[]) {
+  const groups = new Map<string, StatisticsTimeSeriesPoint[]>();
+  for (const point of points) {
+    const key = point.currency ?? "value";
+    groups.set(key, [...(groups.get(key) ?? []), point]);
+  }
+  return Array.from(groups.entries());
+}
+
+export function StatisticsLineChart({ points, metric, granularity }: Props) {
   const { t } = useTranslation("common");
-  const path = toPath(points);
+  const series = groupedSeries(points);
 
   return (
     <section className="section-card" aria-labelledby="statistics-trend-title">
@@ -34,7 +45,10 @@ export function StatisticsLineChart({ points }: Props) {
         <h2 id="statistics-trend-title" className="text-base font-semibold text-white">
           {t("statistics.trend.title")}
         </h2>
-        <p className="text-xs text-white/40">{t("statistics.trend.value")}</p>
+        <p className="text-xs text-white/40">
+          {t(`statistics.metrics.${metric}` as never, metric)} ·{" "}
+          {t(`statistics.granularity.${granularity}` as never, granularity)}
+        </p>
       </div>
       <div
         role="img"
@@ -45,19 +59,23 @@ export function StatisticsLineChart({ points }: Props) {
           <path d="M 0 92 L 200 92" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
           <path d="M 0 54 L 200 54" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
           <path d="M 0 16 L 200 16" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          {path ? (
-            <motion.path
-              d={path}
-              fill="none"
-              stroke="rgba(255,255,255,0.92)"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="3"
-              initial={{ pathLength: 0, opacity: 0.4 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
-            />
-          ) : null}
+          {series.map(([key, seriesPoints], index) => {
+            const path = toPath(seriesPoints);
+            return path ? (
+              <motion.path
+                key={key}
+                d={path}
+                fill="none"
+                stroke={index === 0 ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.48)"}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="3"
+                initial={{ pathLength: 0, opacity: 0.4 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+              />
+            ) : null;
+          })}
         </svg>
       </div>
     </section>

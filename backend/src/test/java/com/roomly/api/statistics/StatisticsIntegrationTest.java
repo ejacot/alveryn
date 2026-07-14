@@ -73,17 +73,18 @@ class StatisticsIntegrationTest {
             get("/api/statistics/overview")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .param("from", "2026-07-01")
-                .param("to", "2026-07-02")
-                .param("timezone", "Europe/Berlin"))
+                .param("to", "2026-07-02"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.currency").value("EUR"))
+        .andExpect(jsonPath("$.data.grossByCurrency.length()").value(1))
+        .andExpect(jsonPath("$.data.grossByCurrency[0].currency").value("EUR"))
         .andExpect(jsonPath("$.data.workedDays").value(2))
         .andExpect(jsonPath("$.data.entries").value(2))
         .andExpect(content().string(containsString("\"workedMinutes\":360.000000000000000")))
-        .andExpect(content().string(containsString("\"grossAmount\":120.000000000000000")))
+        .andExpect(content().string(containsString("\"amount\":120.000000000000000")))
         .andExpect(content().string(containsString("\"averageMinutesPerDay\":180.000000000000000")))
-        .andExpect(jsonPath("$.data.comparisonDirection").value("UP"))
-        .andExpect(jsonPath("$.data.comparisonPercentage").value(100.00));
+        .andExpect(jsonPath("$.data.comparison.available").value(true))
+        .andExpect(jsonPath("$.data.comparison.direction").value("UP"))
+        .andExpect(jsonPath("$.data.comparison.percentage").value(100.00));
   }
 
   @Test
@@ -105,8 +106,13 @@ class StatisticsIntegrationTest {
                 .param("to", "2026-07-31")
                 .param("calculationMethods", "UNIT_BASED"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.length()").value(1))
-        .andExpect(jsonPath("$.data[0].date").value("2026-07-03"))
+        .andExpect(jsonPath("$.data.granularity").value("DAILY"))
+        .andExpect(jsonPath("$.data.metric").value("GROSS"))
+        .andExpect(jsonPath("$.data.points.length()").value(31))
+        .andExpect(jsonPath("$.data.points[0].bucketStart").value("2026-07-01"))
+        .andExpect(jsonPath("$.data.points[0].value").value(0))
+        .andExpect(jsonPath("$.data.points[2].bucketStart").value("2026-07-03"))
+        .andExpect(jsonPath("$.data.points[2].currency").value("EUR"))
         .andExpect(content().string(containsString("\"value\":60.000000000000000")));
 
     mockMvc
@@ -117,7 +123,9 @@ class StatisticsIntegrationTest {
                 .param("to", "2026-07-31"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data[0].name").value("Check"))
+        .andExpect(jsonPath("$.data[0].calculationMethod").value("TIME_BASED"))
         .andExpect(jsonPath("$.data[0].entries").value(2))
+        .andExpect(jsonPath("$.data[0].percentageBasis").value("MINUTES"))
         .andExpect(jsonPath("$.data[1].name").value("Rooms"))
         .andExpect(jsonPath("$.data[1].percentage").value(40.00));
 
@@ -131,6 +139,118 @@ class StatisticsIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.entries").value(1))
         .andExpect(content().string(containsString("\"workedMinutes\":120.000000000000000")));
+  }
+
+  @Test
+  void overviewPreservesMultipleCurrenciesAndDoesNotReturnFakeMixedGross() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-currency@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 7, 2));
+    createRate(user, "25.00", "CHF", LocalDate.of(2026, 7, 3), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "13:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "12:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-03"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.grossByCurrency.length()").value(2))
+        .andExpect(jsonPath("$.data.grossByCurrency[0].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.grossByCurrency[0].amount").value(100.00))
+        .andExpect(jsonPath("$.data.grossByCurrency[1].currency").value("CHF"))
+        .andExpect(jsonPath("$.data.grossByCurrency[1].amount").value(100.00))
+        .andExpect(jsonPath("$.data.grossAmount").doesNotExist())
+        .andExpect(jsonPath("$.data.currency").doesNotExist())
+        .andExpect(jsonPath("$.data.comparison.available").value(false))
+        .andExpect(jsonPath("$.data.comparison.direction").value("NEW"));
+  }
+
+  @Test
+  void timeseriesSupportsMetricsAndGranularityWithoutMissingBuckets() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-series@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 1), "08:00:00", "10:00:00");
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 5), "08:00:00", "11:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-05")
+                .param("metric", "WORKED_MINUTES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.granularity").value("DAILY"))
+        .andExpect(jsonPath("$.data.metric").value("WORKED_MINUTES"))
+        .andExpect(jsonPath("$.data.points.length()").value(5))
+        .andExpect(jsonPath("$.data.points[1].bucketStart").value("2026-07-02"))
+        .andExpect(jsonPath("$.data.points[1].value").value(0))
+        .andExpect(jsonPath("$.data.points[4].value").value(180.00));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-01-01")
+                .param("to", "2026-04-30")
+                .param("metric", "ENTRIES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.granularity").value("WEEKLY"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2025-01-01")
+                .param("to", "2026-12-31")
+                .param("metric", "WORKED_DAYS"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.granularity").value("MONTHLY"));
+  }
+
+  @Test
+  void previousPeriodWithNoDataIsExplicitlyUnavailable() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-new@example.com");
+    WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, check, LocalDate.of(2026, 7, 10), "08:00:00", "10:00:00");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-10")
+                .param("to", "2026-07-10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.comparison.available").value(false))
+        .andExpect(jsonPath("$.data.comparison.percentage").doesNotExist())
+        .andExpect(jsonPath("$.data.comparison.direction").value("NEW"));
+  }
+
+  @Test
+  void invalidDateRangeReturnsStableStatisticsError() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-invalid@example.com");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-10")
+                .param("to", "2026-07-09"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_INVALID_DATE_RANGE"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("to", "2026-07-09"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("STATISTICS_INVALID_DATE_RANGE"));
   }
 
   private void createTimeEntry(UserAccount user, WorkType workType, LocalDate workDate, String startTime, String endTime)

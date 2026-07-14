@@ -47,6 +47,7 @@
     "filters": {
       "label": "Filtre statistici",
       "period": "Perioadă",
+      "metric": "Metrică",
       "workType": "Tip de muncă",
       "calculationMethod": "Calcul",
       "all": "Toate"
@@ -62,6 +63,23 @@
       "time": "Bazat pe timp",
       "unit": "Bazat pe unități"
     },
+    "metrics": {
+      "gross": "Brut",
+      "GROSS": "Brut",
+      "workedMinutes": "Minute lucrate",
+      "WORKED_MINUTES": "Minute lucrate",
+      "workedHours": "Ore lucrate",
+      "WORKED_HOURS": "Ore lucrate",
+      "workedDays": "Zile lucrate",
+      "WORKED_DAYS": "Zile lucrate",
+      "entries": "Înregistrări",
+      "ENTRIES": "Înregistrări"
+    },
+    "granularity": {
+      "DAILY": "Zilnic",
+      "WEEKLY": "Săptămânal",
+      "MONTHLY": "Lunar"
+    },
     "cards": {
       "label": "Rezumat statistici",
       "hours": "Ore",
@@ -71,9 +89,9 @@
     },
     "trend": {
       "title": "Tendință",
-      "value": "Brut",
       "ariaLabel": "Grafic pentru venitul brut"
     },
+    "comparisonUnavailable": "Nu există perioadă precedentă disponibilă.",
     "workTypes": {
       "title": "Împărțire pe tipuri de muncă"
     },

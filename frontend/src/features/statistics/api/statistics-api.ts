@@ -3,15 +3,14 @@ import { http } from "../../../api/http";
 import type {
   StatisticsFilters,
   StatisticsOverview,
-  StatisticsTimeSeriesPoint,
+  StatisticsTimeSeries,
   StatisticsWorkTypeBreakdown
 } from "../types/statistics";
 
 function paramsFromFilters(filters: StatisticsFilters) {
   const params = new URLSearchParams({
     from: filters.from,
-    to: filters.to,
-    timezone: filters.timezone
+    to: filters.to
   });
   for (const workTypeId of filters.workTypeIds) {
     params.append("workTypeIds", workTypeId);
@@ -31,9 +30,11 @@ export async function getStatisticsOverview(filters: StatisticsFilters) {
 }
 
 export async function getStatisticsTimeSeries(filters: StatisticsFilters) {
-  const response = await http.get<ApiResponse<StatisticsTimeSeriesPoint[]>>(
+  const params = paramsFromFilters(filters);
+  params.set("metric", filters.metric);
+  const response = await http.get<ApiResponse<StatisticsTimeSeries>>(
     "/api/statistics/timeseries",
-    { params: paramsFromFilters(filters) }
+    { params }
   );
   return response.data.data;
 }

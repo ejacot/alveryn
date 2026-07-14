@@ -1,5 +1,5 @@
 import type { CalculationMethod } from "../../../types/work-entry";
-import type { StatisticsFilters, StatisticsPeriod } from "../types/statistics";
+import type { StatisticsFilters, StatisticsMetric, StatisticsPeriod } from "../types/statistics";
 
 const DAY_MS = 86_400_000;
 
@@ -44,9 +44,9 @@ export function createDefaultStatisticsFilters(now = new Date()): StatisticsFilt
     period: "month",
     from: range.from,
     to: range.to,
+    metric: "GROSS",
     workTypeIds: [],
-    calculationMethods: [],
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+    calculationMethods: []
   };
 }
 
@@ -72,4 +72,11 @@ export function updateStatisticsCalculationMethod(
   calculationMethod: "" | CalculationMethod
 ): StatisticsFilters {
   return { ...filters, calculationMethods: calculationMethod ? [calculationMethod] : [] };
+}
+
+export function updateStatisticsMetric(
+  filters: StatisticsFilters,
+  metric: StatisticsMetric
+): StatisticsFilters {
+  return { ...filters, metric };
 }

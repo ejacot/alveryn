@@ -2,8 +2,9 @@ package com.roomly.api.statistics.controller;
 
 import com.roomly.api.common.response.ApiResponse;
 import com.roomly.api.statistics.dto.StatisticsFilters;
+import com.roomly.api.statistics.dto.StatisticsMetric;
 import com.roomly.api.statistics.dto.StatisticsOverviewResponse;
-import com.roomly.api.statistics.dto.StatisticsTimeSeriesPointResponse;
+import com.roomly.api.statistics.dto.StatisticsTimeSeriesResponse;
 import com.roomly.api.statistics.dto.StatisticsWorkTypeResponse;
 import com.roomly.api.statistics.service.StatisticsService;
 import com.roomly.api.worktype.entity.CalculationMethod;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -33,38 +33,36 @@ public class StatisticsController {
   @GetMapping("/overview")
   @Operation(summary = "Return statistics overview", security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsOverviewResponse> overview(
-      @RequestParam @NotNull LocalDate from,
-      @RequestParam @NotNull LocalDate to,
+      @RequestParam(required = false) LocalDate from,
+      @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) List<UUID> workTypeIds,
-      @RequestParam(required = false) List<CalculationMethod> calculationMethods,
-      @Parameter(description = "Client timezone for future local-date expansion")
-          @RequestParam(required = false)
-          String timezone) {
+      @RequestParam(required = false) List<CalculationMethod> calculationMethods) {
     return ApiResponse.of(
-        statisticsService.overview(new StatisticsFilters(from, to, workTypeIds, calculationMethods, timezone)));
+        statisticsService.overview(new StatisticsFilters(from, to, workTypeIds, calculationMethods)));
   }
 
   @GetMapping("/timeseries")
   @Operation(summary = "Return statistics time series", security = @SecurityRequirement(name = "bearerAuth"))
-  public ApiResponse<List<StatisticsTimeSeriesPointResponse>> timeSeries(
-      @RequestParam @NotNull LocalDate from,
-      @RequestParam @NotNull LocalDate to,
+  public ApiResponse<StatisticsTimeSeriesResponse> timeSeries(
+      @RequestParam(required = false) LocalDate from,
+      @RequestParam(required = false) LocalDate to,
+      @Parameter(description = "Metric to aggregate", example = "GROSS")
+          @RequestParam(defaultValue = "GROSS")
+          StatisticsMetric metric,
       @RequestParam(required = false) List<UUID> workTypeIds,
-      @RequestParam(required = false) List<CalculationMethod> calculationMethods,
-      @RequestParam(required = false) String timezone) {
+      @RequestParam(required = false) List<CalculationMethod> calculationMethods) {
     return ApiResponse.of(
-        statisticsService.timeSeries(new StatisticsFilters(from, to, workTypeIds, calculationMethods, timezone)));
+        statisticsService.timeSeries(new StatisticsFilters(from, to, workTypeIds, calculationMethods), metric));
   }
 
   @GetMapping("/work-types")
   @Operation(summary = "Return statistics work type breakdown", security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<List<StatisticsWorkTypeResponse>> workTypes(
-      @RequestParam @NotNull LocalDate from,
-      @RequestParam @NotNull LocalDate to,
+      @RequestParam(required = false) LocalDate from,
+      @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) List<UUID> workTypeIds,
-      @RequestParam(required = false) List<CalculationMethod> calculationMethods,
-      @RequestParam(required = false) String timezone) {
+      @RequestParam(required = false) List<CalculationMethod> calculationMethods) {
     return ApiResponse.of(
-        statisticsService.workTypes(new StatisticsFilters(from, to, workTypeIds, calculationMethods, timezone)));
+        statisticsService.workTypes(new StatisticsFilters(from, to, workTypeIds, calculationMethods)));
   }
 }

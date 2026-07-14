@@ -23,9 +23,9 @@ type AbsencesRangeParams = Omit<AbsencesParams, "page" | "size">;
 type StatisticsQueryFilters = {
   from: string;
   to: string;
+  metric: string;
   workTypeIds: readonly string[];
   calculationMethods: readonly string[];
-  timezone: string;
 };
 
 export const queryKeys = {

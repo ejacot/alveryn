@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { StatisticsOverview } from "../types/statistics";
+import type { MoneyAmount, StatisticsOverview } from "../types/statistics";
 
 type Props = {
   overview: StatisticsOverview;
@@ -9,15 +9,12 @@ function numberValue(value: string | number | null | undefined) {
   return Number(value ?? 0);
 }
 
-function formatCurrency(value: string, currency: string | null, locale: string) {
-  if (!currency || currency === "MIXED") {
-    return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(numberValue(value));
-  }
+function formatCurrency(amount: MoneyAmount, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency,
+    currency: amount.currency,
     maximumFractionDigits: 0
-  }).format(numberValue(value));
+  }).format(numberValue(amount.amount));
 }
 
 function formatHours(minutes: string, locale: string) {
@@ -26,23 +23,42 @@ function formatHours(minutes: string, locale: string) {
 
 export function StatisticsPrimarySummary({ overview }: Props) {
   const { i18n, t } = useTranslation("common");
-  const comparison = numberValue(overview.comparisonPercentage);
-  const sign = comparison > 0 ? "+" : "";
+  const comparison = overview.comparison.percentage == null ? null : numberValue(overview.comparison.percentage);
+  const sign = comparison != null && comparison > 0 ? "+" : "";
 
   return (
     <section aria-labelledby="statistics-primary-summary" className="space-y-2 py-4">
       <p id="statistics-primary-summary" className="hairline-text">
         {t("statistics.primarySummary")}
       </p>
-      <p className="text-[4.5rem] font-semibold leading-none tracking-[-0.09em] text-white">
-        {formatCurrency(overview.grossAmount, overview.currency, i18n.language)}
-      </p>
+      <div className="space-y-2">
+        {overview.grossByCurrency.length > 0 ? (
+          overview.grossByCurrency.map((amount) => (
+            <div key={amount.currency} className="space-y-1">
+              {overview.grossByCurrency.length > 1 ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/38">{amount.currency}</p>
+              ) : null}
+              <p className="text-[4.5rem] font-semibold leading-none tracking-[-0.09em] text-white">
+                {formatCurrency(amount, i18n.language)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-[4.5rem] font-semibold leading-none tracking-[-0.09em] text-white">0</p>
+        )}
+      </div>
       <p className="text-sm font-medium text-white/52">
-        <span className="text-white/82">
-          {sign}
-          {comparison.toFixed(0)}%
-        </span>{" "}
-        {t("statistics.comparedToPrevious")}
+        {overview.comparison.available && comparison != null ? (
+          <>
+            <span className="text-white/82">
+              {sign}
+              {comparison.toFixed(0)}%
+            </span>{" "}
+            {t("statistics.comparedToPrevious")}
+          </>
+        ) : (
+          t("statistics.comparisonUnavailable")
+        )}
       </p>
     </section>
   );

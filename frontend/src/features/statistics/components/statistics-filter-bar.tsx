@@ -4,10 +4,11 @@ import type { WorkType } from "../../../types/configuration";
 import type { CalculationMethod } from "../../../types/work-entry";
 import {
   updateStatisticsCalculationMethod,
+  updateStatisticsMetric,
   updateStatisticsPeriod,
   updateStatisticsWorkType
 } from "../filters/statistics-filter-state";
-import type { StatisticsFilters, StatisticsPeriod } from "../types/statistics";
+import type { StatisticsFilters, StatisticsMetric, StatisticsPeriod } from "../types/statistics";
 
 type Props = {
   filters: StatisticsFilters;
@@ -20,7 +21,7 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
 
   return (
     <section aria-label={t("statistics.filters.label")} className="section-card space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Select
           label={t("statistics.filters.period")}
           value={filters.period}
@@ -31,6 +32,17 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
           <option value="month">{t("statistics.periods.month")}</option>
           <option value="year">{t("statistics.periods.year")}</option>
           <option value="custom">{t("statistics.periods.custom")}</option>
+        </Select>
+        <Select
+          label={t("statistics.filters.metric")}
+          value={filters.metric}
+          onChange={(event) => onChange(updateStatisticsMetric(filters, event.target.value as StatisticsMetric))}
+        >
+          <option value="GROSS">{t("statistics.metrics.gross")}</option>
+          <option value="WORKED_MINUTES">{t("statistics.metrics.workedMinutes")}</option>
+          <option value="WORKED_HOURS">{t("statistics.metrics.workedHours")}</option>
+          <option value="WORKED_DAYS">{t("statistics.metrics.workedDays")}</option>
+          <option value="ENTRIES">{t("statistics.metrics.entries")}</option>
         </Select>
         <Select
           label={t("statistics.filters.workType")}

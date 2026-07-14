@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { StatisticsWorkTypeBreakdown } from "../types/statistics";
+import type { MoneyAmount, StatisticsWorkTypeBreakdown } from "../types/statistics";
 
 type Props = {
   items: StatisticsWorkTypeBreakdown[];
@@ -7,6 +7,14 @@ type Props = {
 
 function formatHours(minutes: string, locale: string) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(Number(minutes) / 60);
+}
+
+function formatMoney(amount: MoneyAmount, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: amount.currency,
+    maximumFractionDigits: 0
+  }).format(Number(amount.amount));
 }
 
 export function WorkTypeBreakdown({ items }: Props) {
@@ -22,10 +30,17 @@ export function WorkTypeBreakdown({ items }: Props) {
           <article key={item.workTypeId} className="space-y-2">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-sm font-semibold text-white">{item.name}</h3>
-              <p className="text-sm text-white/58">
-                {formatHours(item.minutes, i18n.language)}
-                {t("time.hoursShort")} · {Number(item.percentage).toFixed(0)}%
-              </p>
+              <div className="text-right text-sm text-white/58">
+                <p>
+                  {formatHours(item.minutes, i18n.language)}
+                  {t("time.hoursShort")} · {Number(item.percentage).toFixed(0)}%
+                </p>
+                {item.grossByCurrency.length > 0 ? (
+                  <p className="text-xs text-white/38">
+                    {item.grossByCurrency.map((amount) => formatMoney(amount, i18n.language)).join(" · ")}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
               <div

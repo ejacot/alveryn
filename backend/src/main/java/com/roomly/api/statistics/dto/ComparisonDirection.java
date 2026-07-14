@@ -3,5 +3,7 @@ package com.roomly.api.statistics.dto;
 public enum ComparisonDirection {
   UP,
   DOWN,
-  FLAT
+  FLAT,
+  NEW,
+  NO_DATA
 }

@@ -31,7 +31,7 @@ export function StatisticsPage() {
   }
 
   const overview = statistics.overview.data;
-  const points = statistics.timeSeries.data ?? [];
+  const timeSeries = statistics.timeSeries.data;
   const breakdown = statistics.workTypes.data ?? [];
   const hasEntries = Boolean(overview && overview.entries > 0);
 
@@ -46,7 +46,11 @@ export function StatisticsPage() {
       ) : (
         <>
           <StatisticsPrimarySummary overview={overview} />
-          <StatisticsLineChart points={points} />
+          <StatisticsLineChart
+            points={timeSeries?.points ?? []}
+            metric={timeSeries?.metric ?? filters.metric}
+            granularity={timeSeries?.granularity ?? "DAILY"}
+          />
           <StatisticsSummaryCards overview={overview} />
           <WorkTypeBreakdown items={breakdown} />
           <StatisticsHeatmapPlaceholder />

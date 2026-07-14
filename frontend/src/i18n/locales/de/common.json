@@ -47,6 +47,7 @@
     "filters": {
       "label": "Statistikfilter",
       "period": "Zeitraum",
+      "metric": "Kennzahl",
       "workType": "Arbeitstyp",
       "calculationMethod": "Berechnung",
       "all": "Alle"
@@ -62,6 +63,23 @@
       "time": "Zeitbasiert",
       "unit": "Einheitenbasiert"
     },
+    "metrics": {
+      "gross": "Brutto",
+      "GROSS": "Brutto",
+      "workedMinutes": "Arbeitsminuten",
+      "WORKED_MINUTES": "Arbeitsminuten",
+      "workedHours": "Arbeitsstunden",
+      "WORKED_HOURS": "Arbeitsstunden",
+      "workedDays": "Arbeitstage",
+      "WORKED_DAYS": "Arbeitstage",
+      "entries": "Einträge",
+      "ENTRIES": "Einträge"
+    },
+    "granularity": {
+      "DAILY": "Täglich",
+      "WEEKLY": "Wöchentlich",
+      "MONTHLY": "Monatlich"
+    },
     "cards": {
       "label": "Statistikübersicht",
       "hours": "Stunden",
@@ -71,9 +89,9 @@
     },
     "trend": {
       "title": "Trend",
-      "value": "Brutto",
       "ariaLabel": "Diagramm für Bruttoeinkommen"
     },
+    "comparisonUnavailable": "Kein vorheriger Zeitraum verfügbar.",
     "workTypes": {
       "title": "Aufteilung nach Arbeitstyp"
     },
