@@ -3,34 +3,52 @@ import { queryKeys } from "../../../api/query-keys";
 import {
   getStatisticsOverview,
   getStatisticsTimeSeries,
-  getStatisticsWorkTypes
+  getStatisticsWorkTypes,
+  getStatisticsHeatmap
 } from "../api/statistics-api";
 import type { StatisticsFilters } from "../types/statistics";
 
+function normalizedFilters(filters: StatisticsFilters) {
+  return {
+    from: filters.from,
+    to: filters.to,
+    metric: filters.metric,
+    workTypeIds: [...filters.workTypeIds].sort(),
+    calculationMethods: [...filters.calculationMethods].sort()
+  };
+}
+
 export function useStatistics(filters: StatisticsFilters) {
+  const keyFilters = normalizedFilters(filters);
   const overview = useQuery({
-    queryKey: queryKeys.statistics.overview(filters),
+    queryKey: queryKeys.statistics.overview(keyFilters),
     queryFn: () => getStatisticsOverview(filters)
   });
   const timeSeries = useQuery({
-    queryKey: queryKeys.statistics.timeseries(filters),
+    queryKey: queryKeys.statistics.timeseries(keyFilters),
     queryFn: () => getStatisticsTimeSeries(filters)
   });
   const workTypes = useQuery({
-    queryKey: queryKeys.statistics.workTypes(filters),
+    queryKey: queryKeys.statistics.workTypes(keyFilters),
     queryFn: () => getStatisticsWorkTypes(filters)
+  });
+  const heatmap = useQuery({
+    queryKey: queryKeys.statistics.heatmap(keyFilters),
+    queryFn: () => getStatisticsHeatmap(filters)
   });
 
   return {
     overview,
     timeSeries,
     workTypes,
-    isLoading: overview.isLoading || timeSeries.isLoading || workTypes.isLoading,
-    isError: overview.isError || timeSeries.isError || workTypes.isError,
+    heatmap,
+    isLoading: overview.isLoading || timeSeries.isLoading || workTypes.isLoading || heatmap.isLoading,
+    isError: overview.isError || timeSeries.isError || workTypes.isError || heatmap.isError,
     refetch: () => {
       void overview.refetch();
       void timeSeries.refetch();
       void workTypes.refetch();
+      void heatmap.refetch();
     }
   };
 }

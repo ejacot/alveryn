@@ -5,17 +5,24 @@ import { MemoryRouter } from "react-router-dom";
 import { StatisticsPage } from "./statistics-page";
 
 vi.mock("../../../api/endpoints", () => ({
-  listWorkTypes: vi.fn()
+  listWorkTypes: vi.fn(),
+  listWorkEntriesForDay: vi.fn()
 }));
 
 vi.mock("../api/statistics-api", () => ({
   getStatisticsOverview: vi.fn(),
   getStatisticsTimeSeries: vi.fn(),
-  getStatisticsWorkTypes: vi.fn()
+  getStatisticsWorkTypes: vi.fn(),
+  getStatisticsHeatmap: vi.fn(),
+  getStatisticsComparison: vi.fn(),
+  getStatisticsDrilldown: vi.fn()
 }));
 
 import { listWorkTypes } from "../../../api/endpoints";
 import {
+  getStatisticsComparison,
+  getStatisticsDrilldown,
+  getStatisticsHeatmap,
   getStatisticsOverview,
   getStatisticsTimeSeries,
   getStatisticsWorkTypes
@@ -87,6 +94,73 @@ describe("StatisticsPage", () => {
         entries: 18
       }
     ]);
+    vi.mocked(getStatisticsHeatmap).mockResolvedValue({
+      metric: "WORKED_MINUTES",
+      currency: null,
+      minimum: "0",
+      maximum: "480",
+      days: [
+        {
+          date: "2026-07-01",
+          value: "480",
+          workedMinutes: "480",
+          entries: 1,
+          grossByCurrency: [{ currency: "EUR", amount: "160" }],
+          hasAbsence: false
+        }
+      ]
+    });
+    vi.mocked(getStatisticsComparison).mockResolvedValue({
+      metric: "GROSS",
+      periodA: {
+        from: "2026-07-01",
+        to: "2026-07-31",
+        workedMinutes: "4320",
+        workedDays: 12,
+        entries: 18,
+        grossByCurrency: [{ currency: "EUR", amount: "3482" }],
+        averageMinutesPerWorkedDay: "360"
+      },
+      periodB: {
+        from: "2026-06-01",
+        to: "2026-06-30",
+        workedMinutes: "3600",
+        workedDays: 10,
+        entries: 14,
+        grossByCurrency: [{ currency: "EUR", amount: "2950" }],
+        averageMinutesPerWorkedDay: "360"
+      },
+      differences: [
+        {
+          currency: "EUR",
+          periodAValue: "3482",
+          periodBValue: "2950",
+          absolute: "532",
+          percentage: "18.03",
+          direction: "UP",
+          available: true
+        }
+      ],
+      series: {
+        alignment: "RELATIVE_DAY",
+        granularity: "DAILY",
+        points: []
+      }
+    });
+    vi.mocked(getStatisticsDrilldown).mockResolvedValue({
+      from: "2026-07-01",
+      to: "2026-07-01",
+      totals: {
+        from: "2026-07-01",
+        to: "2026-07-01",
+        workedMinutes: "480",
+        workedDays: 1,
+        entries: 1,
+        grossByCurrency: [{ currency: "EUR", amount: "160" }],
+        averageMinutesPerWorkedDay: "480"
+      },
+      workTypes: []
+    });
   });
 
   it("renders backend summary, chart and breakdown", async () => {
@@ -94,11 +168,12 @@ describe("StatisticsPage", () => {
 
     expect(await screen.findAllByText("€3,482")).toHaveLength(2);
     expect(screen.getByText("+18%")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Gross income trend chart" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Statistics trend chart" })).toBeInTheDocument();
     expect(screen.getAllByText("Check")).toHaveLength(2);
     expect(screen.getByText("72h · 100%")).toBeInTheDocument();
     expect(screen.getAllByText("€3,482")).toHaveLength(2);
-    expect(screen.getByText("Heatmap comes next")).toBeInTheDocument();
+    expect(screen.getByText("Activity heatmap")).toBeInTheDocument();
+    expect(screen.getByText("Compare periods")).toBeInTheDocument();
   });
 
   it("refetches statistics when filters change", async () => {

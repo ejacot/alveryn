@@ -6,8 +6,16 @@ export type StatisticsMetric =
   | "WORKED_MINUTES"
   | "WORKED_HOURS"
   | "WORKED_DAYS"
-  | "ENTRIES";
+  | "ENTRIES"
+  | "AVERAGE_MINUTES_PER_WORKED_DAY";
 export type StatisticsGranularity = "DAILY" | "WEEKLY" | "MONTHLY";
+export type StatisticsComparisonAlignment =
+  | "DAY_OF_WEEK"
+  | "DAY_OF_MONTH"
+  | "MONTH_OF_YEAR"
+  | "RELATIVE_DAY"
+  | "RELATIVE_WEEK"
+  | "CALENDAR_BUCKET";
 
 export type StatisticsFilters = {
   period: StatisticsPeriod;
@@ -62,4 +70,79 @@ export type StatisticsWorkTypeBreakdown = {
   percentage: string;
   percentageBasis: "MINUTES";
   entries: number;
+};
+
+export type StatisticsPeriodTotals = {
+  from: string;
+  to: string;
+  workedMinutes: string;
+  workedDays: number;
+  entries: number;
+  grossByCurrency: MoneyAmount[];
+  averageMinutesPerWorkedDay: string;
+};
+
+export type StatisticsComparisonRequest = {
+  periodA: { from: string; to: string };
+  periodB: { from: string; to: string };
+  metric: StatisticsMetric;
+  workTypeIds: string[];
+  calculationMethods: CalculationMethod[];
+};
+
+export type StatisticsComparisonDifference = {
+  currency: string | null;
+  periodAValue: string;
+  periodBValue: string;
+  absolute: string;
+  percentage: string | null;
+  direction: "UP" | "DOWN" | "FLAT" | "NEW" | "NO_DATA";
+  available: boolean;
+};
+
+export type StatisticsComparisonSeriesPoint = {
+  label: string;
+  periodABucketStart: string | null;
+  periodABucketEnd: string | null;
+  periodBBucketStart: string | null;
+  periodBBucketEnd: string | null;
+  periodAValue: string;
+  periodBValue: string;
+  currency: string | null;
+};
+
+export type StatisticsAdvancedComparison = {
+  metric: StatisticsMetric;
+  periodA: StatisticsPeriodTotals;
+  periodB: StatisticsPeriodTotals;
+  differences: StatisticsComparisonDifference[];
+  series: {
+    alignment: StatisticsComparisonAlignment;
+    granularity: StatisticsGranularity;
+    points: StatisticsComparisonSeriesPoint[];
+  };
+};
+
+export type StatisticsHeatmapDay = {
+  date: string;
+  value: string;
+  workedMinutes: string;
+  entries: number;
+  grossByCurrency: MoneyAmount[];
+  hasAbsence: boolean;
+};
+
+export type StatisticsHeatmap = {
+  metric: StatisticsMetric;
+  currency: string | null;
+  minimum: string;
+  maximum: string;
+  days: StatisticsHeatmapDay[];
+};
+
+export type StatisticsDrilldown = {
+  from: string;
+  to: string;
+  totals: StatisticsPeriodTotals;
+  workTypes: StatisticsWorkTypeBreakdown[];
 };

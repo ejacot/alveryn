@@ -16,5 +16,9 @@
   "EXCEL_BATCH_NOT_FOUND": "Dieser Importlauf wurde nicht gefunden.",
   "EXCEL_BATCH_ALREADY_UNDONE": "Dieser Importlauf wurde bereits rückgängig gemacht.",
   "WORK_ENTRY_TIME_OVERLAP": "Diese Aktivität überschneidet sich mit einer bestehenden Aktivität von {{start}} bis {{end}}.",
-  "STATISTICS_INVALID_DATE_RANGE": "Wähle einen gültigen Zeitraum für die Statistik."
+  "STATISTICS_INVALID_DATE_RANGE": "Wähle einen gültigen Zeitraum für die Statistik.",
+  "STATISTICS_INVALID_COMPARISON_RANGE": "Wähle gültige Vergleichszeiträume.",
+  "STATISTICS_INCOMPATIBLE_COMPARISON": "Diese Zeiträume lassen sich nicht klar vergleichen.",
+  "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "Die Heatmap kann höchstens ein Jahr auf einmal anzeigen.",
+  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Die Brutto-Heatmap benötigt jeweils eine Währung."
 }

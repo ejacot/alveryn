@@ -16,5 +16,9 @@
   "EXCEL_BATCH_NOT_FOUND": "Acest lot de import nu a fost gasit.",
   "EXCEL_BATCH_ALREADY_UNDONE": "Acest lot de import a fost deja anulat.",
   "WORK_ENTRY_TIME_OVERLAP": "Această activitate se suprapune cu o activitate existentă între {{start}} și {{end}}.",
-  "STATISTICS_INVALID_DATE_RANGE": "Alege un interval valid pentru statistici."
+  "STATISTICS_INVALID_DATE_RANGE": "Alege o perioadă validă pentru statistici.",
+  "STATISTICS_INVALID_COMPARISON_RANGE": "Alege perioade valide pentru comparație.",
+  "STATISTICS_INCOMPATIBLE_COMPARISON": "Aceste perioade nu pot fi comparate clar.",
+  "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "Heatmap-ul poate afișa cel mult un an odată.",
+  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Heatmap-ul pentru brut are nevoie de o singură monedă."
 }

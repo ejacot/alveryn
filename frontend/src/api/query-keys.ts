@@ -28,6 +28,14 @@ type StatisticsQueryFilters = {
   calculationMethods: readonly string[];
 };
 
+type StatisticsComparisonKey = {
+  periodA: { from: string; to: string };
+  periodB: { from: string; to: string };
+  metric: string;
+  workTypeIds: readonly string[];
+  calculationMethods: readonly string[];
+};
+
 export const queryKeys = {
   currentUser: () => ["current-user"] as const,
   profile: () => ["profile"] as const,
@@ -69,6 +77,10 @@ export const queryKeys = {
   statistics: {
     overview: (filters: StatisticsQueryFilters) => ["statistics", "overview", filters] as const,
     timeseries: (filters: StatisticsQueryFilters) => ["statistics", "timeseries", filters] as const,
-    workTypes: (filters: StatisticsQueryFilters) => ["statistics", "work-types", filters] as const
+    workTypes: (filters: StatisticsQueryFilters) => ["statistics", "work-types", filters] as const,
+    comparison: (request: StatisticsComparisonKey) => ["statistics", "comparison", request] as const,
+    heatmap: (filters: StatisticsQueryFilters) => ["statistics", "heatmap", filters] as const,
+    drilldown: (filters: Omit<StatisticsQueryFilters, "metric">) =>
+      ["statistics", "drilldown", filters] as const
   }
 } as const;

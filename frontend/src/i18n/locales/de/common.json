@@ -5,6 +5,7 @@
     "close": "Schließen",
     "continue": "Weiter",
     "delete": "Löschen",
+    "apply": "Anwenden",
     "retry": "Erneut versuchen",
     "save": "Speichern",
     "saveChanges": "Änderungen speichern",
@@ -50,7 +51,8 @@
       "metric": "Kennzahl",
       "workType": "Arbeitstyp",
       "calculationMethod": "Berechnung",
-      "all": "Alle"
+      "all": "Alle",
+      "selectedCount": "{{count}} ausgewählt"
     },
     "periods": {
       "today": "Heute",
@@ -60,8 +62,8 @@
       "custom": "Benutzerdefiniert"
     },
     "methods": {
-      "time": "Zeitbasiert",
-      "unit": "Einheitenbasiert"
+      "time": "Zeitbasierte Arbeit",
+      "unit": "Mengenbasierte Arbeit"
     },
     "metrics": {
       "gross": "Brutto",
@@ -73,7 +75,8 @@
       "workedDays": "Arbeitstage",
       "WORKED_DAYS": "Arbeitstage",
       "entries": "Einträge",
-      "ENTRIES": "Einträge"
+      "ENTRIES": "Einträge",
+      "AVERAGE_MINUTES_PER_WORKED_DAY": "Durchschnitt pro Arbeitstag"
     },
     "granularity": {
       "DAILY": "Täglich",
@@ -89,7 +92,38 @@
     },
     "trend": {
       "title": "Trend",
-      "ariaLabel": "Diagramm für Bruttoeinkommen"
+      "ariaLabel": "Statistik-Trenddiagramm",
+      "pointAriaLabel": "Details für {{from}} bis {{to}} öffnen"
+    },
+    "customRange": {
+      "from": "Von",
+      "to": "Bis",
+      "last7": "Letzte 7 Tage",
+      "last30": "Letzte 30 Tage",
+      "last90": "Letzte 90 Tage",
+      "currentYear": "Aktuelles Jahr",
+      "previousYear": "Vorjahr"
+    },
+    "entriesCount": "{{count}} Einträge",
+    "comparison": {
+      "eyebrow": "Vergleich",
+      "title": "Zeiträume vergleichen",
+      "preset": "Vergleichsauswahl",
+      "periodA": "Zeitraum A",
+      "periodB": "Zeitraum B",
+      "percentage": "{{value}} %",
+      "unavailable": "Vergleich nicht verfügbar",
+      "presets": {
+        "month": "Dieser Monat vs. vorheriger Monat",
+        "year": "Dieses Jahr vs. Vorjahr",
+        "sameMonthPreviousYear": "Gleicher Monat im Vorjahr",
+        "ytd": "Jahr bis heute vs. Vorjahr",
+        "custom": "Ausgewählter Zeitraum vs. vorheriger Zeitraum"
+      }
+    },
+    "drilldown": {
+      "eyebrow": "Details",
+      "openCalendar": "Kalender öffnen"
     },
     "comparisonUnavailable": "Kein vorheriger Zeitraum verfügbar.",
     "workTypes": {
@@ -97,7 +131,12 @@
     },
     "heatmap": {
       "eyebrow": "Kalender",
-      "title": "Heatmap folgt später"
+      "title": "Aktivitäts-Heatmap",
+      "ariaLabel": "Aktivitätstage als Heatmap",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} Einträge",
+      "absence": "Abwesenheit",
+      "openCalendar": "Tag öffnen",
+      "addEntry": "Eintrag hinzufügen"
     },
     "empty": {
       "title": "Noch keine Statistik.",

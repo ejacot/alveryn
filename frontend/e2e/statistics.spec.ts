@@ -26,9 +26,15 @@ test("statistics page loads real backend data and refetches on filter change", a
   await expect(page.getByRole("heading", { name: "Statistics" })).toBeVisible();
   await expect(page.getByText("Gross income")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Check" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "Gross income trend chart" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Statistics trend chart" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Compare periods" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Activity heatmap" })).toBeVisible();
 
+  await page.getByLabel("Metric").selectOption("WORKED_HOURS");
   await page.getByLabel("Calculation method").selectOption("TIME_BASED");
   await expect.poll(() => overviewRequests.length).toBeGreaterThanOrEqual(2);
   expect(overviewRequests.some((url) => url.includes("calculationMethods=TIME_BASED"))).toBe(true);
+  await expect(page).toHaveURL(/metric=WORKED_HOURS/);
+  await page.reload();
+  await expect(page.getByLabel("Metric")).toHaveValue("WORKED_HOURS");
 });

@@ -5,6 +5,7 @@
     "close": "Închide",
     "continue": "Continuă",
     "delete": "Șterge",
+    "apply": "Aplică",
     "retry": "Încearcă din nou",
     "save": "Salvează",
     "saveChanges": "Salvează modificările",
@@ -50,7 +51,8 @@
       "metric": "Metrică",
       "workType": "Tip de muncă",
       "calculationMethod": "Calcul",
-      "all": "Toate"
+      "all": "Toate",
+      "selectedCount": "{{count}} selectate"
     },
     "periods": {
       "today": "Astăzi",
@@ -60,8 +62,8 @@
       "custom": "Personalizat"
     },
     "methods": {
-      "time": "Bazat pe timp",
-      "unit": "Bazat pe unități"
+      "time": "Muncă bazată pe timp",
+      "unit": "Muncă bazată pe unități"
     },
     "metrics": {
       "gross": "Brut",
@@ -73,7 +75,8 @@
       "workedDays": "Zile lucrate",
       "WORKED_DAYS": "Zile lucrate",
       "entries": "Înregistrări",
-      "ENTRIES": "Înregistrări"
+      "ENTRIES": "Înregistrări",
+      "AVERAGE_MINUTES_PER_WORKED_DAY": "Medie pe zi lucrată"
     },
     "granularity": {
       "DAILY": "Zilnic",
@@ -89,7 +92,38 @@
     },
     "trend": {
       "title": "Tendință",
-      "ariaLabel": "Grafic pentru venitul brut"
+      "ariaLabel": "Grafic tendință statistici",
+      "pointAriaLabel": "Deschide detalii pentru {{from}} - {{to}}"
+    },
+    "customRange": {
+      "from": "De la",
+      "to": "Până la",
+      "last7": "Ultimele 7 zile",
+      "last30": "Ultimele 30 de zile",
+      "last90": "Ultimele 90 de zile",
+      "currentYear": "Anul curent",
+      "previousYear": "Anul precedent"
+    },
+    "entriesCount": "{{count}} înregistrări",
+    "comparison": {
+      "eyebrow": "Comparație",
+      "title": "Compară perioade",
+      "preset": "Presetare comparație",
+      "periodA": "Perioada A",
+      "periodB": "Perioada B",
+      "percentage": "{{value}}%",
+      "unavailable": "Comparația nu este disponibilă",
+      "presets": {
+        "month": "Luna aceasta vs luna precedentă",
+        "year": "Anul acesta vs anul precedent",
+        "sameMonthPreviousYear": "Aceeași lună, anul precedent",
+        "ytd": "Anul curent până azi vs anul precedent",
+        "custom": "Perioada selectată vs perioada precedentă"
+      }
+    },
+    "drilldown": {
+      "eyebrow": "Detalii",
+      "openCalendar": "Deschide Calendarul"
     },
     "comparisonUnavailable": "Nu există perioadă precedentă disponibilă.",
     "workTypes": {
@@ -97,7 +131,12 @@
     },
     "heatmap": {
       "eyebrow": "Calendar",
-      "title": "Heatmap-ul urmează"
+      "title": "Heatmap activitate",
+      "ariaLabel": "Zile de activitate în heatmap",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} înregistrări",
+      "absence": "Absență",
+      "openCalendar": "Deschide ziua",
+      "addEntry": "Adaugă înregistrare"
     },
     "empty": {
       "title": "Nu există statistici încă.",

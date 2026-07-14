@@ -5,6 +5,7 @@
     "close": "Close",
     "continue": "Continue",
     "delete": "Delete",
+    "apply": "Apply",
     "retry": "Retry",
     "save": "Save",
     "saveChanges": "Save changes",
@@ -50,7 +51,8 @@
       "metric": "Metric",
       "workType": "Work type",
       "calculationMethod": "Calculation method",
-      "all": "All"
+      "all": "All",
+      "selectedCount": "{{count}} selected"
     },
     "periods": {
       "today": "Today",
@@ -60,8 +62,8 @@
       "custom": "Custom"
     },
     "methods": {
-      "time": "Time Based",
-      "unit": "Unit Based"
+      "time": "Time-based work",
+      "unit": "Unit-based work"
     },
     "metrics": {
       "gross": "Gross",
@@ -73,7 +75,8 @@
       "workedDays": "Worked Days",
       "WORKED_DAYS": "Worked Days",
       "entries": "Entries",
-      "ENTRIES": "Entries"
+      "ENTRIES": "Entries",
+      "AVERAGE_MINUTES_PER_WORKED_DAY": "Average per worked day"
     },
     "granularity": {
       "DAILY": "Daily",
@@ -89,7 +92,38 @@
     },
     "trend": {
       "title": "Trend",
-      "ariaLabel": "Gross income trend chart"
+      "ariaLabel": "Statistics trend chart",
+      "pointAriaLabel": "Open details for {{from}} to {{to}}"
+    },
+    "customRange": {
+      "from": "From",
+      "to": "To",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days",
+      "currentYear": "Current year",
+      "previousYear": "Previous year"
+    },
+    "entriesCount": "{{count}} entries",
+    "comparison": {
+      "eyebrow": "Compare",
+      "title": "Compare periods",
+      "preset": "Comparison preset",
+      "periodA": "Period A",
+      "periodB": "Period B",
+      "percentage": "{{value}}%",
+      "unavailable": "Comparison unavailable",
+      "presets": {
+        "month": "This month vs previous month",
+        "year": "This year vs previous year",
+        "sameMonthPreviousYear": "Same month, previous year",
+        "ytd": "Year to date vs previous year",
+        "custom": "Selected period vs previous period"
+      }
+    },
+    "drilldown": {
+      "eyebrow": "Details",
+      "openCalendar": "Open Calendar"
     },
     "comparisonUnavailable": "No previous period available.",
     "workTypes": {
@@ -97,7 +131,12 @@
     },
     "heatmap": {
       "eyebrow": "Calendar",
-      "title": "Heatmap comes next"
+      "title": "Activity heatmap",
+      "ariaLabel": "Activity heatmap days",
+      "dayAriaLabel": "{{date}}, {{hours}}, {{entries}} entries",
+      "absence": "Absence",
+      "openCalendar": "Open day",
+      "addEntry": "Add Entry"
     },
     "empty": {
       "title": "No statistics yet.",

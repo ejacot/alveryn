@@ -6,6 +6,7 @@ type Props = {
   points: StatisticsTimeSeriesPoint[];
   metric: string;
   granularity: string;
+  onPointSelect?: (point: StatisticsTimeSeriesPoint) => void;
 };
 
 function toPath(points: StatisticsTimeSeriesPoint[]) {
@@ -35,7 +36,18 @@ function groupedSeries(points: StatisticsTimeSeriesPoint[]) {
   return Array.from(groups.entries());
 }
 
-export function StatisticsLineChart({ points, metric, granularity }: Props) {
+function parsePathPoint(point: StatisticsTimeSeriesPoint, index: number, points: StatisticsTimeSeriesPoint[]) {
+  const values = points.map((item) => Number(item.value));
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const span = Math.max(max - min, 1);
+  return {
+    x: points.length === 1 ? 100 : (index / (points.length - 1)) * 200,
+    y: 92 - ((Number(point.value) - min) / span) * 76
+  };
+}
+
+export function StatisticsLineChart({ points, metric, granularity, onPointSelect }: Props) {
   const { t } = useTranslation("common");
   const series = groupedSeries(points);
 
@@ -62,18 +74,49 @@ export function StatisticsLineChart({ points, metric, granularity }: Props) {
           {series.map(([key, seriesPoints], index) => {
             const path = toPath(seriesPoints);
             return path ? (
-              <motion.path
-                key={key}
-                d={path}
-                fill="none"
-                stroke={index === 0 ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.48)"}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-                initial={{ pathLength: 0, opacity: 0.4 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-              />
+              <g key={key}>
+                <motion.path
+                  d={path}
+                  fill="none"
+                  stroke={index === 0 ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.48)"}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="3"
+                  initial={{ pathLength: 0, opacity: 0.4 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}
+                />
+                {seriesPoints.map((point, pointIndex) => {
+                  const position = parsePathPoint(point, pointIndex, seriesPoints);
+                  return (
+                    <g
+                      key={`${point.bucketStart}-${point.currency ?? "value"}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t("statistics.trend.pointAriaLabel", {
+                        from: point.bucketStart,
+                        to: point.bucketEnd
+                      })}
+                      onClick={() => onPointSelect?.(point)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onPointSelect?.(point);
+                        }
+                      }}
+                      className="cursor-pointer outline-none"
+                    >
+                      <circle
+                        cx={position.x}
+                        cy={position.y}
+                        r="4"
+                        fill="rgba(255,255,255,0.92)"
+                        opacity={onPointSelect ? 1 : 0}
+                      />
+                    </g>
+                  );
+                })}
+              </g>
             ) : null;
           })}
         </svg>
