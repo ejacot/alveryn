@@ -12,6 +12,21 @@ Roomly is organized as a Spring Boot backend plus a Vite/React frontend, with in
 
 For local development, the backend defaults to `jdbc:postgresql://localhost:5432/roomly` with username `roomly` and password `change-me`. The `local` Spring profile also provides a development-only JWT secret so the application can start locally once PostgreSQL is running. Gmail SMTP defaults for host, port, username, and STARTTLS are supplied only in the `local` profile; the app password must still come from `MAIL_PASSWORD`.
 
+### Local development account
+
+When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically. This is a Spring `@Profile("local")` bootstrap component, not a Flyway migration, so staging and production never create this account.
+
+Production-style runs without the `local` profile execute only the normal Flyway migrations. Migration `V11__remove_local_development_account.sql` also removes the former local seed account if an older environment had already applied the previous V9 seed migration.
+
+If an existing local database reports a Flyway checksum mismatch for the old V9 seed, rebuild the local database or run Flyway repair once against that local database after pulling this change:
+
+```bash
+cd backend
+./mvnw flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/roomly -Dflyway.user=roomly -Dflyway.password=change-me -Dflyway.locations=classpath:db/migration
+```
+
+New local databases do not need this. Playwright creates isolated users for browser tests and does not depend on this local account.
+
 The backend uses Java 21, PostgreSQL, Flyway, Hibernate, and the Java package `com.roomly.api`.
 
 ## Frontend local workflow

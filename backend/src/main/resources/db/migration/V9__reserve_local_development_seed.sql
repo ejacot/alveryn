@@ -1,0 +1,3 @@
+-- Reserved version.
+-- Local developer accounts are created by the local Spring profile bootstrap,
+-- never by production Flyway migrations.

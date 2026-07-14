@@ -25,7 +25,6 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   await page.goto("/settings/work-types/new");
   await page.getByLabel("Name").fill("Check");
   await page.getByLabel("Calculation method").selectOption("TIME_BASED");
-  await page.getByLabel("Default break (minutes)").fill("30");
   await page.getByRole("button", { name: /save changes/i }).click();
   await expect(page.getByText("Check")).toBeVisible();
   await page.reload();
@@ -36,14 +35,14 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   await page.getByLabel("Calculation method").selectOption("UNIT_BASED");
   await page.getByRole("button", { name: /save changes/i }).click();
   await expect(page.getByText("No unit types yet")).toBeVisible();
-  await expect(page.getByText(/Unit types define what you count/i)).toBeVisible();
+  await expect(page.getByText(/Add the first unit you count during work/i)).toBeVisible();
 
   for (const [name, rate] of [
     ["Cameră normală", "2.4"],
     ["Cameră junior", "1.8"],
     ["Suită", "1.2"]
   ] as const) {
-    await page.getByRole("button", { name: /add unit type/i }).first().click();
+    await page.getByRole("button", { name: /add (first )?unit type/i }).first().click();
     await expect(page.getByRole("heading", { name: "Add unit type" })).toBeVisible();
     const nameInput = page.getByRole("textbox", { name: /^Name$/ });
     const rateInput = page.getByRole("spinbutton", { name: /units per hour/i });
