@@ -117,6 +117,13 @@ jobs:
       - name: Run Playwright
         working-directory: frontend
         run: npm run test:e2e
+      - name: Print e2e service logs
+        if: failure()
+        run: |
+          echo "==== backend-e2e.log ===="
+          tail -n 300 backend-e2e.log || true
+          echo "==== frontend-e2e.log ===="
+          tail -n 300 frontend-e2e.log || true
       - name: Upload Playwright artifacts
         if: failure()
         uses: actions/upload-artifact@v4

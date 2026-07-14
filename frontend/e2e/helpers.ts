@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { request, type Page } from "@playwright/test";
+import { request, type APIResponse, type Page } from "@playwright/test";
 
 const apiURL = process.env.ROOMLY_E2E_API_URL ?? "http://127.0.0.1:8080";
 const dbName = process.env.E2E_DB_NAME ?? "roomly";
@@ -15,6 +15,27 @@ export type E2eUser = {
   accessToken: string;
 };
 
+async function readResponseBody(response: APIResponse): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return await response.text();
+  }
+}
+
+async function requireSuccessfulResponse<T extends { data?: unknown }>(
+  response: APIResponse,
+  action: string
+): Promise<T> {
+  const body = (await readResponseBody(response)) as T;
+
+  if (!response.ok()) {
+    throw new Error(`${action} failed with HTTP ${response.status()}: ${JSON.stringify(body)}`);
+  }
+
+  return body;
+}
+
 export async function createE2eUser(testName: string): Promise<E2eUser> {
   const safeName = testName.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
   const email = `roomly.e2e.${safeName}.${Date.now()}@example.com`;
@@ -22,9 +43,10 @@ export async function createE2eUser(testName: string): Promise<E2eUser> {
   const password = `Password-${Date.now()}!`;
   const api = await request.newContext({ baseURL: apiURL });
 
-  await api.post("/api/auth/register", {
+  const register = await api.post("/api/auth/register", {
     data: { email, password }
   });
+  await requireSuccessfulResponse(register, "Register e2e user");
 
   const psqlArgs = [
     "-h",
@@ -61,8 +83,12 @@ export async function createE2eUser(testName: string): Promise<E2eUser> {
   const login = await api.post("/api/auth/login", {
     data: { email, password }
   });
-  const body = await login.json();
+  const body = await requireSuccessfulResponse<{ data?: { accessToken?: string } }>(login, "Login e2e user");
   await api.dispose();
+
+  if (!body.data?.accessToken) {
+    throw new Error(`Login e2e user did not return an access token: ${JSON.stringify(body)}`);
+  }
 
   return { email, password, accessToken: body.data.accessToken };
 }
