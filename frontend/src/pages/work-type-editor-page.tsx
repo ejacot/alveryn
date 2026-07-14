@@ -31,10 +31,6 @@ function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().trim().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong")),
     calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
-    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, t("workTypeEditor.validation.color")),
-    icon: z.string().max(100).optional(),
-    defaultBreakMinutes: z.union([z.literal(""), z.coerce.number().min(0)]),
-    displayOrder: z.coerce.number().min(0),
     active: z.boolean()
   });
 }
@@ -71,10 +67,6 @@ export function WorkTypeEditorPage() {
     defaultValues: {
       name: "",
       calculationMethod: "TIME_BASED",
-      color: "#FFFFFF",
-      icon: "",
-      defaultBreakMinutes: 30,
-      displayOrder: 0,
       active: true
     }
   });
@@ -84,10 +76,6 @@ export function WorkTypeEditorPage() {
     form.reset({
       name: workTypeQuery.data.name,
       calculationMethod: workTypeQuery.data.calculationMethod,
-      color: workTypeQuery.data.color,
-      icon: workTypeQuery.data.icon ?? "",
-      defaultBreakMinutes: workTypeQuery.data.defaultBreakMinutes ?? "",
-      displayOrder: workTypeQuery.data.displayOrder,
       active: workTypeQuery.data.active
     });
   }, [form, workTypeQuery.data]);
@@ -109,13 +97,13 @@ export function WorkTypeEditorPage() {
       const payload = {
         name: values.name.trim(),
         calculationMethod: values.calculationMethod,
-        color: values.color,
-        icon: values.icon?.trim() ? values.icon.trim() : null,
+        color: workTypeQuery.data?.color ?? "#FFFFFF",
+        icon: workTypeQuery.data?.icon ?? null,
         defaultBreakMinutes:
-          values.calculationMethod === "TIME_BASED" && values.defaultBreakMinutes !== ""
-            ? Number(values.defaultBreakMinutes)
+          values.calculationMethod === "TIME_BASED"
+            ? workTypeQuery.data?.defaultBreakMinutes ?? 30
             : null,
-        displayOrder: values.displayOrder,
+        displayOrder: workTypeQuery.data?.displayOrder ?? 0,
         active: values.active
       };
 

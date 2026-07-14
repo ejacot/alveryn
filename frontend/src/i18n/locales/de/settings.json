@@ -24,8 +24,7 @@
     },
     "validation": {
       "nameRequired": "Name ist erforderlich",
-      "nameTooLong": "Name ist zu lang",
-      "color": "Nutze eine gultige #RRGGBB-Farbe"
+      "nameTooLong": "Name ist zu lang"
     }
   },
   "unitTypes": {

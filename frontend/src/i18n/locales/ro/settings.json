@@ -24,8 +24,7 @@
     },
     "validation": {
       "nameRequired": "Numele este obligatoriu",
-      "nameTooLong": "Numele este prea lung",
-      "color": "Foloseste o culoare valida #RRGGBB"
+      "nameTooLong": "Numele este prea lung"
     }
   },
   "unitTypes": {
