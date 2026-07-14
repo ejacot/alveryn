@@ -14,11 +14,11 @@ For local development, the backend defaults to `jdbc:postgresql://localhost:5432
 
 ### Local development account
 
-When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically. This is a Spring `@Profile("local")` bootstrap component, not a Flyway migration, so staging and production never create this account.
+When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically if the account does not already exist. Existing local account data is not reset on startup. To deliberately reset that local account, start the backend with `roomly.local-dev.reset-account=true`.
 
-Production-style runs without the `local` profile execute only the normal Flyway migrations. Migration `V11__remove_local_development_account.sql` also removes the former local seed account if an older environment had already applied the previous V9 seed migration.
+This is a Spring `@Profile("local")` bootstrap component, not a Flyway migration, so staging and production never create this account. Production-style runs without the `local` profile execute only environment-neutral Flyway migrations. Migration `V11__remove_local_development_account.sql` is intentionally reserved/no-op and does not delete user data.
 
-If an existing local database reports a Flyway checksum mismatch for the old V9 seed, rebuild the local database or run Flyway repair once against that local database after pulling this change:
+If an existing local database reports a Flyway checksum mismatch for the old V9 seed or the reserved V11 migration, rebuild the local database or run Flyway repair once against that local database after pulling this change:
 
 ```bash
 cd backend

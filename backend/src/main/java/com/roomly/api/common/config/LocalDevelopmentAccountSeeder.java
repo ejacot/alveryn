@@ -9,7 +9,7 @@ import com.roomly.api.user.entity.UserProfile;
 import com.roomly.api.user.repository.UserAccountRepository;
 import com.roomly.api.user.repository.UserPreferencesRepository;
 import com.roomly.api.user.repository.UserProfileRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Profile("local")
-@RequiredArgsConstructor
 public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
   private static final String EMAIL = "eusebiujacot@gmail.com";
   private static final String PASSWORD_HASH =
@@ -27,6 +26,18 @@ public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
   private final UserAccountRepository users;
   private final UserProfileRepository profiles;
   private final UserPreferencesRepository preferences;
+  private final boolean resetAccount;
+
+  public LocalDevelopmentAccountSeeder(
+      UserAccountRepository users,
+      UserProfileRepository profiles,
+      UserPreferencesRepository preferences,
+      @Value("${roomly.local-dev.reset-account:false}") boolean resetAccount) {
+    this.users = users;
+    this.profiles = profiles;
+    this.preferences = preferences;
+    this.resetAccount = resetAccount;
+  }
 
   @Override
   @Transactional
@@ -34,13 +45,17 @@ public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
     UserAccount user =
         users
             .findByEmailIgnoreCase(EMAIL)
-            .map(this::resetAccount)
+            .map(existing -> resetAccount ? resetAccount(existing) : existing)
             .orElseGet(() -> users.save(verifiedAccount()));
 
     profiles
         .findByUserId(user.getId())
         .ifPresentOrElse(
-            this::resetProfile,
+            profile -> {
+              if (resetAccount) {
+                resetProfile(profile);
+              }
+            },
             () -> {
               UserProfile profile = new UserProfile(user);
               resetProfile(profile);
@@ -50,7 +65,11 @@ public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
     preferences
         .findByUserId(user.getId())
         .ifPresentOrElse(
-            this::resetPreferences,
+            userPreferences -> {
+              if (resetAccount) {
+                resetPreferences(userPreferences);
+              }
+            },
             () -> {
               UserPreferences nextPreferences = new UserPreferences(user);
               resetPreferences(nextPreferences);
