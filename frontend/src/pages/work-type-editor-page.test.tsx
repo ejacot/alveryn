@@ -169,6 +169,33 @@ describe("WorkTypeEditorPage", () => {
     });
   });
 
+  it("creates a unit-based work type when hidden active value is absent", async () => {
+    vi.mocked(createWorkType).mockResolvedValue({
+      id: "work-type-unit",
+      name: "Rooms",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Name"), "Rooms");
+    await user.selectOptions(screen.getByLabelText("Calculation method"), "UNIT_BASED");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(createWorkType).toHaveBeenCalledWith({
+        name: "Rooms",
+        calculationMethod: "UNIT_BASED"
+      });
+      expect(screen.queryByText("Check the highlighted fields and try again.")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows duplicate name conflicts next to the name field and preserves form values", async () => {
     vi.mocked(createWorkType).mockRejectedValue(workTypeNameExistsError());
     renderPage();

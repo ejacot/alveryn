@@ -31,7 +31,7 @@ function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().trim().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong")),
     calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
-    active: z.boolean()
+    active: z.boolean().optional().default(true)
   });
 }
 
@@ -170,6 +170,7 @@ export function WorkTypeEditorPage() {
         onBack={() => confirmOrRun(safeBack)}
       />
       <form
+        noValidate
         className="space-y-6"
         onSubmit={form.handleSubmit(
           async (values) => {
