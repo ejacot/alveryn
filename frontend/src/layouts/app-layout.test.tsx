@@ -18,8 +18,15 @@ vi.mock("../api/endpoints", () => ({
   })
 }));
 
-vi.mock("../components/ui/page-transition", () => ({
-  PageTransition: ({ children }: { children: React.ReactNode }) => <>{children}</>
+vi.mock("../components/navigation/main-workspace", () => ({
+  MainWorkspace: ({ visible }: { visible: boolean }) =>
+    visible ? (
+      <main data-testid="main-workspace">
+        <header data-scroll-region="page-top" className="pt-1">
+          <span>Roomly</span>
+        </header>
+      </main>
+    ) : null
 }));
 
 vi.mock("react-router-dom", async () => {

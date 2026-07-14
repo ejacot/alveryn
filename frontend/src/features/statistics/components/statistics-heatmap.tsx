@@ -60,7 +60,11 @@ export function StatisticsHeatmap({
   const selected = heatmap?.days.find((day) => day.date === selectedDay);
 
   return (
-    <section className="section-card space-y-4" aria-labelledby="statistics-heatmap-title">
+    <section
+      className="section-card space-y-4"
+      aria-labelledby="statistics-heatmap-title"
+      data-no-workspace-swipe
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/35">{t("statistics.heatmap.eyebrow")}</p>

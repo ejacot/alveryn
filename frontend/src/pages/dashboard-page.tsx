@@ -26,18 +26,22 @@ type OutletContext = {
   selectedDate?: Date;
 };
 
+type DashboardPageProps = {
+  selectedDate?: Date;
+};
+
 type MonthRequest = {
   year: number;
   month: number;
 };
 
-export function DashboardPage() {
+export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageProps = {}) {
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = useMemo(
-    () => outletContext?.selectedDate ?? new Date(),
-    [outletContext?.selectedDate]
+    () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
+    [outletContext?.selectedDate, selectedDateProp]
   );
   const selectedDateKey = formatLocalIsoDate(selectedDate);
 

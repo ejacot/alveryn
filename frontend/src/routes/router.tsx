@@ -8,24 +8,9 @@ import { RouteFallback } from "../components/ui/route-fallback";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
 
-const DashboardPage = lazy(() =>
-  import("../pages/dashboard-page").then((module) => ({
-    default: module.DashboardPage
-  }))
-);
-const CalendarPage = lazy(() =>
-  import("../pages/calendar-page").then((module) => ({
-    default: module.CalendarPage
-  }))
-);
 const WorkEntryEditorPage = lazy(() =>
   import("../pages/work-entry-editor-page").then((module) => ({
     default: module.WorkEntryEditorPage
-  }))
-);
-const StatisticsPage = lazy(() =>
-  import("../pages/statistics-page").then((module) => ({
-    default: module.StatisticsPage
   }))
 );
 const ProfilePage = lazy(() =>
@@ -154,11 +139,11 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
         {
           element: <AppLayout />,
           children: [
-            { path: "/", element: withSuspense(<DashboardPage />) },
-            { path: "/calendar", element: withSuspense(<CalendarPage />) },
+            { path: "/" },
+            { path: "/calendar" },
             { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
-            { path: "/statistics", element: withSuspense(<StatisticsPage />) },
+            { path: "/statistics" },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },

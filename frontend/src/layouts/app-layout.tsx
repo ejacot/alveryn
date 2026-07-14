@@ -1,42 +1,28 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { PREVIEW_ROUTES_ENABLED } from "../api/config";
-import { AppLogo } from "../components/branding/app-logo";
 import { BottomNav } from "../components/navigation/bottom-nav";
-import { WeekSelector } from "../components/navigation/week-selector";
-import { PageTransition } from "../components/ui/page-transition";
+import { MainWorkspace } from "../components/navigation/main-workspace";
+import { isWorkspaceRoute } from "../components/navigation/workspace-swipe";
 
 export function AppLayout() {
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const isSettingsOverview = location.pathname === "/profile";
-
-  const showWeekSelector = useMemo(
-    () =>
-      location.pathname === "/" ||
-      (PREVIEW_ROUTES_ENABLED && location.pathname.startsWith("/preview")),
-    [location.pathname]
-  );
-  const showAppLogo = !isSettingsOverview && !location.pathname.startsWith("/settings/");
+  const isWorkspace = isWorkspaceRoute(location.pathname);
 
   return (
     <>
       <div className="app-background" aria-hidden="true" />
-      <main className="screen-shell space-y-4">
-        {showAppLogo || showWeekSelector ? (
-          <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
-            <div className="space-y-2.5">
-              {showAppLogo ? <AppLogo /> : null}
-              {showWeekSelector ? (
-                <WeekSelector value={selectedDate} onChange={setSelectedDate} />
-              ) : null}
-            </div>
-          </header>
-        ) : null}
-        <PageTransition routeKey={location.pathname}>
+      {isWorkspace ? (
+        <MainWorkspace
+          selectedDate={selectedDate}
+          onSelectedDateChange={setSelectedDate}
+          visible={isWorkspace}
+        />
+      ) : (
+        <main className="screen-shell space-y-4">
           <Outlet context={{ selectedDate }} />
-        </PageTransition>
-      </main>
+        </main>
+      )}
       <BottomNav />
     </>
   );

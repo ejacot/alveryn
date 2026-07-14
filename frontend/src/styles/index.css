@@ -73,6 +73,43 @@ body::-webkit-scrollbar {
     padding-bottom: max(10rem, calc(env(safe-area-inset-bottom) + 8rem));
   }
 
+  .workspace-root {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: #000000;
+    touch-action: pan-y;
+  }
+
+  .workspace-track {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .workspace-panel {
+    position: fixed;
+    inset: 0;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    background: #000000;
+    -webkit-overflow-scrolling: touch;
+    contain: layout paint;
+    will-change: transform;
+  }
+
+  .workspace-panel > * {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .workspace-panel[aria-hidden="true"] {
+    pointer-events: none;
+  }
+
   .floating-nav {
     bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }
