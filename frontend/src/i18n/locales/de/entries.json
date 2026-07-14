@@ -1,6 +1,63 @@
 {
   "saved": "Gespeichert",
   "date": "Datum",
+  "editor": {
+    "loadingEdit": "Eintrag wird geladen...",
+    "loadingCreate": "Schnellerfassung wird vorbereitet...",
+    "loadingDescription": "Arbeitsarten, Satze und Eingabeflache werden geladen.",
+    "unavailableTitle": "Arbeitseintrag ist nicht verfugbar",
+    "noWorkTypesTitle": "Noch keine aktiven Arbeitsarten",
+    "noWorkTypesDescription": "Schliesse das Onboarding ab oder lege eine Arbeitsart an, bevor du Eintrage erstellst.",
+    "newEntry": "Neuer Eintrag",
+    "eyebrow": "Arbeitseintrag",
+    "editTitle": "Diesen Eintrag bearbeiten.",
+    "createTitle": "Arbeit in einem Schritt erfassen.",
+    "description": "Schnell, ruhig und passend zur gewahlten Arbeitsart.",
+    "step1": "Schritt 1",
+    "step2": "Schritt 2",
+    "chooseDate": "Datum wahlen",
+    "chooseWorkType": "Arbeitsart wahlen",
+    "shiftDetails": "Schichtdetails",
+    "overnightHint": "Nachtschichten werden automatisch unterstutzt.",
+    "countUnits": "Einheiten zahlen",
+    "unitQuantityHint": "Trage die erledigten Mengen ein. Nicht genutzte Einheiten bleiben auf null.",
+    "noUnitTypesTitle": "Diese Arbeitsart hat noch keine Einheitstypen.",
+    "noUnitTypesDescription": "Einheitstypen definieren, was du zahlst, zum Beispiel normale Zimmer, Junior-Zimmer oder Suiten.",
+    "configureUnits": "Einheiten konfigurieren",
+    "saving": "Eintrag wird gespeichert...",
+    "save": "Eintrag speichern",
+    "savedToast": "Eintrag gespeichert",
+    "deletedToast": "Eintrag geloscht"
+  },
+  "fields": {
+    "workDate": "Arbeitsdatum",
+    "startTime": "Startzeit",
+    "endTime": "Endzeit",
+    "breakMinutes": "Pause (Minuten)",
+    "notes": "Notizen (optional)",
+    "notesPlaceholder": "Alles Nutzliche zur Schicht, Route oder zum Kontext."
+  },
+  "delete": {
+    "title": "Diesen Eintrag loschen?",
+    "description": "Der Eintrag wird entfernt und du kommst zur Startseite zuruck.",
+    "keep": "Eintrag behalten",
+    "deleting": "Wird geloscht..."
+  },
+  "unitRows": {
+    "fallbackUnit": "Einheit",
+    "quantity": "Einheiten",
+    "perHour": "{{value}} pro Stunde"
+  },
+  "validation": {
+    "dateRequired": "Datum ist erforderlich",
+    "chooseWorkType": "Wahle eine Arbeitsart",
+    "positiveOrZeroQuantity": "Nutze null oder eine positive Menge",
+    "completeTimeOrUnits": "Vervollstandige entweder Zeitdetails oder Einheiten",
+    "timeRequired": "Start- und Endzeit sind erforderlich.",
+    "invalidTimeRange": "Prufe Zeitraum und Pausenminuten.",
+    "configureUnitTypes": "Konfiguriere Einheitstypen, bevor du diesen Eintrag erstellst.",
+    "positiveUnitQuantity": "Gib mindestens eine positive Einheitenmenge ein."
+  },
   "summary": {
     "eyebrow": "Zusammenfassung",
     "title": "Bereit zum Speichern",

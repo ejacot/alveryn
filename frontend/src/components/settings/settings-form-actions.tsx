@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 
 type Props = {
@@ -12,12 +13,13 @@ type Props = {
 
 export function SettingsFormActions({
   submitting = false,
-  submitLabel = "Save changes",
+  submitLabel,
   successMessage,
   onDelete,
   deleteLabel,
   deleteDisabled = false
 }: Props) {
+  const { t } = useTranslation("common");
   const [visibleSuccess, setVisibleSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function SettingsFormActions({
           <span />
         )}
         <Button type="submit" disabled={submitting} className="sm:min-w-[170px]">
-          {submitting ? "Saving..." : submitLabel}
+          {submitting ? t("actions.saving") : submitLabel ?? t("actions.saveChanges")}
         </Button>
       </div>
     </div>

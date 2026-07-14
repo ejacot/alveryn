@@ -3,7 +3,8 @@ import { useFieldArray, useForm, type UseFormSetError } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Check, Clock3, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import {
   createWorkEntry,
@@ -33,7 +34,7 @@ import {
   workTypeIsUnitBased
 } from "../features/work-entries/work-entry-calculations";
 import {
-  workEntrySchema,
+  createWorkEntrySchema,
   type WorkEntryFormInput,
   type WorkEntryFormValues
 } from "../features/work-entries/work-entry-schemas";
@@ -50,6 +51,7 @@ type RawUnitRow = {
 
 export function WorkEntryEditorPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["entries", "common"]);
   const location = useLocation();
   const queryClient = useQueryClient();
   const { entryId } = useParams();
@@ -68,6 +70,11 @@ export function WorkEntryEditorPage() {
     (location.state as { returnTo?: string } | null)?.returnTo ?? "/";
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successState, setSuccessState] = useState<"idle" | "saved" | "deleted">("idle");
+  const hydratedUnitRowsForEntry = useRef<string | null>(null);
+  const workEntrySchema = useMemo(
+    () => createWorkEntrySchema((key) => t(`entries:${key}`)),
+    [t]
+  );
 
   const form = useForm<WorkEntryFormInput, undefined, WorkEntryFormValues>({
     resolver: zodResolver(workEntrySchema),
@@ -156,9 +163,29 @@ export function WorkEntryEditorPage() {
     }
 
     if (workTypeIsUnitBased(selectedWorkType)) {
-      replaceUnitItems(buildUnitRows(activeUnitTypes, form.getValues("unitItems") ?? []));
+      if (!activeUnitTypes.length) {
+        return;
+      }
+
+      const hydrationKey = `${entryQuery.data?.id ?? "new"}:${selectedWorkType.id}`;
+      const entryData = entryQuery.data;
+      const shouldHydrateFromEntry =
+        isEditing &&
+        hydratedUnitRowsForEntry.current !== hydrationKey &&
+        entryData?.workTypeId === selectedWorkType.id;
+      const sourceRows = shouldHydrateFromEntry
+          ? entryData.unitItems.map((item) => ({
+              unitTypeId: item.unitTypeId,
+              quantity: Number(item.quantity)
+            }))
+          : form.getValues("unitItems") ?? [];
+
+      replaceUnitItems(buildUnitRows(activeUnitTypes, sourceRows));
+      if (shouldHydrateFromEntry) {
+        hydratedUnitRowsForEntry.current = hydrationKey;
+      }
     }
-  }, [activeUnitTypes, form, isEditing, replaceUnitItems, selectedWorkType]);
+  }, [activeUnitTypes, entryQuery.data, form, isEditing, replaceUnitItems, selectedWorkType]);
 
   const createMutation = useMutation({
     mutationFn: createWorkEntry,
@@ -251,8 +278,8 @@ export function WorkEntryEditorPage() {
   if (isLoading) {
     return (
       <ScreenMessage
-        title={isEditing ? "Loading entry..." : "Preparing quick add..."}
-        description="Bringing in work types, rates and the entry surface."
+        title={isEditing ? t("entries:editor.loadingEdit") : t("entries:editor.loadingCreate")}
+        description={t("entries:editor.loadingDescription")}
       />
     );
   }
@@ -260,7 +287,7 @@ export function WorkEntryEditorPage() {
   if (loadingError) {
     return (
       <ScreenMessage
-        title="Work entry is unavailable"
+        title={t("entries:editor.unavailableTitle")}
         description={getApiError(loadingError).message}
       />
     );
@@ -269,8 +296,8 @@ export function WorkEntryEditorPage() {
   if (!workTypesQuery.data?.length) {
     return (
       <ScreenMessage
-        title="No active work types yet"
-        description="Finish onboarding or add a work type before creating entries."
+        title={t("entries:editor.noWorkTypesTitle")}
+        description={t("entries:editor.noWorkTypesDescription")}
       />
     );
   }
@@ -280,7 +307,7 @@ export function WorkEntryEditorPage() {
       <header className="flex items-center justify-between">
         <Button variant="ghost" className="px-0" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t("common:actions.back")}
         </Button>
         {isEditing ? (
           <Button
@@ -289,20 +316,20 @@ export function WorkEntryEditorPage() {
             onClick={() => setShowDeleteConfirm((value) => !value)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            {t("common:actions.delete")}
           </Button>
         ) : (
-          <span className="text-sm text-white/46">New entry</span>
+          <span className="text-sm text-white/46">{t("entries:editor.newEntry")}</span>
         )}
       </header>
 
       <div className="space-y-3">
-        <p className="hairline-text">Work Entry</p>
+        <p className="hairline-text">{t("entries:editor.eyebrow")}</p>
         <h1 className="text-[2.4rem] font-semibold tracking-[-0.08em] text-white">
-          {isEditing ? "Edit this entry." : "Capture work in one motion."}
+          {isEditing ? t("entries:editor.editTitle") : t("entries:editor.createTitle")}
         </h1>
         <p className="max-w-md text-sm leading-6 text-white/56">
-          Fast, calm, and adapted to the work type you choose.
+          {t("entries:editor.description")}
         </p>
       </div>
 
@@ -314,20 +341,20 @@ export function WorkEntryEditorPage() {
             exit={{ opacity: 0, y: 8 }}
             className="surface-muted border-red-300/16 bg-red-400/8 p-4"
           >
-            <p className="text-base font-semibold text-white">Delete this entry?</p>
+            <p className="text-base font-semibold text-white">{t("entries:delete.title")}</p>
             <p className="mt-2 text-sm leading-6 text-white/62">
-              This removes the entry and returns you to the dashboard.
+              {t("entries:delete.description")}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Button variant="secondary" className="w-full" onClick={() => setShowDeleteConfirm(false)}>
-                Keep entry
+                {t("entries:delete.keep")}
               </Button>
               <Button
                 className="w-full bg-red-300 text-black hover:bg-red-200"
                 onClick={() => void deleteMutation.mutateAsync()}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteMutation.isPending ? t("entries:delete.deleting") : t("common:actions.delete")}
               </Button>
             </div>
           </motion.div>
@@ -342,7 +369,20 @@ export function WorkEntryEditorPage() {
           }
           form.clearErrors("root");
 
-          if (!validateSelectedWorkTypeForm(nextValues, selectedWorkType, activeUnitTypes, form.setError)) {
+          if (
+            !validateSelectedWorkTypeForm(
+              nextValues,
+              selectedWorkType,
+              activeUnitTypes,
+              form.setError,
+              {
+                timeRequired: t("entries:validation.timeRequired"),
+                invalidTimeRange: t("entries:validation.invalidTimeRange"),
+                configureUnitTypes: t("entries:validation.configureUnitTypes"),
+                positiveUnitQuantity: t("entries:validation.positiveUnitQuantity")
+              }
+            )
+          ) {
             return;
           }
 
@@ -366,12 +406,12 @@ export function WorkEntryEditorPage() {
               <CalendarDays className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="hairline-text">Step 1</p>
-              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">Choose date</h2>
+              <p className="hairline-text">{t("entries:editor.step1")}</p>
+              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.chooseDate")}</h2>
             </div>
           </div>
           <Input
-            label="Work date"
+            label={t("entries:fields.workDate")}
             type="date"
             error={form.formState.errors.workDate?.message}
             {...form.register("workDate")}
@@ -384,8 +424,8 @@ export function WorkEntryEditorPage() {
               <Clock3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="hairline-text">Step 2</p>
-              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">Choose work type</h2>
+              <p className="hairline-text">{t("entries:editor.step2")}</p>
+              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.chooseWorkType")}</h2>
             </div>
           </div>
           <WorkTypePicker
@@ -401,32 +441,32 @@ export function WorkEntryEditorPage() {
         {selectedWorkType && workTypeIsTimeBased(selectedWorkType) ? (
           <section className="space-y-4">
             <div>
-              <p className="hairline-text">Time Based</p>
-              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Shift details</h2>
+              <p className="hairline-text">{t("entries:workTypePicker.timeBased")}</p>
+              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.shiftDetails")}</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="Start time"
+                label={t("entries:fields.startTime")}
                 type="time"
                 error={form.formState.errors.startTime?.message}
                 {...form.register("startTime")}
               />
               <Input
-                label="End time"
+                label={t("entries:fields.endTime")}
                 type="time"
                 error={form.formState.errors.endTime?.message}
                 {...form.register("endTime")}
               />
             </div>
             <Input
-              label="Break (minutes)"
+              label={t("entries:fields.breakMinutes")}
               type="number"
               min={0}
               error={form.formState.errors.unpaidBreakMinutes?.message}
               {...form.register("unpaidBreakMinutes", { valueAsNumber: true })}
             />
             <p className="text-sm text-white/46">
-              Overnight shifts are supported automatically.
+              {t("entries:editor.overnightHint")}
             </p>
           </section>
         ) : null}
@@ -434,18 +474,21 @@ export function WorkEntryEditorPage() {
         {selectedWorkType && workTypeIsUnitBased(selectedWorkType) ? (
           <section className="space-y-4">
             <div>
-              <p className="hairline-text">Unit Based</p>
-              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Count units</h2>
+              <p className="hairline-text">{t("entries:workTypePicker.unitBased")}</p>
+              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.countUnits")}</h2>
             </div>
             {activeUnitTypes.length ? (
               <>
                 <p className="text-sm leading-6 text-white/52">
-                  Enter quantities for the units you completed. Leave unused units at zero.
+                  {t("entries:editor.unitQuantityHint")}
                 </p>
                 <UnitItemRows
                   fields={unitItemFields}
                   unitTypes={activeUnitTypes}
                   register={form.register}
+                  unitFallbackLabel={t("entries:unitRows.fallbackUnit")}
+                  quantityLabel={t("entries:unitRows.quantity")}
+                  perHourLabel={t("entries:unitRows.perHour")}
                   errors={form.formState.errors.unitItems as Array<
                     { unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined
                   >}
@@ -455,10 +498,10 @@ export function WorkEntryEditorPage() {
               <div className="surface-muted space-y-4 p-5">
                 <div>
                   <p className="text-base font-semibold tracking-[-0.03em] text-white">
-                    This work type has no unit types yet.
+                    {t("entries:editor.noUnitTypesTitle")}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-white/52">
-                    Unit types define what you count, such as normal rooms, junior rooms or suites.
+                    {t("entries:editor.noUnitTypesDescription")}
                   </p>
                 </div>
                 <Button
@@ -467,7 +510,7 @@ export function WorkEntryEditorPage() {
                   className="w-full"
                   onClick={() => navigate(`/settings/work-types/${selectedWorkType.id}`)}
                 >
-                  Configure units
+                  {t("entries:editor.configureUnits")}
                 </Button>
               </div>
             )}
@@ -476,15 +519,15 @@ export function WorkEntryEditorPage() {
 
         <section className="space-y-4">
           <Textarea
-            label="Notes (optional)"
-            placeholder="Anything useful about the shift, route or context."
+            label={t("entries:fields.notes")}
+            placeholder={t("entries:fields.notesPlaceholder")}
             error={form.formState.errors.notes?.message}
             {...form.register("notes")}
           />
         </section>
 
         <WorkEntrySummaryCard
-          workTypeName={selectedWorkType?.name ?? "Choose a work type"}
+          workTypeName={selectedWorkType?.name ?? t("entries:validation.chooseWorkType")}
           workDate={values.workDate}
           hourlyRate={applicableRate?.hourlyRate ?? "0"}
           currency={applicableRate?.currency ?? "EUR"}
@@ -512,10 +555,10 @@ export function WorkEntryEditorPage() {
           }
         >
           {createMutation.isPending || updateMutation.isPending
-            ? "Saving entry..."
+            ? t("entries:editor.saving")
             : successState === "saved"
-              ? "Saved"
-              : "Save Entry"}
+              ? t("entries:saved")
+              : t("entries:editor.save")}
         </Button>
       </form>
 
@@ -531,7 +574,7 @@ export function WorkEntryEditorPage() {
               <Check className="h-6 w-6" />
             </div>
             <p className="mt-3 text-base font-semibold text-white">
-              {successState === "saved" ? "Entry saved" : "Entry deleted"}
+              {successState === "saved" ? t("entries:editor.savedToast") : t("entries:editor.deletedToast")}
             </p>
           </motion.div>
         ) : null}
@@ -606,11 +649,17 @@ function validateSelectedWorkTypeForm(
   values: WorkEntryFormValues,
   workType: WorkType,
   activeUnitTypes: UnitType[],
-  setError: UseFormSetError<WorkEntryFormInput>
+  setError: UseFormSetError<WorkEntryFormInput>,
+  messages: {
+    timeRequired: string;
+    invalidTimeRange: string;
+    configureUnitTypes: string;
+    positiveUnitQuantity: string;
+  }
 ) {
   if (workTypeIsTimeBased(workType)) {
     if (!values.startTime || !values.endTime) {
-      setError("root", { message: "Start and end time are required." });
+      setError("root", { message: messages.timeRequired });
       return false;
     }
 
@@ -621,7 +670,7 @@ function validateSelectedWorkTypeForm(
     });
 
     if (!calculation) {
-      setError("root", { message: "Check the time range and break minutes." });
+      setError("root", { message: messages.invalidTimeRange });
       return false;
     }
 
@@ -629,13 +678,13 @@ function validateSelectedWorkTypeForm(
   }
 
   if (!activeUnitTypes.length) {
-    setError("root", { message: "Configure unit types before creating this entry." });
+    setError("root", { message: messages.configureUnitTypes });
     return false;
   }
 
   const hasPositiveQuantity = (values.unitItems ?? []).some((item) => Number(item.quantity) > 0);
   if (!hasPositiveQuantity) {
-    setError("root", { message: "Enter at least one positive unit quantity." });
+    setError("root", { message: messages.positiveUnitQuantity });
     return false;
   }
 

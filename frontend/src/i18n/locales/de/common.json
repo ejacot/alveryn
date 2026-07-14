@@ -4,8 +4,10 @@
     "cancel": "Abbrechen",
     "close": "Schliessen",
     "continue": "Weiter",
+    "delete": "Loschen",
     "retry": "Erneut versuchen",
     "save": "Speichern",
+    "saveChanges": "Anderungen speichern",
     "saving": "Speichert...",
     "working": "Wird verarbeitet..."
   },

@@ -1,7 +1,67 @@
 {
   "title": "Einstellungen",
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
+  },
+  "workTypeEditor": {
+    "addTitle": "Arbeitsart hinzufugen",
+    "editTitle": "Arbeitsart bearbeiten",
+    "created": "Arbeitsart erstellt.",
+    "updated": "Arbeitsart aktualisiert.",
+    "unavailableTitle": "Arbeitsart ist nicht verfugbar",
+    "editorDescription": "Zeitbasiert erfasst Start, Ende und Pause. Mengenbasiert erfasst Mengen wie Zimmer, Bestellungen oder Stopps.",
+    "coreSettings": "Grundeinstellungen",
+    "chooseColor": "Farbe {{color}} wahlen",
+    "deactivate": "Arbeitsart deaktivieren",
+    "deactivateTitle": "Arbeitsart deaktivieren?",
+    "deactivateDescription": "Historische Arbeitseintrage bleiben erhalten. Diese Arbeitsart ist nur fur neue Eintrage nicht mehr verfugbar.",
+    "deactivateConfirm": "Deaktivieren",
+    "savedEntriesError": "Diese Arbeitsart hat bereits gespeicherte Eintrage. Erstelle stattdessen eine neue Arbeitsart.",
+    "fields": {
+      "name": "Name",
+      "calculationMethod": "Berechnungsmethode",
+      "color": "Farbe",
+      "icon": "Symbol",
+      "defaultBreakMinutes": "Standardpause (Minuten)",
+      "displayOrder": "Anzeigereihenfolge",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "nameTooLong": "Name ist zu lang",
+      "color": "Nutze eine gultige #RRGGBB-Farbe"
+    }
+  },
   "unitTypes": {
-    "unitsPerHourHelper": "Normalerweise schaffst du so viele dieser Einheiten in einer Stunde."
+    "sectionTitle": "Einheiten",
+    "explanation": "Einheitstypen definieren, was du zahlst, zum Beispiel normale Zimmer, Junior-Zimmer oder Suiten.",
+    "add": "Einheitstyp hinzufugen",
+    "addTitle": "Einheitstyp hinzufugen",
+    "editTitle": "Einheitstyp bearbeiten",
+    "created": "Einheitstyp erstellt.",
+    "updated": "Einheitstyp aktualisiert.",
+    "unavailableTitle": "Einheitstyp ist nicht verfugbar",
+    "settingsTitle": "Einheitseinstellungen",
+    "emptyTitle": "Noch keine Einheitstypen",
+    "emptyDescription": "Fuge die Einheitstypen hinzu, die du bei der Arbeit zahlst.",
+    "rateLine": "Normalerweise schaffst du {{value}} dieser Einheiten in einer Stunde.",
+    "unitsPerHourHelper": "Normalerweise schaffst du so viele dieser Einheiten in einer Stunde.",
+    "deactivate": "Einheitstyp deaktivieren",
+    "deactivateTitle": "Einheitstyp deaktivieren?",
+    "deactivateDescription": "Historische Eintragssnapshots bleiben unverandert. Das entfernt die Einheit nur aus zukunftigen Eintragen.",
+    "deactivateConfirm": "Deaktivieren",
+    "fields": {
+      "name": "Name",
+      "unitsPerHour": "Einheiten pro Stunde",
+      "displayOrder": "Anzeigereihenfolge",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "nameTooLong": "Name ist zu lang",
+      "unitsPerHour": "Einheiten pro Stunde muss grosser als null sein"
+    }
   },
   "account": "Konto",
   "work": "Arbeit",

@@ -1,7 +1,67 @@
 {
   "title": "Setari",
+  "status": {
+    "active": "Activ",
+    "inactive": "Inactiv"
+  },
+  "workTypeEditor": {
+    "addTitle": "Adauga tip de lucru",
+    "editTitle": "Editeaza tipul de lucru",
+    "created": "Tip de lucru creat.",
+    "updated": "Tip de lucru actualizat.",
+    "unavailableTitle": "Tipul de lucru nu este disponibil",
+    "editorDescription": "Bazat pe timp inregistreaza inceput, sfarsit si pauza. Bazat pe unitati inregistreaza cantitati precum camere, comenzi sau opriri.",
+    "coreSettings": "Setari principale",
+    "chooseColor": "Alege culoarea {{color}}",
+    "deactivate": "Dezactiveaza tipul de lucru",
+    "deactivateTitle": "Dezactivezi tipul de lucru?",
+    "deactivateDescription": "Inregistrarile istorice raman intacte. Tipul de lucru nu va mai fi disponibil pentru inregistrari noi.",
+    "deactivateConfirm": "Dezactiveaza",
+    "savedEntriesError": "Acest tip de lucru are deja inregistrari salvate. Creeaza un tip de lucru nou.",
+    "fields": {
+      "name": "Nume",
+      "calculationMethod": "Metoda de calcul",
+      "color": "Culoare",
+      "icon": "Pictograma",
+      "defaultBreakMinutes": "Pauza implicita (minute)",
+      "displayOrder": "Ordine afisare",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Numele este obligatoriu",
+      "nameTooLong": "Numele este prea lung",
+      "color": "Foloseste o culoare valida #RRGGBB"
+    }
+  },
   "unitTypes": {
-    "unitsPerHourHelper": "In mod normal finalizezi atatea unitati de acest tip intr-o ora."
+    "sectionTitle": "Unitati",
+    "explanation": "Unitatile definesc ce numeri, de exemplu camere normale, camere junior sau suite.",
+    "add": "Adauga unitate",
+    "addTitle": "Adauga unitate",
+    "editTitle": "Editeaza unitatea",
+    "created": "Unitate creata.",
+    "updated": "Unitate actualizata.",
+    "unavailableTitle": "Unitatea nu este disponibila",
+    "settingsTitle": "Setari unitate",
+    "emptyTitle": "Nu exista unitati inca",
+    "emptyDescription": "Adauga unitatile pe care le numeri in timpul lucrului.",
+    "rateLine": "In mod normal finalizezi {{value}} unitati de acest tip intr-o ora.",
+    "unitsPerHourHelper": "In mod normal finalizezi atatea unitati de acest tip intr-o ora.",
+    "deactivate": "Dezactiveaza unitatea",
+    "deactivateTitle": "Dezactivezi unitatea?",
+    "deactivateDescription": "Snapshoturile istorice raman neschimbate. Aceasta doar elimina unitatea din inregistrarile viitoare.",
+    "deactivateConfirm": "Dezactiveaza",
+    "fields": {
+      "name": "Nume",
+      "unitsPerHour": "Unitati pe ora",
+      "displayOrder": "Ordine afisare",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Numele este obligatoriu",
+      "nameTooLong": "Numele este prea lung",
+      "unitsPerHour": "Unitatile pe ora trebuie sa fie mai mari decat zero"
+    }
   },
   "account": "Cont",
   "work": "Munca",

@@ -1,6 +1,63 @@
 {
   "saved": "Salvat",
   "date": "Data",
+  "editor": {
+    "loadingEdit": "Se incarca inregistrarea...",
+    "loadingCreate": "Se pregateste adaugarea rapida...",
+    "loadingDescription": "Se incarca tipurile de lucru, tarifele si formularul.",
+    "unavailableTitle": "Inregistrarea nu este disponibila",
+    "noWorkTypesTitle": "Nu exista tipuri de lucru active",
+    "noWorkTypesDescription": "Finalizeaza onboardingul sau adauga un tip de lucru inainte de a crea inregistrari.",
+    "newEntry": "Inregistrare noua",
+    "eyebrow": "Inregistrare lucru",
+    "editTitle": "Editeaza aceasta inregistrare.",
+    "createTitle": "Inregistreaza lucrul dintr-o singura miscare.",
+    "description": "Rapid, clar si adaptat tipului de lucru ales.",
+    "step1": "Pasul 1",
+    "step2": "Pasul 2",
+    "chooseDate": "Alege data",
+    "chooseWorkType": "Alege tipul de lucru",
+    "shiftDetails": "Detalii tura",
+    "overnightHint": "Turele peste noapte sunt gestionate automat.",
+    "countUnits": "Numara unitati",
+    "unitQuantityHint": "Introdu cantitatile finalizate. Lasa unitatile nefolosite la zero.",
+    "noUnitTypesTitle": "Acest tip de lucru nu are inca unitati.",
+    "noUnitTypesDescription": "Unitatile definesc ce numeri, de exemplu camere normale, camere junior sau suite.",
+    "configureUnits": "Configureaza unitatile",
+    "saving": "Se salveaza inregistrarea...",
+    "save": "Salveaza inregistrarea",
+    "savedToast": "Inregistrare salvata",
+    "deletedToast": "Inregistrare stearsa"
+  },
+  "fields": {
+    "workDate": "Data lucrului",
+    "startTime": "Ora de inceput",
+    "endTime": "Ora de sfarsit",
+    "breakMinutes": "Pauza (minute)",
+    "notes": "Notite (optional)",
+    "notesPlaceholder": "Orice detaliu util despre tura, traseu sau context."
+  },
+  "delete": {
+    "title": "Stergi aceasta inregistrare?",
+    "description": "Inregistrarea este eliminata si revii la pagina Acasa.",
+    "keep": "Pastreaza inregistrarea",
+    "deleting": "Se sterge..."
+  },
+  "unitRows": {
+    "fallbackUnit": "Unitate",
+    "quantity": "Unitati",
+    "perHour": "{{value}} pe ora"
+  },
+  "validation": {
+    "dateRequired": "Data este obligatorie",
+    "chooseWorkType": "Alege un tip de lucru",
+    "positiveOrZeroQuantity": "Foloseste zero sau o cantitate pozitiva",
+    "completeTimeOrUnits": "Completeaza fie detaliile de timp, fie randurile de unitati",
+    "timeRequired": "Ora de inceput si ora de sfarsit sunt obligatorii.",
+    "invalidTimeRange": "Verifica intervalul de timp si minutele de pauza.",
+    "configureUnitTypes": "Configureaza unitatile inainte de a crea aceasta inregistrare.",
+    "positiveUnitQuantity": "Introdu cel putin o cantitate pozitiva."
+  },
   "summary": {
     "eyebrow": "Rezumat",
     "title": "Gata de salvat",

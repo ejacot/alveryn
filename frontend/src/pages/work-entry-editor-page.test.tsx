@@ -318,4 +318,45 @@ describe("WorkEntryEditorPage", () => {
 
     expect(await screen.findByDisplayValue("2026-07-21")).toBeInTheDocument();
   });
+
+  it("keeps saved unit quantities while unit types load during edit", async () => {
+    routeState.entryId = "entry-1";
+    vi.mocked(getWorkEntry).mockResolvedValue({
+      id: "entry-1",
+      workTypeId: "wt-unit",
+      workTypeName: "Orders",
+      calculationMethod: "UNIT_BASED",
+      workDate: "2026-07-13",
+      hourlyRateSnapshot: "20",
+      currencySnapshot: "EUR",
+      calculatedMinutes: "10",
+      workedHours: "0.17",
+      grossAmount: "3.33",
+      notes: null,
+      timeEntry: null,
+      unitItems: [
+        {
+          id: "item-1",
+          unitTypeId: "unit-1",
+          unitName: "Orders",
+          quantity: "5",
+          unitsPerHourSnapshot: "30",
+          calculatedMinutes: "10"
+        }
+      ],
+      createdAt: "2026-07-13T09:00:00Z",
+      updatedAt: "2026-07-13T09:00:00Z"
+    });
+    let resolveUnitTypes: (value: typeof unitTypes) => void = () => undefined;
+    vi.mocked(listUnitTypes).mockReturnValue(
+      new Promise((resolve) => {
+        resolveUnitTypes = resolve;
+      })
+    );
+
+    renderPage();
+    resolveUnitTypes(unitTypes);
+
+    expect(await screen.findByDisplayValue("5")).toBeInTheDocument();
+  });
 });

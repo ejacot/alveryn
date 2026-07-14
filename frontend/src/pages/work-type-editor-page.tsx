@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
@@ -26,29 +27,34 @@ import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
-  calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use a valid #RRGGBB color"),
-  icon: z.string().max(100).optional(),
-  defaultBreakMinutes: z.union([z.literal(""), z.coerce.number().min(0)]),
-  displayOrder: z.coerce.number().min(0),
-  active: z.boolean()
-});
+function createWorkTypeSchema(t: (key: string) => string) {
+  return z.object({
+    name: z.string().trim().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong")),
+    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, t("workTypeEditor.validation.color")),
+    icon: z.string().max(100).optional(),
+    defaultBreakMinutes: z.union([z.literal(""), z.coerce.number().min(0)]),
+    displayOrder: z.coerce.number().min(0),
+    active: z.boolean()
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
-type FormInput = z.input<typeof schema>;
+type Schema = ReturnType<typeof createWorkTypeSchema>;
+type FormValues = z.infer<Schema>;
+type FormInput = z.input<Schema>;
 
 const palette = ["#FFFFFF", "#D4D4D8", "#A1A1AA", "#71717A", "#52525B", "#3F3F46"];
 
 export function WorkTypeEditorPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["settings", "common", "entries"]);
   const queryClient = useQueryClient();
   const { workTypeId } = useParams();
   const isEditing = Boolean(workTypeId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const safeBack = useSafeBackNavigation({ fallback: "/settings/work-types" });
+  const schema = useMemo(() => createWorkTypeSchema((key) => t(`settings:${key}`)), [t]);
 
   const workTypeQuery = useQuery({
     queryKey: workTypeId ? queryKeys.workTypes.detail(workTypeId) : queryKeys.workTypes.all(),
@@ -129,7 +135,7 @@ export function WorkTypeEditorPage() {
           });
     },
     onSuccess: async (workType) => {
-      setSuccessMessage(isEditing ? "Work type updated." : "Work type created.");
+      setSuccessMessage(isEditing ? t("settings:workTypeEditor.updated") : t("settings:workTypeEditor.created"));
       await afterSuccess(workType.id, workType.calculationMethod);
     },
     onError: (error) => {
@@ -160,14 +166,14 @@ export function WorkTypeEditorPage() {
   }
 
   if (workTypeQuery.error) {
-    return <ScreenMessage title="Work type is unavailable" description={getApiError(workTypeQuery.error).message} />;
+    return <ScreenMessage title={t("settings:workTypeEditor.unavailableTitle")} description={getApiError(workTypeQuery.error).message} />;
   }
 
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
-        title={isEditing ? "Edit work type" : "Add work type"}
-        description="Time based tracks start, end and break. Unit based tracks quantities such as rooms, orders or stops."
+        title={isEditing ? t("settings:workTypeEditor.editTitle") : t("settings:workTypeEditor.addTitle")}
+        description={t("settings:workTypeEditor.editorDescription")}
         fallbackHref="/settings/work-types"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -181,14 +187,14 @@ export function WorkTypeEditorPage() {
           }
         })}
       >
-        <SettingsSection title="Core settings">
+        <SettingsSection title={t("settings:workTypeEditor.coreSettings")}>
           <div className="space-y-4">
-            <Input label="Name" error={form.formState.errors.name?.message} {...form.register("name")} />
-            <Select label="Calculation method" error={form.formState.errors.calculationMethod?.message} {...form.register("calculationMethod")}>
-              <option value="TIME_BASED">Time based</option>
-              <option value="UNIT_BASED">Unit based</option>
+            <Input label={t("settings:workTypeEditor.fields.name")} error={form.formState.errors.name?.message} {...form.register("name")} />
+            <Select label={t("settings:workTypeEditor.fields.calculationMethod")} error={form.formState.errors.calculationMethod?.message} {...form.register("calculationMethod")}>
+              <option value="TIME_BASED">{t("entries:workTypePicker.timeBased")}</option>
+              <option value="UNIT_BASED">{t("entries:workTypePicker.unitBased")}</option>
             </Select>
-            <Input label="Color" error={form.formState.errors.color?.message} {...form.register("color")} />
+            <Input label={t("settings:workTypeEditor.fields.color")} error={form.formState.errors.color?.message} {...form.register("color")} />
             <div className="flex flex-wrap gap-2">
               {palette.map((color) => (
                 <button
@@ -197,25 +203,25 @@ export function WorkTypeEditorPage() {
                   onClick={() => form.setValue("color", color, { shouldValidate: true })}
                   className="h-9 w-9 rounded-full border border-white/[0.08]"
                   style={{ backgroundColor: color }}
-                  aria-label={`Choose color ${color}`}
+                  aria-label={t("settings:workTypeEditor.chooseColor", { color })}
                 />
               ))}
             </div>
-            <Input label="Icon" error={form.formState.errors.icon?.message} {...form.register("icon")} />
+            <Input label={t("settings:workTypeEditor.fields.icon")} error={form.formState.errors.icon?.message} {...form.register("icon")} />
             {calculationMethod === "TIME_BASED" ? (
               <Input
                 type="number"
                 min={0}
-                label="Default break (minutes)"
+                label={t("settings:workTypeEditor.fields.defaultBreakMinutes")}
                 error={form.formState.errors.defaultBreakMinutes?.message as string | undefined}
                 {...form.register("defaultBreakMinutes")}
               />
             ) : null}
-            <Input type="number" min={0} label="Display order" error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
+            <Input type="number" min={0} label={t("settings:workTypeEditor.fields.displayOrder")} error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
             {isEditing ? (
-              <Select label="Status" error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+              <Select label={t("settings:workTypeEditor.fields.status")} error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
+                <option value="true">{t("settings:status.active")}</option>
+                <option value="false">{t("settings:status.inactive")}</option>
               </Select>
             ) : null}
           </div>
@@ -223,12 +229,12 @@ export function WorkTypeEditorPage() {
 
         {isEditing && workTypeQuery.data?.calculationMethod === "UNIT_BASED" ? (
           <SettingsSection
-            title="Units"
-            description="Unit types define what you count, such as normal rooms, junior rooms or suites."
+            title={t("settings:unitTypes.sectionTitle")}
+            description={t("settings:unitTypes.explanation")}
           >
             <div className="space-y-4">
               <Button type="button" variant="secondary" className="w-full" onClick={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}>
-                Add unit type
+                {t("settings:unitTypes.add")}
               </Button>
               {unitTypesQuery.data?.length ? (
                 <div className="space-y-3">
@@ -245,11 +251,11 @@ export function WorkTypeEditorPage() {
                             {unit.name}
                           </p>
                           <p className="mt-1 text-sm text-white/46">
-                            You normally complete {unit.unitsPerHour} of these units in one hour.
+                            {t("settings:unitTypes.rateLine", { value: unit.unitsPerHour })}
                           </p>
                         </div>
                         <span className="text-xs uppercase tracking-[0.16em] text-white/28">
-                          {unit.active ? "Active" : "Inactive"}
+                          {unit.active ? t("settings:status.active") : t("settings:status.inactive")}
                         </span>
                       </div>
                     </button>
@@ -257,9 +263,9 @@ export function WorkTypeEditorPage() {
                 </div>
               ) : (
                 <SettingsEmptyState
-                  title="No unit types yet"
-                  description="Add the unit types you count during work."
-                  actionLabel="Add unit type"
+                  title={t("settings:unitTypes.emptyTitle")}
+                  description={t("settings:unitTypes.emptyDescription")}
+                  actionLabel={t("settings:unitTypes.add")}
                   onAction={() => navigate(`/settings/work-types/${workTypeId}/unit-types/new`)}
                 />
               )}
@@ -271,21 +277,24 @@ export function WorkTypeEditorPage() {
           submitting={saveMutation.isPending}
           successMessage={successMessage}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? "Deactivate work type" : undefined}
+          deleteLabel={isEditing ? t("settings:workTypeEditor.deactivate") : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
         {saveMutation.error ? (
           <p className="text-sm text-red-300">
-            {formatWorkTypeError(getApiError(saveMutation.error).message)}
+            {formatWorkTypeError(
+              getApiError(saveMutation.error).message,
+              t("settings:workTypeEditor.savedEntriesError")
+            )}
           </p>
         ) : null}
       </form>
 
       <SettingsConfirmDialog
         open={showConfirm}
-        title="Deactivate work type?"
-        description="Historical work entries stay intact. This work type simply becomes unavailable for new entries."
-        confirmLabel="Deactivate"
+        title={t("settings:workTypeEditor.deactivateTitle")}
+        description={t("settings:workTypeEditor.deactivateDescription")}
+        confirmLabel={t("settings:workTypeEditor.deactivateConfirm")}
         pending={deleteMutation.isPending}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}
@@ -295,9 +304,9 @@ export function WorkTypeEditorPage() {
   );
 }
 
-function formatWorkTypeError(message: string) {
+function formatWorkTypeError(message: string, savedEntriesMessage?: string) {
   if (message.toLowerCase().includes("saved entries")) {
-    return "This work type already has saved entries. Create a new work type instead.";
+    return savedEntriesMessage ?? message;
   }
   return message;
 }

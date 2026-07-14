@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,15 +24,18 @@ import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
-  unitsPerHour: z.coerce.number().gt(0, "Units per hour must be greater than zero"),
-  displayOrder: z.coerce.number().min(0),
-  active: z.boolean()
-});
+function createUnitTypeSchema(t: (key: string) => string) {
+  return z.object({
+    name: z.string().trim().min(1, t("unitTypes.validation.nameRequired")).max(100, t("unitTypes.validation.nameTooLong")),
+    unitsPerHour: z.coerce.number().gt(0, t("unitTypes.validation.unitsPerHour")),
+    displayOrder: z.coerce.number().min(0),
+    active: z.boolean()
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
-type FormInput = z.input<typeof schema>;
+type Schema = ReturnType<typeof createUnitTypeSchema>;
+type FormValues = z.infer<Schema>;
+type FormInput = z.input<Schema>;
 
 export function UnitTypeEditorPage() {
   const navigate = useNavigate();
@@ -44,6 +47,7 @@ export function UnitTypeEditorPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const fallbackRoute = workTypeId ? `/settings/work-types/${workTypeId}` : "/settings/work-types";
   const safeBack = useSafeBackNavigation({ fallback: fallbackRoute });
+  const schema = useMemo(() => createUnitTypeSchema((key) => t(key)), [t]);
 
   const unitTypeQuery = useQuery({
     queryKey:
@@ -89,7 +93,7 @@ export function UnitTypeEditorPage() {
         ? updateUnitType(workTypeId!, unitTypeId!, values)
         : createUnitType(workTypeId!, values),
     onSuccess: async () => {
-      setSuccessMessage(isEditing ? "Unit type updated." : "Unit type created.");
+      setSuccessMessage(isEditing ? t("unitTypes.updated") : t("unitTypes.created"));
       await afterSuccess();
     },
     onError: (error) => {
@@ -120,13 +124,13 @@ export function UnitTypeEditorPage() {
   }
 
   if (unitTypeQuery.error) {
-    return <ScreenMessage title="Unit type is unavailable" description={getApiError(unitTypeQuery.error).message} />;
+    return <ScreenMessage title={t("unitTypes.unavailableTitle")} description={getApiError(unitTypeQuery.error).message} />;
   }
 
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
-        title={isEditing ? "Edit unit type" : "Add unit type"}
+        title={isEditing ? t("unitTypes.editTitle") : t("unitTypes.addTitle")}
         fallbackHref={fallbackRoute}
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -140,23 +144,23 @@ export function UnitTypeEditorPage() {
           }
         })}
       >
-        <SettingsSection title="Unit settings">
+        <SettingsSection title={t("unitTypes.settingsTitle")}>
           <div className="space-y-4">
-            <Input label="Name" error={form.formState.errors.name?.message} {...form.register("name")} />
+            <Input label={t("unitTypes.fields.name")} error={form.formState.errors.name?.message} {...form.register("name")} />
             <Input
               type="number"
               min={0.01}
               step="0.01"
-              label="Units per hour"
+              label={t("unitTypes.fields.unitsPerHour")}
               helperText={t("unitTypes.unitsPerHourHelper")}
               error={form.formState.errors.unitsPerHour?.message}
               {...form.register("unitsPerHour")}
             />
-            <Input type="number" min={0} label="Display order" error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
+            <Input type="number" min={0} label={t("unitTypes.fields.displayOrder")} error={form.formState.errors.displayOrder?.message} {...form.register("displayOrder")} />
             {isEditing ? (
-              <Select label="Status" error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+              <Select label={t("unitTypes.fields.status")} error={form.formState.errors.active?.message as string | undefined} {...form.register("active", { setValueAs: (value) => value === "true" || value === true })}>
+                <option value="true">{t("status.active")}</option>
+                <option value="false">{t("status.inactive")}</option>
               </Select>
             ) : null}
           </div>
@@ -166,7 +170,7 @@ export function UnitTypeEditorPage() {
           submitting={saveMutation.isPending}
           successMessage={successMessage}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? "Deactivate unit type" : undefined}
+          deleteLabel={isEditing ? t("unitTypes.deactivate") : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
         {saveMutation.error ? <p className="text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
@@ -174,9 +178,9 @@ export function UnitTypeEditorPage() {
 
       <SettingsConfirmDialog
         open={showConfirm}
-        title="Deactivate unit type?"
-        description="Historical entry snapshots remain unchanged. This only removes the unit from future entry creation."
-        confirmLabel="Deactivate"
+        title={t("unitTypes.deactivateTitle")}
+        description={t("unitTypes.deactivateDescription")}
+        confirmLabel={t("unitTypes.deactivateConfirm")}
         pending={deleteMutation.isPending}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}

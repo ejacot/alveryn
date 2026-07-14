@@ -1,7 +1,67 @@
 {
   "title": "Settings",
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "workTypeEditor": {
+    "addTitle": "Add work type",
+    "editTitle": "Edit work type",
+    "created": "Work type created.",
+    "updated": "Work type updated.",
+    "unavailableTitle": "Work type is unavailable",
+    "editorDescription": "Time based tracks start, end and break. Unit based tracks quantities such as rooms, orders or stops.",
+    "coreSettings": "Core settings",
+    "chooseColor": "Choose color {{color}}",
+    "deactivate": "Deactivate work type",
+    "deactivateTitle": "Deactivate work type?",
+    "deactivateDescription": "Historical work entries stay intact. This work type simply becomes unavailable for new entries.",
+    "deactivateConfirm": "Deactivate",
+    "savedEntriesError": "This work type already has saved entries. Create a new work type instead.",
+    "fields": {
+      "name": "Name",
+      "calculationMethod": "Calculation method",
+      "color": "Color",
+      "icon": "Icon",
+      "defaultBreakMinutes": "Default break (minutes)",
+      "displayOrder": "Display order",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name is too long",
+      "color": "Use a valid #RRGGBB color"
+    }
+  },
   "unitTypes": {
-    "unitsPerHourHelper": "You normally complete this many of these units in one hour."
+    "sectionTitle": "Units",
+    "explanation": "Unit types define what you count, such as normal rooms, junior rooms or suites.",
+    "add": "Add unit type",
+    "addTitle": "Add unit type",
+    "editTitle": "Edit unit type",
+    "created": "Unit type created.",
+    "updated": "Unit type updated.",
+    "unavailableTitle": "Unit type is unavailable",
+    "settingsTitle": "Unit settings",
+    "emptyTitle": "No unit types yet",
+    "emptyDescription": "Add the unit types you count during work.",
+    "rateLine": "You normally complete {{value}} of these units in one hour.",
+    "unitsPerHourHelper": "You normally complete this many of these units in one hour.",
+    "deactivate": "Deactivate unit type",
+    "deactivateTitle": "Deactivate unit type?",
+    "deactivateDescription": "Historical entry snapshots remain unchanged. This only removes the unit from future entry creation.",
+    "deactivateConfirm": "Deactivate",
+    "fields": {
+      "name": "Name",
+      "unitsPerHour": "Units per hour",
+      "displayOrder": "Display order",
+      "status": "Status"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name is too long",
+      "unitsPerHour": "Units per hour must be greater than zero"
+    }
   },
   "account": "Account",
   "work": "Work",

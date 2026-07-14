@@ -4,8 +4,10 @@
     "cancel": "Anuleaza",
     "close": "Inchide",
     "continue": "Continua",
+    "delete": "Sterge",
     "retry": "Incearca din nou",
     "save": "Salveaza",
+    "saveChanges": "Salveaza modificarile",
     "saving": "Se salveaza...",
     "working": "Se proceseaza..."
   },
