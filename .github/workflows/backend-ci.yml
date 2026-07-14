@@ -80,6 +80,11 @@ jobs:
       DB_URL: jdbc:postgresql://localhost:5432/roomly
       DB_USERNAME: roomly
       DB_PASSWORD: roomly_ci
+      E2E_DB_NAME: roomly
+      E2E_DB_USER: roomly
+      E2E_DB_PASSWORD: roomly_ci
+      E2E_DB_HOST: 127.0.0.1
+      E2E_DB_PORT: "5432"
       SPRING_PROFILES_ACTIVE: local
       ROOMLY_E2E_BASE_URL: http://127.0.0.1:5173
       ROOMLY_E2E_API_URL: http://127.0.0.1:8080
