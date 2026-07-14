@@ -112,6 +112,15 @@ describe("UnitTypeEditorPage", () => {
     });
   });
 
+  it("opens the new unit form with an empty friendly rate field", () => {
+    renderPage();
+    const rateInput = screen.getByRole("textbox", { name: /units per hour/i });
+
+    expect(rateInput).toHaveValue("");
+    expect(rateInput).toHaveAttribute("placeholder", "Example: 2.4");
+    expect(screen.getByText("Enter how many of this unit you usually complete in one hour.")).toBeInTheDocument();
+  });
+
   it("creates a unit type with hidden defaults omitted from the visible form", async () => {
     renderPage();
     const user = userEvent.setup();

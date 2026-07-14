@@ -73,7 +73,7 @@ export function UnitTypeEditorPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
-      unitsPerHour: 1,
+      unitsPerHour: "",
       displayOrder: 0,
       active: true
     }
@@ -187,6 +187,7 @@ export function UnitTypeEditorPage() {
             <Input
               type="text"
               inputMode="decimal"
+              placeholder={t("unitTypes.unitsPerHourPlaceholder")}
               label={t("unitTypes.fields.unitsPerHour")}
               helperText={t("unitTypes.unitsPerHourHelper")}
               error={form.formState.errors.unitsPerHour?.message}
