@@ -24,7 +24,8 @@
     },
     "validation": {
       "nameRequired": "Name ist erforderlich",
-      "nameTooLong": "Name ist zu lang"
+      "nameTooLong": "Name ist zu lang",
+      "fixErrors": "Prüfe die markierten Felder und versuche es erneut."
     }
   },
   "unitTypes": {

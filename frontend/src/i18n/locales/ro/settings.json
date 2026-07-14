@@ -24,7 +24,8 @@
     },
     "validation": {
       "nameRequired": "Numele este obligatoriu",
-      "nameTooLong": "Numele este prea lung"
+      "nameTooLong": "Numele este prea lung",
+      "fixErrors": "Verifică câmpurile marcate și încearcă din nou."
     }
   },
   "unitTypes": {

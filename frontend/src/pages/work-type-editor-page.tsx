@@ -123,10 +123,17 @@ export function WorkTypeEditorPage() {
       const apiError = getApiError(error);
       if (apiError.code === "WORK_TYPE_NAME_EXISTS") {
         form.setError("name", { message: t("errors:WORK_TYPE_NAME_EXISTS") });
+        form.setError("root", { message: t("errors:WORK_TYPE_NAME_EXISTS") });
         return;
       }
       Object.entries(apiError.fieldErrors).forEach(([field, message]) => {
         form.setError(field as keyof FormValues, { message });
+      });
+      form.setError("root", {
+        message: formatWorkTypeError(
+          apiError.message,
+          t("settings:workTypeEditor.savedEntriesError")
+        )
       });
     }
   });
@@ -164,14 +171,30 @@ export function WorkTypeEditorPage() {
       />
       <form
         className="space-y-6"
-        onSubmit={form.handleSubmit(async (values) => {
-          try {
-            await saveMutation.mutateAsync(values);
-          } catch {
-            // Mutation state renders field and global API errors without leaving the form.
+        onSubmit={form.handleSubmit(
+          async (values) => {
+            form.clearErrors("root");
+            try {
+              await saveMutation.mutateAsync(values);
+            } catch {
+              // Mutation state renders field and global API errors without leaving the form.
+            }
+          },
+          () => {
+            form.setError("root", {
+              message: t("settings:workTypeEditor.validation.fixErrors")
+            });
           }
-        })}
+        )}
       >
+        {form.formState.errors.root?.message ? (
+          <p
+            role="alert"
+            className="rounded-[22px] border border-red-400/20 bg-red-400/[0.08] px-4 py-3 text-sm text-red-100"
+          >
+            {form.formState.errors.root.message}
+          </p>
+        ) : null}
         <SettingsSection title={t("settings:workTypeEditor.coreSettings")}>
           <div className="space-y-4">
             <Input label={t("settings:workTypeEditor.fields.name")} error={form.formState.errors.name?.message} {...form.register("name")} />
@@ -244,14 +267,6 @@ export function WorkTypeEditorPage() {
           deleteLabel={isEditing ? t("settings:workTypeEditor.deactivate") : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
-        {saveMutation.error ? (
-          <p className="text-sm text-red-300">
-            {formatWorkTypeError(
-              getApiError(saveMutation.error).message,
-              t("settings:workTypeEditor.savedEntriesError")
-            )}
-          </p>
-        ) : null}
       </form>
 
       <SettingsConfirmDialog
