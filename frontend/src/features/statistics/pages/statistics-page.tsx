@@ -112,6 +112,10 @@ function writeFilters(
   return params;
 }
 
+function latestSearchParams(fallback: URLSearchParams) {
+  return typeof window === "undefined" ? fallback : new URLSearchParams(window.location.search);
+}
+
 export function StatisticsPage() {
   const { t } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -139,8 +143,14 @@ export function StatisticsPage() {
   function setFilters(next: StatisticsFilters) {
     setFiltersState(next);
     setSearchParams(
-      (currentParams) =>
-        writeFilters(next, heatmapMetric, heatmapCurrency, productivityMetric, productivityGrouping, currentParams),
+      writeFilters(
+        next,
+        heatmapMetric,
+        heatmapCurrency,
+        productivityMetric,
+        productivityGrouping,
+        latestSearchParams(searchParams)
+      ),
       { replace: false }
     );
     setSelectedChartPoint(null);
@@ -150,7 +160,7 @@ export function StatisticsPage() {
     setHeatmapMetricState(metric);
     setHeatmapCurrencyState(currency);
     setSearchParams(
-      (currentParams) => writeFilters(filters, metric, currency, productivityMetric, productivityGrouping, currentParams),
+      writeFilters(filters, metric, currency, productivityMetric, productivityGrouping, latestSearchParams(searchParams)),
       { replace: false }
     );
   }
@@ -159,7 +169,7 @@ export function StatisticsPage() {
     setProductivityMetricState(metric);
     setProductivityGroupingState(grouping);
     setSearchParams(
-      (currentParams) => writeFilters(filters, heatmapMetric, heatmapCurrency, metric, grouping, currentParams),
+      writeFilters(filters, heatmapMetric, heatmapCurrency, metric, grouping, latestSearchParams(searchParams)),
       { replace: false }
     );
   }

@@ -56,7 +56,14 @@ test("statistics page loads real backend data and refetches on filter change", a
   await page.getByLabel("Grouping").selectOption("WEEKLY");
   await expect(page).toHaveURL(/productivityMetric=EQUIVALENT_MINUTES/);
   await expect(page).toHaveURL(/productivityGrouping=WEEKLY/);
+  const overviewWithTimeFilter = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/statistics/overview") &&
+      response.url().includes("calculationMethods=TIME_BASED") &&
+      response.ok()
+  );
   await filters.getByLabel("Calculation method").selectOption("TIME_BASED");
+  await overviewWithTimeFilter;
   await expect.poll(() => overviewRequests.length).toBeGreaterThanOrEqual(2);
   expect(overviewRequests.some((url) => url.includes("calculationMethods=TIME_BASED"))).toBe(true);
   await expect(page).toHaveURL(/metric=WORKED_HOURS/);

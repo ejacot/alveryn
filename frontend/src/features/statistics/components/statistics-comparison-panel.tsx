@@ -174,19 +174,17 @@ export function StatisticsComparisonPanel({ filters }: Props) {
   }, [filters, searchParams]);
 
   function writeComparison(nextPreset: Preset, nextMetric: StatisticsMetric, nextA: Period, nextB: Period) {
-    setSearchParams(
-      (currentParams) => {
-        const params = new URLSearchParams(currentParams);
-        params.set("comparePreset", nextPreset);
-        params.set("compareMetric", nextMetric);
-        params.set("compareAFrom", nextA.from);
-        params.set("compareATo", nextA.to);
-        params.set("compareBFrom", nextB.from);
-        params.set("compareBTo", nextB.to);
-        return params;
-      },
-      { replace: true }
-    );
+    const params =
+      typeof window === "undefined"
+        ? new URLSearchParams(searchParams)
+        : new URLSearchParams(window.location.search);
+    params.set("comparePreset", nextPreset);
+    params.set("compareMetric", nextMetric);
+    params.set("compareAFrom", nextA.from);
+    params.set("compareATo", nextA.to);
+    params.set("compareBFrom", nextB.from);
+    params.set("compareBTo", nextB.to);
+    setSearchParams(params, { replace: true });
   }
 
   function applyPreset(nextPreset: Preset) {
