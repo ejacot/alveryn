@@ -1,8 +1,19 @@
 import { z } from "zod";
 
 export const unitItemSchema = z.object({
-  unitTypeId: z.string().min(1, "Select a unit type"),
-  quantity: z.number().positive("Use a positive quantity")
+  unitTypeId: z.string().optional().or(z.literal("")),
+  quantity: z.preprocess(
+    (value) => {
+      if (value === "" || value == null) {
+        return 0;
+      }
+      if (typeof value === "number" && Number.isNaN(value)) {
+        return 0;
+      }
+      return Number(value);
+    },
+    z.number().min(0, "Use zero or a positive quantity")
+  )
 });
 
 export const workEntrySchema = z

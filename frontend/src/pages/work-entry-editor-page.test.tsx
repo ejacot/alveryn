@@ -68,20 +68,10 @@ vi.mock("../components/work-entry/unit-item-rows", () => ({
     ) => Record<string, unknown>;
   }) => (
     <div>
+      <input type="hidden" value={unitTypes[0]?.id ?? ""} {...register("unitItems.0.unitTypeId")} />
       <label>
-        Unit type
-        <select {...register("unitItems.0.unitTypeId")}>
-          <option value="">Select a unit type</option>
-          {unitTypes.map((unitType) => (
-            <option key={unitType.id} value={unitType.id}>
-              {unitType.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Units
-        <input type="number" {...register("unitItems.0.quantity", { valueAsNumber: true })} />
+        {unitTypes[0]?.name ?? "Units"}
+        <input type="number" {...register("unitItems.0.quantity")} />
       </label>
     </div>
   )
@@ -251,9 +241,8 @@ describe("WorkEntryEditorPage", () => {
     fireEvent.change(screen.getByLabelText("Work date"), {
       target: { value: "2026-07-13" }
     });
-    await user.selectOptions(screen.getByLabelText("Unit type"), "unit-1");
-    await user.clear(screen.getByLabelText("Units"));
-    await user.type(screen.getByLabelText("Units"), "12");
+    await user.clear(screen.getByLabelText("Orders"));
+    await user.type(screen.getByLabelText("Orders"), "12");
     await user.click(screen.getByRole("button", { name: /save entry/i }));
 
     await waitFor(() => {
@@ -263,6 +252,38 @@ describe("WorkEntryEditorPage", () => {
         workDate: "2026-07-13",
         notes: null,
         unitItems: [{ unitTypeId: "unit-1", quantity: 12 }]
+      });
+    });
+  });
+
+  it("creates a time-based entry without requiring hidden unit rows", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /regular shift/i }));
+    fireEvent.change(screen.getByLabelText("Work date"), {
+      target: { value: "2026-07-13" }
+    });
+    fireEvent.change(screen.getByLabelText("Start time"), {
+      target: { value: "08:00" }
+    });
+    fireEvent.change(screen.getByLabelText("End time"), {
+      target: { value: "16:00" }
+    });
+    fireEvent.change(screen.getByLabelText("Break (minutes)"), {
+      target: { value: "30" }
+    });
+    await user.click(screen.getByRole("button", { name: /save entry/i }));
+
+    await waitFor(() => {
+      expect(createWorkEntry).toHaveBeenCalled();
+      expect(vi.mocked(createWorkEntry).mock.calls[0][0]).toEqual({
+        workTypeId: "wt-time",
+        workDate: "2026-07-13",
+        notes: null,
+        startTime: "08:00",
+        endTime: "16:00",
+        unpaidBreakMinutes: 30
       });
     });
   });

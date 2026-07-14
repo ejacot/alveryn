@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, type UseFormSetError } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Check, Clock3, Trash2 } from "lucide-react";
@@ -37,10 +37,15 @@ import {
   type WorkEntryFormInput,
   type WorkEntryFormValues
 } from "../features/work-entries/work-entry-schemas";
-import type { WorkType } from "../types/configuration";
+import type { UnitType, WorkType } from "../types/configuration";
 
 type OutletContext = {
   selectedDate?: Date;
+};
+
+type RawUnitRow = {
+  unitTypeId?: string;
+  quantity?: unknown;
 };
 
 export function WorkEntryEditorPage() {
@@ -73,10 +78,10 @@ export function WorkEntryEditorPage() {
       endTime: "17:00",
       unpaidBreakMinutes: 30,
       notes: "",
-      unitItems: [{ unitTypeId: "", quantity: 1 }]
+      unitItems: []
     }
   });
-  const unitItemsFieldArray = useFieldArray({
+  const { fields: unitItemFields, replace: replaceUnitItems } = useFieldArray({
     control: form.control,
     name: "unitItems"
   });
@@ -106,6 +111,13 @@ export function WorkEntryEditorPage() {
     queryFn: () => listUnitTypes(selectedWorkTypeId),
     enabled: Boolean(selectedWorkTypeId && workTypeIsUnitBased(selectedWorkType))
   });
+  const activeUnitTypes = useMemo(
+    () =>
+      (unitTypesQuery.data ?? [])
+        .filter((unitType) => unitType.active)
+        .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)),
+    [unitTypesQuery.data]
+  );
 
   useEffect(() => {
     if (!entryQuery.data) {
@@ -125,7 +137,7 @@ export function WorkEntryEditorPage() {
               unitTypeId: item.unitTypeId,
               quantity: Number(item.quantity)
             }))
-          : [{ unitTypeId: "", quantity: 1 }]
+          : []
     });
   }, [entryQuery.data, form]);
 
@@ -138,13 +150,15 @@ export function WorkEntryEditorPage() {
       form.setValue("unpaidBreakMinutes", selectedWorkType.defaultBreakMinutes ?? 0);
     }
 
-    if (
-      workTypeIsUnitBased(selectedWorkType) &&
-      (form.getValues("unitItems")?.length ?? 0) === 0
-    ) {
-      unitItemsFieldArray.append({ unitTypeId: "", quantity: 1 });
+    if (workTypeIsTimeBased(selectedWorkType)) {
+      replaceUnitItems([]);
+      return;
     }
-  }, [form, isEditing, selectedWorkType, unitItemsFieldArray]);
+
+    if (workTypeIsUnitBased(selectedWorkType)) {
+      replaceUnitItems(buildUnitRows(activeUnitTypes, form.getValues("unitItems") ?? []));
+    }
+  }, [activeUnitTypes, form, isEditing, replaceUnitItems, selectedWorkType]);
 
   const createMutation = useMutation({
     mutationFn: createWorkEntry,
@@ -175,7 +189,9 @@ export function WorkEntryEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.detail(entryId!) })
+      entryId
+        ? queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.detail(entryId) })
+        : Promise.resolve()
     ]);
     window.setTimeout(() => {
       navigate(returnTo, { replace: true });
@@ -206,10 +222,10 @@ export function WorkEntryEditorPage() {
       );
     }
 
-    return calculateUnitEntryMinutes(values.unitItems ?? [], unitTypesQuery.data ?? []);
+    return calculateUnitEntryMinutes(toUnitCalculationRows(values.unitItems), activeUnitTypes);
   }, [
+    activeUnitTypes,
     selectedWorkType,
-    unitTypesQuery.data,
     values.endTime,
     values.startTime,
     values.unitItems,
@@ -324,15 +340,24 @@ export function WorkEntryEditorPage() {
           if (!selectedWorkType) {
             return;
           }
+          form.clearErrors("root");
 
-          if (isEditing) {
-            await updateMutation.mutateAsync(nextValues);
+          if (!validateSelectedWorkTypeForm(nextValues, selectedWorkType, activeUnitTypes, form.setError)) {
             return;
           }
 
-          await createMutation.mutateAsync(
-            buildWorkEntryPayload(nextValues, selectedWorkType)
-          );
+          try {
+            if (isEditing) {
+              await updateMutation.mutateAsync(nextValues);
+              return;
+            }
+
+            await createMutation.mutateAsync(
+              buildWorkEntryPayload(nextValues, selectedWorkType)
+            );
+          } catch {
+            // Mutation state keeps the API error visible and preserves entered values.
+          }
         })}
       >
         <section className="space-y-4">
@@ -410,18 +435,42 @@ export function WorkEntryEditorPage() {
           <section className="space-y-4">
             <div>
               <p className="hairline-text">Unit Based</p>
-              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Add unit rows</h2>
+              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">Count units</h2>
             </div>
-            <UnitItemRows
-              fields={unitItemsFieldArray.fields}
-              unitTypes={unitTypesQuery.data ?? []}
-              register={form.register}
-              append={unitItemsFieldArray.append}
-              remove={unitItemsFieldArray.remove}
-              errors={form.formState.errors.unitItems as Array<
-                { unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined
-              >}
-            />
+            {activeUnitTypes.length ? (
+              <>
+                <p className="text-sm leading-6 text-white/52">
+                  Enter quantities for the units you completed. Leave unused units at zero.
+                </p>
+                <UnitItemRows
+                  fields={unitItemFields}
+                  unitTypes={activeUnitTypes}
+                  register={form.register}
+                  errors={form.formState.errors.unitItems as Array<
+                    { unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined
+                  >}
+                />
+              </>
+            ) : (
+              <div className="surface-muted space-y-4 p-5">
+                <div>
+                  <p className="text-base font-semibold tracking-[-0.03em] text-white">
+                    This work type has no unit types yet.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-white/52">
+                    Unit types define what you count, such as normal rooms, junior rooms or suites.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => navigate(`/settings/work-types/${selectedWorkType.id}`)}
+                >
+                  Configure units
+                </Button>
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -455,7 +504,12 @@ export function WorkEntryEditorPage() {
         <Button
           className="w-full"
           type="submit"
-          disabled={createMutation.isPending || updateMutation.isPending || successState !== "idle"}
+          disabled={
+            createMutation.isPending ||
+            updateMutation.isPending ||
+            successState !== "idle" ||
+            (Boolean(selectedWorkType) && workTypeIsUnitBased(selectedWorkType) && activeUnitTypes.length === 0)
+          }
         >
           {createMutation.isPending || updateMutation.isPending
             ? "Saving entry..."
@@ -511,16 +565,79 @@ export function buildWorkEntryPayload(
 
   return {
     ...payload,
-    unitItems: (values.unitItems ?? [])
-      .filter((item) => item.unitTypeId && Number(item.quantity) > 0)
-      .map((item) => ({
-        unitTypeId: item.unitTypeId,
-        quantity: Number(item.quantity)
-      }))
+    unitItems: toPositiveUnitPayloadRows(values.unitItems)
   };
 }
 
 function emptyToNull(value?: string | null) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+function buildUnitRows(
+  unitTypes: UnitType[],
+  currentRows: RawUnitRow[]
+) {
+  return unitTypes.map((unitType) => {
+    const current = currentRows.find((row) => row.unitTypeId === unitType.id);
+    const quantity = Number(current?.quantity ?? 0);
+    return {
+      unitTypeId: unitType.id,
+      quantity: Number.isFinite(quantity) ? quantity : 0
+    };
+  });
+}
+
+function toUnitCalculationRows(rows?: RawUnitRow[]) {
+  return (rows ?? []).flatMap((row) => {
+    const quantity = Number(row.quantity);
+    if (!row.unitTypeId || !Number.isFinite(quantity)) {
+      return [];
+    }
+    return [{ unitTypeId: row.unitTypeId, quantity }];
+  });
+}
+
+function toPositiveUnitPayloadRows(rows?: RawUnitRow[]) {
+  return toUnitCalculationRows(rows).filter((row) => row.quantity > 0);
+}
+
+function validateSelectedWorkTypeForm(
+  values: WorkEntryFormValues,
+  workType: WorkType,
+  activeUnitTypes: UnitType[],
+  setError: UseFormSetError<WorkEntryFormInput>
+) {
+  if (workTypeIsTimeBased(workType)) {
+    if (!values.startTime || !values.endTime) {
+      setError("root", { message: "Start and end time are required." });
+      return false;
+    }
+
+    const calculation = calculateTimeEntryMinutes({
+      startTime: values.startTime,
+      endTime: values.endTime,
+      breakMinutes: values.unpaidBreakMinutes ?? 0
+    });
+
+    if (!calculation) {
+      setError("root", { message: "Check the time range and break minutes." });
+      return false;
+    }
+
+    return true;
+  }
+
+  if (!activeUnitTypes.length) {
+    setError("root", { message: "Configure unit types before creating this entry." });
+    return false;
+  }
+
+  const hasPositiveQuantity = (values.unitItems ?? []).some((item) => Number(item.quantity) > 0);
+  if (!hasPositiveQuantity) {
+    setError("root", { message: "Enter at least one positive unit quantity." });
+    return false;
+  }
+
+  return true;
 }
