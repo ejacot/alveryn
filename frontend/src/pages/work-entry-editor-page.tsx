@@ -220,6 +220,7 @@ export function WorkEntryEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() }),
       entryId
         ? queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.detail(entryId) })
         : Promise.resolve()

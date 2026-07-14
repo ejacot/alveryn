@@ -33,7 +33,8 @@ export function SettingsImportDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
     },
     onError: (error) => setErrorMessage(getApiError(error).message)

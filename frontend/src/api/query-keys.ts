@@ -24,6 +24,8 @@ type StatisticsQueryFilters = {
   from: string;
   to: string;
   metric: string;
+  heatmapMetric?: string;
+  heatmapCurrency?: string | null;
   workTypeIds: readonly string[];
   calculationMethods: readonly string[];
 };
@@ -75,6 +77,7 @@ export const queryKeys = {
     detail: (batchId: string) => ["imports", "detail", batchId] as const
   },
   statistics: {
+    all: () => ["statistics"] as const,
     overview: (filters: StatisticsQueryFilters) => ["statistics", "overview", filters] as const,
     timeseries: (filters: StatisticsQueryFilters) => ["statistics", "timeseries", filters] as const,
     workTypes: (filters: StatisticsQueryFilters) => ["statistics", "work-types", filters] as const,

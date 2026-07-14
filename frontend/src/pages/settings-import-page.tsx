@@ -56,6 +56,7 @@ export function SettingsImportPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.all() })
       ]);
     },

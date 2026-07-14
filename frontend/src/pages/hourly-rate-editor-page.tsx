@@ -82,7 +82,8 @@ export function HourlyRateEditorPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
     navigate("/settings/hourly-rates");
   }

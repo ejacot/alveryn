@@ -83,7 +83,8 @@ export function WorkTypeEditorPage() {
   async function afterSuccess(targetId?: string, calculationMethod?: FormValues["calculationMethod"]) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
     if (targetId && (isEditing || calculationMethod === "UNIT_BASED")) {
       navigate(`/settings/work-types/${targetId}`);
