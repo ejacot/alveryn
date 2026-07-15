@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
   @ExceptionHandler(NotFoundException.class)
   ResponseEntity<ApiErrorResponse> handleNotFound(NotFoundException e, HttpServletRequest r) {
@@ -93,6 +95,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   ResponseEntity<ApiErrorResponse> handleUnexpected(Exception e, HttpServletRequest r) {
+    log.error("Unexpected error while handling {} {}", r.getMethod(), r.getRequestURI(), e);
     return response(
         HttpStatus.INTERNAL_SERVER_ERROR,
         "Unexpected server error",

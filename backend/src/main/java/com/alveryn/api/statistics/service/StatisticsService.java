@@ -63,6 +63,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1091,7 +1092,9 @@ public class StatisticsService {
     List<Bucket> bucketsB = completeBuckets(filtersB.from(), filtersB.to(), granularity);
     int size = Math.max(bucketsA.size(), bucketsB.size());
     List<String> currencies =
-        metric == StatisticsMetric.GROSS ? comparisonCurrencies(entriesA, entriesB) : List.of((String) null);
+        metric == StatisticsMetric.GROSS
+            ? comparisonCurrencies(entriesA, entriesB)
+            : Collections.singletonList(null);
     List<StatisticsComparisonSeriesPointResponse> points = new ArrayList<>();
     for (String currency : currencies) {
       for (int index = 0; index < size; index++) {

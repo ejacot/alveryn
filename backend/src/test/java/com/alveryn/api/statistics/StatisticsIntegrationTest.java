@@ -299,6 +299,27 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.series.alignment").value("DAY_OF_WEEK"))
         .andExpect(jsonPath("$.data.series.granularity").value("DAILY"))
         .andExpect(jsonPath("$.data.series.points.length()").value(14));
+
+    mockMvc
+        .perform(
+            post("/api/statistics/comparison")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "periodA":{"from":"2026-07-01","to":"2026-07-07"},
+                      "periodB":{"from":"2026-06-01","to":"2026-06-07"},
+                      "metric":"WORKED_MINUTES",
+                      "workTypeIds":[],
+                      "calculationMethods":[]
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.metric").value("WORKED_MINUTES"))
+        .andExpect(jsonPath("$.data.differences.length()").value(1))
+        .andExpect(jsonPath("$.data.series.alignment").value("DAY_OF_WEEK"))
+        .andExpect(jsonPath("$.data.series.points.length()").value(7));
   }
 
   @Test
