@@ -21,6 +21,65 @@
     "dailyAverage": "Media zilnică",
     "monthTotal": "Luna aceasta"
   },
+  "tour": {
+    "eyebrow": "Ce vei vedea în aplicație",
+    "title": "Ecrane clare, cu explicații pentru decizii rapide.",
+    "subtitle": "Un utilizator nou trebuie să înțeleagă imediat ce primește. Alveryn arată munca pe zile, bani estimați, ritm, calendar și setări fără să ascundă informația în meniuri complicate.",
+    "items": [
+      {
+        "title": "Dashboard: ziua ta pe scurt",
+        "description": "Primul ecran îți arată orele lucrate, brutul estimat, media zilei și intrările recente.",
+        "points": ["totalul zilei", "intrări rapide", "venit estimat"]
+      },
+      {
+        "title": "Rhythm: vezi dacă ai un ritm constant",
+        "description": "Graficul de ritm arată cum se distribuie orele în săptămână și unde ai zile mai încărcate sau mai libere.",
+        "points": ["ore pe zi", "diferențe vizibile", "tendință săptămânală"]
+      },
+      {
+        "title": "Calendar: verifici fiecare zi",
+        "description": "Calendarul arată zilele lucrate, zilele fără activitate și absențele, ca să observi rapid ce lipsește.",
+        "points": ["zile lucrate", "absențe", "detalii pe zi"]
+      },
+      {
+        "title": "Setări: adaptezi aplicația la munca ta",
+        "description": "Definești tipurile de lucru, tarifele, unitățile și preferințele. Asta face calculele relevante pentru situația ta.",
+        "points": ["tarife", "lucru pe unități", "monedă și program"]
+      }
+    ]
+  },
+  "mock": {
+    "summary": "Rezumat",
+    "gross": "Brut",
+    "entries": "Intrări",
+    "days": "Zile",
+    "avgDay": "Medie/zi",
+    "morningShift": "Schimb dimineața",
+    "unitWork": "Lucru pe unități",
+    "unitMeta": "14 unități finalizate",
+    "rhythm": "Ritm de lucru",
+    "thisWeek": "Săptămâna aceasta",
+    "weekdays": "L,M,M,J,V,S,D",
+    "rhythmInsight": "Vinerea este cea mai încărcată zi. În weekend ai lucrat mai puțin.",
+    "calendar": "Calendar",
+    "july": "Iulie",
+    "worked": "Lucrate",
+    "workedValue": "14 zile",
+    "absence": "Absențe",
+    "absenceValue": "2 zile",
+    "setup": "Configurare",
+    "workTypes": "Tipurile tale de lucru",
+    "hourlyWork": "Lucru pe ore",
+    "hourlyMeta": "17 EUR/oră · reguli pentru pauze plătite",
+    "deliveryOrders": "Comenzi livrate",
+    "deliveryMeta": "3,50 EUR/unitate · 8 min/unitate",
+    "vacation": "Concediu",
+    "vacationMeta": "absență plătită · 8h/zi",
+    "timeType": "Timp",
+    "unitType": "Unitate",
+    "absenceType": "Absență",
+    "setupNote": "Schimbi tariful o singură dată. Intrările vechi păstrează calculul lor."
+  },
   "steps": {
     "eyebrow": "Cum funcționează",
     "title": "Începi cu lucrurile pe care le știi deja.",

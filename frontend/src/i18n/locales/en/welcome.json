@@ -21,6 +21,65 @@
     "dailyAverage": "Daily average",
     "monthTotal": "This month"
   },
+  "tour": {
+    "eyebrow": "What you will see in the app",
+    "title": "Clear screens, with explanations for quick decisions.",
+    "subtitle": "A new user should understand the value immediately. Alveryn shows daily work, estimated earnings, rhythm, calendar, and setup without hiding information in complicated menus.",
+    "items": [
+      {
+        "title": "Dashboard: your day at a glance",
+        "description": "The first screen shows worked hours, estimated gross income, daily average, and recent entries.",
+        "points": ["daily total", "quick entries", "estimated income"]
+      },
+      {
+        "title": "Rhythm: see if your work is consistent",
+        "description": "The rhythm chart shows how hours are distributed through the week and where days are heavier or lighter.",
+        "points": ["hours per day", "visible differences", "weekly trend"]
+      },
+      {
+        "title": "Calendar: check every day",
+        "description": "The calendar shows worked days, days without activity, and absences, so missing data is easy to notice.",
+        "points": ["worked days", "absences", "daily details"]
+      },
+      {
+        "title": "Settings: adapt it to your work",
+        "description": "Define work types, rates, units, and preferences. That makes the calculations relevant to your situation.",
+        "points": ["rates", "unit work", "currency and schedule"]
+      }
+    ]
+  },
+  "mock": {
+    "summary": "Summary",
+    "gross": "Gross",
+    "entries": "Entries",
+    "days": "Days",
+    "avgDay": "Avg/day",
+    "morningShift": "Morning shift",
+    "unitWork": "Unit work",
+    "unitMeta": "14 units completed",
+    "rhythm": "Work rhythm",
+    "thisWeek": "This week",
+    "weekdays": "M,T,W,T,F,S,S",
+    "rhythmInsight": "Friday is your strongest day. Weekend work is low.",
+    "calendar": "Calendar",
+    "july": "July",
+    "worked": "Worked",
+    "workedValue": "14 days",
+    "absence": "Absence",
+    "absenceValue": "2 days",
+    "setup": "Setup",
+    "workTypes": "Your work types",
+    "hourlyWork": "Hourly work",
+    "hourlyMeta": "17 EUR/hour · paid break rules",
+    "deliveryOrders": "Delivery orders",
+    "deliveryMeta": "3.50 EUR/unit · 8 min/unit",
+    "vacation": "Vacation",
+    "vacationMeta": "paid absence · 8h/day",
+    "timeType": "Time",
+    "unitType": "Unit",
+    "absenceType": "Absence",
+    "setupNote": "Change rates once. Historical entries keep their old calculation."
+  },
   "steps": {
     "eyebrow": "How it works",
     "title": "Start with the things you already know.",

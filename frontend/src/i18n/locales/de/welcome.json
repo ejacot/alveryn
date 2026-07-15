@@ -21,6 +21,65 @@
     "dailyAverage": "Tagesdurchschnitt",
     "monthTotal": "Dieser Monat"
   },
+  "tour": {
+    "eyebrow": "Was du in der App siehst",
+    "title": "Klare Screens mit Erklärungen für schnelle Entscheidungen.",
+    "subtitle": "Neue Nutzer sollen den Nutzen sofort verstehen. Alveryn zeigt tägliche Arbeit, geschätztes Einkommen, Rhythmus, Kalender und Einrichtung, ohne Informationen in komplizierten Menüs zu verstecken.",
+    "items": [
+      {
+        "title": "Dashboard: dein Tag auf einen Blick",
+        "description": "Der erste Screen zeigt Arbeitsstunden, geschätztes Brutto, Tagesdurchschnitt und letzte Einträge.",
+        "points": ["Tagessumme", "schnelle Einträge", "geschätztes Einkommen"]
+      },
+      {
+        "title": "Rhythmus: sieh, ob du konstant arbeitest",
+        "description": "Das Rhythmusdiagramm zeigt, wie sich deine Stunden über die Woche verteilen und welche Tage stärker oder ruhiger sind.",
+        "points": ["Stunden pro Tag", "sichtbare Unterschiede", "Wochentrend"]
+      },
+      {
+        "title": "Kalender: jeden Tag prüfen",
+        "description": "Der Kalender zeigt Arbeitstage, Tage ohne Aktivität und Abwesenheiten, damit fehlende Daten schnell auffallen.",
+        "points": ["Arbeitstage", "Abwesenheiten", "Tagesdetails"]
+      },
+      {
+        "title": "Einstellungen: an deine Arbeit anpassen",
+        "description": "Definiere Arbeitstypen, Tarife, Einheiten und Vorlieben. So passen die Berechnungen zu deiner Situation.",
+        "points": ["Tarife", "Stückarbeit", "Währung und Plan"]
+      }
+    ]
+  },
+  "mock": {
+    "summary": "Übersicht",
+    "gross": "Brutto",
+    "entries": "Einträge",
+    "days": "Tage",
+    "avgDay": "Ø/Tag",
+    "morningShift": "Frühschicht",
+    "unitWork": "Stückarbeit",
+    "unitMeta": "14 Einheiten erledigt",
+    "rhythm": "Arbeitsrhythmus",
+    "thisWeek": "Diese Woche",
+    "weekdays": "M,D,M,D,F,S,S",
+    "rhythmInsight": "Freitag ist dein stärkster Tag. Am Wochenende ist die Arbeit niedrig.",
+    "calendar": "Kalender",
+    "july": "Juli",
+    "worked": "Gearbeitet",
+    "workedValue": "14 Tage",
+    "absence": "Abwesenheit",
+    "absenceValue": "2 Tage",
+    "setup": "Einrichtung",
+    "workTypes": "Deine Arbeitstypen",
+    "hourlyWork": "Stundenarbeit",
+    "hourlyMeta": "17 EUR/Stunde · Regeln für bezahlte Pausen",
+    "deliveryOrders": "Lieferaufträge",
+    "deliveryMeta": "3,50 EUR/Einheit · 8 Min./Einheit",
+    "vacation": "Urlaub",
+    "vacationMeta": "bezahlte Abwesenheit · 8h/Tag",
+    "timeType": "Zeit",
+    "unitType": "Einheit",
+    "absenceType": "Abwesend",
+    "setupNote": "Ändere Tarife einmal. Alte Einträge behalten ihre alte Berechnung."
+  },
   "steps": {
     "eyebrow": "So funktioniert es",
     "title": "Beginne mit den Dingen, die du schon kennst.",

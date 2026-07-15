@@ -7,8 +7,10 @@ import {
   Coins,
   Gauge,
   PackageCheck,
+  Settings2,
   ShieldCheck,
   Smartphone,
+  TrendingUp,
   WalletCards
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +25,10 @@ type CardCopy = {
   description: string;
 };
 
+type TourCopy = CardCopy & {
+  points: string[];
+};
+
 const featureIcons = [Clock3, PackageCheck, WalletCards, CalendarDays, BarChart3, Smartphone];
 const stepNumbers = ["01", "02", "03"];
 
@@ -31,6 +37,7 @@ export function WelcomePage() {
   const { isAuthenticated, isHydrating, user } = useAuth();
   const steps = t("steps.items", { returnObjects: true }) as CardCopy[];
   const features = t("features.items", { returnObjects: true }) as CardCopy[];
+  const tourItems = t("tour.items", { returnObjects: true }) as TourCopy[];
   const examples = t("examples.items", { returnObjects: true }) as string[];
   const calculations = t("calculations.items", { returnObjects: true }) as string[];
 
@@ -101,6 +108,23 @@ export function WelcomePage() {
 
             <ProductPreview t={t} />
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 lg:px-10">
+        <div className="mb-8 max-w-3xl space-y-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/42">
+            {t("tour.eyebrow")}
+          </p>
+          <h2 className="text-3xl font-semibold tracking-normal text-white sm:text-4xl">
+            {t("tour.title")}
+          </h2>
+          <p className="text-base leading-7 text-white/62">{t("tour.subtitle")}</p>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {tourItems.map((item, index) => (
+            <TourPanel key={item.title} item={item} index={index} t={t} />
+          ))}
         </div>
       </section>
 
@@ -214,6 +238,178 @@ export function WelcomePage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function TourPanel({
+  item,
+  index,
+  t
+}: {
+  item: TourCopy;
+  index: number;
+  t: (key: string) => string;
+}) {
+  return (
+    <article className="overflow-hidden rounded-[30px] border border-white/[0.09] bg-white/[0.045]">
+      <div className="border-b border-white/[0.08] p-5">
+        <p className="mb-2 text-sm font-semibold text-white/38">0{index + 1}</p>
+        <h3 className="text-xl font-semibold text-white">{item.title}</h3>
+        <p className="mt-3 text-sm leading-6 text-white/58">{item.description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {item.points.map((point) => (
+            <span
+              key={point}
+              className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5 text-xs font-medium text-white/58"
+            >
+              {point}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="bg-black/24 p-4">
+        {index === 0 ? <DashboardMock t={t} /> : null}
+        {index === 1 ? <RhythmMock t={t} /> : null}
+        {index === 2 ? <CalendarMock t={t} /> : null}
+        {index === 3 ? <SetupMock t={t} /> : null}
+      </div>
+    </article>
+  );
+}
+
+function DashboardMock({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-white/48">{t("mock.summary")}</p>
+          <p className="mt-1 text-3xl font-semibold text-white">42h 15m</p>
+        </div>
+        <div className="rounded-2xl bg-white px-3 py-2 text-right text-black">
+          <p className="text-xs font-semibold">{t("mock.gross")}</p>
+          <p className="text-lg font-semibold">718 EUR</p>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MiniMetric label={t("mock.entries")} value="11" />
+        <MiniMetric label={t("mock.days")} value="5" />
+        <MiniMetric label={t("mock.avgDay")} value="8h 27m" />
+      </div>
+      <div className="mt-4 space-y-2">
+        <MockRow title={t("mock.morningShift")} meta="08:00-16:30" value="136 EUR" />
+        <MockRow title={t("mock.unitWork")} meta={t("mock.unitMeta")} value="49 EUR" />
+      </div>
+    </div>
+  );
+}
+
+function RhythmMock({ t }: { t: (key: string) => string }) {
+  const bars = [58, 76, 64, 92, 72, 28, 12];
+  const labels = t("mock.weekdays").split(",");
+
+  return (
+    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/48">{t("mock.rhythm")}</p>
+          <p className="mt-1 text-xl font-semibold text-white">{t("mock.thisWeek")}</p>
+        </div>
+        <TrendingUp className="h-5 w-5 text-white/60" aria-hidden="true" />
+      </div>
+      <div className="flex h-40 items-end gap-2 rounded-2xl border border-white/[0.07] bg-black/20 p-3">
+        {bars.map((height, index) => (
+          <div key={height + index} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+            <div
+              className="w-full rounded-t-xl bg-white shadow-[0_0_22px_rgba(255,255,255,0.12)]"
+              style={{ height: `${height}%` }}
+            />
+            <span className="text-[10px] font-semibold text-white/38">
+              {labels[index]}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-sm leading-6 text-white/52">{t("mock.rhythmInsight")}</p>
+    </div>
+  );
+}
+
+function CalendarMock({ t }: { t: (key: string) => string }) {
+  const days = Array.from({ length: 28 }, (_, index) => index + 1);
+  const worked = new Set([1, 2, 3, 4, 5, 8, 9, 11, 12, 15, 16, 17, 18, 19]);
+  const absence = new Set([22, 23]);
+
+  return (
+    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/48">{t("mock.calendar")}</p>
+          <p className="mt-1 text-xl font-semibold text-white">{t("mock.july")}</p>
+        </div>
+        <CalendarDays className="h-5 w-5 text-white/60" aria-hidden="true" />
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => (
+          <div
+            key={day}
+            className={[
+              "flex aspect-square items-center justify-center rounded-2xl text-sm font-semibold",
+              worked.has(day) ? "bg-white text-black" : "border border-white/[0.08] bg-black/20 text-white/42",
+              absence.has(day) ? "border-white/20 bg-white/[0.18] text-white" : ""
+            ].join(" ")}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <MiniMetric label={t("mock.worked")} value={t("mock.workedValue")} />
+        <MiniMetric label={t("mock.absence")} value={t("mock.absenceValue")} />
+      </div>
+    </div>
+  );
+}
+
+function SetupMock({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/48">{t("mock.setup")}</p>
+          <p className="mt-1 text-xl font-semibold text-white">{t("mock.workTypes")}</p>
+        </div>
+        <Settings2 className="h-5 w-5 text-white/60" aria-hidden="true" />
+      </div>
+      <div className="space-y-3">
+        <MockRow title={t("mock.hourlyWork")} meta={t("mock.hourlyMeta")} value={t("mock.timeType")} />
+        <MockRow title={t("mock.deliveryOrders")} meta={t("mock.deliveryMeta")} value={t("mock.unitType")} />
+        <MockRow title={t("mock.vacation")} meta={t("mock.vacationMeta")} value={t("mock.absenceType")} />
+      </div>
+      <div className="mt-4 rounded-2xl border border-white/[0.08] bg-black/20 p-3">
+        <p className="text-sm leading-6 text-white/54">{t("mock.setupNote")}</p>
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3">
+      <p className="text-xs text-white/42">{label}</p>
+      <p className="mt-1 text-base font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function MockRow({ title, meta, value }: { title: string; meta: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/20 p-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-white">{title}</p>
+        <p className="mt-1 truncate text-xs text-white/46">{meta}</p>
+      </div>
+      <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
+    </div>
   );
 }
 
