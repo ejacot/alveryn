@@ -25,6 +25,7 @@ import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { formatLocalIsoDate } from "../utils/date";
+import { parseDecimalInput } from "../utils/decimal-input";
 import {
   calculateTimeEntryMinutes,
   workTypeIsTimeBased,
@@ -84,6 +85,7 @@ export function WorkEntryEditorPage() {
       startTime: "08:00",
       endTime: "16:30",
       unpaidBreakMinutes: 30,
+      extraPayPercentage: 0,
       notes: "",
       unitItems: []
     }
@@ -133,13 +135,14 @@ export function WorkEntryEditorPage() {
     }
 
     endTimeEditedByUser.current = true;
-    form.reset({
-      workDate: entryQuery.data.workDate,
-      workTypeId: entryQuery.data.workTypeId,
-      startTime: entryQuery.data.timeEntry?.startTime ?? "",
-      endTime: entryQuery.data.timeEntry?.endTime ?? "",
-      unpaidBreakMinutes: entryQuery.data.timeEntry?.breakMinutes ?? 0,
-      notes: entryQuery.data.notes ?? "",
+	    form.reset({
+	      workDate: entryQuery.data.workDate,
+	      workTypeId: entryQuery.data.workTypeId,
+	      startTime: toTimeInputValue(entryQuery.data.timeEntry?.startTime),
+	      endTime: toTimeInputValue(entryQuery.data.timeEntry?.endTime),
+	      unpaidBreakMinutes: entryQuery.data.timeEntry?.breakMinutes ?? 0,
+	      extraPayPercentage: entryQuery.data.extraPayPercentage ?? 0,
+	      notes: entryQuery.data.notes ?? "",
       unitItems:
         entryQuery.data.unitItems.length > 0
           ? entryQuery.data.unitItems.map((item) => ({
@@ -527,6 +530,38 @@ export function WorkEntryEditorPage() {
           </section>
         ) : null}
 
+        {selectedWorkType ? (
+          <section>
+            <Input
+              label={t("entries:fields.extraPay")}
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min={0}
+              max={1000}
+              error={form.formState.errors.extraPayPercentage?.message}
+              {...form.register("extraPayPercentage", { valueAsNumber: true })}
+              onFocus={(event) => {
+                if (event.currentTarget.value === "0") {
+                  event.currentTarget.value = "";
+                  form.setValue("extraPayPercentage", Number.NaN, {
+                    shouldDirty: true,
+                    shouldValidate: false
+                  });
+                }
+              }}
+              onBlur={(event) => {
+                if (!event.currentTarget.value) {
+                  form.setValue("extraPayPercentage", 0, {
+                    shouldDirty: true,
+                    shouldValidate: false
+                  });
+                }
+              }}
+            />
+          </section>
+        ) : null}
+
         <section className="space-y-4">
           <Textarea
             label={t("entries:fields.notes")}
@@ -597,10 +632,14 @@ export function buildWorkEntryPayload(
     workDate: values.workDate,
     notes: emptyToNull(values.notes)
   };
+  const extraPayPercentage = Number.isFinite(values.extraPayPercentage)
+    ? values.extraPayPercentage ?? 0
+    : 0;
 
   if (workTypeIsTimeBased(workType)) {
     return {
       ...payload,
+      extraPayPercentage,
       startTime: values.startTime || null,
       endTime: values.endTime || null,
       unpaidBreakMinutes: values.unpaidBreakMinutes ?? 0
@@ -609,6 +648,7 @@ export function buildWorkEntryPayload(
 
   return {
     ...payload,
+    extraPayPercentage,
     unitItems: toPositiveUnitPayloadRows(values.unitItems)
   };
 }
@@ -637,13 +677,18 @@ function addMinutesToTime(value: string | undefined, minutesToAdd: number) {
   return `${String(nextHours).padStart(2, "0")}:${String(nextMinutes).padStart(2, "0")}`;
 }
 
+function toTimeInputValue(value?: string | null) {
+  const match = value?.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
 function buildUnitRows(
   unitTypes: UnitType[],
   currentRows: RawUnitRow[]
 ) {
   return unitTypes.map((unitType) => {
     const current = currentRows.find((row) => row.unitTypeId === unitType.id);
-    const quantity = Number(current?.quantity ?? 0);
+    const quantity = parseDecimalInput(current?.quantity ?? 0);
     return {
       unitTypeId: unitType.id,
       quantity: Number.isFinite(quantity) ? quantity : 0
@@ -653,7 +698,7 @@ function buildUnitRows(
 
 function toUnitCalculationRows(rows?: RawUnitRow[]) {
   return (rows ?? []).flatMap((row) => {
-    const quantity = Number(row.quantity);
+    const quantity = parseDecimalInput(row.quantity);
     if (!row.unitTypeId || !Number.isFinite(quantity)) {
       return [];
     }
@@ -702,7 +747,7 @@ function validateSelectedWorkTypeForm(
     return false;
   }
 
-  const hasPositiveQuantity = (values.unitItems ?? []).some((item) => Number(item.quantity) > 0);
+  const hasPositiveQuantity = (values.unitItems ?? []).some((item) => parseDecimalInput(item.quantity) > 0);
   if (!hasPositiveQuantity) {
     setError("root", { message: messages.positiveUnitQuantity });
     return false;

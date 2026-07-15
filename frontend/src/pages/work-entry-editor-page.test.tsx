@@ -175,6 +175,7 @@ describe("WorkEntryEditorPage", () => {
       calculatedMinutes: "450",
       workedHours: "7.5",
       grossAmount: "150",
+      extraPayPercentage: 0,
       notes: "Existing note",
       timeEntry: {
         startTime: "08:00",
@@ -198,6 +199,7 @@ describe("WorkEntryEditorPage", () => {
       calculatedMinutes: "450",
       workedHours: "7.5",
       grossAmount: "150",
+      extraPayPercentage: 0,
       notes: null,
       timeEntry: {
         startTime: "09:00",
@@ -221,6 +223,7 @@ describe("WorkEntryEditorPage", () => {
       calculatedMinutes: "510",
       workedHours: "8.5",
       grossAmount: "170",
+      extraPayPercentage: 0,
       notes: "Existing note",
       timeEntry: {
         startTime: "08:00",
@@ -254,6 +257,7 @@ describe("WorkEntryEditorPage", () => {
         workTypeId: "wt-unit",
         workDate: "2026-07-13",
         notes: null,
+        extraPayPercentage: 0,
         unitItems: [{ unitTypeId: "unit-1", quantity: 12 }]
       });
     });
@@ -284,6 +288,7 @@ describe("WorkEntryEditorPage", () => {
         workTypeId: "wt-time",
         workDate: "2026-07-13",
         notes: null,
+        extraPayPercentage: 0,
         startTime: "08:00",
         endTime: "16:00",
         unpaidBreakMinutes: 30
@@ -335,6 +340,52 @@ describe("WorkEntryEditorPage", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
+  it("normalizes API time values with seconds before updating an existing time entry", async () => {
+    routeState.entryId = "entry-1";
+    vi.mocked(getWorkEntry).mockResolvedValue({
+      id: "entry-1",
+      workTypeId: "wt-time",
+      workTypeName: "Regular Shift",
+      calculationMethod: "TIME_BASED",
+      workDate: "2026-07-13",
+      hourlyRateSnapshot: "20",
+      currencySnapshot: "EUR",
+      calculatedMinutes: "510",
+      workedHours: "8.5",
+      grossAmount: "170",
+      extraPayPercentage: 0,
+      notes: "Existing note",
+      timeEntry: {
+        startTime: "08:00:00",
+        endTime: "17:00:00",
+        breakMinutes: 30,
+        totalIntervalMinutes: 540,
+        workedMinutes: 510
+      },
+      unitItems: [],
+      createdAt: "2026-07-13T09:00:00Z",
+      updatedAt: "2026-07-13T09:00:00Z"
+    });
+    renderPage();
+
+    expect(await screen.findByDisplayValue("08:00")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("17:00")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("End"), {
+      target: { value: "18:00" }
+    });
+    await userEvent.click(screen.getByRole("button", { name: /save entry/i }));
+
+    await waitFor(() => {
+      expect(updateWorkEntry).toHaveBeenCalledWith("entry-1", expect.objectContaining({
+        startTime: "08:00",
+        endTime: "18:00",
+        unpaidBreakMinutes: 30
+      }));
+    });
+    expect(screen.queryByText("Check the time range and break minutes.")).not.toBeInTheDocument();
+  });
+
   it("deletes an existing entry after confirmation", async () => {
     routeState.entryId = "entry-1";
     renderPage();
@@ -379,6 +430,7 @@ describe("WorkEntryEditorPage", () => {
       calculatedMinutes: "10",
       workedHours: "0.17",
       grossAmount: "3.33",
+      extraPayPercentage: 0,
       notes: null,
       timeEntry: null,
       unitItems: [

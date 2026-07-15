@@ -119,11 +119,15 @@ class UserConfigurationIntegrationTest {
                       "theme":"SYSTEM",
                       "defaultBreakMinutes":15,
                       "preferredDailyMinutes":420,
+                      "paidSickLeave":false,
+                      "paidVacation":true,
                       "onboardingCompleted":true
                     }
                     """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.currency").value("EUR"))
+        .andExpect(jsonPath("$.data.paidSickLeave").value(false))
+        .andExpect(jsonPath("$.data.paidVacation").value(true))
         .andExpect(jsonPath("$.data.onboardingCompleted").value(false));
 
     mockMvc

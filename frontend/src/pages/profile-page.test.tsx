@@ -43,6 +43,8 @@ vi.mock("../features/auth/use-auth", () => ({
         theme: "SYSTEM",
         defaultBreakMinutes: 30,
         preferredDailyMinutes: 480,
+        paidSickLeave: true,
+        paidVacation: true,
         onboardingCompleted: true
       }
     },
@@ -78,6 +80,8 @@ vi.mock("../api/endpoints", () => ({
     theme: "SYSTEM",
     defaultBreakMinutes: 30,
     preferredDailyMinutes: 480,
+    paidSickLeave: true,
+    paidVacation: true,
     onboardingCompleted: true
   })),
   listHourlyRates: vi.fn(async () => [
@@ -130,6 +134,7 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/settings/profile");
     expect(screen.getByText("Hourly rates")).toBeInTheDocument();
     expect(await screen.findByText("17.50 EUR")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Absences" })).toHaveAttribute("href", "/settings/absences");
     expect(screen.getByText("Language")).toBeInTheDocument();
     expect(screen.getByText("English")).toBeInTheDocument();
     expect(screen.getByText("Timezone")).toBeInTheDocument();

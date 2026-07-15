@@ -56,11 +56,14 @@ export type UpdatePreferencesPayload = {
   language: string;
   timezone: string;
   currency: string;
+  firstDayOfWeek: UserPreferences["firstDayOfWeek"];
   dateFormat: string;
   timeFormat: UserPreferences["timeFormat"];
   theme: UserPreferences["theme"];
   defaultBreakMinutes: number;
   preferredDailyMinutes: number | null;
+  paidSickLeave: boolean;
+  paidVacation: boolean;
 };
 
 export type CreateHourlyRatePayload = {

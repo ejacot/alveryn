@@ -12,6 +12,7 @@ import { SettingsFormActions } from "../components/settings/settings-form-action
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
+import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -19,15 +20,19 @@ import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { applyAppLanguage } from "../i18n";
 import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
 import { getSupportedTimezones } from "../utils/timezones";
+import { applyAppTheme } from "../utils/theme";
 
 const schema = z.object({
   language: z.string().min(2),
   currency: z.string().length(3),
   timezone: z.string().min(3),
+  firstDayOfWeek: z.enum(["MONDAY", "SUNDAY"]),
   defaultBreakMinutes: z.coerce.number().min(0),
   preferredDailyHours: z.coerce.number().min(0).max(24),
   preferredDailyMinutes: z.coerce.number().min(0).max(59),
-  theme: z.enum(["SYSTEM", "DARK"]),
+  paidSickLeave: z.boolean(),
+  paidVacation: z.boolean(),
+  theme: z.enum(["LIGHT", "SYSTEM", "DARK"]),
   dateFormat: z.string().min(2),
   timeFormat: z.enum(["H12", "H24"])
 });
@@ -63,6 +68,7 @@ export function SettingsPreferencesPage() {
     onSuccess: async (nextPreferences) => {
       queryClient.setQueryData(queryKeys.preferences(), nextPreferences);
       applyAppLanguage(nextPreferences.language);
+      applyAppTheme(nextPreferences.theme);
       await refreshCurrentUser();
       setSuccessMessage(t("common:messages.changesSaved"));
     },
@@ -101,8 +107,11 @@ export function SettingsPreferencesPage() {
             language: values.language,
             currency: values.currency.toUpperCase(),
             timezone: values.timezone,
+            firstDayOfWeek: values.firstDayOfWeek,
             defaultBreakMinutes: values.defaultBreakMinutes,
             preferredDailyMinutes: values.preferredDailyHours * 60 + values.preferredDailyMinutes,
+            paidSickLeave: values.paidSickLeave,
+            paidVacation: values.paidVacation,
             theme: values.theme,
             dateFormat: values.dateFormat,
             timeFormat: values.timeFormat
@@ -135,6 +144,43 @@ export function SettingsPreferencesPage() {
           </div>
         </SettingsSection>
 
+        <SettingsSection title={t("settings:preferencesFields.format")}>
+          <div className="space-y-4">
+            <Select label={t("settings:preferencesFields.firstDayOfWeek")} error={form.formState.errors.firstDayOfWeek?.message} {...form.register("firstDayOfWeek")}>
+              <option value="MONDAY">{t("settings:preferencesOptions.monday")}</option>
+              <option value="SUNDAY">{t("settings:preferencesOptions.sunday")}</option>
+            </Select>
+            <Select label={t("settings:preferencesFields.dateFormat")} error={form.formState.errors.dateFormat?.message} {...form.register("dateFormat")}>
+              <option value="DD.MM.YYYY">31.12.2026</option>
+              <option value="MM/DD/YYYY">12/31/2026</option>
+              <option value="YYYY-MM-DD">2026-12-31</option>
+            </Select>
+            <Select label={t("settings:preferencesFields.timeFormat")} error={form.formState.errors.timeFormat?.message} {...form.register("timeFormat")}>
+              <option value="H24">{t("settings:preferencesOptions.time24")}</option>
+              <option value="H12">{t("settings:preferencesOptions.time12")}</option>
+            </Select>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title={t("settings:preferencesFields.appearance")}>
+          <Select label={t("settings:preferencesFields.theme")} error={form.formState.errors.theme?.message} {...form.register("theme")}>
+            <option value="SYSTEM">{t("settings:preferencesOptions.systemTheme")}</option>
+            <option value="LIGHT">{t("settings:preferencesOptions.lightTheme")}</option>
+            <option value="DARK">{t("settings:preferencesOptions.darkTheme")}</option>
+          </Select>
+        </SettingsSection>
+
+        <SettingsSection title={t("settings:preferencesFields.workDefaults")}>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            label={t("settings:preferencesFields.defaultBreakMinutes")}
+            error={form.formState.errors.defaultBreakMinutes?.message}
+            {...form.register("defaultBreakMinutes")}
+          />
+        </SettingsSection>
+
         <SettingsFormActions submitting={mutation.isPending} successMessage={successMessage} />
         {!successMessage && mutation.error ? (
           <p className="text-sm text-red-300">{getApiError(mutation.error).message}</p>
@@ -154,10 +200,13 @@ function toPreferenceFormValues(
     language: preferences?.language ?? "en",
     currency: preferences?.currency ?? "EUR",
     timezone: preferences?.timezone ?? detectedTimezone,
+    firstDayOfWeek: preferences?.firstDayOfWeek ?? "MONDAY",
     defaultBreakMinutes: preferences?.defaultBreakMinutes ?? 30,
     preferredDailyHours: Math.floor(target / 60),
     preferredDailyMinutes: target % 60,
-    theme: preferences?.theme === "DARK" ? "DARK" : "SYSTEM",
+    paidSickLeave: preferences?.paidSickLeave ?? true,
+    paidVacation: preferences?.paidVacation ?? true,
+    theme: preferences?.theme ?? "SYSTEM",
     dateFormat: preferences?.dateFormat ?? "DD.MM.YYYY",
     timeFormat: preferences?.timeFormat ?? "H24"
   };

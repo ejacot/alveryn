@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getCalendarActivityRange, listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
+import { getCalendarActivityRange, getPreferences, listAbsencesInRange, listHourlyRates, listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
@@ -13,6 +13,7 @@ import { CalendarMonthSummary } from "../components/calendar/calendar-month-summ
 import { CalendarSelectedDayPanel } from "../components/calendar/calendar-selected-day-panel";
 import { CalendarSkeleton } from "../components/calendar/calendar-skeleton";
 import {
+  addDays,
   absenceOverlapsDate,
   buildMonthGrid,
   countMonthOverlapDays,
@@ -26,9 +27,9 @@ import {
   toIsoDate
 } from "../features/calendar/calendar-utils";
 import type { Absence } from "../types/absence";
-import type { AbsenceType } from "../types/absence";
 import type { WorkEntry } from "../types/work-entry";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
+import { calculatePaidAbsenceDays } from "../utils/paid-absence";
 
 const EMPTY_WORK_ENTRIES: WorkEntry[] = [];
 const EMPTY_ABSENCES: Absence[] = [];
@@ -74,6 +75,14 @@ export function CalendarPage() {
   const activityRangeQuery = useQuery({
     queryKey: queryKeys.calendar.activityRange(),
     queryFn: getCalendarActivityRange
+  });
+  const preferencesQuery = useQuery({
+    queryKey: queryKeys.preferences(),
+    queryFn: getPreferences
+  });
+  const hourlyRatesQuery = useQuery({
+    queryKey: queryKeys.hourlyRates.all(),
+    queryFn: listHourlyRates
   });
 
   useEffect(() => {
@@ -126,10 +135,12 @@ export function CalendarPage() {
     });
   }, [activeMonth, queryClient]);
 
-  const isLoading = workEntriesQuery.isLoading || absencesQuery.isLoading;
-  const error = workEntriesQuery.error ?? absencesQuery.error;
+  const isLoading = workEntriesQuery.isLoading || absencesQuery.isLoading || preferencesQuery.isLoading || hourlyRatesQuery.isLoading;
+  const error = workEntriesQuery.error ?? absencesQuery.error ?? preferencesQuery.error ?? hourlyRatesQuery.error;
   const entries = workEntriesQuery.data ?? EMPTY_WORK_ENTRIES;
   const absences = absencesQuery.data ?? EMPTY_ABSENCES;
+  const preferences = preferencesQuery.data ?? null;
+  const hourlyRates = useMemo(() => hourlyRatesQuery.data ?? [], [hourlyRatesQuery.data]);
   const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
   const todayIso = toIsoDate(today);
 
@@ -172,29 +183,67 @@ export function CalendarPage() {
     [absenceByDate, selectedDate]
   );
 
+  const selectedPaidAbsenceMinutes = useMemo(() => {
+    if (!selectedDate || !selectedAbsence) {
+      return 0;
+    }
+
+    const selectedDateKey = toIsoDate(selectedDate);
+    return calculatePaidAbsenceDays({
+      absences: [selectedAbsence],
+      entries: selectedEntries,
+      hourlyRates,
+      preferences,
+      from: selectedDateKey,
+      to: selectedDateKey
+    }).reduce((total, absence) => total + absence.minutes, 0);
+  }, [hourlyRates, preferences, selectedAbsence, selectedDate, selectedEntries]);
+
   const summary = useMemo(() => {
+    const monthStart = toIsoDate(startOfMonth(activeMonth));
+    const monthEnd = toIsoDate(addDays(getNextMonthDate(activeMonth), -1));
+    const paidAbsences = calculatePaidAbsenceDays({
+      absences,
+      entries,
+      hourlyRates,
+      preferences,
+      from: monthStart,
+      to: monthEnd
+    });
     const workedMinutes = entries.reduce(
       (total, entry) => total + Number(entry.calculatedMinutes),
       0
     );
-    const grossAmount = entries.reduce(
-      (total, entry) => total + Number(entry.grossAmount),
-      0
-    );
+	    const paidAbsenceMinutes = paidAbsences.reduce((total, absence) => total + absence.minutes, 0);
+	    const extraPaidMinutes = entries.reduce(
+	      (total, entry) =>
+	        total + Number(entry.calculatedMinutes) * ((entry.extraPayPercentage ?? 0) / 100),
+	      0
+	    );
+	    const grossAmount = entries.reduce(
+	      (total, entry) => total + Number(entry.grossAmount),
+	      0
+    ) + paidAbsences.reduce((total, absence) => total + absence.grossAmount, 0);
     const absenceDays = absences.reduce(
       (total, absence) => total + countMonthOverlapDays(absence, activeMonth),
       0
     );
     const workedDays = new Set(entries.map((entry) => entry.workDate)).size;
-    const currency = entries[0]?.currencySnapshot ?? "EUR";
+    const currencies = new Set([
+      ...entries.map((entry) => entry.currencySnapshot),
+      ...paidAbsences.map((absence) => absence.currency)
+    ]);
+    const currency = entries[0]?.currencySnapshot ?? paidAbsences[0]?.currency ?? "EUR";
 
-    return {
-      workedHours: formatMinutesAsDuration(workedMinutes),
-      grossAmount: formatCurrency(String(grossAmount), currency),
-      workedDays,
+	    return {
+	      workedHours: formatMinutesAsDuration(workedMinutes),
+	      paidTotalHours: formatMinutesAsDuration(paidAbsenceMinutes + extraPaidMinutes),
+	      paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes),
+	      grossAmount: currencies.size > 1 ? t("monthlySummary.mixedCurrencies") : formatCurrency(String(grossAmount), currency),
+	      workedDays,
       absenceDays
     };
-  }, [absences, activeMonth, entries]);
+  }, [absences, activeMonth, entries, hourlyRates, preferences, t]);
 
   function changeMonth(direction: -1 | 1) {
     const nextMonth = direction === -1 ? getPreviousMonthDate(activeMonth) : getNextMonthDate(activeMonth);
@@ -214,6 +263,8 @@ export function CalendarPage() {
         onRetry={() => {
           void workEntriesQuery.refetch();
           void absencesQuery.refetch();
+          void preferencesQuery.refetch();
+          void hourlyRatesQuery.refetch();
         }}
       />
     );
@@ -254,16 +305,16 @@ export function CalendarPage() {
           days={monthGrid}
           selectedDate={selectedDate}
           today={today}
-          getDayMeta={(isoDate) => ({
-            entriesCount: entriesByDate.get(isoDate)?.length ?? 0,
-            marker: resolveCalendarMarker(
-              isoDate,
-              entriesByDate.get(isoDate)?.length ?? 0,
-              absenceByDate.get(isoDate)?.absenceType ?? null,
-              firstActivityDate,
-              todayIso
-            )
-          })}
+          getDayMeta={(isoDate) => {
+            const entriesCount = entriesByDate.get(isoDate)?.length ?? 0;
+            const inTrackedRange = isInTrackedRange(isoDate, firstActivityDate, todayIso);
+            const marker = absenceByDate.get(isoDate)?.absenceType ?? null;
+            return {
+              entriesCount,
+              marker,
+              noActivityInTrackedRange: inTrackedRange && entriesCount === 0 && !marker
+            };
+          }}
           onSelect={(date) => {
             setSelectedDate(date);
             outletContext?.setSelectedDate?.(date);
@@ -284,6 +335,7 @@ export function CalendarPage() {
             title={formatSelectedDate(selectedDate)}
             entries={selectedEntries}
             absence={selectedAbsence}
+            paidAbsenceMinutes={selectedPaidAbsenceMinutes}
             onEntrySelect={(entryId) =>
               navigate(`/entries/${entryId}`, { state: { returnTo: "/calendar" } })
             }
@@ -294,21 +346,6 @@ export function CalendarPage() {
   );
 }
 
-function resolveCalendarMarker(
-  isoDate: string,
-  entriesCount: number,
-  absenceType: AbsenceType | null,
-  firstActivityDate: string | null,
-  todayIso: string
-) {
-  if (!firstActivityDate || isoDate < firstActivityDate || isoDate > todayIso) {
-    return null;
-  }
-  if (absenceType) {
-    return absenceType;
-  }
-  if (entriesCount > 0) {
-    return null;
-  }
-  return "AUTO_DAY_OFF" as const;
+function isInTrackedRange(isoDate: string, firstActivityDate: string | null, todayIso: string) {
+  return Boolean(firstActivityDate && isoDate >= firstActivityDate && isoDate <= todayIso);
 }

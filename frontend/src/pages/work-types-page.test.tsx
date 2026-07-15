@@ -18,12 +18,13 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
+  createWorkType: vi.fn(),
   deleteWorkType: vi.fn(),
   listWorkTypes: vi.fn(),
   updateWorkType: vi.fn()
 }));
 
-import { deleteWorkType, listWorkTypes, updateWorkType } from "../api/endpoints";
+import { createWorkType, deleteWorkType, listWorkTypes, updateWorkType } from "../api/endpoints";
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -78,7 +79,39 @@ describe("WorkTypesPage", () => {
       displayOrder: 0,
       active: true
     });
+    vi.mocked(createWorkType).mockResolvedValue({
+      id: "work-type-new",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 2,
+      active: true
+    });
     vi.mocked(deleteWorkType).mockResolvedValue(undefined);
+  });
+
+  it("creates a work type in the same centered dialog and opens unit setup for units", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Add work type" }));
+    const dialog = screen.getByRole("dialog", { name: "Add work type" });
+    await user.type(within(dialog).getByLabelText("Name"), "rooms");
+    await user.click(within(dialog).getByRole("button", { name: "Units" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+	      expect(createWorkType).toHaveBeenCalledWith({
+	        name: "ROOMS",
+	        calculationMethod: "UNIT_BASED",
+	        color: "#A3E635",
+	        icon: null,
+	        defaultBreakMinutes: null
+	      });
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-new");
+    });
   });
 
   it("edits a time-based work type in a centered dialog", async () => {
@@ -93,16 +126,17 @@ describe("WorkTypesPage", () => {
     await user.clear(within(dialog).getByLabelText("Name"));
     await user.type(within(dialog).getByLabelText("Name"), "shift");
     expect(within(dialog).getByDisplayValue("SHIFT")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Units" }));
     await user.click(within(dialog).getByRole("button", { name: "Choose color #34D399" }));
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(updateWorkType).toHaveBeenCalledWith("work-type-time", {
         name: "SHIFT",
-        calculationMethod: "TIME_BASED",
+        calculationMethod: "UNIT_BASED",
         color: "#34D399",
         icon: null,
-        defaultBreakMinutes: 30,
+        defaultBreakMinutes: null,
         displayOrder: 0,
         active: true
       });

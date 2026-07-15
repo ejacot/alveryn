@@ -41,7 +41,7 @@ class WorkEntryValidationServiceTest {
 
     WorkEntryRequest request =
         new WorkEntryRequest(
-            UUID.randomUUID(), LocalDate.of(2026, 7, 12), null, null, null, List.of(), null);
+            UUID.randomUUID(), LocalDate.of(2026, 7, 12), null, null, null, null, List.of(), null);
 
     assertThatThrownBy(
             () ->

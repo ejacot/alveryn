@@ -27,29 +27,30 @@ import { SettingsSection } from "../components/settings/settings-section";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
-import { Select } from "../components/ui/select";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import type { UnitType } from "../types/configuration";
 
 const WORK_TYPE_COLORS = [
-  "#FFFFFF",
   "#A3E635",
   "#34D399",
   "#60A5FA",
   "#FBBF24",
   "#FB7185"
 ] as const;
+const DEFAULT_WORK_TYPE_COLOR = WORK_TYPE_COLORS[0];
 
 function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
-    name: z.string()
-      .trim()
-      .transform((value) => value.toLocaleUpperCase())
-      .pipe(z.string().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong"))),
-    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
-    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default("#FFFFFF"),
-    active: z.boolean().optional().default(true)
+	    name: z.string()
+	      .trim()
+	      .transform((value) => value.toLocaleUpperCase())
+	      .pipe(z.string().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong"))),
+	    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
+	    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default(DEFAULT_WORK_TYPE_COLOR),
+	    icon: z.string().trim().max(100).optional().or(z.literal("")),
+	    defaultBreakMinutes: z.coerce.number().int().min(0).optional(),
+	    active: z.boolean().optional().default(true)
   });
 }
 
@@ -107,10 +108,12 @@ export function WorkTypeEditorPage() {
   const form = useForm<FormInput, undefined, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
-      calculationMethod: "TIME_BASED",
-      color: "#FFFFFF",
-      active: true
+	      name: "",
+	      calculationMethod: "TIME_BASED",
+	      color: DEFAULT_WORK_TYPE_COLOR,
+	      icon: "",
+	      defaultBreakMinutes: 30,
+	      active: true
     }
   });
   const unitForm = useForm<UnitDialogInput, undefined, UnitDialogValues>({
@@ -124,10 +127,12 @@ export function WorkTypeEditorPage() {
   useEffect(() => {
     if (!workTypeQuery.data) return;
     form.reset({
-      name: workTypeQuery.data.name,
-      calculationMethod: workTypeQuery.data.calculationMethod,
-      color: workTypeQuery.data.color,
-      active: workTypeQuery.data.active
+	      name: workTypeQuery.data.name,
+	      calculationMethod: workTypeQuery.data.calculationMethod,
+	      color: workTypeQuery.data.color,
+	      icon: workTypeQuery.data.icon ?? "",
+	      defaultBreakMinutes: workTypeQuery.data.defaultBreakMinutes ?? 30,
+	      active: workTypeQuery.data.active
     });
   }, [form, workTypeQuery.data]);
 
@@ -150,23 +155,26 @@ export function WorkTypeEditorPage() {
     mutationFn: async (values: FormValues) => {
       if (isEditing) {
         return updateWorkType(workTypeId!, {
-          name: values.name,
-          calculationMethod: values.calculationMethod,
-          color: values.color,
-          icon: workTypeQuery.data?.icon ?? null,
-          defaultBreakMinutes:
-            values.calculationMethod === "TIME_BASED"
-              ? workTypeQuery.data?.defaultBreakMinutes
-              : null,
+	          name: values.name,
+	          calculationMethod: values.calculationMethod,
+	          color: values.color,
+	          icon: values.icon?.trim() || null,
+	          defaultBreakMinutes:
+	            values.calculationMethod === "TIME_BASED"
+	              ? values.defaultBreakMinutes ?? 0
+	              : null,
           displayOrder: workTypeQuery.data?.displayOrder ?? 0,
           active: workTypeQuery.data?.active ?? true
         });
       }
 
-      return createWorkType({
-        name: values.name,
-        calculationMethod: values.calculationMethod
-      });
+	      return createWorkType({
+	        name: values.name,
+	        calculationMethod: values.calculationMethod,
+	        color: values.color,
+	        icon: values.icon?.trim() || null,
+	        defaultBreakMinutes: values.calculationMethod === "TIME_BASED" ? values.defaultBreakMinutes ?? 0 : null
+	      });
     },
     onSuccess: async (workType) => {
       setSuccessMessage(isEditing ? t("settings:workTypeEditor.updated") : t("settings:workTypeEditor.created"));
@@ -353,6 +361,7 @@ export function WorkTypeEditorPage() {
   const headerTitle = isEditing
     ? workTypeQuery.data?.name ?? t("settings:workTypeEditor.editTitle")
     : t("settings:workTypeEditor.addTitle");
+  const selectedCalculationMethod = form.watch("calculationMethod");
   const orderedUnitTypes = [...(unitTypesQuery.data ?? [])].sort((left, right) => {
     return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
   });
@@ -393,8 +402,8 @@ export function WorkTypeEditorPage() {
         ) : null}
         <SettingsSection title={t("settings:workTypeEditor.coreSettings")}>
           <div className="space-y-4">
-            <Input
-              label={t("settings:workTypeEditor.fields.name")}
+	            <Input
+	              label={t("settings:workTypeEditor.fields.name")}
               error={form.formState.errors.name?.message}
               {...form.register("name", {
                 onChange: (event) => {
@@ -404,16 +413,57 @@ export function WorkTypeEditorPage() {
                     input.value = upperValue;
                   }
                 }
-              })}
-            />
-            <Select label={t("settings:workTypeEditor.fields.calculationMethod")} error={form.formState.errors.calculationMethod?.message} {...form.register("calculationMethod")}>
-              <option value="TIME_BASED">{t("entries:workTypePicker.timeBased")}</option>
-              <option value="UNIT_BASED">{t("entries:workTypePicker.unitBased")}</option>
-            </Select>
-            {isEditing ? (
-              <ColorPicker
+	              })}
+	            />
+	            <Input
+	              label={t("settings:workTypeEditor.fields.icon")}
+	              error={form.formState.errors.icon?.message}
+	              {...form.register("icon")}
+	            />
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-white/78">
+                {t("settings:workTypeEditor.fields.calculationMethod")}
+              </legend>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: "TIME_BASED" as const, label: t("entries:workTypePicker.timeBased") },
+                  { value: "UNIT_BASED" as const, label: t("entries:workTypePicker.unitBased") }
+                ].map((option) => {
+                  const selected = selectedCalculationMethod === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => {
+                        form.setValue("calculationMethod", option.value, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true
+                        });
+                      }}
+                      className={[
+                        "min-h-12 rounded-full border px-4 text-sm font-semibold tracking-[-0.03em] transition",
+                        selected
+                          ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
+                          : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                      ].join(" ")}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.formState.errors.calculationMethod?.message ? (
+                <p className="text-xs text-red-300">
+                  {form.formState.errors.calculationMethod.message}
+                </p>
+              ) : null}
+            </fieldset>
+	            {isEditing ? (
+	              <ColorPicker
                 label={t("settings:workTypeEditor.fields.color")}
-                value={form.watch("color") ?? "#FFFFFF"}
+                value={form.watch("color") ?? DEFAULT_WORK_TYPE_COLOR}
                 onChange={(value) => {
                   form.setValue("color", value, {
                     shouldDirty: true,
@@ -421,9 +471,19 @@ export function WorkTypeEditorPage() {
                     shouldValidate: true
                   });
                 }}
-              />
-            ) : null}
-          </div>
+	              />
+	            ) : null}
+	            {selectedCalculationMethod === "TIME_BASED" ? (
+	              <Input
+	                type="number"
+	                inputMode="numeric"
+	                min={0}
+	                label={t("settings:workTypeEditor.fields.defaultBreakMinutes")}
+	                error={form.formState.errors.defaultBreakMinutes?.message}
+	                {...form.register("defaultBreakMinutes")}
+	              />
+	            ) : null}
+	          </div>
         </SettingsSection>
 
         {isEditing && workTypeQuery.data?.calculationMethod === "UNIT_BASED" ? (

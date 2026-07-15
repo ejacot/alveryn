@@ -6,12 +6,15 @@
     "worked": "Ore",
     "grossPay": "Brut",
     "workedDays": "Zile",
-    "absenceDays": "Libere"
+    "absenceDays": "Libere",
+    "mixedCurrencies": "Mixt",
+    "paidAbsence": "Plătit",
+    "paidAbsenceDetail": "Absențe {{duration}}"
   },
   "legend": {
-    "dayOff": "Free",
+    "dayOff": "Liber",
     "sick": "Sick",
-    "vacation": "Vacation"
+    "vacation": "Concediu"
   },
   "marker": {
     "dayOff": "zi liberă",
@@ -19,13 +22,13 @@
     "vacation": "concediu"
   },
   "absence": {
-    "free": "Free",
+    "free": "Liber",
     "sick": "Sick",
-    "vacation": "Vacation",
-    "dayOff": "Day off",
-    "days": "days"
+    "vacation": "Concediu",
+    "dayOff": "Zi liberă",
+    "days": "zile"
   },
   "emptyDay": "Nicio activitate.",
   "equivalentWorked": "Timp echivalent lucrat {{duration}}",
-  "addEntryForDay": "Adauga o intrare pentru aceasta zi"
+  "addEntryForDay": "Adaugă o intrare pentru această zi"
 }

@@ -12,6 +12,7 @@ import { applyAppLanguage } from "../../i18n";
 import { setAuthFailureHandler } from "../../api/http";
 import { AuthContext } from "./auth-context";
 import type { AuthTokens, CurrentUser } from "../../types/auth";
+import { applyAppTheme } from "../../utils/theme";
 
 type Props = {
   children: React.ReactNode;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: Props) {
     queryClient.setQueryData(queryKeys.profile(), nextUser.profile);
     queryClient.setQueryData(queryKeys.preferences(), nextUser.preferences);
     applyAppLanguage(nextUser.preferences?.language);
+    applyAppTheme(nextUser.preferences?.theme);
     setUser(nextUser);
     return nextUser;
   }
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: Props) {
       clearTokens();
       queryClient.clear();
       setUser(null);
+      applyAppTheme("SYSTEM");
     }
   }
 
@@ -69,6 +72,7 @@ export function AuthProvider({ children }: Props) {
     setAuthFailureHandler(() => {
       queryClient.clear();
       setUser(null);
+      applyAppTheme("SYSTEM");
     });
 
     async function hydrate() {
@@ -79,6 +83,7 @@ export function AuthProvider({ children }: Props) {
       } catch {
         clearTokens();
         setUser(null);
+        applyAppTheme("SYSTEM");
       } finally {
         setIsHydrating(false);
       }
@@ -90,6 +95,7 @@ export function AuthProvider({ children }: Props) {
       if (!hasStoredSession()) {
         queryClient.clear();
         setUser(null);
+        applyAppTheme("SYSTEM");
         setIsHydrating(false);
         return;
       }
@@ -100,6 +106,7 @@ export function AuthProvider({ children }: Props) {
           clearTokens();
           queryClient.clear();
           setUser(null);
+          applyAppTheme("SYSTEM");
         })
         .finally(() => {
           setIsHydrating(false);

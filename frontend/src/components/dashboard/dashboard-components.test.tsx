@@ -68,6 +68,19 @@ const weeklyDays: WeeklyRhythmDay[] = [
     status: "met",
     percentage: 100,
     selected: true
+  },
+  {
+    key: "2026-07-16",
+    label: "Thu",
+    value: "0h 00m",
+    markerLabel: null,
+    status: "absence",
+    absence: {
+      type: "vacation",
+      label: "Vacation"
+    },
+    percentage: 0,
+    selected: false
   }
 ];
 
@@ -240,5 +253,7 @@ describe("dashboard components", () => {
     expect(screen.queryByText("8")).not.toBeInTheDocument();
     expect(screen.getByText("-4")).toBeInTheDocument();
     expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Thu, Vacation")).toBeInTheDocument();
+    expect(screen.queryByText("Vacation")).not.toBeInTheDocument();
   });
 });

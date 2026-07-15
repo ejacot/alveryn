@@ -43,13 +43,13 @@
     "accessibleLabel": "Neuen Arbeitseintrag erfassen"
   },
   "absence": {
-    "cta": "Absence",
+    "cta": "Abwesenheit",
     "title": "Absence markieren",
-    "free": "Free",
-    "sick": "Sick",
-    "vacation": "Vacation",
-    "dayOff": "Day off",
-    "noWork": "No work planned",
+    "free": "Frei",
+    "sick": "Krank",
+    "vacation": "Urlaub",
+    "dayOff": "Freier Tag",
+    "noWork": "Keine Arbeit geplant",
     "cancel": "Abbrechen"
   },
   "weeklyHours": {

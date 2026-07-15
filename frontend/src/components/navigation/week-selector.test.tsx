@@ -1,25 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { WeekSelector } from "./week-selector";
 import {
   getNextWeekDate,
   getPreviousWeekDate,
   resolveWeekSwipeDirection
 } from "./week-selector.utils";
+import { listAbsencesInRange, listWorkEntriesInRange } from "../../api/endpoints";
 
 vi.mock("../../api/endpoints", () => ({
-  getWorkEntries: vi.fn().mockResolvedValue({
-    content: [],
-    page: 0,
-    size: 100,
-    totalElements: 0,
-    totalPages: 0,
-    first: true,
-    last: true,
-    hasNext: false,
-    hasPrevious: false,
-    numberOfElements: 0
-  })
+  getCalendarActivityRange: vi.fn(async () => ({ firstActivityDate: "2026-07-13" })),
+  listAbsencesInRange: vi.fn(async () => []),
+  listWorkEntriesInRange: vi.fn(async () => [])
 }));
 
 function renderSelector(value = new Date("2026-07-15T00:00:00Z")) {
@@ -115,6 +107,30 @@ describe("WeekSelector", () => {
 
     expect(todayButton).toHaveAttribute("data-state", "today");
     expect(selectedButton).toHaveAttribute("data-state", "selected");
+  });
+
+  it("marks tracked empty days in red and real absences with dots", async () => {
+    vi.useRealTimers();
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(listAbsencesInRange).mockResolvedValue([
+      {
+        id: "absence-1",
+        absenceType: "SICK_LEAVE",
+        startDate: "2026-07-14",
+        endDate: "2026-07-14",
+        notes: null
+      }
+    ]);
+
+    renderSelector(new Date("2026-07-15T00:00:00Z"));
+
+    const sickDay = await screen.findByRole("button", { name: /TUE 14/i });
+    const emptyDay = screen.getByRole("button", { name: /MON 13/i });
+    await waitFor(() => {
+      expect(sickDay.querySelector('span[class*="bg-red-500"]')).toBeInTheDocument();
+      expect(sickDay.querySelector('[class*="text-red-300"]')).not.toBeInTheDocument();
+      expect(emptyDay.querySelector('[class*="text-red-300"]')).toBeInTheDocument();
+    });
   });
 
   it("exposes predictable week stepping helpers", () => {

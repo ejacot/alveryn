@@ -6,7 +6,10 @@
     "worked": "Hours",
     "grossPay": "Gross",
     "workedDays": "Days",
-    "absenceDays": "Absence"
+    "absenceDays": "Absence",
+    "mixedCurrencies": "Mixed",
+    "paidAbsence": "Paid",
+    "paidAbsenceDetail": "Absence {{duration}}"
   },
   "legend": {
     "dayOff": "Free",

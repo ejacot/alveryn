@@ -26,11 +26,11 @@ export function HourlyRatesPage() {
     return <ScreenMessage title="Hourly rates are unavailable" description={getApiError(ratesQuery.error).message} />;
   }
 
-  const rates = ratesQuery.data ?? [];
+  const rates = [...(ratesQuery.data ?? [])].sort(compareRates);
 
   return (
     <div className="space-y-8 pb-10">
-      <SettingsPageHeader title="Hourly rates" description="Rates are ordered newest first and never rewrite historical work-entry amounts." />
+      <SettingsPageHeader title="Hourly rates" />
       <Button className="w-full gap-2" onClick={() => navigate("/settings/hourly-rates/new")}>
         <Plus className="h-4 w-4" />
         Add hourly rate
@@ -77,6 +77,27 @@ function labelRate(rate: { validFrom: string; validTo: string | null }) {
   if (rate.validFrom > today) return "Future";
   if (!rate.validTo || rate.validTo >= today) return "Current";
   return "Past";
+}
+
+function compareRates(
+  first: { validFrom: string; validTo: string | null },
+  second: { validFrom: string; validTo: string | null }
+) {
+  const today = todayLocalIsoDate();
+  const firstRank = rateRank(first, today);
+  const secondRank = rateRank(second, today);
+
+  if (firstRank !== secondRank) {
+    return firstRank - secondRank;
+  }
+
+  return second.validFrom.localeCompare(first.validFrom);
+}
+
+function rateRank(rate: { validFrom: string; validTo: string | null }, today: string) {
+  if (rate.validFrom <= today && (!rate.validTo || rate.validTo >= today)) return 0;
+  if (rate.validFrom > today) return 1;
+  return 2;
 }
 
 function formatDateRange(validFrom: string, validTo: string | null) {

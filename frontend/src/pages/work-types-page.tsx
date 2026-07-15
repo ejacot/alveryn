@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
-import { deleteWorkType, listWorkTypes, updateWorkType } from "../api/endpoints";
+import { createWorkType, deleteWorkType, listWorkTypes, updateWorkType } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
@@ -15,21 +15,25 @@ import { ScreenMessage } from "../components/ui/screen-message";
 import type { WorkType } from "../types/configuration";
 
 const WORK_TYPE_COLORS = [
-  "#FFFFFF",
   "#A3E635",
   "#34D399",
   "#60A5FA",
   "#FBBF24",
   "#FB7185"
 ] as const;
+const DEFAULT_WORK_TYPE_COLOR = WORK_TYPE_COLORS[0];
 
 export function WorkTypesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation(["common", "settings"]);
   const [editingWorkType, setEditingWorkType] = useState<WorkType | null>(null);
+  const [creatingWorkType, setCreatingWorkType] = useState(false);
   const [editName, setEditName] = useState("");
-  const [editColor, setEditColor] = useState("#FFFFFF");
+  const [editIcon, setEditIcon] = useState("");
+  const [editColor, setEditColor] = useState<string>(DEFAULT_WORK_TYPE_COLOR);
+  const [editDefaultBreakMinutes, setEditDefaultBreakMinutes] = useState(30);
+  const [editCalculationMethod, setEditCalculationMethod] = useState<WorkType["calculationMethod"]>("TIME_BASED");
   const [editError, setEditError] = useState<string | null>(null);
   const workTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -38,20 +42,52 @@ export function WorkTypesPage() {
   const updateMutation = useMutation({
     mutationFn: (workType: WorkType) =>
       updateWorkType(workType.id, {
-        name: editName.trim().toLocaleUpperCase(),
-        calculationMethod: workType.calculationMethod,
-        color: editColor,
-        icon: workType.icon,
-        defaultBreakMinutes: workType.defaultBreakMinutes,
+	        name: editName.trim().toLocaleUpperCase(),
+	        calculationMethod: editCalculationMethod,
+	        color: editColor,
+	        icon: editIcon.trim() || null,
+	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null,
         displayOrder: workType.displayOrder,
         active: workType.active
       }),
-    onSuccess: async () => {
+	    onSuccess: async (workType) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
       setEditingWorkType(null);
-      setEditName("");
-      setEditColor("#FFFFFF");
+	      setEditName("");
+	      setEditIcon("");
+	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	      setEditDefaultBreakMinutes(30);
+      setEditCalculationMethod("TIME_BASED");
       setEditError(null);
+      if (workType.calculationMethod === "UNIT_BASED") {
+        navigate(`/settings/work-types/${workType.id}`);
+      }
+    },
+    onError: (error) => {
+      setEditError(getApiError(error).message);
+    }
+  });
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createWorkType({
+	        name: editName.trim().toLocaleUpperCase(),
+	        calculationMethod: editCalculationMethod,
+	        color: editColor,
+	        icon: editIcon.trim() || null,
+	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null
+	      }),
+    onSuccess: async (workType) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
+      setCreatingWorkType(false);
+	      setEditName("");
+	      setEditIcon("");
+	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	      setEditDefaultBreakMinutes(30);
+      setEditCalculationMethod("TIME_BASED");
+      setEditError(null);
+      if (workType.calculationMethod === "UNIT_BASED") {
+        navigate(`/settings/work-types/${workType.id}`);
+      }
     },
     onError: (error) => {
       setEditError(getApiError(error).message);
@@ -61,9 +97,12 @@ export function WorkTypesPage() {
     mutationFn: (workType: WorkType) => deleteWorkType(workType.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
-      setEditingWorkType(null);
-      setEditName("");
-      setEditColor("#FFFFFF");
+	      setEditingWorkType(null);
+	      setEditName("");
+	      setEditIcon("");
+	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	      setEditDefaultBreakMinutes(30);
+      setEditCalculationMethod("TIME_BASED");
       setEditError(null);
     },
     onError: (error) => {
@@ -78,16 +117,33 @@ export function WorkTypesPage() {
     }
 
     setEditError(null);
-    setEditName(workType.name);
-    setEditColor(workType.color);
+	    setEditName(workType.name);
+	    setEditIcon(workType.icon ?? "");
+	    setEditColor(workType.color);
+	    setEditDefaultBreakMinutes(workType.defaultBreakMinutes ?? 30);
+    setEditCalculationMethod(workType.calculationMethod);
     setEditingWorkType(workType);
   }
 
+  function openCreateWorkType() {
+	    setEditError(null);
+	    setEditName("");
+	    setEditIcon("");
+	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	    setEditDefaultBreakMinutes(30);
+    setEditCalculationMethod("TIME_BASED");
+    setCreatingWorkType(true);
+  }
+
   function closeWorkTypeDialog() {
-    if (updateMutation.isPending || deleteMutation.isPending) return;
-    setEditingWorkType(null);
-    setEditName("");
-    setEditColor("#FFFFFF");
+    if (createMutation.isPending || updateMutation.isPending || deleteMutation.isPending) return;
+	    setEditingWorkType(null);
+	    setCreatingWorkType(false);
+	    setEditName("");
+	    setEditIcon("");
+	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	    setEditDefaultBreakMinutes(30);
+    setEditCalculationMethod("TIME_BASED");
     setEditError(null);
   }
 
@@ -109,7 +165,7 @@ export function WorkTypesPage() {
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader title="Work types" fallbackHref="/profile" />
-      <Button className="w-full gap-2" onClick={() => navigate("/settings/work-types/new")}>
+      <Button className="w-full gap-2" onClick={openCreateWorkType}>
         <Plus className="h-4 w-4" />
         Add work type
       </Button>
@@ -119,7 +175,7 @@ export function WorkTypesPage() {
           title="No work types yet"
           description="Create your first time-based or unit-based type to start tracking work."
           actionLabel="Add work type"
-          onAction={() => navigate("/settings/work-types/new")}
+          onAction={openCreateWorkType}
         />
       ) : (
         <div className="space-y-7">
@@ -135,31 +191,42 @@ export function WorkTypesPage() {
           />
         </div>
       )}
-      <TimeWorkTypeDialog
+      <WorkTypeDialog
+        mode={creatingWorkType ? "create" : "edit"}
         workType={editingWorkType}
-        name={editName}
-        color={editColor}
+	        name={editName}
+	        icon={editIcon}
+	        color={editColor}
+	        defaultBreakMinutes={editDefaultBreakMinutes}
+	        calculationMethod={editCalculationMethod}
         error={editError}
-        pending={updateMutation.isPending || deleteMutation.isPending}
+        pending={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
         onNameChange={(value) => {
           setEditName(value.toLocaleUpperCase());
           setEditError(null);
         }}
-        onColorChange={setEditColor}
+	        onColorChange={setEditColor}
+	        onIconChange={setEditIcon}
+	        onDefaultBreakMinutesChange={setEditDefaultBreakMinutes}
+        onCalculationMethodChange={setEditCalculationMethod}
         onClose={closeWorkTypeDialog}
         onSave={() => {
-          if (!editingWorkType) return;
           if (!editName.trim()) {
             setEditError("Name is required");
             return;
           }
+          if (creatingWorkType) {
+            createMutation.mutate();
+            return;
+          }
+          if (!editingWorkType) return;
           updateMutation.mutate(editingWorkType);
         }}
         onDeactivate={() => {
           if (!editingWorkType) return;
           deleteMutation.mutate(editingWorkType);
         }}
-        saveLabel={updateMutation.isPending ? t("common:actions.saving") : t("common:actions.save")}
+        saveLabel={(createMutation.isPending || updateMutation.isPending) ? t("common:actions.saving") : t("common:actions.save")}
         cancelLabel={t("common:actions.cancel")}
         deactivateLabel={t("settings:workTypeEditor.deactivate")}
       />
@@ -209,14 +276,21 @@ function WorkTypeGroup({
   );
 }
 
-function TimeWorkTypeDialog({
+function WorkTypeDialog({
+  mode,
   workType,
   name,
+  icon,
   color,
+  defaultBreakMinutes,
+  calculationMethod,
   error,
   pending,
   onNameChange,
+  onIconChange,
   onColorChange,
+  onDefaultBreakMinutesChange,
+  onCalculationMethodChange,
   onClose,
   onSave,
   onDeactivate,
@@ -224,13 +298,20 @@ function TimeWorkTypeDialog({
   cancelLabel,
   deactivateLabel
 }: {
+  mode: "create" | "edit";
   workType: WorkType | null;
   name: string;
+  icon: string;
   color: string;
+  defaultBreakMinutes: number;
+  calculationMethod: WorkType["calculationMethod"];
   error: string | null;
   pending: boolean;
   onNameChange: (value: string) => void;
+  onIconChange: (value: string) => void;
   onColorChange: (value: string) => void;
+  onDefaultBreakMinutesChange: (value: number) => void;
+  onCalculationMethodChange: (value: WorkType["calculationMethod"]) => void;
   onClose: () => void;
   onSave: () => void;
   onDeactivate: () => void;
@@ -238,9 +319,11 @@ function TimeWorkTypeDialog({
   cancelLabel: string;
   deactivateLabel: string;
 }) {
-  if (!workType) {
+  if (mode === "edit" && !workType) {
     return null;
   }
+
+  const title = mode === "create" ? "Add work type" : workType?.name ?? "Work type";
 
   return (
     <div
@@ -261,7 +344,7 @@ function TimeWorkTypeDialog({
       >
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 id="time-work-type-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
-            {workType.name}
+            {title}
           </h2>
           <button
             type="button"
@@ -282,13 +365,47 @@ function TimeWorkTypeDialog({
               {error}
             </p>
           ) : null}
-          <Input
-            label="Name"
-            value={name}
-            onChange={(event) => onNameChange(event.currentTarget.value)}
-          />
+	          <Input
+	            label="Name"
+	            value={name}
+	            onChange={(event) => onNameChange(event.currentTarget.value)}
+	          />
+	          <Input
+	            label="Icon"
+	            value={icon}
+	            maxLength={100}
+	            onChange={(event) => onIconChange(event.currentTarget.value)}
+	          />
           <div className="space-y-2">
-            <p className="hairline-text">Color</p>
+            <p className="hairline-text">Type</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: "TIME_BASED" as const, label: "Time" },
+                { value: "UNIT_BASED" as const, label: "Units" }
+              ].map((option) => {
+                const selected = calculationMethod === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={pending}
+                    onClick={() => onCalculationMethodChange(option.value)}
+                    className={[
+                      "min-h-12 rounded-full border px-4 text-sm font-semibold tracking-[-0.03em] transition disabled:opacity-55",
+                      selected
+                        ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
+                        : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                    ].join(" ")}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+	          <div className="space-y-2">
+	            <p className="hairline-text">Color</p>
             <div className="grid grid-cols-6 gap-2">
               {WORK_TYPE_COLORS.map((option) => {
                 const selected = option.toLocaleUpperCase() === color.toLocaleUpperCase();
@@ -312,19 +429,31 @@ function TimeWorkTypeDialog({
                     />
                   </button>
                 );
-              })}
-            </div>
-          </div>
-          <div className="grid gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full border-red-400/18 bg-red-400/[0.05] text-white hover:bg-red-400/[0.08]"
-              disabled={pending}
-              onClick={onDeactivate}
-            >
-              {deactivateLabel}
-            </Button>
+	              })}
+	            </div>
+	          </div>
+	          {calculationMethod === "TIME_BASED" ? (
+	            <Input
+	              label="Default break"
+	              type="number"
+	              inputMode="numeric"
+	              min={0}
+	              value={Number.isFinite(defaultBreakMinutes) ? String(defaultBreakMinutes) : ""}
+	              onChange={(event) => onDefaultBreakMinutesChange(Number(event.currentTarget.value))}
+	            />
+	          ) : null}
+	          <div className="grid gap-3">
+            {mode === "edit" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full border-red-400/18 bg-red-400/[0.05] text-white hover:bg-red-400/[0.08]"
+                disabled={pending}
+                onClick={onDeactivate}
+              >
+                {deactivateLabel}
+              </Button>
+            ) : null}
             <Button type="button" className="w-full" disabled={pending} onClick={onSave}>
               {saveLabel}
             </Button>

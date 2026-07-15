@@ -1,0 +1,3 @@
+ALTER TABLE user_preferences
+    ADD COLUMN paid_sick_leave BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN paid_vacation BOOLEAN NOT NULL DEFAULT TRUE;

@@ -66,6 +66,9 @@ public class WorkEntry extends BaseEntity {
   @Column(name = "gross_amount", nullable = false, precision = 30, scale = 15)
   private BigDecimal grossAmount;
 
+  @Column(name = "extra_pay_percentage", nullable = false)
+  private int extraPayPercentage;
+
   @Column(length = 500)
   private String notes;
 
@@ -97,6 +100,17 @@ public class WorkEntry extends BaseEntity {
       BigDecimal hourlyRate,
       String currency,
       BigDecimal calculatedMinutes) {
+    this(user, workType, workDate, hourlyRate, currency, calculatedMinutes, 0);
+  }
+
+  public WorkEntry(
+      UserAccount user,
+      WorkType workType,
+      LocalDate workDate,
+      BigDecimal hourlyRate,
+      String currency,
+      BigDecimal calculatedMinutes,
+      int extraPayPercentage) {
     this.user = Objects.requireNonNull(user, "user is required");
     this.workType = Objects.requireNonNull(workType, "workType is required");
     if (workType.getUser() != user
@@ -112,7 +126,9 @@ public class WorkEntry extends BaseEntity {
     this.hourlyRateSnapshot = hourlyRate.setScale(RATE_SCALE, RATE_ROUNDING);
     this.currencySnapshot = normalizeCurrency(currency);
     this.calculatedMinutes = calculatedMinutes.setScale(TIME_SCALE, RoundingMode.UNNECESSARY);
-    this.grossAmount = calculateGross(calculatedMinutes, this.hourlyRateSnapshot);
+    this.extraPayPercentage = normalizeExtraPayPercentage(extraPayPercentage);
+    this.grossAmount =
+        calculateGross(calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
   }
 
   public void recalculate(
@@ -121,6 +137,16 @@ public class WorkEntry extends BaseEntity {
       BigDecimal hourlyRate,
       String currency,
       BigDecimal calculatedMinutes) {
+    recalculate(workType, workDate, hourlyRate, currency, calculatedMinutes, extraPayPercentage);
+  }
+
+  public void recalculate(
+      WorkType workType,
+      LocalDate workDate,
+      BigDecimal hourlyRate,
+      String currency,
+      BigDecimal calculatedMinutes,
+      int extraPayPercentage) {
     Objects.requireNonNull(workType, "workType is required");
     if (workType.getUser() != user
         && (workType.getUser().getId() == null || !workType.getUser().getId().equals(user.getId()))) {
@@ -139,7 +165,9 @@ public class WorkEntry extends BaseEntity {
     this.hourlyRateSnapshot = hourlyRate.setScale(RATE_SCALE, RATE_ROUNDING);
     this.currencySnapshot = normalizeCurrency(currency);
     this.calculatedMinutes = calculatedMinutes.setScale(TIME_SCALE, RoundingMode.UNNECESSARY);
-    this.grossAmount = calculateGross(this.calculatedMinutes, this.hourlyRateSnapshot);
+    this.extraPayPercentage = normalizeExtraPayPercentage(extraPayPercentage);
+    this.grossAmount =
+        calculateGross(this.calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
   }
 
   public static BigDecimal calculateGross(int minutes, BigDecimal hourlyRate) {
@@ -147,11 +175,20 @@ public class WorkEntry extends BaseEntity {
   }
 
   public static BigDecimal calculateGross(BigDecimal minutes, BigDecimal hourlyRate) {
+    return calculateGross(minutes, hourlyRate, 0);
+  }
+
+  public static BigDecimal calculateGross(
+      BigDecimal minutes, BigDecimal hourlyRate, int extraPayPercentage) {
     if (minutes == null || minutes.signum() <= 0 || hourlyRate == null || hourlyRate.signum() < 0)
       throw new IllegalArgumentException("invalid calculation inputs");
+    BigDecimal multiplier =
+        BigDecimal.valueOf(100L + normalizeExtraPayPercentage(extraPayPercentage))
+            .divide(BigDecimal.valueOf(100), TIME_MATH_CONTEXT);
     return hourlyRate
         .multiply(minutes, TIME_MATH_CONTEXT)
         .divide(BigDecimal.valueOf(60), TIME_MATH_CONTEXT)
+        .multiply(multiplier, TIME_MATH_CONTEXT)
         .setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
 
@@ -175,6 +212,13 @@ public class WorkEntry extends BaseEntity {
     if (value == null || !value.trim().matches("[A-Za-z]{3}"))
       throw new IllegalArgumentException("currency must have three letters");
     return value.trim().toUpperCase(Locale.ROOT);
+  }
+
+  private static int normalizeExtraPayPercentage(int value) {
+    if (value < 0 || value > 1000) {
+      throw new IllegalArgumentException("extraPayPercentage must be between 0 and 1000");
+    }
+    return value;
   }
 
   private static String requireImportText(String value, String message, int maxLength) {

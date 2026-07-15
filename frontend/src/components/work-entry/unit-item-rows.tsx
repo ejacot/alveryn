@@ -2,6 +2,7 @@ import type { FieldArrayWithId, UseFormRegister } from "react-hook-form";
 import { Clock3 } from "lucide-react";
 import type { UnitType } from "../../types/configuration";
 import type { WorkEntryFormInput } from "../../features/work-entries/work-entry-schemas";
+import { parseDecimalInput } from "../../utils/decimal-input";
 
 type Props = {
   fields: FieldArrayWithId<WorkEntryFormInput, "unitItems", "id">[];
@@ -24,10 +25,10 @@ export function UnitItemRows({
     <div className="space-y-3">
       {fields.map((field, index) => {
         const unitType = unitTypes[index];
-        const unitName = unitType?.name ?? unitFallbackLabel;
-        const quantityRegistration = register(`unitItems.${index}.quantity`, {
-          setValueAs: (value) => (value === "" ? 0 : Number(value))
-        });
+	        const unitName = unitType?.name ?? unitFallbackLabel;
+	        const quantityRegistration = register(`unitItems.${index}.quantity`, {
+	          setValueAs: parseDecimalInput
+	        });
 
         return (
           <div
@@ -51,10 +52,9 @@ export function UnitItemRows({
               <label className="block">
                 <span className="sr-only">{`${unitName} ${quantityLabel}`}</span>
                 <input
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  inputMode="decimal"
+	                  type="text"
+	                  inputMode="decimal"
+	                  pattern="[0-9]*[,.]?[0-9]*"
                   className="h-12 w-full rounded-2xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold text-white outline-none transition placeholder:text-white/40 focus:border-white/[0.28] focus:bg-white/[0.09] focus:ring-2 focus:ring-white/24"
                   onFocus={(event) => {
                     if (event.currentTarget.value === "0") {

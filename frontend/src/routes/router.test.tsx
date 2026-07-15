@@ -39,6 +39,7 @@ describe("preview routes", () => {
     expect(hasRoutePath("/profile", routes)).toBe(true);
     expect(hasRoutePath("/settings/profile", routes)).toBe(true);
     expect(hasRoutePath("/settings/preferences", routes)).toBe(true);
+    expect(hasRoutePath("/settings/absences", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates/new", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates/:rateId", routes)).toBe(true);

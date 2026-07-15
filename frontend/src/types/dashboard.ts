@@ -34,6 +34,7 @@ export type SelectedDayActivity = {
   subtitle: string;
   duration: string;
   amount: string;
+  extraPayLabel?: string | null;
   unitBreakdown: Array<{
     id?: string;
     label: string;
@@ -56,7 +57,11 @@ export type WeeklyRhythmDay = {
   label: string;
   value: string;
   markerLabel: string | null;
-  status: "under" | "met" | "over" | "idle";
+  status: "under" | "met" | "over" | "idle" | "absence";
+  absence?: {
+    type: "free" | "sick" | "vacation";
+    label: string;
+  } | null;
   percentage: number;
   selected: boolean;
 };

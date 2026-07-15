@@ -21,6 +21,8 @@
       "name": "Name",
       "calculationMethod": "Berechnungsmethode",
       "color": "Farbe",
+      "icon": "Icon",
+      "defaultBreakMinutes": "Standardpause",
       "status": "Status"
     },
     "validation": {
@@ -66,11 +68,38 @@
   "account": "Konto",
   "work": "Arbeit",
   "preferences": "Einstellungen",
+  "absenceSettings": {
+    "title": "Abwesenheiten",
+    "normalDay": "Normaler Tag",
+    "paidTypes": "Bezahlte Abwesenheiten"
+  },
   "preferencesFields": {
     "regional": "Regional",
+    "format": "Format",
+    "appearance": "Darstellung",
+    "workDefaults": "Arbeitsvorgaben",
     "language": "Sprache",
-    "currency": "Wahrung",
-    "timezone": "Zeitzone"
+    "currency": "Währung",
+    "timezone": "Zeitzone",
+    "firstDayOfWeek": "Erster Wochentag",
+    "dateFormat": "Datumsformat",
+    "timeFormat": "Zeitformat",
+    "theme": "Design",
+    "defaultBreakMinutes": "Standardpause",
+    "absencePay": "Bezahlte Abwesenheiten",
+    "normalDayHours": "Stunden pro Normaltag",
+    "normalDayMinutes": "Minuten",
+    "paidSickLeave": "Krankheitstage sind bezahlt",
+    "paidVacation": "Urlaubstage sind bezahlt"
+  },
+  "preferencesOptions": {
+    "monday": "Montag",
+    "sunday": "Sonntag",
+    "time24": "24 Stunden",
+    "time12": "12 Stunden",
+    "systemTheme": "System",
+    "lightTheme": "Hell",
+    "darkTheme": "Dunkel"
   },
   "app": "App",
   "profile": "Profil",
@@ -86,6 +115,7 @@
       "firstName": "Vorname",
       "lastName": "Nachname",
       "displayName": "Anzeigename",
+      "avatarUrl": "Avatar-URL",
       "phone": "Telefon",
       "dateOfBirth": "Geburtsdatum",
       "employmentStart": "Beschäftigungsbeginn",
@@ -101,6 +131,7 @@
       "firstNameRequired": "Vorname ist erforderlich",
       "lastNameRequired": "Nachname ist erforderlich",
       "displayNameTooLong": "Anzeigename ist zu lang",
+      "avatarUrlTooLong": "Avatar-URL ist zu lang",
       "phoneTooLong": "Telefonnummer ist zu lang",
       "countryCode": "Verwende einen zweistelligen Ländercode",
       "cityTooLong": "Stadt ist zu lang",
@@ -135,7 +166,10 @@
       "currency": "Verwende einen dreistelligen Währungscode",
       "validFrom": "Startdatum ist erforderlich",
       "validToBeforeFrom": "Das Enddatum darf nicht vor dem Startdatum liegen"
-    }
+    },
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Speichern"
   },
   "workTypes": "Arbeitstypen",
   "import": {

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -11,7 +11,6 @@ import { useAuth } from "../features/auth/use-auth";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
-import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -23,6 +22,7 @@ function createSchema(t: (key: string) => string) {
     firstName: z.string().trim().min(1, t("profileEditor.validation.firstNameRequired")),
     lastName: z.string().trim().min(1, t("profileEditor.validation.lastNameRequired")),
     displayName: z.string().trim().max(100, t("profileEditor.validation.displayNameTooLong")).optional(),
+    avatarUrl: z.string().trim().max(500, t("profileEditor.validation.avatarUrlTooLong")).optional(),
     phone: z.string().trim().max(50, t("profileEditor.validation.phoneTooLong")).optional(),
     dateOfBirth: z.string().optional(),
     countryCode: z.string().trim().max(2, t("profileEditor.validation.countryCode")).optional(),
@@ -101,7 +101,6 @@ export function SettingsProfilePage() {
     <div className="space-y-8 pb-10">
       <SettingsPageHeader
         title={t("profileEditor.title")}
-        description={t("profileEditor.description")}
         fallbackHref="/profile"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -112,33 +111,54 @@ export function SettingsProfilePage() {
           await mutation.mutateAsync(toProfilePayload(values));
         })}
       >
-        <SettingsSection title={t("profileEditor.basicInformation")}>
-          <div className="space-y-4">
+        <ProfileFormSection title={t("profileEditor.basicInformation")}>
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input label={t("profileEditor.fields.firstName")} error={form.formState.errors.firstName?.message} {...form.register("firstName")} />
             <Input label={t("profileEditor.fields.lastName")} error={form.formState.errors.lastName?.message} {...form.register("lastName")} />
-            <Input label={t("profileEditor.fields.displayName")} error={form.formState.errors.displayName?.message} {...form.register("displayName")} />
-            <Input label={t("profileEditor.fields.phone")} error={form.formState.errors.phone?.message} {...form.register("phone")} />
-            <Input type="date" label={t("profileEditor.fields.dateOfBirth")} error={form.formState.errors.dateOfBirth?.message} {...form.register("dateOfBirth")} />
           </div>
-        </SettingsSection>
+          <Input label={t("profileEditor.fields.displayName")} error={form.formState.errors.displayName?.message} {...form.register("displayName")} />
+          <Input label={t("profileEditor.fields.avatarUrl")} error={form.formState.errors.avatarUrl?.message} {...form.register("avatarUrl")} />
+          <Input label={t("profileEditor.fields.phone")} error={form.formState.errors.phone?.message} {...form.register("phone")} />
+          <Input
+            type="date"
+            wrapperClassName="mx-auto w-full max-w-[15rem]"
+            label={t("profileEditor.fields.dateOfBirth")}
+            error={form.formState.errors.dateOfBirth?.message}
+            {...form.register("dateOfBirth")}
+          />
+        </ProfileFormSection>
 
-        <SettingsSection title={t("profileEditor.employment")}>
-          <div className="space-y-4">
-            <Input type="date" label={t("profileEditor.fields.employmentStart")} error={form.formState.errors.employmentStartDate?.message} {...form.register("employmentStartDate")} />
-            <Input type="date" label={t("profileEditor.fields.employmentEnd")} error={form.formState.errors.employmentEndDate?.message} {...form.register("employmentEndDate")} />
+        <ProfileFormSection title={t("profileEditor.employment")}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              type="date"
+              wrapperClassName="mx-auto w-full max-w-[15rem]"
+              label={t("profileEditor.fields.employmentStart")}
+              error={form.formState.errors.employmentStartDate?.message}
+              {...form.register("employmentStartDate")}
+            />
+            <Input
+              type="date"
+              wrapperClassName="mx-auto w-full max-w-[15rem]"
+              label={t("profileEditor.fields.employmentEnd")}
+              error={form.formState.errors.employmentEndDate?.message}
+              {...form.register("employmentEndDate")}
+            />
           </div>
-        </SettingsSection>
+        </ProfileFormSection>
 
-        <SettingsSection title={t("profileEditor.address")}>
-          <div className="space-y-4">
+        <ProfileFormSection title={t("profileEditor.address")}>
+          <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
             <Input label={t("profileEditor.fields.countryCode")} error={form.formState.errors.countryCode?.message} {...form.register("countryCode")} />
             <Input label={t("profileEditor.fields.city")} error={form.formState.errors.city?.message} {...form.register("city")} />
-            <Input label={t("profileEditor.fields.postalCode")} error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
-            <Input label={t("profileEditor.fields.street")} error={form.formState.errors.street?.message} {...form.register("street")} />
+          </div>
+          <Input label={t("profileEditor.fields.postalCode")} error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
+          <Input label={t("profileEditor.fields.street")} error={form.formState.errors.street?.message} {...form.register("street")} />
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input label={t("profileEditor.fields.houseNumber")} error={form.formState.errors.houseNumber?.message} {...form.register("houseNumber")} />
             <Input label={t("profileEditor.fields.apartment")} error={form.formState.errors.apartment?.message} {...form.register("apartment")} />
           </div>
-        </SettingsSection>
+        </ProfileFormSection>
 
         <SettingsFormActions submitting={mutation.isPending} successMessage={successMessage} />
         {!successMessage && mutation.error ? (
@@ -150,12 +170,30 @@ export function SettingsProfilePage() {
   );
 }
 
+function ProfileFormSection({
+  title,
+  children
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <p className="hairline-text">{title}</p>
+      <div className="dashboard-glass-card space-y-4 p-5">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function toFormValues(profile: Awaited<ReturnType<typeof getProfile>> | null | undefined): FormValues {
   return {
     firstName: profile?.firstName ?? "",
     lastName: profile?.lastName ?? "",
-    displayName: profile?.displayName ?? "",
-    phone: profile?.phone ?? "",
+	    displayName: profile?.displayName ?? "",
+	    avatarUrl: profile?.avatarUrl ?? "",
+	    phone: profile?.phone ?? "",
     dateOfBirth: profile?.dateOfBirth ?? "",
     countryCode: profile?.countryCode ?? "",
     city: profile?.city ?? "",
@@ -173,6 +211,7 @@ function toProfilePayload(values: FormValues): UpdateProfilePayload {
     firstName: normalizeRequired(values.firstName),
     lastName: normalizeRequired(values.lastName),
     displayName: normalizeOptional(values.displayName),
+    avatarUrl: normalizeOptional(values.avatarUrl),
     phone: normalizeOptional(values.phone),
     dateOfBirth: normalizeOptional(values.dateOfBirth),
     countryCode: normalizeOptional(values.countryCode)?.toUpperCase() ?? null,
@@ -181,7 +220,6 @@ function toProfilePayload(values: FormValues): UpdateProfilePayload {
     street: normalizeOptional(values.street),
     houseNumber: normalizeOptional(values.houseNumber),
     apartment: normalizeOptional(values.apartment),
-    avatarUrl: null,
     employmentStartDate: normalizeOptional(values.employmentStartDate),
     employmentEndDate: normalizeOptional(values.employmentEndDate)
   };

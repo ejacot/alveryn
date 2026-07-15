@@ -10,6 +10,7 @@ type Props = {
   title: string;
   entries: WorkEntry[];
   absence: Absence | null;
+  paidAbsenceMinutes?: number;
   onEntrySelect: (entryId: string) => void;
 };
 
@@ -17,6 +18,7 @@ export function CalendarSelectedDayPanel({
   title,
   entries,
   absence,
+  paidAbsenceMinutes = 0,
   onEntrySelect
 }: Props) {
   const { t } = useTranslation("calendar");
@@ -55,9 +57,14 @@ export function CalendarSelectedDayPanel({
                       </p>
                     ) : null}
                   </div>
-                  <p className="text-sm font-semibold text-white/90">
-                    {formatCurrency(entry.grossAmount, entry.currencySnapshot)}
-                  </p>
+                  <div className="space-y-1 text-right">
+                    <p className="text-sm font-semibold text-white/90">
+                      {formatCurrency(entry.grossAmount, entry.currencySnapshot)}
+                    </p>
+                    {(entry.extraPayPercentage ?? 0) > 0 ? (
+                      <p className="text-xs font-semibold text-amber-200">+{entry.extraPayPercentage}%</p>
+                    ) : null}
+                  </div>
                 </div>
                 {entry.unitItems.length ? (
                   <UnitBreakdownBadges
@@ -113,7 +120,11 @@ export function CalendarSelectedDayPanel({
               <span className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceMarkerClassName(absence.absenceType)}`} aria-hidden="true" />
             </div>
             <p className="mt-3 text-sm text-white/40">
-              {countAbsenceDays(absence)} {t("absence.days")}
+              {paidAbsenceMinutes > 0
+                ? t("equivalentWorked", {
+                    duration: formatMinutesAsDuration(paidAbsenceMinutes)
+                  })
+                : `${countAbsenceDays(absence)} ${t("absence.days")}`}
             </p>
             {absence.notes ? (
               <p className="pt-1 text-sm leading-6 text-white/58">{absence.notes}</p>
@@ -149,5 +160,5 @@ function absenceMarkerClassName(absenceType: Absence["absenceType"]) {
   if (absenceType === "VACATION") {
     return "bg-emerald-500/90";
   }
-  return "border border-white/28";
+  return "absence-dot-free border border-white/28";
 }

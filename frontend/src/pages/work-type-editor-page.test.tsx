@@ -158,10 +158,13 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalled();
-      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
-        name: "CHECK",
-        calculationMethod: "TIME_BASED"
-      });
+	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
+	        name: "CHECK",
+	        calculationMethod: "TIME_BASED",
+	        color: "#A3E635",
+	        icon: null,
+	        defaultBreakMinutes: 30
+	      });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types", { replace: true });
     });
   });
@@ -181,14 +184,17 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Name"), "Camere");
-    await user.selectOptions(screen.getByLabelText("Calculation method"), "UNIT_BASED");
+    await user.click(screen.getByRole("button", { name: "Units" }));
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
-        name: "CAMERE",
-        calculationMethod: "UNIT_BASED"
-      });
+	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
+	        name: "CAMERE",
+	        calculationMethod: "UNIT_BASED",
+	        color: "#A3E635",
+	        icon: null,
+	        defaultBreakMinutes: null
+	      });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit", { replace: true });
     });
   });
@@ -208,14 +214,17 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Name"), "Rooms");
-    await user.selectOptions(screen.getByLabelText("Calculation method"), "UNIT_BASED");
+    await user.click(screen.getByRole("button", { name: "Units" }));
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(createWorkType).toHaveBeenCalledWith({
-        name: "ROOMS",
-        calculationMethod: "UNIT_BASED"
-      });
+	      expect(createWorkType).toHaveBeenCalledWith({
+	        name: "ROOMS",
+	        calculationMethod: "UNIT_BASED",
+	        color: "#A3E635",
+	        icon: null,
+	        defaultBreakMinutes: null
+	      });
       expect(screen.queryByText("Check the highlighted fields and try again.")).not.toBeInTheDocument();
     });
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseDecimalInput } from "../../utils/decimal-input";
 
 type Translate = (key: string) => string;
 
@@ -15,7 +16,7 @@ export function createWorkEntrySchema(t: Translate = fallbackT) {
         if (typeof value === "number" && Number.isNaN(value)) {
           return 0;
         }
-        return Number(value);
+        return parseDecimalInput(value);
       },
       z.number().min(0, t("validation.positiveOrZeroQuantity"))
     )
@@ -28,6 +29,7 @@ export function createWorkEntrySchema(t: Translate = fallbackT) {
       startTime: z.string().optional().or(z.literal("")),
       endTime: z.string().optional().or(z.literal("")),
       unpaidBreakMinutes: z.number().int().min(0).default(0),
+      extraPayPercentage: z.coerce.number().int().min(0).max(1000).default(0),
       notes: z.string().max(500).optional().or(z.literal("")),
       unitItems: z.array(unitItemSchema).default([])
     })

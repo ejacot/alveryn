@@ -37,6 +37,8 @@
     "startTime": "Start",
     "endTime": "End",
     "breakMinutes": "Break (minutes)",
+    "extraPay": "Extra pay (%)",
+    "extraPayPercentage": "Extra percentage",
     "notes": "Notes",
     "notesPlaceholder": "Optional"
   },

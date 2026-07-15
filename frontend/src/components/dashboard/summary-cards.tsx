@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import type { DashboardSummaryMetrics } from "../../types/dashboard";
+import { resolveDaySwipeDirection } from "./day-swipe.utils";
 
 type Props = {
   metrics?: DashboardSummaryMetrics | null;
+  onDaySwipe?: (direction: -1 | 1) => void;
 };
 
-export function SummaryCards({ metrics }: Props) {
+export function SummaryCards({ metrics, onDaySwipe }: Props) {
   const primary = metrics?.primaryMetric ?? null;
   const secondary = metrics?.secondaryMetrics ?? [];
   const tertiary = metrics?.tertiaryMetric ?? null;
@@ -15,7 +17,19 @@ export function SummaryCards({ metrics }: Props) {
   }
 
   return (
-    <section className="space-y-5">
+    <motion.section
+      drag={onDaySwipe ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.08}
+      dragDirectionLock
+      onDragEnd={(_, info) => {
+        const direction = resolveDaySwipeDirection(info);
+        if (direction !== 0) {
+          onDaySwipe?.(direction);
+        }
+      }}
+      className="space-y-5 touch-pan-y"
+    >
       {primary ? (
         <motion.article
           initial={{ opacity: 0.94, y: 6 }}
@@ -73,6 +87,6 @@ export function SummaryCards({ metrics }: Props) {
           </p>
         </motion.article>
       ) : null}
-    </section>
+    </motion.section>
   );
 }

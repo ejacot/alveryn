@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
-import { GoogleAuthButton } from "../components/auth/google-auth-button";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -85,14 +84,6 @@ export function LoginPage() {
           >
             {t("auth:login.forgotPassword")}
           </Link>
-        </div>
-        <div className="pt-2.5">
-          <div className="mb-3 flex items-center gap-3 text-[0.64rem] uppercase tracking-[0.22em] text-white/20">
-            <span className="h-px flex-1 bg-white/10" />
-            {t("auth:oauth.or")}
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
-          <GoogleAuthButton />
         </div>
       </form>
     </AuthCard>

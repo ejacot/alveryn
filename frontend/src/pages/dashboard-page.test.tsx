@@ -23,6 +23,8 @@ vi.mock("react-router-dom", async () => {
 vi.mock("../api/endpoints", () => ({
   createAbsence: vi.fn(),
   getAbsences: vi.fn(),
+  getPreferences: vi.fn(),
+  listHourlyRates: vi.fn(),
   listWorkEntriesForDay: vi.fn(),
   listWorkEntriesInRange: vi.fn()
 }));
@@ -30,6 +32,8 @@ vi.mock("../api/endpoints", () => ({
 import {
   createAbsence,
   getAbsences,
+  getPreferences,
+  listHourlyRates,
   listWorkEntriesForDay,
   listWorkEntriesInRange
 } from "../api/endpoints";
@@ -85,6 +89,21 @@ const unitEntry = {
   updatedAt: "2026-07-12T09:00:00Z"
 };
 
+function emptyAbsencePage() {
+  return {
+    content: [],
+    page: 0,
+    size: 1,
+    totalElements: 0,
+    totalPages: 0,
+    first: true,
+    last: true,
+    hasNext: false,
+    hasPrevious: false,
+    numberOfElements: 0
+  };
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -110,18 +129,31 @@ describe("DashboardPage", () => {
       endDate: "2026-07-13",
       notes: null
     });
-    vi.mocked(getAbsences).mockResolvedValue({
-      content: [],
-      page: 0,
-      size: 1,
-      totalElements: 0,
-      totalPages: 0,
-      first: true,
-      last: true,
-      hasNext: false,
-      hasPrevious: false,
-      numberOfElements: 0
+    vi.mocked(getAbsences).mockResolvedValue(emptyAbsencePage());
+    vi.mocked(getPreferences).mockResolvedValue({
+      id: "pref-1",
+      language: "en",
+      timezone: "Europe/Berlin",
+      currency: "EUR",
+      firstDayOfWeek: "MONDAY",
+      dateFormat: "DD.MM.YYYY",
+      timeFormat: "H24",
+      theme: "SYSTEM",
+      defaultBreakMinutes: 30,
+      preferredDailyMinutes: 480,
+      paidSickLeave: true,
+      paidVacation: true,
+      onboardingCompleted: true
     });
+    vi.mocked(listHourlyRates).mockResolvedValue([
+      {
+        id: "rate-1",
+        hourlyRate: "20",
+        currency: "EUR",
+        validFrom: "2026-01-01",
+        validTo: null
+      }
+    ]);
     vi.mocked(listWorkEntriesForDay).mockResolvedValue([timeEntry]);
     vi.mocked(listWorkEntriesInRange).mockResolvedValue([timeEntry, unitEntry]);
   });
@@ -194,7 +226,53 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByText("Sick")).toBeInTheDocument();
     expect(screen.getByText("Day off")).toBeInTheDocument();
+    expect(screen.getByText("Equivalent worked time: 8h 00m")).toBeInTheDocument();
+    expect(screen.queryByText("No work planned")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
+  });
+
+  it("marks weekly absence days in the rhythm chart", async () => {
+    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(getAbsences).mockImplementation(async (params = {}) => {
+      if (params.from === "2026-07-13" && params.to === "2026-07-19") {
+        return {
+          ...emptyAbsencePage(),
+          content: [
+            {
+              id: "absence-weekly",
+              absenceType: "SICK_LEAVE",
+              startDate: "2026-07-15",
+              endDate: "2026-07-15",
+              notes: null
+            }
+          ],
+          totalElements: 1,
+          totalPages: 1,
+          numberOfElements: 1
+        };
+      }
+
+      return emptyAbsencePage();
+    });
+
+    renderPage();
+
+    expect(await screen.findByLabelText("Wed, Sick")).toBeInTheDocument();
+    expect(screen.queryByText("Sick")).not.toBeInTheDocument();
+  });
+
+  it("keeps over-target rhythm days as their real worked total", async () => {
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([
+      {
+        ...timeEntry,
+        calculatedMinutes: "720"
+      }
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByLabelText("Mon, 12h 00m")).toBeInTheDocument();
   });
 
   it("renders unit-based activity as compact initial and quantity badges", async () => {

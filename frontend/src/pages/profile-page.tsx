@@ -97,6 +97,8 @@ export function ProfilePage() {
         <SettingsRow to="/settings/hourly-rates" label={t("settings:hourlyRates")} value={hourlyRateValue} />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/work-types" label={t("settings:workTypes")} value={workTypesValue} />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <SettingsRow to="/settings/absences" label={t("settings:absenceSettings.title")} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:preferences")}>

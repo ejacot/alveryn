@@ -21,6 +21,8 @@
       "name": "Nume",
       "calculationMethod": "Metoda de calcul",
       "color": "Culoare",
+      "icon": "Icon",
+      "defaultBreakMinutes": "Pauză implicită",
       "status": "Status"
     },
     "validation": {
@@ -66,11 +68,38 @@
   "account": "Cont",
   "work": "Muncă",
   "preferences": "Preferințe",
+  "absenceSettings": {
+    "title": "Absențe",
+    "normalDay": "Zi normală",
+    "paidTypes": "Tipuri de absențe plătite"
+  },
   "preferencesFields": {
     "regional": "Regional",
+    "format": "Format",
+    "appearance": "Aspect",
+    "workDefaults": "Setări implicite muncă",
     "language": "Limbă",
     "currency": "Monedă",
-    "timezone": "Fus orar"
+    "timezone": "Fus orar",
+    "firstDayOfWeek": "Prima zi a săptămânii",
+    "dateFormat": "Format dată",
+    "timeFormat": "Format oră",
+    "theme": "Temă",
+    "defaultBreakMinutes": "Pauză implicită",
+    "absencePay": "Absențe plătite",
+    "normalDayHours": "Ore într-o zi normală",
+    "normalDayMinutes": "Minute",
+    "paidSickLeave": "Zilele medicale sunt plătite",
+    "paidVacation": "Concediul este plătit"
+  },
+  "preferencesOptions": {
+    "monday": "Luni",
+    "sunday": "Duminică",
+    "time24": "24 de ore",
+    "time12": "12 ore",
+    "systemTheme": "Sistem",
+    "lightTheme": "Luminos",
+    "darkTheme": "Întunecat"
   },
   "app": "Aplicație",
   "profile": "Profil",
@@ -86,6 +115,7 @@
       "firstName": "Prenume",
       "lastName": "Nume",
       "displayName": "Nume afișat",
+      "avatarUrl": "URL avatar",
       "phone": "Telefon",
       "dateOfBirth": "Data nașterii",
       "employmentStart": "Început angajare",
@@ -101,6 +131,7 @@
       "firstNameRequired": "Prenumele este obligatoriu",
       "lastNameRequired": "Numele este obligatoriu",
       "displayNameTooLong": "Numele afișat este prea lung",
+      "avatarUrlTooLong": "URL-ul avatarului este prea lung",
       "phoneTooLong": "Telefonul este prea lung",
       "countryCode": "Folosește un cod de țară din două litere",
       "cityTooLong": "Orașul este prea lung",
@@ -135,7 +166,10 @@
       "currency": "Folosește un cod de monedă din trei litere",
       "validFrom": "Data de început este obligatorie",
       "validToBeforeFrom": "Data de final nu poate fi înainte de data de început"
-    }
+    },
+    "cancel": "Anulează",
+    "save": "Salvează",
+    "saving": "Se salvează"
   },
   "workTypes": "Tipuri de muncă",
   "import": {

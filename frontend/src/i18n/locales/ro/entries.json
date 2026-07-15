@@ -37,6 +37,8 @@
     "startTime": "Start",
     "endTime": "End",
     "breakMinutes": "Pauza (minute)",
+    "extraPay": "Plătit extra (%)",
+    "extraPayPercentage": "Procent extra",
     "notes": "Notițe",
     "notesPlaceholder": "Opțional"
   },

@@ -1,17 +1,20 @@
 {
   "title": "Kalender",
-  "monthlySummaryLabel": "Monatsubersicht",
-  "unavailable": "Kalender ist nicht verfugbar.",
+  "monthlySummaryLabel": "Monatsübersicht",
+  "unavailable": "Kalender ist nicht verfügbar.",
   "monthlySummary": {
     "worked": "Stunden",
     "grossPay": "Brutto",
     "workedDays": "Tage",
-    "absenceDays": "Abwesenheit"
+    "absenceDays": "Abwesenheit",
+    "mixedCurrencies": "Gemischt",
+    "paidAbsence": "Bezahlt",
+    "paidAbsenceDetail": "Abwesenheit {{duration}}"
   },
   "legend": {
-    "dayOff": "Free",
+    "dayOff": "Frei",
     "sick": "Sick",
-    "vacation": "Vacation"
+    "vacation": "Urlaub"
   },
   "marker": {
     "dayOff": "freier Tag",
@@ -19,13 +22,13 @@
     "vacation": "Urlaub"
   },
   "absence": {
-    "free": "Free",
+    "free": "Frei",
     "sick": "Sick",
-    "vacation": "Vacation",
-    "dayOff": "Day off",
-    "days": "days"
+    "vacation": "Urlaub",
+    "dayOff": "Freier Tag",
+    "days": "Tage"
   },
-  "emptyDay": "Keine Aktivitaten.",
+  "emptyDay": "Keine Aktivitäten.",
   "equivalentWorked": "Entsprechende Arbeitszeit {{duration}}",
-  "addEntryForDay": "Eintrag fur diesen Tag hinzufugen"
+  "addEntryForDay": "Eintrag für diesen Tag hinzufügen"
 }

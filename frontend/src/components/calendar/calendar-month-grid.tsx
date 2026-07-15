@@ -6,7 +6,8 @@ import type { AbsenceType } from "../../types/absence";
 
 type DayMeta = {
   entriesCount: number;
-  marker: AbsenceType | "AUTO_DAY_OFF" | null;
+  marker: AbsenceType | null;
+  noActivityInTrackedRange: boolean;
 };
 
 type Props = {
@@ -128,6 +129,7 @@ export function CalendarMonthGrid({
                 day.date.getMonth() === today.getMonth() &&
                 day.date.getDate() === today.getDate();
               const meta = getDayMeta(day.key);
+              const shouldHighlightNoActivity = meta.noActivityInTrackedRange && !selected;
               const ariaSegments = [formatAriaDate(day.date)];
               if (selected) {
                 ariaSegments.push("selected");
@@ -165,10 +167,13 @@ export function CalendarMonthGrid({
                       selected
                         ? "scale-[1.035] bg-white text-black shadow-[0_22px_44px_rgba(255,255,255,0.14)]"
                         : current
-                          ? "border border-white/[0.08] bg-white/[0.1] text-white/88"
+                          ? cn(
+                              "border border-white/[0.08] bg-white/[0.1]",
+                              shouldHighlightNoActivity ? "text-red-300" : "text-white/88"
+                            )
                           : day.inActiveMonth
-                            ? "text-white/76"
-                            : "text-white/28"
+                            ? shouldHighlightNoActivity ? "text-red-300" : "text-white/76"
+                            : shouldHighlightNoActivity ? "text-red-300" : "text-white/28"
                     )}
                   >
                     {day.dayNumber}
@@ -178,32 +183,10 @@ export function CalendarMonthGrid({
                     {meta.marker ? (
                       <span
                         className={cn(
-                          "h-1.5 w-1.5 rounded-full",
+                          "h-2 w-2 rounded-full",
                           markerClassName(meta.marker, day.inActiveMonth)
                         )}
                       />
-                    ) : null}
-                    {!meta.marker && meta.entriesCount > 0 ? (
-                      meta.entriesCount <= 3 ? (
-                        Array.from({ length: meta.entriesCount }, (_, index) => (
-                          <span
-                            key={index}
-                            className={cn(
-                              "h-1.5 w-1.5 rounded-full",
-                              day.inActiveMonth ? "bg-white/56" : "bg-white/18"
-                            )}
-                          />
-                        ))
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-[10px] font-semibold",
-                            day.inActiveMonth ? "text-white/42" : "text-white/18"
-                          )}
-                        >
-                          {meta.entriesCount}
-                        </span>
-                      )
                     ) : null}
                   </div>
                 </button>
@@ -214,7 +197,7 @@ export function CalendarMonthGrid({
       </div>
 
       <div className="flex items-center justify-center gap-4 pt-1 text-[10px] font-medium tracking-[0.14em] text-white/34">
-        <LegendDot className="border border-white/24" label={t("legend.dayOff")} />
+        <LegendDot className="absence-dot-free border border-white/24" label={t("legend.dayOff")} />
         <LegendDot className="bg-red-500/90" label={t("legend.sick")} />
         <LegendDot className="bg-emerald-500/90" label={t("legend.vacation")} />
       </div>
@@ -225,7 +208,7 @@ export function CalendarMonthGrid({
 function LegendDot({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn("h-1.5 w-1.5 rounded-full", className)} aria-hidden="true" />
+      <span className={cn("h-2 w-2 rounded-full", className)} aria-hidden="true" />
       <span>{label}</span>
     </span>
   );
@@ -238,7 +221,7 @@ function markerClassName(marker: DayMeta["marker"], inactive: boolean) {
   if (marker === "VACATION") {
     return inactive ? "bg-emerald-500/45" : "bg-emerald-500/90";
   }
-  return inactive ? "border border-white/42" : "border border-white/24";
+  return inactive ? "absence-dot-free border border-white/42" : "absence-dot-free border border-white/24";
 }
 
 function markerAriaLabel(marker: DayMeta["marker"], t: ReturnType<typeof useTranslation<"calendar">>["t"]) {

@@ -67,6 +67,7 @@ public class WorkEntryCalculationService {
       return new PreparedWorkEntry(
           BigDecimal.valueOf(workedMinutes),
           salary,
+          normalizeExtraPayPercentage(request.extraPayPercentage()),
           request.startTime(),
           request.endTime(),
           breakMinutes,
@@ -101,7 +102,8 @@ public class WorkEntryCalculationService {
 
     SalaryCalculationService.SalarySnapshot salary =
         salaryCalculationService.calculateForDate(userId, request.workDate(), totalMinutes);
-    return new PreparedWorkEntry(totalMinutes, salary, null, null, null, preparedItems);
+    return new PreparedWorkEntry(
+        totalMinutes, salary, normalizeExtraPayPercentage(request.extraPayPercentage()), null, null, null, preparedItems);
   }
 
   private UnitType findUnitType(UUID userId, UUID unitTypeId) {
@@ -113,10 +115,15 @@ public class WorkEntryCalculationService {
   public record PreparedWorkEntry(
       BigDecimal calculatedMinutes,
       SalaryCalculationService.SalarySnapshot salary,
+      int extraPayPercentage,
       java.time.LocalTime startTime,
       java.time.LocalTime endTime,
       Integer breakMinutes,
       List<PreparedUnitItem> unitItems) {}
 
   public record PreparedUnitItem(UnitType unitType, BigDecimal quantity, BigDecimal calculatedMinutes) {}
+
+  private int normalizeExtraPayPercentage(Integer value) {
+    return value == null ? 0 : value;
+  }
 }

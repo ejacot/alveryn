@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { UnitBreakdownBadges } from "../work-entry/unit-breakdown-badges";
@@ -9,12 +10,15 @@ import type {
   SelectedDayOverview,
   WeeklyRhythmDay
 } from "../../types/dashboard";
+import { resolveDaySwipeDirection } from "./day-swipe.utils";
 
 type Props = {
   summary: DashboardSummaryMetrics | null;
   selectedDay: SelectedDayOverview;
   weeklyDays?: WeeklyRhythmDay[];
   onQuickAdd: () => void;
+  onDaySwipe?: (direction: -1 | 1) => void;
+  onWeekSwipe?: (direction: -1 | 1) => void;
   onCreateAbsence: (absenceType: AbsenceType) => void;
   absencePending?: boolean;
   absenceError?: string | null;
@@ -27,6 +31,8 @@ export function DashboardOverview({
   selectedDay,
   weeklyDays,
   onQuickAdd,
+  onDaySwipe,
+  onWeekSwipe,
   onCreateAbsence,
   absencePending = false,
   absenceError = null,
@@ -50,13 +56,15 @@ export function DashboardOverview({
         selectedDay={selectedDay}
         onEntrySelect={onEntrySelect}
         onQuickAdd={onQuickAdd}
+        onDaySwipe={onDaySwipe}
         onCreateAbsence={onCreateAbsence}
         absencePending={absencePending}
         absenceError={absenceError}
       />
-      <SummaryCards metrics={summary} />
+      <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
       <WeeklyHoursCard
         days={weeklyDays}
+        onWeekSwipe={onWeekSwipe}
       />
     </div>
   );
@@ -66,6 +74,7 @@ function SelectedDayPanel({
   selectedDay,
   onEntrySelect,
   onQuickAdd,
+  onDaySwipe,
   onCreateAbsence,
   absencePending,
   absenceError
@@ -73,6 +82,7 @@ function SelectedDayPanel({
   selectedDay: SelectedDayOverview;
   onEntrySelect?: (entryId: string) => void;
   onQuickAdd: () => void;
+  onDaySwipe?: (direction: -1 | 1) => void;
   onCreateAbsence: (absenceType: AbsenceType) => void;
   absencePending: boolean;
   absenceError: string | null;
@@ -85,9 +95,22 @@ function SelectedDayPanel({
     setAbsenceOpen(false);
   }
 
+  const swipeProps = {
+    drag: onDaySwipe ? "x" as const : false,
+    dragConstraints: { left: 0, right: 0 },
+    dragElastic: 0.08,
+    dragDirectionLock: true,
+    onDragEnd: (_: unknown, info: Parameters<typeof resolveDaySwipeDirection>[0]) => {
+      const direction = resolveDaySwipeDirection(info);
+      if (direction !== 0) {
+        onDaySwipe?.(direction);
+      }
+    }
+  };
+
   if (!selectedDay.entriesCount) {
     return (
-      <section className="space-y-3">
+      <motion.section {...swipeProps} className="space-y-3 touch-pan-y">
         <div className="surface-muted flex w-full items-center justify-between px-5 py-4 text-left">
           <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
           <div className="flex items-center gap-2">
@@ -102,7 +125,7 @@ function SelectedDayPanel({
               type="button"
               onClick={onQuickAdd}
               aria-label={t("quickAdd.accessibleLabel")}
-              className="rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
+              className="dashboard-primary-cta rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
             >
               {t("quickAdd.cta")}
             </button>
@@ -115,14 +138,14 @@ function SelectedDayPanel({
           onClose={() => setAbsenceOpen(false)}
           onSelect={handleAbsence}
         />
-      </section>
+      </motion.section>
     );
   }
 
   const multiple = selectedDay.entriesCount > 1;
 
   return (
-    <section className="space-y-4">
+    <motion.section {...swipeProps} className="space-y-4 touch-pan-y">
       <div>
         <div>
           <p className="hairline-text">
@@ -159,7 +182,12 @@ function SelectedDayPanel({
               {activity.marker ? (
                 <span className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceMarkerClassName(activity.marker)}`} aria-hidden="true" />
               ) : (
-                <p className="text-sm font-semibold text-white/90">{activity.amount}</p>
+                <div className="space-y-1 text-right">
+                  <p className="text-sm font-semibold text-white/90">{activity.amount}</p>
+                  {activity.extraPayLabel ? (
+                    <p className="text-xs font-semibold text-amber-200">{activity.extraPayLabel}</p>
+                  ) : null}
+                </div>
               )}
             </div>
             {activity.unitBreakdown.length ? (
@@ -172,7 +200,7 @@ function SelectedDayPanel({
           );
         })}
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -183,7 +211,7 @@ function absenceMarkerClassName(marker: "free" | "sick" | "vacation") {
   if (marker === "vacation") {
     return "bg-emerald-500/90";
   }
-  return "border border-white/28";
+  return "absence-dot-free border border-white/28";
 }
 
 function AbsenceChooser({
@@ -204,7 +232,7 @@ function AbsenceChooser({
   }
 
   const options: Array<{ type: AbsenceType; label: string; dot: string }> = [
-    { type: "DAY_OFF", label: t("absence.free"), dot: "border border-white/28" },
+    { type: "DAY_OFF", label: t("absence.free"), dot: "absence-dot-free border border-white/28" },
     { type: "SICK_LEAVE", label: t("absence.sick"), dot: "bg-red-500/90" },
     { type: "VACATION", label: t("absence.vacation"), dot: "bg-emerald-500/90" }
   ];

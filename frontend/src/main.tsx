@@ -14,10 +14,13 @@ import { AuthProvider } from "./features/auth/auth-provider";
 import { createAppRouter } from "./routes/router";
 import { queryClient } from "./api/query-client";
 import { registerServiceWorker } from "./register-service-worker";
+import { applyAppTheme, initializeSystemThemeListener } from "./utils/theme";
 
 const router = createAppRouter();
 
 registerServiceWorker();
+applyAppTheme("SYSTEM");
+initializeSystemThemeListener();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

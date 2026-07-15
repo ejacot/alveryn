@@ -27,6 +27,7 @@ public interface WorkEntryMapper {
       source = "entry.calculatedMinutes",
       qualifiedByName = "toWorkedHours")
   @Mapping(target = "grossAmount", source = "entry.grossAmount")
+  @Mapping(target = "extraPayPercentage", source = "entry.extraPayPercentage")
   @Mapping(target = "notes", source = "entry.notes")
   @Mapping(target = "timeEntry", source = "timeEntry")
   @Mapping(target = "unitItems", source = "unitItems")

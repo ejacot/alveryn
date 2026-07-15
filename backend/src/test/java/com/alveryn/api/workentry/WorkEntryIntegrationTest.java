@@ -150,6 +150,40 @@ class WorkEntryIntegrationTest {
   }
 
   @Test
+  void extraPayPercentageIncreasesGrossWithoutChangingWorkedMinutes() throws Exception {
+    UserAccount user = createVerifiedUser("extra-pay@example.com");
+    WorkType workType = createWorkType(user, "Sunday", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-12",
+                      "startTime":"08:00:00",
+                      "endTime":"16:00:00",
+                      "unpaidBreakMinutes":0,
+                      "extraPayPercentage":100
+                    }
+                    """
+                        .formatted(workType.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.calculatedMinutes").value(480.000000000000000))
+        .andExpect(jsonPath("$.data.extraPayPercentage").value(100))
+        .andExpect(jsonPath("$.data.grossAmount").value(320.000000000000000));
+
+    WorkEntry entry = workEntries.findAll().getFirst();
+    assertThat(entry.getCalculatedMinutes()).isEqualByComparingTo("480.000000000000000");
+    assertThat(entry.getGrossAmount()).isEqualByComparingTo("320.000000000000000");
+    assertThat(entry.getExtraPayPercentage()).isEqualTo(100);
+  }
+
+  @Test
   void unitBasedEntryPreservesPrecisionAndUsesHistoricalRate() throws Exception {
     UserAccount user = createVerifiedUser("unit@example.com");
     WorkType workType = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);

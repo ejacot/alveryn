@@ -29,14 +29,19 @@ public class UserPreferencesService {
     UserPreferences preferences = getOrCreatePreferences();
     String timezone = InputSanitizer.requireTrimmed(request.timezone(), "timezone");
     InputSanitizer.validateTimezone(timezone);
-    preferences.changeLanguage(InputSanitizer.requireTrimmed(request.language(), "language"));
-    preferences.changeTimezone(timezone);
-    preferences.changeCurrency(InputSanitizer.normalizeCurrency(request.currency()));
-    preferences.changeDateFormat(InputSanitizer.requireTrimmed(request.dateFormat(), "dateFormat"));
+	    preferences.changeLanguage(InputSanitizer.requireTrimmed(request.language(), "language"));
+	    preferences.changeTimezone(timezone);
+	    preferences.changeCurrency(InputSanitizer.normalizeCurrency(request.currency()));
+	    preferences.changeFirstDayOfWeek(
+	        request.firstDayOfWeek() == null ? preferences.getFirstDayOfWeek() : request.firstDayOfWeek());
+	    preferences.changeDateFormat(InputSanitizer.requireTrimmed(request.dateFormat(), "dateFormat"));
     preferences.changeTimeFormat(request.timeFormat());
     preferences.changeTheme(request.theme());
     preferences.changeDefaultBreakMinutes(request.defaultBreakMinutes());
     preferences.changePreferredDailyMinutes(request.preferredDailyMinutes());
+    preferences.changePaidAbsences(
+        request.paidSickLeave() == null ? preferences.isPaidSickLeave() : request.paidSickLeave(),
+        request.paidVacation() == null ? preferences.isPaidVacation() : request.paidVacation());
     return mapper.toPreferencesResponse(repository.save(preferences));
   }
 

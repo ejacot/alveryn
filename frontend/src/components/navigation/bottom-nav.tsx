@@ -60,9 +60,9 @@ export function BottomNav({ addEntryDate }: BottomNavProps) {
               }}
               transition={{ duration: 0.22, ease: "easeOut" }}
               className={cn(
-                "flex items-center justify-center transition",
-                prominent
-                  ? "h-12 w-12 rounded-full border border-white/[0.66] bg-white/[0.78] text-black shadow-[0_18px_42px_rgba(0,0,0,0.3),0_0_26px_rgba(255,255,255,0.12),inset_0_1px_0_rgba(255,255,255,0.96),inset_0_-14px_24px_rgba(0,0,0,0.12)] backdrop-blur-[8px]"
+	                "flex items-center justify-center transition",
+	                prominent
+	                  ? "bottom-nav-primary-action h-12 w-12 rounded-full border border-white/[0.66] bg-white/[0.78] text-black shadow-[0_18px_42px_rgba(0,0,0,0.3),0_0_26px_rgba(255,255,255,0.12),inset_0_1px_0_rgba(255,255,255,0.96),inset_0_-14px_24px_rgba(0,0,0,0.12)] backdrop-blur-[8px]"
                   : isActive
                     ? "h-11 w-11 text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.22)]"
                     : "h-11 w-11 text-white/52"

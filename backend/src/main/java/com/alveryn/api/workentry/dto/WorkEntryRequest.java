@@ -2,6 +2,7 @@ package com.alveryn.api.workentry.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -19,5 +20,6 @@ public record WorkEntryRequest(
     LocalTime startTime,
     LocalTime endTime,
     @PositiveOrZero Integer unpaidBreakMinutes,
+    @PositiveOrZero @Max(1000) Integer extraPayPercentage,
     List<@Valid UnitEntryItemRequest> unitItems,
     @Size(max = 500) String notes) {}

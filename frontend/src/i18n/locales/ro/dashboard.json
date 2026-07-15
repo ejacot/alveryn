@@ -47,13 +47,13 @@
     "accessibleLabel": "Adaugă o nouă intrare de lucru"
   },
   "absence": {
-    "cta": "Absence",
+    "cta": "Absență",
     "title": "Marchează absența",
-    "free": "Free",
-    "sick": "Sick",
-    "vacation": "Vacation",
-    "dayOff": "Day off",
-    "noWork": "No work planned",
+    "free": "Liber",
+    "sick": "Medical",
+    "vacation": "Concediu",
+    "dayOff": "Zi liberă",
+    "noWork": "Fără muncă planificată",
     "cancel": "Anulează"
   },
   "weeklyHours": {

@@ -54,6 +54,12 @@ public class UserPreferences extends BaseEntity {
   @Column(name = "preferred_daily_minutes")
   private Integer preferredDailyMinutes = 480;
 
+  @Column(name = "paid_sick_leave", nullable = false)
+  private boolean paidSickLeave = true;
+
+  @Column(name = "paid_vacation", nullable = false)
+  private boolean paidVacation = true;
+
   @Column(name = "onboarding_completed", nullable = false)
   private boolean onboardingCompleted;
 
@@ -88,6 +94,11 @@ public class UserPreferences extends BaseEntity {
     if (value != null && value <= 0)
       throw new IllegalArgumentException("preferredDailyMinutes must be positive");
     preferredDailyMinutes = value;
+  }
+
+  public void changePaidAbsences(boolean paidSickLeave, boolean paidVacation) {
+    this.paidSickLeave = paidSickLeave;
+    this.paidVacation = paidVacation;
   }
 
   public void changeFirstDayOfWeek(FirstDayOfWeek value) {

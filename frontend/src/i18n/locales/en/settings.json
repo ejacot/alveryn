@@ -21,6 +21,8 @@
       "name": "Name",
       "calculationMethod": "Calculation method",
       "color": "Color",
+      "icon": "Icon",
+      "defaultBreakMinutes": "Default break",
       "status": "Status"
     },
     "validation": {
@@ -66,11 +68,38 @@
   "account": "Account",
   "work": "Work",
   "preferences": "Preferences",
+  "absenceSettings": {
+    "title": "Absences",
+    "normalDay": "Normal day",
+    "paidTypes": "Paid absence types"
+  },
   "preferencesFields": {
     "regional": "Regional",
+    "format": "Format",
+    "appearance": "Appearance",
+    "workDefaults": "Work defaults",
     "language": "Language",
     "currency": "Currency",
-    "timezone": "Timezone"
+    "timezone": "Timezone",
+    "firstDayOfWeek": "First day of week",
+    "dateFormat": "Date format",
+    "timeFormat": "Time format",
+    "theme": "Theme",
+    "defaultBreakMinutes": "Default break",
+    "absencePay": "Paid absences",
+    "normalDayHours": "Normal day hours",
+    "normalDayMinutes": "Minutes",
+    "paidSickLeave": "Sick days are paid",
+    "paidVacation": "Vacation days are paid"
+  },
+  "preferencesOptions": {
+    "monday": "Monday",
+    "sunday": "Sunday",
+    "time24": "24-hour",
+    "time12": "12-hour",
+    "systemTheme": "System",
+    "lightTheme": "Light",
+    "darkTheme": "Dark"
   },
   "app": "App",
   "profile": "Profile",
@@ -86,6 +115,7 @@
       "firstName": "First name",
       "lastName": "Last name",
       "displayName": "Display name",
+      "avatarUrl": "Avatar URL",
       "phone": "Phone",
       "dateOfBirth": "Date of birth",
       "employmentStart": "Employment start",
@@ -101,6 +131,7 @@
       "firstNameRequired": "First name is required",
       "lastNameRequired": "Last name is required",
       "displayNameTooLong": "Display name is too long",
+      "avatarUrlTooLong": "Avatar URL is too long",
       "phoneTooLong": "Phone is too long",
       "countryCode": "Use a two-letter country code",
       "cityTooLong": "City is too long",
@@ -135,7 +166,10 @@
       "currency": "Use a three-letter currency code",
       "validFrom": "Start date is required",
       "validToBeforeFrom": "End date cannot be before start date"
-    }
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving"
   },
   "workTypes": "Work types",
   "import": {

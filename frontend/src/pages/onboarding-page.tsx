@@ -96,11 +96,14 @@ export function OnboardingPage() {
           ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
           : "UTC",
       currency: "EUR",
+      firstDayOfWeek: "MONDAY" as const,
       dateFormat: DEFAULT_DATE_FORMAT,
       timeFormat: "H24" as const,
-      theme: "DARK" as const,
+      theme: "SYSTEM" as const,
       defaultBreakMinutes: 30,
-      preferredDailyMinutes: 480
+      preferredDailyMinutes: 480,
+      paidSickLeave: true,
+      paidVacation: true
     }),
     []
   );
@@ -318,11 +321,14 @@ export function OnboardingPage() {
                   language: user?.preferences?.language ?? automaticPreferences.language,
                   timezone: user?.preferences?.timezone ?? automaticPreferences.timezone,
                   currency: values.currency,
+                  firstDayOfWeek: user?.preferences?.firstDayOfWeek ?? automaticPreferences.firstDayOfWeek,
                   dateFormat: user?.preferences?.dateFormat ?? automaticPreferences.dateFormat,
                   timeFormat: user?.preferences?.timeFormat ?? automaticPreferences.timeFormat,
                   theme: user?.preferences?.theme ?? automaticPreferences.theme,
                   defaultBreakMinutes: user?.preferences?.defaultBreakMinutes ?? automaticPreferences.defaultBreakMinutes,
-                  preferredDailyMinutes: user?.preferences?.preferredDailyMinutes ?? automaticPreferences.preferredDailyMinutes
+                  preferredDailyMinutes: user?.preferences?.preferredDailyMinutes ?? automaticPreferences.preferredDailyMinutes,
+                  paidSickLeave: user?.preferences?.paidSickLeave ?? automaticPreferences.paidSickLeave,
+                  paidVacation: user?.preferences?.paidVacation ?? automaticPreferences.paidVacation
                 });
               }
               await finishMutation.mutateAsync();

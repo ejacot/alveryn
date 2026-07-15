@@ -56,11 +56,13 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("../api/endpoints", () => ({
   getCalendarActivityRange: vi.fn(),
+  getPreferences: vi.fn(),
+  listHourlyRates: vi.fn(),
   listWorkEntriesInRange: vi.fn(),
   listAbsencesInRange: vi.fn()
 }));
 
-import { getCalendarActivityRange, listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
+import { getCalendarActivityRange, getPreferences, listAbsencesInRange, listHourlyRates, listWorkEntriesInRange } from "../api/endpoints";
 
 const julyEntries = [
     {
@@ -73,8 +75,9 @@ const julyEntries = [
       currencySnapshot: "EUR",
       calculatedMinutes: "450",
       workedHours: "7.5",
-      grossAmount: "150",
-      notes: null,
+	      grossAmount: "150",
+	      extraPayPercentage: 100,
+	      notes: null,
       timeEntry: {
         startTime: "08:00",
         endTime: "16:30",
@@ -96,8 +99,9 @@ const julyEntries = [
       currencySnapshot: "EUR",
       calculatedMinutes: "120",
       workedHours: "2.0",
-      grossAmount: "40",
-      notes: null,
+	      grossAmount: "40",
+	      extraPayPercentage: 0,
+	      notes: null,
       timeEntry: null,
       unitItems: [
         {
@@ -188,6 +192,30 @@ describe("CalendarPage", () => {
     navigateMock.mockReset();
     setSelectedDateMock.mockReset();
     vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-15" });
+    vi.mocked(getPreferences).mockResolvedValue({
+      id: "pref-1",
+      language: "en",
+      timezone: "Europe/Berlin",
+      currency: "EUR",
+      firstDayOfWeek: "MONDAY",
+      dateFormat: "DD.MM.YYYY",
+      timeFormat: "H24",
+      theme: "SYSTEM",
+      defaultBreakMinutes: 30,
+      preferredDailyMinutes: 480,
+      paidSickLeave: true,
+      paidVacation: true,
+      onboardingCompleted: true
+    });
+    vi.mocked(listHourlyRates).mockResolvedValue([
+      {
+        id: "rate-1",
+        hourlyRate: "20",
+        currency: "EUR",
+        validFrom: "2026-01-01",
+        validTo: null
+      }
+    ]);
     vi.mocked(listWorkEntriesInRange).mockImplementation(async ({ year, month } = {}) => {
       if (year === 2026 && month === 7) {
         return julyEntries;
@@ -273,16 +301,21 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument();
     const summary = screen.getByLabelText("Monthly summary");
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
-    expect(within(summary).getByText("€190.00")).toBeInTheDocument();
+    expect(within(summary).getByText("Paid")).toBeInTheDocument();
+    expect(within(summary).getByText("23h 30m")).toBeInTheDocument();
+    expect(within(summary).getByText("Absence 16h 00m")).toBeInTheDocument();
+    expect(within(summary).queryByText(/Extra/i)).not.toBeInTheDocument();
+    expect(within(summary).getByText("€510.00")).toBeInTheDocument();
     expect(within(summary).getByText("Days")).toBeInTheDocument();
     expect(within(summary).getByText("Absence")).toBeInTheDocument();
     expect(within(summary).getAllByText("2")).toHaveLength(2);
 
-    expect(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i })).not.toHaveAccessibleName(/vacation|absence|day off/i);
+    expect(screen.getByRole("gridcell", { name: /monday, july 20, 2026, vacation/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i }));
     expect(screen.getAllByText("Vacation").length).toBeGreaterThan(1);
     expect(screen.getByText("Day off")).toBeInTheDocument();
+    expect(screen.getByText("Equivalent worked 8h 00m")).toBeInTheDocument();
     expect(screen.getByText("Summer break")).toBeInTheDocument();
   });
 
@@ -290,6 +323,13 @@ describe("CalendarPage", () => {
     vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-13" });
     vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
     vi.mocked(listAbsencesInRange).mockResolvedValue([
+      {
+        id: "absence-free",
+        absenceType: "DAY_OFF",
+        startDate: "2026-07-13",
+        endDate: "2026-07-13",
+        notes: null
+      },
       {
         id: "absence-sick",
         absenceType: "SICK_LEAVE",
@@ -308,12 +348,17 @@ describe("CalendarPage", () => {
 
     renderPage();
 
-    expect(
-      await screen.findByRole("gridcell", { name: /monday, july 13, 2026, day off/i })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("gridcell", { name: /tuesday, july 14, 2026, sick leave/i })).toBeInTheDocument();
-    expect(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, day off/i })).toBeInTheDocument();
-    expect(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i })).not.toHaveAccessibleName(/vacation|day off/i);
+    const freeDay = await screen.findByRole("gridcell", { name: /monday, july 13, 2026, day off/i });
+    const sickDay = screen.getByRole("gridcell", { name: /tuesday, july 14, 2026, sick leave/i });
+    const todayWithoutActivity = screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today/i });
+    const futureVacation = screen.getByRole("gridcell", { name: /monday, july 20, 2026, vacation/i });
+
+    expect(within(freeDay).getByText("13")).not.toHaveClass("text-red-300");
+    expect(within(sickDay).getByText("14")).not.toHaveClass("text-red-300");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("text-red-300");
+    expect(todayWithoutActivity).not.toHaveAccessibleName(/day off/i);
+    expect(futureVacation).toHaveAccessibleName(/vacation/i);
+    expect(within(futureVacation).getByText("20")).not.toHaveClass("text-red-300");
   });
 
   it("shows empty and error states from real query results", async () => {

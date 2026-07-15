@@ -29,6 +29,7 @@ export type WorkEntry = {
   calculatedMinutes: string;
   workedHours: string;
   grossAmount: string;
+  extraPayPercentage?: number | null;
   notes: string | null;
   timeEntry: TimeEntryDetails | null;
   unitItems: UnitEntryItem[];
@@ -42,6 +43,7 @@ export type WorkEntryRequest = {
   startTime?: string | null;
   endTime?: string | null;
   unpaidBreakMinutes?: number | null;
+  extraPayPercentage?: number | null;
   unitItems?: {
     unitTypeId: string;
     quantity: number;

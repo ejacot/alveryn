@@ -4,7 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { SettingsProfilePage } from "./settings-profile-page";
 import { SettingsPreferencesPage } from "./settings-preferences-page";
+import { SettingsAbsencePage } from "./settings-absence-page";
 import { queryKeys } from "../api/query-keys";
+import type { UpdatePreferencesPayload } from "../api/endpoints";
 
 const refreshCurrentUserMock = vi.fn();
 
@@ -45,6 +47,8 @@ vi.mock("../features/auth/use-auth", () => ({
         theme: "SYSTEM",
         defaultBreakMinutes: 30,
         preferredDailyMinutes: 480,
+        paidSickLeave: true,
+        paidVacation: true,
         onboardingCompleted: true
       }
     },
@@ -97,18 +101,13 @@ vi.mock("../api/endpoints", () => ({
     theme: "SYSTEM",
     defaultBreakMinutes: 30,
     preferredDailyMinutes: 480,
+    paidSickLeave: true,
+    paidVacation: true,
     onboardingCompleted: true
   })),
-  updatePreferences: vi.fn(async () => ({
+  updatePreferences: vi.fn(async (payload: UpdatePreferencesPayload) => ({
     id: "pref-1",
-    language: "ro",
-    timezone: "Europe/Berlin",
-    currency: "RON",
-    dateFormat: "DD.MM.YYYY",
-    timeFormat: "H24",
-    theme: "SYSTEM",
-    defaultBreakMinutes: 30,
-    preferredDailyMinutes: 480,
+    ...payload,
     onboardingCompleted: true
   }))
 }));
@@ -169,6 +168,30 @@ describe("settings cache sync", () => {
       expect(setQueryDataSpy).toHaveBeenCalledWith(
         queryKeys.preferences(),
         expect.objectContaining({ currency: "RON", language: "ro" })
+      );
+    });
+  });
+
+  it("updates absence preferences from the dedicated work settings page", async () => {
+    const user = userEvent.setup();
+    const { queryClient } = renderWithClient(<SettingsAbsencePage />);
+    const setQueryDataSpy = vi.spyOn(queryClient, "setQueryData");
+
+    await user.clear(screen.getByRole("spinbutton", { name: /normal day hours|ore într-o zi normală/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /normal day hours|ore într-o zi normală/i }), "6");
+    await user.clear(screen.getByRole("spinbutton", { name: /minutes|minute/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /minutes|minute/i }), "30");
+    await user.click(screen.getByLabelText(/sick days are paid|zilele medicale sunt plătite/i));
+    await user.click(screen.getByRole("button", { name: /save changes|salvează modificările/i }));
+
+    await waitFor(() => {
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        queryKeys.preferences(),
+        expect.objectContaining({
+          preferredDailyMinutes: 390,
+          paidSickLeave: false,
+          paidVacation: true
+        })
       );
     });
   });

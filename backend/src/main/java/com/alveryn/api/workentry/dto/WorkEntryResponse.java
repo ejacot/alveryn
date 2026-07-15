@@ -20,6 +20,7 @@ public record WorkEntryResponse(
     BigDecimal calculatedMinutes,
     BigDecimal workedHours,
     BigDecimal grossAmount,
+    Integer extraPayPercentage,
     String notes,
     TimeEntryDetailsResponse timeEntry,
     List<UnitEntryItemResponse> unitItems,

@@ -14,10 +14,7 @@ import {
   updateHourlyRate
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
-import { SettingsFormActions } from "../components/settings/settings-form-actions";
-import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
-import { SettingsSection } from "../components/settings/settings-section";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
@@ -128,43 +125,96 @@ export function HourlyRateEditorPage() {
     return <ScreenMessage title={t("hourlyRateEditor.unavailableTitle")} description={getApiError(rateQuery.error).message} />;
   }
 
+  const title = isEditing ? t("hourlyRateEditor.editTitle") : t("hourlyRateEditor.addTitle");
+
   return (
-    <div className="space-y-8 pb-10">
-      <SettingsPageHeader
-        title={isEditing ? t("hourlyRateEditor.editTitle") : t("hourlyRateEditor.addTitle")}
-        description={t("hourlyRateEditor.description")}
-        fallbackHref="/settings/hourly-rates"
-        onBack={() => confirmOrRun(safeBack)}
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hourly-rate-title"
+    >
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={t("hourlyRateEditor.cancel")}
+        className="absolute inset-0 h-full w-full cursor-default"
+        onClick={() => confirmOrRun(safeBack)}
       />
       <form
-        className="space-y-6"
+        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
         onSubmit={form.handleSubmit(async (values) => {
           await saveMutation.mutateAsync(values);
         })}
       >
-        <SettingsSection title={t("hourlyRateEditor.sectionTitle")}>
-          <div className="space-y-4">
-            <Input type="number" step="0.01" min={0} label={t("hourlyRateEditor.fields.hourlyRate")} error={form.formState.errors.hourlyRate?.message} {...form.register("hourlyRate")} />
-            <Select label={t("hourlyRateEditor.fields.currency")} error={form.formState.errors.currency?.message} {...form.register("currency")}>
-              {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </Select>
-            <Input type="date" label={t("hourlyRateEditor.fields.validFrom")} error={form.formState.errors.validFrom?.message} {...form.register("validFrom")} />
-            <Input type="date" label={t("hourlyRateEditor.fields.validTo")} error={form.formState.errors.validTo?.message} {...form.register("validTo")} />
-          </div>
-        </SettingsSection>
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h1 id="hourly-rate-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
+            {title}
+          </h1>
+          <button
+            type="button"
+            onClick={() => confirmOrRun(safeBack)}
+            className="rounded-full px-3 py-2 text-sm font-semibold text-white/48 transition hover:text-white"
+          >
+            {t("hourlyRateEditor.cancel")}
+          </button>
+        </div>
 
-        <SettingsFormActions
-          submitting={saveMutation.isPending}
-          successMessage={successMessage}
-          onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? t("hourlyRateEditor.deleteLabel") : undefined}
-          deleteDisabled={deleteMutation.isPending}
-        />
-        {saveMutation.error ? <p className="text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
+        <div className="space-y-3">
+          <Input
+            type="number"
+            step="0.01"
+            min={0}
+            inputMode="decimal"
+            label={t("hourlyRateEditor.fields.hourlyRate")}
+            error={form.formState.errors.hourlyRate?.message}
+            {...form.register("hourlyRate")}
+          />
+          <Select label={t("hourlyRateEditor.fields.currency")} error={form.formState.errors.currency?.message} {...form.register("currency")}>
+            {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
+            ))}
+          </Select>
+          <Input
+            type="date"
+            wrapperClassName="mx-auto w-full max-w-[15rem]"
+            label={t("hourlyRateEditor.fields.validFrom")}
+            error={form.formState.errors.validFrom?.message}
+            {...form.register("validFrom")}
+          />
+          <Input
+            type="date"
+            wrapperClassName="mx-auto w-full max-w-[15rem]"
+            label={t("hourlyRateEditor.fields.validTo")}
+            error={form.formState.errors.validTo?.message}
+            {...form.register("validTo")}
+          />
+        </div>
+
+        {saveMutation.error ? <p className="mt-4 text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
+        {successMessage ? <p className="mt-4 text-sm font-medium text-emerald-200">{successMessage}</p> : null}
+
+        <div className="mt-6 flex items-center gap-3">
+          {isEditing ? (
+            <button
+              type="button"
+              disabled={deleteMutation.isPending || saveMutation.isPending}
+              onClick={() => setShowConfirm(true)}
+              className="min-h-12 rounded-full px-4 text-sm font-semibold text-red-200/90 transition hover:text-red-100 disabled:opacity-50"
+            >
+              {t("hourlyRateEditor.deleteLabel")}
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            disabled={saveMutation.isPending || deleteMutation.isPending}
+            className="ml-auto min-h-12 rounded-full bg-white px-6 text-sm font-semibold tracking-[-0.02em] text-black shadow-[0_16px_40px_rgba(255,255,255,0.12)] transition hover:bg-white/90 disabled:opacity-55"
+          >
+            {saveMutation.isPending ? t("hourlyRateEditor.saving") : t("hourlyRateEditor.save")}
+          </button>
+        </div>
       </form>
 
       <SettingsConfirmDialog

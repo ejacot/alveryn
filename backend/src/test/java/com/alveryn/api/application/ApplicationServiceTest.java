@@ -135,7 +135,9 @@ class ApplicationServiceTest {
                 TimeFormat.H24,
                 ThemePreference.SYSTEM,
                 30,
-                480));
+                480,
+                true,
+                true));
     assertThat(prefs.onboardingCompleted()).isFalse();
     assertThat(preferences.completeOnboarding().isOnboardingCompleted()).isTrue();
     assertThat(preferences.get().preferredDailyMinutes()).isEqualTo(480);

@@ -141,11 +141,14 @@ describe("auth routes", () => {
               language: "en",
               timezone: "Europe/Berlin",
               currency: "EUR",
+              firstDayOfWeek: "MONDAY",
               dateFormat: "dd/MM/yyyy",
               timeFormat: "H24",
               theme: "DARK",
               defaultBreakMinutes: 30,
               preferredDailyMinutes: 480,
+              paidSickLeave: true,
+              paidVacation: true,
               onboardingCompleted: true
             }
           }
