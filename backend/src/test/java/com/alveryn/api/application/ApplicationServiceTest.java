@@ -131,6 +131,7 @@ class ApplicationServiceTest {
                 "ro",
                 "Europe/Berlin",
                 "EUR",
+                FirstDayOfWeek.MONDAY,
                 "DD.MM.YYYY",
                 TimeFormat.H24,
                 ThemePreference.SYSTEM,
