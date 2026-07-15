@@ -3,8 +3,9 @@ services:
     name: alveryn-web
     runtime: static
     branch: develop
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
     autoDeployTrigger: commit
     domains:
       - alveryn.com
