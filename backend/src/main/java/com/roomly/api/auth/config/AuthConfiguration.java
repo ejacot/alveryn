@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @EnableConfigurationProperties({
   AuthProperties.class,
+  GoogleOAuthProperties.class,
   RefreshCookieProperties.class,
   WebCorsProperties.class
 })

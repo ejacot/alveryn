@@ -28,5 +28,12 @@ roomly:
     verification-resend-cooldown: 1m
     login-max-failed-attempts: 5
     login-lock-duration: 15m
+    oauth:
+      google:
+        client-id: test-google-client
+        client-secret: test-google-secret
+        redirect-uri: http://localhost/api/auth/oauth/google/callback
+        frontend-success-url: http://localhost:5173/auth/oauth/callback
+        frontend-failure-url: http://localhost:5173/login?oauth=error
     refresh-cookie:
       secure: false

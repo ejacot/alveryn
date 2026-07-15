@@ -98,6 +98,11 @@ const VerifyEmailPage = lazy(() =>
     default: module.VerifyEmailPage
   }))
 );
+const OAuthCallbackPage = lazy(() =>
+  import("../pages/oauth-callback-page").then((module) => ({
+    default: module.OAuthCallbackPage
+  }))
+);
 const PreviewDashboardPage = lazy(() =>
   import("../pages/preview-dashboard-page").then((module) => ({
     default: module.PreviewDashboardPage
@@ -115,6 +120,10 @@ function withSuspense(element: ReactNode) {
 
 export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): RouteObject[] {
   const routes: RouteObject[] = [
+    {
+      element: <AuthLayout />,
+      children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]
+    },
     {
       element: <GuestRoute />,
       children: [

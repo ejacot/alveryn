@@ -15,6 +15,12 @@ describe("preview routes", () => {
     expect(hasRoutePath("/onboarding", routes)).toBe(true);
   });
 
+  it("includes the public OAuth callback route", () => {
+    const routes = buildRoutes(false);
+
+    expect(hasRoutePath("/auth/oauth/callback", routes)).toBe(true);
+  });
+
   it("omits preview routes when disabled", () => {
     const routes = buildRoutes(false);
 

@@ -110,6 +110,11 @@ export async function login(payload: Credentials) {
   return response.data.data;
 }
 
+export async function refreshSession() {
+  const response = await http.post<ApiResponse<AuthTokens>>("/api/auth/refresh");
+  return response.data.data;
+}
+
 export async function forgotPassword(email: string) {
   const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/forgot-password",

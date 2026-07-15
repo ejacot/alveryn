@@ -33,6 +33,7 @@ const baseAuthValue: AuthContextValue = {
   isHydrating: false,
   loginWithPassword: vi.fn(),
   registerWithPassword: vi.fn(),
+  completeOAuthLogin: vi.fn(),
   logout: vi.fn(),
   refreshCurrentUser: vi.fn()
 };

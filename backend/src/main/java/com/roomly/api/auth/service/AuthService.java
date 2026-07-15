@@ -157,6 +157,26 @@ public class AuthService {
     return new GenericSuccessResponse("Password reset successfully");
   }
 
+  @Transactional
+  public IssuedAuthSession issueVerifiedSession(UserAccount user) {
+    if (user.isDeleted()) {
+      throw new AuthenticationFailureException("Invalid email or password");
+    }
+    if (!user.isEmailVerified()) {
+      user.verifyEmail();
+    }
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    if (user.isLockedAt(now)) {
+      throw new UnauthorizedException("Account is temporarily locked");
+    }
+    if (user.getStatus() == UserStatus.LOCKED) {
+      user.unlock();
+    }
+    user.recordSuccessfulLogin(now);
+    users.save(user);
+    return issueTokens(user);
+  }
+
   private void resendVerificationCode(UserAccount user) {
     OffsetDateTime now = OffsetDateTime.now(clock);
     if (user.hasValidSecurityCode(now)) {

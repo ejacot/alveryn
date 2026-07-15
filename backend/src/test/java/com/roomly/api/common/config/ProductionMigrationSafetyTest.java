@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,22 @@ class ProductionMigrationSafetyTest {
 
     try {
       assertThat(flyway.migrate().migrationsExecuted).isGreaterThan(0);
-      assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("11");
+      assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo(latestMigrationVersion());
     } finally {
       flyway.clean();
+    }
+  }
+
+  private String latestMigrationVersion() {
+    try (var paths = Files.walk(Path.of("src/main/resources/db/migration"))) {
+      return paths
+          .map(path -> path.getFileName().toString())
+          .filter(name -> name.matches("V\\d+__.*\\.sql"))
+          .map(name -> name.substring(1, name.indexOf("__")))
+          .max(Comparator.comparingInt(Integer::parseInt))
+          .orElseThrow();
+    } catch (Exception e) {
+      throw new IllegalStateException("Could not determine latest migration version", e);
     }
   }
 }

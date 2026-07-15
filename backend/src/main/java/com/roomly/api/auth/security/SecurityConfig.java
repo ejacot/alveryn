@@ -40,6 +40,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/actuator/health", "/error").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/auth/oauth/google/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/me").authenticated()
                     .anyRequest()

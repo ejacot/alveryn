@@ -9,9 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.roomly.api.auth.config.AuthProperties;
 import com.roomly.api.auth.config.RefreshCookieProperties;
+import com.roomly.api.auth.dto.GoogleOAuthUserInfo;
 import com.roomly.api.auth.email.AuthenticationEmailService;
 import com.roomly.api.auth.repository.PasswordResetTokenRepository;
 import com.roomly.api.auth.repository.RefreshTokenRepository;
+import com.roomly.api.auth.repository.UserOAuthIdentityRepository;
+import com.roomly.api.auth.service.GoogleOAuthClient;
 import com.roomly.api.user.repository.UserAccountRepository;
 import com.roomly.api.user.repository.UserPreferencesRepository;
 import io.jsonwebtoken.Jwts;
@@ -48,6 +51,7 @@ class AuthIntegrationTest {
   @Autowired UserAccountRepository users;
   @Autowired UserPreferencesRepository preferences;
   @Autowired RefreshTokenRepository refreshTokens;
+  @Autowired UserOAuthIdentityRepository oauthIdentities;
   @Autowired PasswordResetTokenRepository passwordResetTokens;
   @Autowired PasswordEncoder passwordEncoder;
   @Autowired TestAuthenticationEmailService emailService;
@@ -61,8 +65,10 @@ class AuthIntegrationTest {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     refreshTokens.deleteAll();
     passwordResetTokens.deleteAll();
+    oauthIdentities.deleteAll();
     users.deleteAll();
     emailService.clear();
+    TestGoogleOAuthClient.reset();
   }
 
   @Test
@@ -371,6 +377,92 @@ class AuthIntegrationTest {
   }
 
   @Test
+  void googleOAuthStartRedirectsWithStateCookie() throws Exception {
+    var result =
+        mockMvc
+            .perform(get("/api/auth/oauth/google/start"))
+            .andExpect(status().is3xxRedirection())
+            .andReturn();
+
+    assertThat(result.getResponse().getRedirectedUrl())
+        .startsWith("https://accounts.google.com/o/oauth2/v2/auth")
+        .contains("client_id=test-google-client")
+        .contains("scope=openid%20email%20profile")
+        .contains("state=");
+    assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+        .contains("roomly_google_oauth_state=");
+  }
+
+  @Test
+  void googleOAuthCallbackCreatesVerifiedAccountAndIssuesRefreshCookie() throws Exception {
+    TestGoogleOAuthClient.nextUser =
+        new GoogleOAuthUserInfo(
+            "google-subject-1",
+            "GoogleUser@example.com",
+            true,
+            "Google User",
+            "Google",
+            "User",
+            null);
+    var start =
+        mockMvc.perform(get("/api/auth/oauth/google/start")).andExpect(status().is3xxRedirection()).andReturn();
+    String state = extractCookieValue(start.getResponse().getHeader(HttpHeaders.SET_COOKIE), "roomly_google_oauth_state");
+
+    var callback =
+        mockMvc
+            .perform(
+                get("/api/auth/oauth/google/callback")
+                    .param("code", "valid-code")
+                    .param("state", state)
+                    .cookie(new Cookie("roomly_google_oauth_state", state)))
+            .andExpect(status().is3xxRedirection())
+            .andReturn();
+
+    assertThat(callback.getResponse().getRedirectedUrl())
+        .isEqualTo("http://localhost:5173/auth/oauth/callback");
+    assertThat(callback.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+        .contains(refreshCookieProperties.name() + "=");
+    var user = users.findByEmailIgnoreCase("googleuser@example.com").orElseThrow();
+    assertThat(user.isEmailVerified()).isTrue();
+    assertThat(preferences.findByUserId(user.getId())).isPresent();
+    assertThat(oauthIdentities.findByProviderAndProviderSubject(
+            com.roomly.api.auth.entity.OAuthProvider.GOOGLE, "google-subject-1"))
+        .isPresent();
+  }
+
+  @Test
+  void googleOAuthCallbackLinksExistingVerifiedEmail() throws Exception {
+    registerUser("link-google@example.com", "super-secret");
+    verifyUser("link-google@example.com");
+    TestGoogleOAuthClient.nextUser =
+        new GoogleOAuthUserInfo(
+            "google-subject-2",
+            "link-google@example.com",
+            true,
+            "Linked User",
+            "Linked",
+            "User",
+            null);
+    var start =
+        mockMvc.perform(get("/api/auth/oauth/google/start")).andExpect(status().is3xxRedirection()).andReturn();
+    String state = extractCookieValue(start.getResponse().getHeader(HttpHeaders.SET_COOKIE), "roomly_google_oauth_state");
+
+    mockMvc
+        .perform(
+            get("/api/auth/oauth/google/callback")
+                .param("code", "valid-code")
+                .param("state", state)
+                .cookie(new Cookie("roomly_google_oauth_state", state)))
+        .andExpect(status().is3xxRedirection());
+
+    assertThat(users.findAll().stream().filter(user -> user.getEmail().equals("link-google@example.com")).count())
+        .isEqualTo(1);
+    assertThat(oauthIdentities.findByProviderAndProviderSubject(
+            com.roomly.api.auth.entity.OAuthProvider.GOOGLE, "google-subject-2"))
+        .isPresent();
+  }
+
+  @Test
   void forgotAndResetPasswordRemainGenericAndRevokeSessions() throws Exception {
     registerUser("reset@example.com", "super-secret");
     verifyUser("reset@example.com");
@@ -595,7 +687,11 @@ class AuthIntegrationTest {
   }
 
   private String extractCookieValue(String setCookieHeader) {
-    String marker = refreshCookieProperties.name() + "=";
+    return extractCookieValue(setCookieHeader, refreshCookieProperties.name());
+  }
+
+  private String extractCookieValue(String setCookieHeader, String cookieName) {
+    String marker = cookieName + "=";
     int start = setCookieHeader.indexOf(marker);
     int valueStart = start + marker.length();
     int valueEnd = setCookieHeader.indexOf(';', valueStart);
@@ -608,6 +704,32 @@ class AuthIntegrationTest {
     @Primary
     TestAuthenticationEmailService testAuthenticationEmailService() {
       return new TestAuthenticationEmailService();
+    }
+
+    @Bean
+    @Primary
+    GoogleOAuthClient testGoogleOAuthClient() {
+      return new TestGoogleOAuthClient();
+    }
+  }
+
+  static class TestGoogleOAuthClient extends GoogleOAuthClient {
+    static GoogleOAuthUserInfo nextUser;
+
+    TestGoogleOAuthClient() {
+      super(null);
+    }
+
+    @Override
+    public GoogleOAuthUserInfo exchangeCodeForUserInfo(String code) {
+      if (nextUser == null) {
+        throw new IllegalStateException("No Google test user configured");
+      }
+      return nextUser;
+    }
+
+    static void reset() {
+      nextUser = null;
     }
   }
 

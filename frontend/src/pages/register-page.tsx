@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
+import { GoogleAuthButton } from "../components/auth/google-auth-button";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -64,7 +65,15 @@ export function RegisterPage() {
       }
       backLink={{ to: "/login", label: t("auth:register.backToLogin") }}
     >
-      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <div className="space-y-4">
+        <GoogleAuthButton />
+        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/28">
+          <span className="h-px flex-1 bg-white/10" />
+          {t("auth:oauth.or")}
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+      </div>
+      <form className="mt-4 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
           label={t("common:labels.email")}
           type="email"

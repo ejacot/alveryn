@@ -28,6 +28,11 @@ roomly:
       - http://172.*:5173
   auth:
     jwt-secret: local-development-jwt-secret-32-bytes-minimum
+    oauth:
+      google:
+        redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/oauth/google/callback}
+        frontend-success-url: ${GOOGLE_OAUTH_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/callback}
+        frontend-failure-url: ${GOOGLE_OAUTH_FRONTEND_FAILURE_URL:http://localhost:5173/login?oauth=error}
     refresh-cookie:
       secure: false
   imports:

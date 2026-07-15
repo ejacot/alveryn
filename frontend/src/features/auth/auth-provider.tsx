@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getCurrentUser, login, logout, register } from "../../api/endpoints";
+import { getCurrentUser, login, logout, refreshSession, register } from "../../api/endpoints";
 import { queryKeys } from "../../api/query-keys";
 import {
   clearTokens,
@@ -40,6 +40,12 @@ export function AuthProvider({ children }: Props) {
 
   async function registerWithPassword(email: string, password: string) {
     await register({ email, password });
+  }
+
+  async function completeOAuthLogin() {
+    const result = await refreshSession();
+    storeSession(result.accessToken);
+    return refreshCurrentUser();
   }
 
   async function signOut() {
@@ -109,6 +115,7 @@ export function AuthProvider({ children }: Props) {
         isHydrating,
         loginWithPassword,
         registerWithPassword,
+        completeOAuthLogin,
         logout: signOut,
         refreshCurrentUser
       }}

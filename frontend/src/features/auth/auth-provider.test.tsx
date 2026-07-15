@@ -9,10 +9,11 @@ vi.mock("../../api/endpoints", () => ({
   getCurrentUser: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
+  refreshSession: vi.fn(),
   register: vi.fn()
 }));
 
-import { getCurrentUser, login, logout } from "../../api/endpoints";
+import { getCurrentUser, login, logout, refreshSession } from "../../api/endpoints";
 import { getStoredAccessToken, hasStoredSession } from "../../api/auth-storage";
 
 function Consumer() {
@@ -23,6 +24,7 @@ function Consumer() {
       <button onClick={() => void auth.loginWithPassword("roomly@example.com", "Password123!")}>
         Login
       </button>
+      <button onClick={() => void auth.completeOAuthLogin()}>OAuth</button>
       <button onClick={() => void auth.logout()}>Logout</button>
       <span>{auth.user?.account.email ?? "guest"}</span>
     </div>
@@ -78,6 +80,30 @@ describe("AuthProvider", () => {
 
     expect(await screen.findByText("roomly@example.com")).toBeInTheDocument();
     expect(getStoredAccessToken()).toBe("access-token");
+    expect(hasStoredSession()).toBe(true);
+  });
+
+  it("stores tokens and hydrates the user after OAuth callback refresh", async () => {
+    vi.mocked(refreshSession).mockResolvedValue({
+      accessToken: "oauth-access-token",
+      tokenType: "Bearer",
+      accessTokenExpiresIn: 900,
+      user: {
+        id: "1",
+        email: "roomly@example.com",
+        emailVerified: true,
+        status: "ACTIVE",
+        lastLoginAt: null
+      }
+    });
+
+    renderProvider();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("OAuth"));
+
+    expect(await screen.findByText("roomly@example.com")).toBeInTheDocument();
+    expect(getStoredAccessToken()).toBe("oauth-access-token");
     expect(hasStoredSession()).toBe(true);
   });
 

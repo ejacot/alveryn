@@ -57,6 +57,13 @@ roomly:
     login-max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
     login-lock-duration: ${LOGIN_LOCK_DURATION:15m}
     frontend-verification-url: ${FRONTEND_VERIFICATION_URL:}
+    oauth:
+      google:
+        client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+        client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+        redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:}
+        frontend-success-url: ${GOOGLE_OAUTH_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/callback}
+        frontend-failure-url: ${GOOGLE_OAUTH_FRONTEND_FAILURE_URL:http://localhost:5173/login?oauth=error}
     refresh-cookie:
       name: ${REFRESH_COOKIE_NAME:roomly_refresh_token}
       path: ${REFRESH_COOKIE_PATH:/api/auth}

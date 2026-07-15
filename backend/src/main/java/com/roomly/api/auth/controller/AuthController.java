@@ -1,28 +1,47 @@
 package com.roomly.api.auth.controller;
 
+import com.roomly.api.auth.config.GoogleOAuthProperties;
 import com.roomly.api.auth.dto.*;
 import com.roomly.api.auth.service.AuthService;
+import com.roomly.api.auth.service.GoogleOAuthService;
 import com.roomly.api.auth.service.RefreshTokenCookieService;
+import com.roomly.api.common.exception.ValidationException;
 import com.roomly.api.common.response.ApiErrorResponse;
 import com.roomly.api.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Registration, verification, login and password recovery")
 public class AuthController {
+  private static final String GOOGLE_STATE_COOKIE = "roomly_google_oauth_state";
+
   private final AuthService authService;
+  private final GoogleOAuthService googleOAuthService;
+  private final GoogleOAuthProperties googleOAuthProperties;
   private final RefreshTokenCookieService refreshTokenCookieService;
+  private final SecureRandom secureRandom;
 
   @PostMapping("/register")
   @ResponseStatus(HttpStatus.CREATED)
@@ -87,6 +106,55 @@ public class AuthController {
     return ApiResponse.of(session.response());
   }
 
+  @GetMapping("/oauth/google/start")
+  @Operation(
+      summary = "Start Google sign-in",
+      description = "Redirects the browser to Google's OAuth consent flow.")
+  public void startGoogleOAuth(HttpServletResponse response) throws IOException {
+    if (!googleOAuthProperties.enabled()) {
+      response.sendRedirect(failureRedirectUrl());
+      return;
+    }
+    String state = generateState();
+    response.addHeader(HttpHeaders.SET_COOKIE, oauthStateCookie(state, false).toString());
+    String authorizationUrl =
+        UriComponentsBuilder.fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
+            .queryParam("client_id", googleOAuthProperties.clientId())
+            .queryParam("redirect_uri", googleOAuthProperties.redirectUri())
+            .queryParam("response_type", "code")
+            .queryParam("scope", "openid email profile")
+            .queryParam("state", state)
+            .build()
+            .encode()
+            .toUriString();
+    response.sendRedirect(authorizationUrl);
+  }
+
+  @GetMapping("/oauth/google/callback")
+  @Operation(
+      summary = "Complete Google sign-in",
+      description = "Validates the OAuth state, provisions or links the account, then redirects to the frontend callback.")
+  public void completeGoogleOAuth(
+      @RequestParam(required = false) String code,
+      @RequestParam(required = false) String state,
+      HttpServletRequest request,
+      HttpServletResponse response)
+      throws IOException {
+    try {
+      validateState(request, state);
+      if (code == null || code.isBlank()) {
+        throw new ValidationException("Google authorization code is missing", "GOOGLE_OAUTH_FAILED");
+      }
+      IssuedAuthSession session = googleOAuthService.authenticate(code);
+      refreshTokenCookieService.writeRefreshToken(response, session.refreshToken());
+      response.addHeader(HttpHeaders.SET_COOKIE, oauthStateCookie("", true).toString());
+      response.sendRedirect(googleOAuthProperties.successUrl());
+    } catch (RuntimeException error) {
+      response.addHeader(HttpHeaders.SET_COOKIE, oauthStateCookie("", true).toString());
+      response.sendRedirect(failureRedirectUrl());
+    }
+  }
+
   @PostMapping("/refresh")
   @Operation(
       summary = "Refresh tokens",
@@ -109,6 +177,46 @@ public class AuthController {
         authService.logout(refreshTokenCookieService.extractRefreshToken(request));
     refreshTokenCookieService.clearRefreshToken(response);
     return ApiResponse.of(result);
+  }
+
+  private void validateState(HttpServletRequest request, String state) {
+    String expected =
+        request.getCookies() == null
+            ? null
+            : Arrays.stream(request.getCookies())
+                .filter(cookie -> GOOGLE_STATE_COOKIE.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+    if (state == null || state.isBlank() || expected == null || !expected.equals(state)) {
+      throw new ValidationException("Google sign-in state is invalid", "GOOGLE_OAUTH_INVALID_STATE");
+    }
+  }
+
+  private String failureRedirectUrl() {
+    String separator = googleOAuthProperties.failureUrl().contains("?") ? "&" : "?";
+    return googleOAuthProperties.failureUrl()
+        + separator
+        + "oauthError="
+        + URLEncoder.encode("google", StandardCharsets.UTF_8);
+  }
+
+  private String generateState() {
+    byte[] bytes = new byte[32];
+    secureRandom.nextBytes(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  private ResponseCookie oauthStateCookie(String value, boolean expired) {
+    return ResponseCookie.from(GOOGLE_STATE_COOKIE, value)
+        .httpOnly(true)
+        .secure(
+            googleOAuthProperties.redirectUri() != null
+                && googleOAuthProperties.redirectUri().startsWith("https://"))
+        .sameSite("Lax")
+        .path("/api/auth/oauth/google")
+        .maxAge(expired ? Duration.ZERO : Duration.ofMinutes(10))
+        .build();
   }
 
   @PostMapping("/forgot-password")
