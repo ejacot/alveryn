@@ -1,45 +1,50 @@
-import {
-  ArrowRight,
-  BarChart3,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  Coins,
-  Gauge,
-  PackageCheck,
-  Settings2,
-  ShieldCheck,
-  Smartphone,
-  TrendingUp,
-  WalletCards
-} from "lucide-react";
+import { ArrowRight, BarChart3, BriefcaseBusiness, Check, Clock3, LineChart, Sparkles } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
+import dashboardDesktop from "../assets/landing/dashboard-desktop.webp";
+import dashboardMobile from "../assets/landing/dashboard-mobile.webp";
+import entryFormImage from "../assets/landing/entry-form.webp";
+import statisticsOverviewImage from "../assets/landing/statistics-overview.webp";
+import statisticsComparisonImage from "../assets/landing/statistics-comparison.webp";
+import statisticsForecastImage from "../assets/landing/statistics-forecast.webp";
+import statisticsProductivityImage from "../assets/landing/statistics-productivity.webp";
+import statisticsHeatmapImage from "../assets/landing/statistics-heatmap.webp";
+import calendarImage from "../assets/landing/calendar-desktop.webp";
 import { AppLogo } from "../components/branding/app-logo";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
 import { APP_HOME_PATH } from "../routes/app-paths";
 
-type CardCopy = {
+type TextItem = {
   title: string;
   description: string;
 };
 
-type TourCopy = CardCopy & {
-  points: string[];
+type WorkTypeItem = TextItem & {
+  examples: string;
 };
 
-const featureIcons = [Clock3, PackageCheck, WalletCards, CalendarDays, BarChart3, Smartphone];
-const stepNumbers = ["01", "02", "03"];
+const analyticsImages = [
+  { key: "comparison", src: statisticsComparisonImage },
+  { key: "forecast", src: statisticsForecastImage },
+  { key: "productivity", src: statisticsProductivityImage },
+  { key: "heatmap", src: statisticsHeatmapImage }
+];
+
+const benefitIcons = [Clock3, LineChart, BriefcaseBusiness];
+const workTypeIcons = [Clock3, BarChart3, BriefcaseBusiness];
 
 export function WelcomePage() {
   const { t } = useTranslation("welcome");
   const { isAuthenticated, isHydrating, user } = useAuth();
-  const steps = t("steps.items", { returnObjects: true }) as CardCopy[];
-  const features = t("features.items", { returnObjects: true }) as CardCopy[];
-  const tourItems = t("tour.items", { returnObjects: true }) as TourCopy[];
-  const examples = t("examples.items", { returnObjects: true }) as string[];
-  const calculations = t("calculations.items", { returnObjects: true }) as string[];
+  const reduceMotion = useReducedMotion();
+  const heroBenefits = t("hero.benefits", { returnObjects: true }) as string[];
+  const problemQuestions = t("problem.questions", { returnObjects: true }) as string[];
+  const steps = t("how.steps", { returnObjects: true }) as TextItem[];
+  const analyticsItems = t("analytics.items", { returnObjects: true }) as TextItem[];
+  const workTypes = t("workTypes.items", { returnObjects: true }) as WorkTypeItem[];
+  const calendarStats = t("calendar.stats", { returnObjects: true }) as string[];
 
   if (isHydrating) {
     return <ScreenMessage title={t("loading")} />;
@@ -50,426 +55,288 @@ export function WelcomePage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#050608] text-white">
-      <section className="relative border-b border-white/[0.08]">
-        <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.16),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0)_48%)]"
-          aria-hidden="true"
-        />
-        <div className="relative mx-auto flex min-h-[96svh] w-full max-w-6xl flex-col px-5 py-5 sm:px-8 lg:px-10">
-          <nav className="flex items-center justify-between gap-4">
-            <AppLogo className="justify-start" />
-            <div className="flex items-center gap-2">
-              <Link
-                to="/login"
-                className="inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold text-white/72 transition hover:text-white"
-              >
-                {t("nav.login")}
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-semibold text-black shadow-soft transition hover:bg-white/90"
-              >
-                {t("nav.register")}
-              </Link>
-            </div>
-          </nav>
+    <main className="landing-page relative isolate min-h-screen overflow-x-clip bg-[#030303] text-white">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-10%,rgba(244,201,93,0.13),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0)_34%)]"
+        aria-hidden="true"
+      />
 
-          <div className="flex flex-1 flex-col justify-center gap-10 py-12 lg:py-16">
-            <div className="mx-auto max-w-4xl space-y-7 text-center">
-              <p className="mx-auto inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-4 py-2 text-sm font-medium text-white/74">
-                <ShieldCheck className="h-4 w-4 flex-none" aria-hidden="true" />
-                <span>{t("hero.eyebrow")}</span>
-              </p>
-              <div className="space-y-5">
-                <h1 className="mx-auto max-w-4xl text-balance text-5xl font-semibold leading-[0.98] tracking-normal text-white sm:text-6xl lg:text-7xl">
-                  {t("hero.title")}
-                </h1>
-                <p className="mx-auto max-w-2xl text-lg leading-8 text-white/66 sm:text-xl">
-                  {t("hero.subtitle")}
-                </p>
-              </div>
-              <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                <Link
-                  to="/register"
-                  className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-soft transition hover:bg-white/90"
-                >
-                  {t("hero.primaryCta")}
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.1]"
-                >
-                  {t("hero.secondaryCta")}
-                </Link>
-              </div>
-            </div>
-
-            <ProductPreview t={t} />
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-2xl">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+          <AppLogo className="justify-start" />
+          <div className="hidden items-center gap-7 text-sm font-medium text-white/58 md:flex">
+            <a href="#features" className="transition hover:text-white">{t("nav.features")}</a>
+            <a href="#how-it-works" className="transition hover:text-white">{t("nav.how")}</a>
           </div>
-        </div>
-      </section>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/login"
+              className="inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold text-white/68 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            >
+              {t("nav.login")}
+            </Link>
+            <Link
+              to="/register"
+              className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-full bg-white px-3 text-xs font-semibold text-black shadow-[0_18px_46px_rgba(255,255,255,0.16)] transition hover:bg-[#f4c95d] focus:outline-none focus:ring-2 focus:ring-[#f4c95d]/60 sm:px-4 sm:text-sm"
+            >
+              {t("nav.register")}
+            </Link>
+          </div>
+        </nav>
+      </header>
 
-      <section className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 lg:px-10">
-        <div className="mb-8 max-w-3xl space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/42">
-            {t("tour.eyebrow")}
+      <section className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-7xl gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:px-10 lg:py-20">
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className="space-y-8"
+        >
+          <p className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.055] px-4 py-2 text-sm font-medium text-white/70">
+            <Sparkles className="h-4 w-4 text-[#f4c95d]" aria-hidden="true" />
+            {t("hero.eyebrow")}
           </p>
-          <h2 className="text-3xl font-semibold tracking-normal text-white sm:text-4xl">
-            {t("tour.title")}
-          </h2>
-          <p className="text-base leading-7 text-white/62">{t("tour.subtitle")}</p>
-        </div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          {tourItems.map((item, index) => (
-            <TourPanel key={item.title} item={item} index={index} t={t} />
-          ))}
-        </div>
+          <div className="space-y-5">
+            <h1 className="max-w-4xl text-balance text-5xl font-semibold leading-[0.95] tracking-normal text-white sm:text-6xl lg:text-7xl">
+              {t("hero.title")}
+            </h1>
+            <p className="max-w-2xl text-lg leading-8 text-white/66 sm:text-xl">{t("hero.subtitle")}</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/register"
+              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_20px_70px_rgba(255,255,255,0.16)] transition hover:bg-[#f4c95d] focus:outline-none focus:ring-2 focus:ring-[#f4c95d]/60"
+            >
+              {t("hero.primaryCta")}
+              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+            </Link>
+            <a
+              href="#how-it-works"
+              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-white/30"
+            >
+              {t("hero.secondaryCta")}
+            </a>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {heroBenefits.map((benefit, index) => {
+              const Icon = benefitIcons[index] ?? Check;
+              return (
+                <div key={benefit} className="rounded-[22px] border border-white/[0.08] bg-white/[0.045] p-4">
+                  <Icon className="mb-3 h-5 w-5 text-[#f4c95d]" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-white/82">{benefit}</p>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 18 }}
+          animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.08 }}
+          className="relative mx-auto w-full max-w-[620px]"
+        >
+          <div className="absolute inset-8 rounded-[44px] bg-[#f4c95d]/18 blur-3xl" aria-hidden="true" />
+          <ProductImage
+            src={dashboardDesktop}
+            mobileSrc={dashboardMobile}
+            alt={t("images.dashboardAlt")}
+            loading="eager"
+            className="relative"
+          />
+        </motion.div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 lg:px-10">
-        <div className="mb-7 max-w-3xl space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/42">
-            {t("steps.eyebrow")}
-          </p>
-          <h2 className="text-3xl font-semibold tracking-normal text-white sm:text-4xl">
-            {t("steps.title")}
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <article key={step.title} className="rounded-[24px] border border-white/[0.08] bg-white/[0.045] p-5">
-              <p className="mb-5 text-sm font-semibold text-white/38">{stepNumbers[index]}</p>
-              <h3 className="text-lg font-semibold text-white">{step.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/58">{step.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-y border-white/[0.08] bg-white/[0.035]">
-        <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 lg:px-10">
-          <div className="mb-8 grid gap-5 lg:grid-cols-[0.8fr_1fr] lg:items-end">
-            <div className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/42">
-                {t("features.eyebrow")}
-              </p>
-              <h2 className="text-3xl font-semibold tracking-normal text-white sm:text-4xl">
-                {t("features.title")}
-              </h2>
-            </div>
-            <p className="max-w-2xl text-base leading-7 text-white/60 lg:justify-self-end">
-              {t("features.subtitle")}
+      <LandingSection id="features" reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
+        <div className="grid gap-10 lg:grid-cols-[0.75fr_1fr] lg:items-center">
+          <SectionIntro eyebrow={t("problem.eyebrow")} title={t("problem.title")} body={t("problem.body")} />
+          <div className="space-y-4">
+            {problemQuestions.map((question) => (
+              <div key={question} className="rounded-[28px] border border-white/[0.08] bg-black/28 p-5">
+                <p className="text-xl font-semibold tracking-normal text-white">{question}</p>
+              </div>
+            ))}
+            <p className="rounded-[28px] border border-[#f4c95d]/20 bg-[#f4c95d]/10 p-5 text-base leading-7 text-white/76">
+              {t("problem.answer")}
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, index) => {
-              const Icon = featureIcons[index] ?? CheckCircle2;
+        </div>
+      </LandingSection>
+
+      <LandingSection id="how-it-works" reduceMotion={reduceMotion}>
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="space-y-8">
+            <SectionIntro eyebrow={t("how.eyebrow")} title={t("how.title")} body={t("how.body")} />
+            <div className="space-y-4">
+              {steps.map((step, index) => (
+                <div key={step.title} className="grid grid-cols-[auto_1fr] gap-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold text-black">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/58">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <ProductImage src={entryFormImage} alt={t("images.entryAlt")} />
+        </div>
+      </LandingSection>
+
+      <LandingSection reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
+        <div className="space-y-10">
+          <div className="grid gap-6 lg:grid-cols-[0.78fr_1fr] lg:items-end">
+            <SectionIntro eyebrow={t("analytics.eyebrow")} title={t("analytics.title")} body={t("analytics.body")} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {analyticsItems.map((item) => (
+                <div key={item.title} className="rounded-[24px] border border-white/[0.08] bg-black/24 p-4">
+                  <h3 className="text-sm font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/54">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <ProductImage src={statisticsOverviewImage} alt={t("images.statisticsAlt")} className="mx-auto max-w-[620px]" />
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {analyticsImages.map((image) => (
+              <ProductImage
+                key={image.key}
+                src={image.src}
+                alt={t(`images.${image.key}Alt`)}
+                className="h-full"
+                imageClassName="h-full object-cover object-top"
+              />
+            ))}
+          </div>
+        </div>
+      </LandingSection>
+
+      <LandingSection reduceMotion={reduceMotion}>
+        <div className="space-y-8">
+          <SectionIntro eyebrow={t("workTypes.eyebrow")} title={t("workTypes.title")} body={t("workTypes.body")} />
+          <div className="grid gap-5 lg:grid-cols-3">
+            {workTypes.map((item, index) => {
+              const Icon = workTypeIcons[index] ?? BriefcaseBusiness;
               return (
-                <article key={feature.title} className="rounded-[24px] border border-white/[0.08] bg-black/24 p-5">
-                  <Icon className="mb-5 h-6 w-6 text-white" aria-hidden="true" />
-                  <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/58">{feature.description}</p>
+                <article key={item.title} className="rounded-[30px] border border-white/[0.08] bg-white/[0.045] p-6">
+                  <Icon className="mb-6 h-6 w-6 text-[#f4c95d]" aria-hidden="true" />
+                  <h3 className="text-xl font-semibold text-white">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-white/58">{item.description}</p>
+                  <p className="mt-5 rounded-2xl bg-black/22 px-4 py-3 text-sm text-white/64">{item.examples}</p>
                 </article>
               );
             })}
           </div>
         </div>
-      </section>
+      </LandingSection>
 
-      <section className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_0.82fr] lg:px-10">
-        <div className="space-y-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/42">
-            {t("examples.eyebrow")}
-          </p>
-          <h2 className="text-3xl font-semibold tracking-normal text-white sm:text-4xl">
-            {t("examples.title")}
-          </h2>
-          <div className="space-y-3">
-            {examples.map((example) => (
-              <div key={example} className="flex gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.045] p-4">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-white" aria-hidden="true" />
-                <p className="text-sm leading-6 text-white/64">{example}</p>
-              </div>
-            ))}
+      <LandingSection reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <ProductImage src={calendarImage} alt={t("images.calendarAlt")} />
+          <div className="space-y-7">
+            <SectionIntro eyebrow={t("calendar.eyebrow")} title={t("calendar.title")} body={t("calendar.body")} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {calendarStats.map((stat) => (
+                <div key={stat} className="rounded-[24px] border border-white/[0.08] bg-black/26 p-4">
+                  <p className="text-sm font-semibold text-white/76">{stat}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+      </LandingSection>
 
-        <div className="rounded-[28px] border border-white/[0.1] bg-white/[0.055] p-5">
-          <div className="mb-5 flex items-center gap-3">
-            <Gauge className="h-6 w-6 text-white" aria-hidden="true" />
-            <h3 className="text-xl font-semibold text-white">{t("calculations.title")}</h3>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            {calculations.map((item) => (
-              <div key={item} className="rounded-2xl border border-white/[0.08] bg-black/24 px-4 py-3">
-                <p className="text-sm leading-6 text-white/68">{item}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-5 text-sm leading-6 text-white/46">{t("calculations.note")}</p>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8 lg:px-10">
-        <div className="rounded-[32px] border border-white/[0.1] bg-white/[0.06] p-6 text-center sm:p-10">
-          <h2 className="mx-auto max-w-3xl text-3xl font-semibold tracking-normal text-white sm:text-4xl">
+      <LandingSection reduceMotion={reduceMotion} className="pb-20">
+        <div className="rounded-[36px] border border-white/[0.1] bg-white/[0.055] p-7 text-center shadow-[0_28px_90px_rgba(0,0,0,0.36)] sm:p-12">
+          <h2 className="mx-auto max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-normal text-white sm:text-5xl">
             {t("final.title")}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/62">
-            {t("final.subtitle")}
-          </p>
-          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/62 sm:text-lg">{t("final.subtitle")}</p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               to="/register"
-              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-soft transition hover:bg-white/90"
+              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#f4c95d] focus:outline-none focus:ring-2 focus:ring-[#f4c95d]/60"
             >
               {t("final.primaryCta")}
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               to="/login"
-              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.1]"
+              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-white/30"
             >
               {t("final.secondaryCta")}
             </Link>
           </div>
         </div>
-      </section>
+      </LandingSection>
     </main>
   );
 }
 
-function TourPanel({
-  item,
-  index,
-  t
+function LandingSection({
+  id,
+  children,
+  className = "",
+  reduceMotion
 }: {
-  item: TourCopy;
-  index: number;
-  t: (key: string) => string;
+  id?: string;
+  children: React.ReactNode;
+  className?: string;
+  reduceMotion: boolean | null;
 }) {
   return (
-    <article className="overflow-hidden rounded-[30px] border border-white/[0.09] bg-white/[0.045]">
-      <div className="border-b border-white/[0.08] p-5">
-        <p className="mb-2 text-sm font-semibold text-white/38">0{index + 1}</p>
-        <h3 className="text-xl font-semibold text-white">{item.title}</h3>
-        <p className="mt-3 text-sm leading-6 text-white/58">{item.description}</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {item.points.map((point) => (
-            <span
-              key={point}
-              className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5 text-xs font-medium text-white/58"
-            >
-              {point}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="bg-black/24 p-4">
-        {index === 0 ? <DashboardMock t={t} /> : null}
-        {index === 1 ? <RhythmMock t={t} /> : null}
-        {index === 2 ? <CalendarMock t={t} /> : null}
-        {index === 3 ? <SetupMock t={t} /> : null}
-      </div>
-    </article>
+    <motion.section
+      id={id}
+      initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-120px" }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+      className={className}
+    >
+      <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 lg:px-10 lg:py-24">{children}</div>
+    </motion.section>
   );
 }
 
-function DashboardMock({ t }: { t: (key: string) => string }) {
+function SectionIntro({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
   return (
-    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-white/48">{t("mock.summary")}</p>
-          <p className="mt-1 text-3xl font-semibold text-white">42h 15m</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-2 text-right text-black">
-          <p className="text-xs font-semibold">{t("mock.gross")}</p>
-          <p className="text-lg font-semibold">718 EUR</p>
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MiniMetric label={t("mock.entries")} value="11" />
-        <MiniMetric label={t("mock.days")} value="5" />
-        <MiniMetric label={t("mock.avgDay")} value="8h 27m" />
-      </div>
-      <div className="mt-4 space-y-2">
-        <MockRow title={t("mock.morningShift")} meta="08:00-16:30" value="136 EUR" />
-        <MockRow title={t("mock.unitWork")} meta={t("mock.unitMeta")} value="49 EUR" />
-      </div>
+    <div className="max-w-3xl space-y-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4c95d]/80">{eyebrow}</p>
+      <h2 className="text-balance text-3xl font-semibold leading-tight tracking-normal text-white sm:text-5xl">{title}</h2>
+      <p className="text-base leading-7 text-white/62 sm:text-lg">{body}</p>
     </div>
   );
 }
 
-function RhythmMock({ t }: { t: (key: string) => string }) {
-  const bars = [58, 76, 64, 92, 72, 28, 12];
-  const labels = t("mock.weekdays").split(",");
-
-  return (
-    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white/48">{t("mock.rhythm")}</p>
-          <p className="mt-1 text-xl font-semibold text-white">{t("mock.thisWeek")}</p>
-        </div>
-        <TrendingUp className="h-5 w-5 text-white/60" aria-hidden="true" />
-      </div>
-      <div className="flex h-40 items-end gap-2 rounded-2xl border border-white/[0.07] bg-black/20 p-3">
-        {bars.map((height, index) => (
-          <div key={height + index} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <div
-              className="w-full rounded-t-xl bg-white shadow-[0_0_22px_rgba(255,255,255,0.12)]"
-              style={{ height: `${height}%` }}
-            />
-            <span className="text-[10px] font-semibold text-white/38">
-              {labels[index]}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-sm leading-6 text-white/52">{t("mock.rhythmInsight")}</p>
-    </div>
-  );
-}
-
-function CalendarMock({ t }: { t: (key: string) => string }) {
-  const days = Array.from({ length: 28 }, (_, index) => index + 1);
-  const worked = new Set([1, 2, 3, 4, 5, 8, 9, 11, 12, 15, 16, 17, 18, 19]);
-  const absence = new Set([22, 23]);
-
-  return (
-    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white/48">{t("mock.calendar")}</p>
-          <p className="mt-1 text-xl font-semibold text-white">{t("mock.july")}</p>
-        </div>
-        <CalendarDays className="h-5 w-5 text-white/60" aria-hidden="true" />
-      </div>
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day) => (
-          <div
-            key={day}
-            className={[
-              "flex aspect-square items-center justify-center rounded-2xl text-sm font-semibold",
-              worked.has(day) ? "bg-white text-black" : "border border-white/[0.08] bg-black/20 text-white/42",
-              absence.has(day) ? "border-white/20 bg-white/[0.18] text-white" : ""
-            ].join(" ")}
-          >
-            {day}
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <MiniMetric label={t("mock.worked")} value={t("mock.workedValue")} />
-        <MiniMetric label={t("mock.absence")} value={t("mock.absenceValue")} />
-      </div>
-    </div>
-  );
-}
-
-function SetupMock({ t }: { t: (key: string) => string }) {
-  return (
-    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white/48">{t("mock.setup")}</p>
-          <p className="mt-1 text-xl font-semibold text-white">{t("mock.workTypes")}</p>
-        </div>
-        <Settings2 className="h-5 w-5 text-white/60" aria-hidden="true" />
-      </div>
-      <div className="space-y-3">
-        <MockRow title={t("mock.hourlyWork")} meta={t("mock.hourlyMeta")} value={t("mock.timeType")} />
-        <MockRow title={t("mock.deliveryOrders")} meta={t("mock.deliveryMeta")} value={t("mock.unitType")} />
-        <MockRow title={t("mock.vacation")} meta={t("mock.vacationMeta")} value={t("mock.absenceType")} />
-      </div>
-      <div className="mt-4 rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-        <p className="text-sm leading-6 text-white/54">{t("mock.setupNote")}</p>
-      </div>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-      <p className="text-xs text-white/42">{label}</p>
-      <p className="mt-1 text-base font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function MockRow({ title, meta, value }: { title: string; meta: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-white">{title}</p>
-        <p className="mt-1 truncate text-xs text-white/46">{meta}</p>
-      </div>
-      <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function ProductPreview({ t }: { t: (key: string) => string }) {
-  return (
-    <div className="mx-auto w-full max-w-5xl rounded-[34px] border border-white/[0.1] bg-white/[0.05] p-3 shadow-[0_32px_120px_rgba(0,0,0,0.44)] backdrop-blur-xl sm:p-4">
-      <div className="grid gap-4 rounded-[28px] border border-white/[0.08] bg-black/62 p-4 md:grid-cols-[0.96fr_1fr]">
-        <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-white/52">{t("preview.today")}</p>
-              <p className="text-3xl font-semibold text-white">8h 00m</p>
-            </div>
-            <div className="rounded-2xl bg-white px-3 py-2 text-right text-black">
-              <p className="text-xs font-medium">{t("preview.gross")}</p>
-              <p className="text-lg font-semibold">136 EUR</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <PreviewRow title={t("preview.timeEntryTitle")} meta={t("preview.timeEntryMeta")} value="8h" />
-            <PreviewRow title={t("preview.unitEntryTitle")} meta={t("preview.unitEntryMeta")} value="49 EUR" />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <MetricCard icon={Gauge} label={t("preview.dailyAverage")} value="7h 35m" />
-          <MetricCard icon={Coins} label={t("preview.monthTotal")} value="1.842 EUR" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PreviewRow({ title, meta, value }: { title: string; meta: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-black/22 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-medium text-white">{title}</p>
-          <p className="mt-1 truncate text-sm text-white/52">{meta}</p>
-        </div>
-        <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value
+function ProductImage({
+  src,
+  mobileSrc,
+  alt,
+  loading = "lazy",
+  className = "",
+  imageClassName = ""
 }: {
-  icon: typeof Gauge;
-  label: string;
-  value: string;
+  src: string;
+  mobileSrc?: string;
+  alt: string;
+  loading?: "eager" | "lazy";
+  className?: string;
+  imageClassName?: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.055] p-4">
-      <Icon className="mb-4 h-5 w-5 text-white/72" aria-hidden="true" />
-      <p className="text-sm text-white/54">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-white">{value}</p>
-    </div>
+    <figure className={`overflow-hidden rounded-[34px] border border-white/[0.1] bg-white/[0.045] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.42)] ${className}`}>
+      <picture>
+        {mobileSrc ? <source media="(max-width: 640px)" srcSet={mobileSrc} /> : null}
+        <img
+          src={src}
+          alt={alt}
+          loading={loading}
+          decoding={loading === "eager" ? "sync" : "async"}
+          className={`w-full rounded-[26px] ${imageClassName}`}
+        />
+      </picture>
+    </figure>
   );
 }

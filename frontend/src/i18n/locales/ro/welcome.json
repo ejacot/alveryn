@@ -1,160 +1,123 @@
 {
   "loading": "Se încarcă Alveryn...",
   "nav": {
-    "login": "Login",
-    "register": "Creează cont"
+    "features": "Funcții",
+    "how": "Cum funcționează",
+    "login": "Intră în cont",
+    "register": "Începe urmărirea"
   },
   "hero": {
-    "eyebrow": "Pentru lucru pe ore, pe unități și venit estimat",
-    "title": "Înțelege clar cât ai lucrat și cât ai câștigat.",
-    "subtitle": "Alveryn te ajută să notezi orele, lucrările pe bucată, tarifele și absențele. Apoi îți arată automat totaluri, statistici și comparații pe zile, săptămâni sau luni.",
-    "primaryCta": "Începe gratuit",
-    "secondaryCta": "Am deja cont"
-  },
-  "preview": {
-    "today": "Astăzi",
-    "gross": "Brut estimat",
-    "timeEntryTitle": "Schimb dimineața",
-    "timeEntryMeta": "08:00-16:30 · pauză 30m",
-    "unitEntryTitle": "Comenzi finalizate",
-    "unitEntryMeta": "14 unități · 3,50 EUR",
-    "dailyAverage": "Media zilnică",
-    "monthTotal": "Luna aceasta"
-  },
-  "tour": {
-    "eyebrow": "Ce vei vedea în aplicație",
-    "title": "Ecrane clare, cu explicații pentru decizii rapide.",
-    "subtitle": "Un utilizator nou trebuie să înțeleagă imediat ce primește. Alveryn arată munca pe zile, bani estimați, ritm, calendar și setări fără să ascundă informația în meniuri complicate.",
-    "items": [
-      {
-        "title": "Dashboard: ziua ta pe scurt",
-        "description": "Primul ecran îți arată orele lucrate, brutul estimat, media zilei și intrările recente.",
-        "points": ["totalul zilei", "intrări rapide", "venit estimat"]
-      },
-      {
-        "title": "Rhythm: vezi dacă ai un ritm constant",
-        "description": "Graficul de ritm arată cum se distribuie orele în săptămână și unde ai zile mai încărcate sau mai libere.",
-        "points": ["ore pe zi", "diferențe vizibile", "tendință săptămânală"]
-      },
-      {
-        "title": "Calendar: verifici fiecare zi",
-        "description": "Calendarul arată zilele lucrate, zilele fără activitate și absențele, ca să observi rapid ce lipsește.",
-        "points": ["zile lucrate", "absențe", "detalii pe zi"]
-      },
-      {
-        "title": "Setări: adaptezi aplicația la munca ta",
-        "description": "Definești tipurile de lucru, tarifele, unitățile și preferințele. Asta face calculele relevante pentru situația ta.",
-        "points": ["tarife", "lucru pe unități", "monedă și program"]
-      }
+    "eyebrow": "Claritate pentru munca reală, nu doar pontaj",
+    "title": "Știi câte ore ai lucrat. Înțelegi cât ai câștigat.",
+    "subtitle": "Alveryn transformă fiecare tură, task și unitate finalizată într-o imagine clară a timpului, venitului și progresului tău.",
+    "primaryCta": "Începe urmărirea",
+    "secondaryCta": "Vezi cum funcționează",
+    "benefits": [
+      "Fără tabele",
+      "Calcule automate",
+      "Construit pentru muncă reală"
     ]
   },
-  "mock": {
-    "summary": "Rezumat",
-    "gross": "Brut",
-    "entries": "Intrări",
-    "days": "Zile",
-    "avgDay": "Medie/zi",
-    "morningShift": "Schimb dimineața",
-    "unitWork": "Lucru pe unități",
-    "unitMeta": "14 unități finalizate",
-    "rhythm": "Ritm de lucru",
-    "thisWeek": "Săptămâna aceasta",
-    "weekdays": "L,M,M,J,V,S,D",
-    "rhythmInsight": "Vinerea este cea mai încărcată zi. În weekend ai lucrat mai puțin.",
-    "calendar": "Calendar",
-    "july": "Iulie",
-    "worked": "Lucrate",
-    "workedValue": "14 zile",
-    "absence": "Absențe",
-    "absenceValue": "2 zile",
-    "setup": "Configurare",
-    "workTypes": "Tipurile tale de lucru",
-    "hourlyWork": "Lucru pe ore",
-    "hourlyMeta": "17 EUR/oră · reguli pentru pauze plătite",
-    "deliveryOrders": "Comenzi livrate",
-    "deliveryMeta": "3,50 EUR/unitate · 8 min/unitate",
-    "vacation": "Concediu",
-    "vacationMeta": "absență plătită · 8h/zi",
-    "timeType": "Timp",
-    "unitType": "Unitate",
-    "absenceType": "Absență",
-    "setupNote": "Schimbi tariful o singură dată. Intrările vechi păstrează calculul lor."
-  },
-  "steps": {
-    "eyebrow": "Cum funcționează",
-    "title": "Începi cu lucrurile pe care le știi deja.",
-    "items": [
-      {
-        "title": "Setezi profilul și tariful",
-        "description": "Alegi moneda, programul preferat și tariful orar sau regulile de calcul pe care le folosești."
-      },
-      {
-        "title": "Adaugi munca zilnică",
-        "description": "Scrii orele lucrate, pauza sau câte unități ai făcut: comenzi, curse, camere, produse sau orice alt tip de lucru."
-      },
-      {
-        "title": "Verifici rezultatele",
-        "description": "Vezi totaluri, estimări de brut, zile lucrate, medii și comparații între perioade."
-      }
-    ]
-  },
-  "features": {
-    "eyebrow": "Ce primești",
-    "title": "O aplicație simplă pentru evidența muncii tale.",
-    "subtitle": "Nu trebuie să ții minte formule sau să faci tabele. Alveryn păstrează istoricul și calculează consecvent.",
-    "items": [
-      {
-        "title": "Pontaj pe ore",
-        "description": "Introduci începutul, finalul și pauza. Aplicația calculează minutele și orele lucrate."
-      },
-      {
-        "title": "Lucru pe unități",
-        "description": "Pentru activități plătite pe bucată, notezi cantitatea și valoarea fiecărei unități."
-      },
-      {
-        "title": "Tarife și perioade",
-        "description": "Când tariful se schimbă, intrările vechi rămân calculate cu tariful corect din acea perioadă."
-      },
-      {
-        "title": "Calendar și absențe",
-        "description": "Vezi zilele lucrate, zilele libere și absențele plătite într-un calendar ușor de verificat."
-      },
-      {
-        "title": "Statistici clare",
-        "description": "Urmărești ore, brut estimat, zile lucrate, medii și diferențe între două perioade."
-      },
-      {
-        "title": "Instalabil pe telefon",
-        "description": "Îl poți folosi rapid de pe telefon și îl poți adăuga pe ecran ca aplicație web."
-      }
-    ]
-  },
-  "examples": {
-    "eyebrow": "Exemple rapide",
-    "title": "Ce poate calcula pentru tine",
-    "items": [
-      "Dacă ai lucrat 08:00-16:30 cu 30 de minute pauză, Alveryn notează 8 ore lucrate.",
-      "Dacă ai făcut 14 unități la 3,50 EUR, vezi imediat totalul pentru acel tip de lucru.",
-      "Dacă schimbi tariful luna viitoare, istoricul rămâne calculat cu tarifele vechi.",
-      "Dacă vrei să compari două săptămâni, statisticile îți arată diferența pe zile."
-    ]
-  },
-  "calculations": {
-    "title": "Alveryn poate urmări",
-    "items": [
-      "ore și minute lucrate",
-      "venit brut estimat",
-      "total pe zi, săptămână sau lună",
-      "lucru pe unități",
-      "absențe plătite",
-      "comparații între perioade"
+  "problem": {
+    "eyebrow": "Problema",
+    "title": "Ziua de muncă se termină. Întrebările rămân.",
+    "body": "Când munca se schimbă de la o zi la alta, notițele aproximative nu sunt suficiente. Alveryn păstrează răspunsurile utile la îndemână.",
+    "questions": [
+      "Câte ore am lucrat de fapt?",
+      "Cât am câștigat până acum?",
+      "Lucrez mai mult decât luna trecută?"
     ],
-    "note": "Rezultatele sunt estimări pentru organizarea personală. Pentru plata finală contează contractul, fluturașul de salariu și regulile angajatorului."
+    "answer": "Alveryn păstrează răspunsurile pregătite — fără notițe, tabele sau calcule la final de lună."
+  },
+  "how": {
+    "eyebrow": "Cum funcționează",
+    "title": "Notezi munca. Alveryn se ocupă de numere.",
+    "body": "Adaugi munca exact cum s-a întâmplat. Alveryn calculează timpul, venitul brut estimat, absențele plătite și progresul din datele introduse.",
+    "steps": [
+      {
+        "title": "Selectezi tipul muncii",
+        "description": "Alegi o tură pe ore, lucru pe unități sau alt tip de muncă configurat."
+      },
+      {
+        "title": "Introduci orele sau unitățile",
+        "description": "Adaugi început, final, pauză, spor procentual sau unități finalizate."
+      },
+      {
+        "title": "Vezi rezultatul imediat",
+        "description": "Aplicația calculează timpul lucrat, venitul brut estimat și progresul față de ritmul tău."
+      }
+    ]
+  },
+  "analytics": {
+    "eyebrow": "Analiză",
+    "title": "Vezi mai mult decât totaluri. Vezi tiparul muncii tale.",
+    "body": "Statisticile transformă intrările zilnice în trenduri, comparații, forecast și highlights utile.",
+    "items": [
+      {
+        "title": "Trenduri",
+        "description": "Urmărești timpul lucrat, venitul brut, intrările și zilele lucrate pe perioada aleasă."
+      },
+      {
+        "title": "Comparații între perioade",
+        "description": "Compari luna curentă cu luna trecută sau alegi perioade personalizate."
+      },
+      {
+        "title": "Forecast și highlights",
+        "description": "Estimezi finalul perioadei active și vezi cele mai bune zile, ture lungi și serii."
+      },
+      {
+        "title": "Productivitate și heatmap",
+        "description": "Vezi volumul muncii pe unități, ritmul configurat și zilele cu activitate puternică."
+      }
+    ]
+  },
+  "workTypes": {
+    "eyebrow": "Urmărire flexibilă",
+    "title": "Făcut pentru modul în care lucrezi cu adevărat.",
+    "body": "Alveryn suportă muncă pe ore, muncă pe unități și zile mixte, ca istoricul să reflecte realitatea.",
+    "items": [
+      {
+        "title": "Muncă pe ore",
+        "description": "Urmărești ture, pauze, lucru peste miezul nopții și sporuri procentuale.",
+        "examples": "Exemple: ture normale, timp administrativ, suport de noapte."
+      },
+      {
+        "title": "Muncă pe unități",
+        "description": "Urmărești cantități care se transformă în timp de lucru echivalent.",
+        "examples": "Exemple: livrări, camere, comenzi, pachete sau task-uri finalizate."
+      },
+      {
+        "title": "Muncă mixtă",
+        "description": "Combini mai multe tipuri de muncă în aceeași zi și păstrezi totalul clar.",
+        "examples": "Exemple: o tură, apoi admin seara, plus unități finalizate."
+      }
+    ]
+  },
+  "calendar": {
+    "eyebrow": "Calendar și absențe",
+    "title": "Toată luna ta de muncă, într-un singur loc.",
+    "body": "Calendarul arată zile lucrate, zile goale și absențe împreună cu totaluri lunare pentru ore, timp plătit și venit brut.",
+    "stats": [
+      "Zile lucrate",
+      "Ore lucrate",
+      "Concediu și medical",
+      "Venit brut estimat"
+    ]
   },
   "final": {
-    "title": "Dacă vrei ordine în ore, tarife și venituri, începe cu prima înregistrare.",
-    "subtitle": "Creezi contul, setezi tariful și adaugi tipurile de lucru pe care le folosești zi de zi.",
+    "title": "Munca ta merită mai mult decât o estimare aproximativă.",
+    "subtitle": "Începe azi să construiești un istoric clar al orelor, veniturilor și progresului tău.",
     "primaryCta": "Creează cont",
     "secondaryCta": "Intră în cont"
+  },
+  "images": {
+    "dashboardAlt": "Dashboard Alveryn cu intrări urmărite, venit brut și ritm săptămânal.",
+    "entryAlt": "Formular Alveryn pentru adăugare intrare cu tip de muncă, ore, pauză și spor.",
+    "statisticsAlt": "Pagina de statistici Alveryn cu trend, insights, forecast, comparație, productivitate și heatmap.",
+    "comparisonAlt": "Secțiunea Alveryn de comparație între luna curentă și luna precedentă.",
+    "forecastAlt": "Card Alveryn de forecast pentru venitul estimat la finalul perioadei.",
+    "productivityAlt": "Card Alveryn de productivitate cu totaluri pe unități și timp echivalent.",
+    "heatmapAlt": "Heatmap Alveryn cu zile de lucru mai intense și mai ușoare.",
+    "calendarAlt": "Calendar Alveryn cu luna de lucru, activitate și marcaje pentru absențe."
   }
 }

@@ -1,160 +1,123 @@
 {
   "loading": "Alveryn wird geladen...",
   "nav": {
-    "login": "Login",
-    "register": "Konto erstellen"
+    "features": "Funktionen",
+    "how": "So funktioniert es",
+    "login": "Einloggen",
+    "register": "Tracking starten"
   },
   "hero": {
-    "eyebrow": "Für Stundenarbeit, Stückarbeit und geschätztes Einkommen",
-    "title": "Verstehe klar, wie viel du gearbeitet und verdient hast.",
-    "subtitle": "Alveryn hilft dir, Stunden, mengenbasierte Arbeit, Tarife und Abwesenheiten zu erfassen. Danach siehst du Summen, Statistiken und Vergleiche nach Tag, Woche oder Monat.",
-    "primaryCta": "Kostenlos starten",
-    "secondaryCta": "Ich habe ein Konto"
-  },
-  "preview": {
-    "today": "Heute",
-    "gross": "Geschätztes Brutto",
-    "timeEntryTitle": "Frühschicht",
-    "timeEntryMeta": "08:00-16:30 · 30 Min. Pause",
-    "unitEntryTitle": "Erledigte Aufträge",
-    "unitEntryMeta": "14 Einheiten · 3,50 EUR",
-    "dailyAverage": "Tagesdurchschnitt",
-    "monthTotal": "Dieser Monat"
-  },
-  "tour": {
-    "eyebrow": "Was du in der App siehst",
-    "title": "Klare Screens mit Erklärungen für schnelle Entscheidungen.",
-    "subtitle": "Neue Nutzer sollen den Nutzen sofort verstehen. Alveryn zeigt tägliche Arbeit, geschätztes Einkommen, Rhythmus, Kalender und Einrichtung, ohne Informationen in komplizierten Menüs zu verstecken.",
-    "items": [
-      {
-        "title": "Dashboard: dein Tag auf einen Blick",
-        "description": "Der erste Screen zeigt Arbeitsstunden, geschätztes Brutto, Tagesdurchschnitt und letzte Einträge.",
-        "points": ["Tagessumme", "schnelle Einträge", "geschätztes Einkommen"]
-      },
-      {
-        "title": "Rhythmus: sieh, ob du konstant arbeitest",
-        "description": "Das Rhythmusdiagramm zeigt, wie sich deine Stunden über die Woche verteilen und welche Tage stärker oder ruhiger sind.",
-        "points": ["Stunden pro Tag", "sichtbare Unterschiede", "Wochentrend"]
-      },
-      {
-        "title": "Kalender: jeden Tag prüfen",
-        "description": "Der Kalender zeigt Arbeitstage, Tage ohne Aktivität und Abwesenheiten, damit fehlende Daten schnell auffallen.",
-        "points": ["Arbeitstage", "Abwesenheiten", "Tagesdetails"]
-      },
-      {
-        "title": "Einstellungen: an deine Arbeit anpassen",
-        "description": "Definiere Arbeitstypen, Tarife, Einheiten und Vorlieben. So passen die Berechnungen zu deiner Situation.",
-        "points": ["Tarife", "Stückarbeit", "Währung und Plan"]
-      }
+    "eyebrow": "Klarheit für echte Arbeit, nicht nur Zeiterfassung",
+    "title": "Kenne deine Stunden. Verstehe dein Einkommen.",
+    "subtitle": "Alveryn verwandelt jede Schicht, Aufgabe und erledigte Einheit in ein klares Bild deiner Zeit, deines Einkommens und deines Fortschritts.",
+    "primaryCta": "Tracking starten",
+    "secondaryCta": "So funktioniert es",
+    "benefits": [
+      "Keine Tabellen",
+      "Automatische Berechnungen",
+      "Für echte Arbeit gebaut"
     ]
   },
-  "mock": {
-    "summary": "Übersicht",
-    "gross": "Brutto",
-    "entries": "Einträge",
-    "days": "Tage",
-    "avgDay": "Ø/Tag",
-    "morningShift": "Frühschicht",
-    "unitWork": "Stückarbeit",
-    "unitMeta": "14 Einheiten erledigt",
-    "rhythm": "Arbeitsrhythmus",
-    "thisWeek": "Diese Woche",
-    "weekdays": "M,D,M,D,F,S,S",
-    "rhythmInsight": "Freitag ist dein stärkster Tag. Am Wochenende ist die Arbeit niedrig.",
-    "calendar": "Kalender",
-    "july": "Juli",
-    "worked": "Gearbeitet",
-    "workedValue": "14 Tage",
-    "absence": "Abwesenheit",
-    "absenceValue": "2 Tage",
-    "setup": "Einrichtung",
-    "workTypes": "Deine Arbeitstypen",
-    "hourlyWork": "Stundenarbeit",
-    "hourlyMeta": "17 EUR/Stunde · Regeln für bezahlte Pausen",
-    "deliveryOrders": "Lieferaufträge",
-    "deliveryMeta": "3,50 EUR/Einheit · 8 Min./Einheit",
-    "vacation": "Urlaub",
-    "vacationMeta": "bezahlte Abwesenheit · 8h/Tag",
-    "timeType": "Zeit",
-    "unitType": "Einheit",
-    "absenceType": "Abwesend",
-    "setupNote": "Ändere Tarife einmal. Alte Einträge behalten ihre alte Berechnung."
+  "problem": {
+    "eyebrow": "Das Problem",
+    "title": "Der Arbeitstag endet. Die Fragen bleiben.",
+    "body": "Wenn deine Arbeit von Tag zu Tag anders aussieht, reichen grobe Notizen nicht aus. Alveryn hält die wichtigen Antworten bereit.",
+    "questions": [
+      "Wie viele Stunden habe ich wirklich gearbeitet?",
+      "Wie viel habe ich bisher verdient?",
+      "Arbeite ich mehr als letzten Monat?"
+    ],
+    "answer": "Alveryn hält die Antworten bereit — ohne Notizen, Tabellen oder Rechnungen am Monatsende."
   },
-  "steps": {
+  "how": {
     "eyebrow": "So funktioniert es",
-    "title": "Beginne mit den Dingen, die du schon kennst.",
-    "items": [
+    "title": "Arbeit eintragen. Alveryn rechnet.",
+    "body": "Du erfasst die Arbeit so, wie sie passiert ist. Alveryn berechnet daraus Zeit, geschätztes Brutto, bezahlte Abwesenheiten und Fortschritt.",
+    "steps": [
       {
-        "title": "Profil und Tarif festlegen",
-        "description": "Wähle Währung, bevorzugten Arbeitsrhythmus, Stundensatz oder die Berechnungsregeln, die du nutzt."
+        "title": "Arbeitstyp auswählen",
+        "description": "Wähle eine Stundenschicht, mengenbasierte Arbeit oder einen anderen konfigurierten Arbeitstyp."
       },
       {
-        "title": "Tägliche Arbeit eintragen",
-        "description": "Trage Arbeitszeiten, Pausen oder erledigte Einheiten ein: Aufträge, Fahrten, Zimmer, Produkte oder andere Arbeitstypen."
+        "title": "Stunden oder Einheiten eintragen",
+        "description": "Füge Start, Ende, Pause, Zuschlag oder erledigte Einheiten hinzu."
       },
       {
-        "title": "Ergebnisse prüfen",
-        "description": "Sieh Summen, geschätztes Brutto, Arbeitstage, Durchschnitte und Vergleiche zwischen Zeiträumen."
+        "title": "Ergebnis sofort sehen",
+        "description": "Die App berechnet Arbeitszeit, geschätztes Brutto und Fortschritt zu deinem Rhythmus."
       }
     ]
   },
-  "features": {
-    "eyebrow": "Was du bekommst",
-    "title": "Eine einfache App für deine Arbeitsübersicht.",
-    "subtitle": "Du musst keine Formeln merken und keine Tabellen pflegen. Alveryn speichert den Verlauf und rechnet konsistent.",
+  "analytics": {
+    "eyebrow": "Analyse",
+    "title": "Sieh mehr als Summen. Sieh dein Muster.",
+    "body": "Statistiken machen aus täglichen Einträgen Trends, Vergleiche, Forecasts und praktische Highlights.",
     "items": [
       {
-        "title": "Zeiterfassung",
-        "description": "Du gibst Start, Ende und Pause ein. Die App berechnet Arbeitsminuten und Stunden."
+        "title": "Trends",
+        "description": "Verfolge Arbeitszeit, Brutto, Einträge und Arbeitstage im gewählten Zeitraum."
+      },
+      {
+        "title": "Perioden vergleichen",
+        "description": "Vergleiche diesen Monat mit dem letzten Monat oder nutze eigene Zeiträume."
+      },
+      {
+        "title": "Forecast und Highlights",
+        "description": "Schätze das Ende der aktiven Periode und erkenne beste Tage, lange Schichten und Serien."
+      },
+      {
+        "title": "Produktivität und Heatmap",
+        "description": "Sieh mengenbasierte Arbeit, konfiguriertes Tempo und Tage mit hoher Aktivität."
+      }
+    ]
+  },
+  "workTypes": {
+    "eyebrow": "Flexibles Tracking",
+    "title": "Gemacht für die Art, wie du wirklich arbeitest.",
+    "body": "Alveryn unterstützt Stundenarbeit, mengenbasierte Arbeit und gemischte Tage, damit dein Verlauf zur Realität passt.",
+    "items": [
+      {
+        "title": "Stundenarbeit",
+        "description": "Erfasse Schichten, Pausen, Arbeit über Mitternacht und prozentuale Zuschläge.",
+        "examples": "Beispiele: normale Schichten, Admin-Zeit, Nachtsupport."
       },
       {
         "title": "Mengenbasierte Arbeit",
-        "description": "Für Arbeit pro Stück erfasst du Menge und Wert jeder Einheit."
+        "description": "Erfasse Mengen, die in äquivalente Arbeitszeit umgerechnet werden.",
+        "examples": "Beispiele: Lieferungen, Zimmer, Bestellungen, Pakete oder erledigte Aufgaben."
       },
       {
-        "title": "Tarife und Zeiträume",
-        "description": "Wenn sich dein Tarif ändert, bleiben alte Einträge mit dem richtigen Tarif aus diesem Zeitraum berechnet."
-      },
-      {
-        "title": "Kalender und Abwesenheiten",
-        "description": "Sieh Arbeitstage, freie Tage und bezahlte Abwesenheiten in einem leicht prüfbaren Kalender."
-      },
-      {
-        "title": "Klare Statistiken",
-        "description": "Verfolge Stunden, geschätztes Brutto, Arbeitstage, Durchschnitte und Unterschiede zwischen zwei Zeiträumen."
-      },
-      {
-        "title": "Auf dem Telefon installierbar",
-        "description": "Nutze Alveryn schnell am Telefon und füge es als Web-App zum Startbildschirm hinzu."
+        "title": "Gemischte Arbeit",
+        "description": "Kombiniere mehrere Arbeitstypen am selben Tag und behalte die Summe im Blick.",
+        "examples": "Beispiele: eine Schicht, danach Admin am Abend plus erledigte Einheiten."
       }
     ]
   },
-  "examples": {
-    "eyebrow": "Kurze Beispiele",
-    "title": "Was Alveryn für dich berechnen kann",
-    "items": [
-      "Wenn du 08:00-16:30 mit 30 Minuten Pause gearbeitet hast, erfasst Alveryn 8 Arbeitsstunden.",
-      "Wenn du 14 Einheiten zu je 3,50 EUR erledigt hast, siehst du sofort die Summe für diesen Arbeitstyp.",
-      "Wenn sich dein Tarif nächsten Monat ändert, bleibt die Vergangenheit mit den alten Tarifen berechnet.",
-      "Wenn du zwei Wochen vergleichen willst, zeigen die Statistiken den Unterschied pro Tag."
+  "calendar": {
+    "eyebrow": "Kalender und Abwesenheiten",
+    "title": "Dein ganzer Arbeitsmonat an einem Ort.",
+    "body": "Der Kalender zeigt Arbeitstage, leere Tage und Abwesenheiten zusammen mit Monatssummen für Stunden, bezahlte Zeit und Brutto.",
+    "stats": [
+      "Arbeitstage",
+      "Arbeitsstunden",
+      "Urlaub und Krankheit",
+      "Geschätztes Brutto"
     ]
   },
-  "calculations": {
-    "title": "Alveryn kann erfassen",
-    "items": [
-      "Arbeitsstunden und Minuten",
-      "geschätztes Bruttoeinkommen",
-      "Summen pro Tag, Woche oder Monat",
-      "mengenbasierte Arbeit",
-      "bezahlte Abwesenheiten",
-      "Vergleiche zwischen Zeiträumen"
-    ],
-    "note": "Die Ergebnisse sind Schätzungen für deine persönliche Organisation. Für die endgültige Zahlung zählen Vertrag, Gehaltsabrechnung und Regeln des Arbeitgebers."
-  },
   "final": {
-    "title": "Wenn du Ordnung in Stunden, Tarife und Einkommen bringen willst, beginne mit dem ersten Eintrag.",
-    "subtitle": "Erstelle dein Konto, setze deinen Tarif und füge die Arbeitstypen hinzu, die du täglich nutzt.",
+    "title": "Deine Arbeit verdient mehr als eine grobe Schätzung.",
+    "subtitle": "Beginne heute mit einem klaren Verlauf deiner Stunden, deines Einkommens und deines Fortschritts.",
     "primaryCta": "Konto erstellen",
     "secondaryCta": "Einloggen"
+  },
+  "images": {
+    "dashboardAlt": "Alveryn Dashboard mit erfassten Einträgen, Bruttoeinkommen und Wochenrhythmus.",
+    "entryAlt": "Alveryn Formular mit Arbeitstyp, Zeiten, Pause und Zuschlag.",
+    "statisticsAlt": "Alveryn Statistikseite mit Trend, Insights, Forecast, Vergleich, Produktivität und Heatmap.",
+    "comparisonAlt": "Alveryn Vergleich zwischen aktuellem und vorherigem Monat.",
+    "forecastAlt": "Alveryn Forecast-Karte mit geschätztem Einkommen am Periodenende.",
+    "productivityAlt": "Alveryn Produktivitätskarte mit Einheiten und äquivalenter Arbeitslast.",
+    "heatmapAlt": "Alveryn Aktivitäts-Heatmap mit stärkeren und leichteren Arbeitstagen.",
+    "calendarAlt": "Alveryn Kalender mit Arbeitsmonat, Aktivität und Abwesenheitsmarkierungen."
   }
 }
