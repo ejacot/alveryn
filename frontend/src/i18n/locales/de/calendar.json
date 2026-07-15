@@ -30,5 +30,6 @@
   },
   "emptyDay": "Keine Aktivitäten.",
   "equivalentWorked": "Entsprechende Arbeitszeit {{duration}}",
+  "directUnitPay": "Direkte Zahlung pro Einheit",
   "addEntryForDay": "Eintrag für diesen Tag hinzufügen"
 }

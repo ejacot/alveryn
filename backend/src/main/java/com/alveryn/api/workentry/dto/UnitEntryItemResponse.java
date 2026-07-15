@@ -7,7 +7,11 @@ public record UnitEntryItemResponse(
     UUID id,
     UUID unitTypeId,
     String unitName,
+    String unitSymbol,
     BigDecimal quantity,
     Integer displayOrder,
     BigDecimal unitsPerHourSnapshot,
-    BigDecimal calculatedMinutes) {}
+    BigDecimal calculatedMinutes,
+    BigDecimal ratePerUnitSnapshot,
+    String currencySnapshot,
+    BigDecimal grossAmountSnapshot) {}

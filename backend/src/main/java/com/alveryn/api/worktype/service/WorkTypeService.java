@@ -10,6 +10,7 @@ import com.alveryn.api.worktype.dto.CreateWorkTypeRequest;
 import com.alveryn.api.worktype.dto.UpdateWorkTypeRequest;
 import com.alveryn.api.worktype.dto.WorkTypeResponse;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.mapper.WorkTypeMapper;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
@@ -46,7 +47,8 @@ public class WorkTypeService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     var user =
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
-    var entity = new WorkType(user, dto.name(), dto.calculationMethod());
+    CompensationMethod compensationMethod = resolveCompensationMethod(dto.compensationMethod());
+    var entity = new WorkType(user, dto.name(), dto.calculationMethod(), compensationMethod);
     if (repository.existsByUserIdAndNormalizedName(userId, entity.getNormalizedName()))
       throw workTypeNameExists();
     applyCreateDefaults(entity, userId, dto);
@@ -101,6 +103,7 @@ public class WorkTypeService {
 
   private void applyUpdate(WorkType e, UpdateWorkTypeRequest d) {
     e.changeCalculationMethod(d.calculationMethod());
+    e.changeCompensationMethod(resolveCompensationMethod(d.compensationMethod()));
     if (d.color() != null) {
       e.changeColor(d.color());
     }
@@ -125,6 +128,10 @@ public class WorkTypeService {
       return requested;
     }
     return preferences.findByUserId(userId).map(pref -> pref.getDefaultBreakMinutes()).orElse(30);
+  }
+
+  private CompensationMethod resolveCompensationMethod(CompensationMethod value) {
+    return value == null ? CompensationMethod.HOURLY : value;
   }
 
   private ConflictException workTypeNameExists() {

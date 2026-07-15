@@ -26,6 +26,7 @@ import { Textarea } from "../components/ui/textarea";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { formatLocalIsoDate } from "../utils/date";
 import { parseDecimalInput } from "../utils/decimal-input";
+import { formatCurrency } from "../utils/format";
 import {
   calculateTimeEntryMinutes,
   workTypeIsTimeBased,
@@ -95,6 +96,8 @@ export function WorkEntryEditorPage() {
     name: "unitItems"
   });
   const watchedStartTime = useWatch({ control: form.control, name: "startTime" });
+  const watchedUnitItemsValue = useWatch({ control: form.control, name: "unitItems" });
+  const watchedUnitItems = useMemo(() => watchedUnitItemsValue ?? [], [watchedUnitItemsValue]);
 
   const workTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -128,6 +131,57 @@ export function WorkEntryEditorPage() {
         .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)),
     [unitTypesQuery.data]
   );
+  const unitTypesForRows = useMemo(() => {
+    if (!isEditing || (selectedWorkType?.compensationMethod ?? "HOURLY") !== "PER_UNIT" || !entryQuery.data) {
+      return activeUnitTypes;
+    }
+
+    return activeUnitTypes.map((unitType) => {
+      const snapshot = entryQuery.data.unitItems.find((item) => item.unitTypeId === unitType.id);
+      if (!snapshot) {
+        return unitType;
+      }
+
+      return {
+        ...unitType,
+        symbol: snapshot.unitSymbol ?? unitType.symbol,
+        ratePerUnit: snapshot.ratePerUnitSnapshot ?? unitType.ratePerUnit,
+        currency: snapshot.currencySnapshot ?? unitType.currency
+      };
+    });
+  }, [activeUnitTypes, entryQuery.data, isEditing, selectedWorkType?.compensationMethod]);
+  const perUnitPreview = useMemo(() => {
+    if ((selectedWorkType?.compensationMethod ?? "HOURLY") !== "PER_UNIT") {
+      return null;
+    }
+    const rows = unitTypesForRows
+      .map((unitType, index) => {
+        const quantity = parseDecimalInput(watchedUnitItems[index]?.quantity ?? 0);
+        const rate = Number(unitType.ratePerUnit ?? NaN);
+        if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(rate) || !unitType.currency) {
+          return null;
+        }
+        return {
+          id: unitType.id,
+          label: `${quantity}${unitType.symbol ? ` ${unitType.symbol}` : ""} × ${unitType.ratePerUnit} ${unitType.currency}/${unitType.symbol ?? unitType.name}`,
+          amount: quantity * rate,
+          currency: unitType.currency
+        };
+      })
+      .filter(Boolean) as Array<{ id: string; label: string; amount: number; currency: string }>;
+    if (!rows.length) {
+      return null;
+    }
+    const currencies = new Set(rows.map((row) => row.currency));
+    if (currencies.size > 1) {
+      return null;
+    }
+    return {
+      rows,
+      currency: rows[0].currency,
+      total: rows.reduce((sum, row) => sum + row.amount, 0)
+    };
+  }, [selectedWorkType?.compensationMethod, unitTypesForRows, watchedUnitItems]);
 
   useEffect(() => {
     if (!entryQuery.data) {
@@ -498,14 +552,39 @@ export function WorkEntryEditorPage() {
               <>
                 <UnitItemRows
                   fields={unitItemFields}
-                  unitTypes={activeUnitTypes}
+                  unitTypes={unitTypesForRows}
                   register={form.register}
                   unitFallbackLabel={t("entries:unitRows.fallbackUnit")}
                   quantityLabel={t("entries:unitRows.quantity")}
+                  compensationMethod={selectedWorkType.compensationMethod ?? "HOURLY"}
+                  values={watchedUnitItems}
                   errors={form.formState.errors.unitItems as Array<
                     { unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined
                   >}
                 />
+                {perUnitPreview ? (
+                  <div className="dashboard-glass-card mx-auto w-[80%] min-w-[15.5rem] max-w-full px-5 py-4">
+                    <p className="hairline-text">{t("entries:summary.grossAmount")}</p>
+                    <div className="mt-3 space-y-2">
+                      {perUnitPreview.rows.map((row) => (
+                        <div key={row.id} className="flex items-center justify-between gap-4 text-sm text-white/58">
+                          <span className="min-w-0 truncate">{row.label}</span>
+                          <span className="shrink-0 font-semibold text-white/80">
+                            {formatCurrency(String(row.amount), row.currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-white/[0.08] pt-3">
+                      <span className="text-sm font-semibold text-white/60">
+                        {t("entries:unitRows.totalGross")}
+                      </span>
+                      <span className="text-lg font-semibold text-white">
+                        {formatCurrency(String(perUnitPreview.total), perUnitPreview.currency)}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
               </>
             ) : (
               <div className="surface-muted space-y-4 p-5">
@@ -530,7 +609,7 @@ export function WorkEntryEditorPage() {
           </section>
         ) : null}
 
-        {selectedWorkType ? (
+        {selectedWorkType && (selectedWorkType.compensationMethod ?? "HOURLY") !== "PER_UNIT" ? (
           <section>
             <Input
               label={t("entries:fields.extraPay")}
@@ -648,7 +727,7 @@ export function buildWorkEntryPayload(
 
   return {
     ...payload,
-    extraPayPercentage,
+    extraPayPercentage: (workType.compensationMethod ?? "HOURLY") === "PER_UNIT" ? 0 : extraPayPercentage,
     unitItems: toPositiveUnitPayloadRows(values.unitItems)
   };
 }

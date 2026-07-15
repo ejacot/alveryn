@@ -51,7 +51,8 @@
   "unitRows": {
     "fallbackUnit": "Unitate",
     "quantity": "Unitati",
-    "perHour": "{{value}} pe ora"
+    "perHour": "{{value}} pe ora",
+    "totalGross": "Total brut"
   },
   "validation": {
     "dateRequired": "Data este obligatorie",

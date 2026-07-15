@@ -10,5 +10,8 @@ public record UnitTypeResponse(
     UUID workTypeId,
     String name,
     BigDecimal unitsPerHour,
+    String symbol,
+    BigDecimal ratePerUnit,
+    String currency,
     int displayOrder,
     boolean active) {}

@@ -71,13 +71,17 @@ export function CalendarSelectedDayPanel({
                     items={entry.unitItems.map((item) => ({
                       id: item.id,
                       label: item.unitName,
-                      quantity: Number(item.quantity).toLocaleString(),
+                      quantity: item.unitSymbol
+                        ? `${Number(item.quantity).toLocaleString()} ${item.unitSymbol}`
+                        : Number(item.quantity).toLocaleString(),
                       displayOrder: item.displayOrder
                     }))}
                   />
                 ) : null}
                 <p className="mt-3 text-sm text-white/40">
-                  {entry.calculationMethod === "UNIT_BASED"
+                  {(entry.compensationMethod ?? "HOURLY") === "PER_UNIT"
+                    ? t("directUnitPay")
+                    : entry.calculationMethod === "UNIT_BASED"
                     ? t("equivalentWorked", {
                         duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
                       })

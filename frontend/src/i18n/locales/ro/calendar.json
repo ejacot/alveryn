@@ -30,5 +30,6 @@
   },
   "emptyDay": "Nicio activitate.",
   "equivalentWorked": "Timp echivalent lucrat {{duration}}",
+  "directUnitPay": "Plata directa per unitate",
   "addEntryForDay": "Adaugă o intrare pentru această zi"
 }

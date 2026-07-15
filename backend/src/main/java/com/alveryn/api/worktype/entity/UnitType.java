@@ -39,6 +39,15 @@ public class UnitType extends BaseEntity {
   @Column(name = "units_per_hour", nullable = false, precision = 10, scale = 4)
   private BigDecimal unitsPerHour;
 
+  @Column(length = 20)
+  private String symbol;
+
+  @Column(name = "rate_per_unit", precision = 12, scale = 4)
+  private BigDecimal ratePerUnit;
+
+  @Column(length = 3)
+  private String currency;
+
   @Column(nullable = false)
   private boolean active = true;
 
@@ -60,9 +69,43 @@ public class UnitType extends BaseEntity {
   }
 
   public void changeUnitsPerHour(BigDecimal value) {
-    if (value == null || value.signum() <= 0)
+    if (value == null) {
+      unitsPerHour = null;
+      return;
+    }
+    if (value.signum() <= 0)
       throw new IllegalArgumentException("unitsPerHour must be positive");
     unitsPerHour = value;
+  }
+
+  public void changeSymbol(String value) {
+    String trimmed = value == null ? null : value.trim();
+    if (trimmed != null && trimmed.length() > 20) {
+      throw new IllegalArgumentException("symbol exceeds 20 characters");
+    }
+    symbol = trimmed == null || trimmed.isBlank() ? null : trimmed;
+  }
+
+  public void changeRatePerUnit(BigDecimal value) {
+    if (value == null) {
+      ratePerUnit = null;
+      return;
+    }
+    if (value.signum() <= 0) {
+      throw new IllegalArgumentException("ratePerUnit must be positive");
+    }
+    ratePerUnit = value;
+  }
+
+  public void changeCurrency(String value) {
+    if (value == null || value.isBlank()) {
+      currency = null;
+      return;
+    }
+    if (!value.trim().matches("[A-Za-z]{3}")) {
+      throw new IllegalArgumentException("currency must have three letters");
+    }
+    currency = value.trim().toUpperCase(Locale.ROOT);
   }
 
   public void changeDisplayOrder(int value) {

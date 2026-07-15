@@ -20,8 +20,8 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Berechnungsmethode",
+      "compensationMethod": "Zahlungsmethode",
       "color": "Farbe",
-      "icon": "Icon",
       "defaultBreakMinutes": "Standardpause",
       "status": "Status"
     },
@@ -29,6 +29,12 @@
       "nameRequired": "Name ist erforderlich",
       "nameTooLong": "Name ist zu lang",
       "fixErrors": "Prüfe die markierten Felder und versuche es erneut."
+    },
+    "compensation": {
+      "hourly": "Stundensatz mit entsprechender Zeit",
+      "hourlyDescription": "Mengen werden in entsprechende Zeit umgerechnet.",
+      "perUnit": "Direkt pro Einheit bezahlt",
+      "perUnitDescription": "Jede Einheit hat einen eigenen Satz, z. B. EUR pro m²."
     }
   },
   "unitTypes": {
@@ -46,6 +52,8 @@
     "emptyDescription": "Füge die erste Einheit hinzu, die du bei der Arbeit zählst.",
     "rateLine": "{{value}} / Stunde",
     "unitsPerHourPlaceholder": "Beispiel: 2,4",
+    "symbolPlaceholder": "Beispiel: m²",
+    "ratePerUnitPlaceholder": "Beispiel: 50",
     "unitsPerHourHelper": "Gib ein, wie viele dieser Einheiten du normalerweise in einer Stunde schaffst.",
     "deactivate": "Einheitstyp deaktivieren",
     "moveUp": "{{name}} nach oben verschieben",
@@ -55,13 +63,18 @@
     "deactivateConfirm": "Deaktivieren",
     "fields": {
       "name": "Name",
+      "symbol": "Symbol",
       "unitsPerHour": "Einheiten pro Stunde",
+      "ratePerUnit": "Satz pro Einheit",
+      "currency": "Währung",
       "status": "Status"
     },
     "validation": {
       "nameRequired": "Name ist erforderlich",
       "nameTooLong": "Name ist zu lang",
       "unitsPerHour": "Einheiten pro Stunde muss größer als null sein",
+      "ratePerUnit": "Satz pro Einheit muss größer als null sein",
+      "currency": "Nutze einen dreistelligen Währungscode",
       "fixErrors": "Prüfe die markierten Felder und versuche es erneut."
     }
   },

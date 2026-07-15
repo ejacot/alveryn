@@ -56,7 +56,9 @@ public class WorkEntryService {
                 prepared.salary().hourlyRate(),
                 prepared.salary().currency(),
                 prepared.calculatedMinutes(),
-                prepared.extraPayPercentage()));
+                prepared.extraPayPercentage(),
+                prepared.compensationMethod(),
+                prepared.grossAmount()));
     saved.updateNotes(request.notes());
     calculationService.persistDetails(timeEntryDetails, unitEntryItems, saved, prepared);
     return queryService.toResponse(saved);
@@ -101,7 +103,9 @@ public class WorkEntryService {
         prepared.salary().hourlyRate(),
         prepared.salary().currency(),
         prepared.calculatedMinutes(),
-        prepared.extraPayPercentage());
+        prepared.extraPayPercentage(),
+        prepared.compensationMethod(),
+        prepared.grossAmount());
     entry.updateNotes(request.notes());
 
     timeEntryDetails.deleteByWorkEntryId(id);

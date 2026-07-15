@@ -20,6 +20,7 @@ import com.alveryn.api.workentry.repository.TimeEntryDetailsRepository;
 import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
 import com.alveryn.api.workentry.repository.WorkEntryRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.UnitTypeRepository;
@@ -453,6 +454,42 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.forecasts[0].calculationBasis").value("OBSERVED_WORKDAY_FREQUENCY"))
         .andExpect(jsonPath("$.data.forecasts[0].observedWorkFrequency").exists())
         .andExpect(jsonPath("$.data.forecasts[0].confidence").value("LOW"));
+  }
+
+  @Test
+  void overviewAndForecastIncludePerUnitGrossWithoutInventingWorkedMinutes() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-per-unit@example.com");
+    WorkType workType = createWorkType(user, "Montaj pardoseala", CalculationMethod.UNIT_BASED);
+    workType.changeCompensationMethod(CompensationMethod.PER_UNIT);
+    workTypes.saveAndFlush(workType);
+    UnitType squareMeter = new UnitType(workType, "Metru patrat", null);
+    squareMeter.changeSymbol("m2");
+    squareMeter.changeRatePerUnit(new BigDecimal("50.0000"));
+    squareMeter.changeCurrency("EUR");
+    unitTypes.saveAndFlush(squareMeter);
+
+    createUnitEntry(user, workType, squareMeter, LocalDate.of(2026, 7, 10), "300");
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.workedDays").value(1))
+        .andExpect(jsonPath("$.data.workedMinutes").value(0.0))
+        .andExpect(content().string(containsString("\"amount\":15000.000000000000000")));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/forecast")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.forecasts[0].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.forecasts[0].workedDays").value(1));
   }
 
   @Test

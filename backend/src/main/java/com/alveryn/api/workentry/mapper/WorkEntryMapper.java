@@ -19,6 +19,7 @@ public interface WorkEntryMapper {
   @Mapping(target = "workTypeId", source = "entry.workType.id")
   @Mapping(target = "workTypeName", source = "entry.workTypeNameSnapshot")
   @Mapping(target = "calculationMethod", source = "entry.calculationMethodSnapshot")
+  @Mapping(target = "compensationMethod", source = "entry.compensationMethodSnapshot")
   @Mapping(target = "hourlyRateSnapshot", source = "entry.hourlyRateSnapshot")
   @Mapping(target = "currencySnapshot", source = "entry.currencySnapshot")
   @Mapping(target = "calculatedMinutes", source = "entry.calculatedMinutes")
@@ -39,6 +40,7 @@ public interface WorkEntryMapper {
 
   @Mapping(target = "unitTypeId", source = "unitType.id")
   @Mapping(target = "unitName", source = "unitNameSnapshot")
+  @Mapping(target = "unitSymbol", source = "unitSymbolSnapshot")
   @Mapping(target = "displayOrder", source = "unitType.displayOrder")
   UnitEntryItemResponse toResponse(UnitEntryItem entity);
 

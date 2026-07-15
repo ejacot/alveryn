@@ -106,6 +106,108 @@ test("creates work types and time/unit entries through the real UI", async ({ pa
   expect(consoleErrors).toEqual([]);
 });
 
+test("creates direct per-unit paid work and preserves rate snapshots", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+
+  const user = await createE2eUser(testInfo.title);
+  await loginThroughUi(page, user);
+
+  await page.goto("/settings/work-types/new");
+  await page.getByLabel("Name").fill("Montaj pardoseala");
+  await page.getByRole("button", { name: "Units" }).click();
+  await page.getByRole("button", { name: /paid directly per unit/i }).click();
+
+  const workTypeRequest = page.waitForResponse((response) =>
+    response.url().includes("/api/work-types") && response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: /save changes/i }).click();
+  const workTypeResponse = await workTypeRequest;
+  expect(workTypeResponse.ok()).toBeTruthy();
+  expect(workTypeResponse.request().postDataJSON()).toMatchObject({
+    name: "MONTAJ PARDOSEALA",
+    calculationMethod: "UNIT_BASED",
+    compensationMethod: "PER_UNIT"
+  });
+
+  await expect(page.getByText("No unit types yet")).toBeVisible();
+  await page.getByRole("button", { name: /add (first )?unit type/i }).first().click();
+  const unitTypeDialog = page.getByRole("dialog", { name: "Add unit type" });
+  await expect(unitTypeDialog).toBeVisible();
+  await unitTypeDialog.getByRole("textbox", { name: /^Name$/ }).fill("Metru patrat");
+  await unitTypeDialog.getByRole("textbox", { name: /symbol/i }).fill("m²");
+  await unitTypeDialog.getByRole("textbox", { name: /rate per unit/i }).fill("50");
+  await unitTypeDialog.getByRole("textbox", { name: /currency/i }).fill("EUR");
+
+  const unitTypeCreateRequest = page.waitForResponse((response) =>
+    response.url().includes("/unit-types") && response.request().method() === "POST"
+  );
+  await unitTypeDialog.getByRole("button", { name: /^save$/i }).click();
+  const unitTypeCreateResponse = await unitTypeCreateRequest;
+  expect(unitTypeCreateResponse.ok()).toBeTruthy();
+  await expect(page.getByText("Metru patrat")).toBeVisible();
+
+  await page.goto("/entries/new?date=2026-07-15");
+  await page.getByRole("button", { name: /montaj pardoseala.*units/i }).click();
+  await page.getByLabel("Metru patrat Units").fill("300");
+  await expect(page.getByText("300 m² × 50 EUR/m²", { exact: true })).toBeVisible();
+  await expect(page.getByText("Total gross")).toBeVisible();
+  await expect(page.getByText(/15,000/).first()).toBeVisible();
+
+  const entryCreateRequest = page.waitForResponse((response) =>
+    response.url().includes("/api/work-entries") && response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: /save entry/i }).click();
+  const entryCreateResponse = await entryCreateRequest;
+  expect(entryCreateResponse.ok()).toBeTruthy();
+  const firstEntryBody = await entryCreateResponse.json();
+  const firstEntryId = firstEntryBody.data.id;
+  expect(firstEntryBody.data).toMatchObject({
+    compensationMethod: "PER_UNIT",
+    calculatedMinutes: 0,
+    grossAmount: 15000
+  });
+  expect(firstEntryBody.data.unitItems[0]).toMatchObject({
+    unitSymbol: "m²",
+    ratePerUnitSnapshot: 50,
+    grossAmountSnapshot: 15000
+  });
+
+  await page.goto(`/settings/work-types/${firstEntryBody.data.workTypeId}`);
+  await page.getByRole("button", { name: /edit metru patrat/i }).click();
+  const editDialog = page.getByRole("dialog", { name: "Edit unit type" });
+  await editDialog.getByRole("textbox", { name: /rate per unit/i }).fill("60");
+  const unitTypeUpdateRequest = page.waitForResponse((response) =>
+    response.url().includes("/unit-types/") && response.request().method() === "PUT"
+  );
+  await editDialog.getByRole("button", { name: /^save$/i }).click();
+  expect((await unitTypeUpdateRequest).ok()).toBeTruthy();
+
+  await page.goto(`/entries/${firstEntryId}`);
+  await expect(page.getByLabel("Metru patrat Units")).toHaveValue("300");
+  await expect(page.getByText(/15,000/).first()).toBeVisible();
+
+  await page.goto("/entries/new?date=2026-07-16");
+  await page.getByRole("button", { name: /montaj pardoseala.*units/i }).click();
+  await page.getByLabel("Metru patrat Units").fill("10");
+  await expect(page.getByText(/600/).first()).toBeVisible();
+  const secondEntryRequest = page.waitForResponse((response) =>
+    response.url().includes("/api/work-entries") && response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: /save entry/i }).click();
+  const secondEntryResponse = await secondEntryRequest;
+  expect(secondEntryResponse.ok()).toBeTruthy();
+  const secondEntryBody = await secondEntryResponse.json();
+  expect(secondEntryBody.data).toMatchObject({
+    compensationMethod: "PER_UNIT",
+    calculatedMinutes: 0,
+    grossAmount: 600
+  });
+  expect(secondEntryBody.data.unitItems[0]).toMatchObject({
+    ratePerUnitSnapshot: 60,
+    grossAmountSnapshot: 600
+  });
+});
+
 test("creates a unit-based work type from an iPhone-sized viewport", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const user = await createE2eUser(testInfo.title);

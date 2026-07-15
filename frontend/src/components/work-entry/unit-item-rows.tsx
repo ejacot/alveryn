@@ -3,6 +3,7 @@ import { Clock3 } from "lucide-react";
 import type { UnitType } from "../../types/configuration";
 import type { WorkEntryFormInput } from "../../features/work-entries/work-entry-schemas";
 import { parseDecimalInput } from "../../utils/decimal-input";
+import { formatCurrency } from "../../utils/format";
 
 type Props = {
   fields: FieldArrayWithId<WorkEntryFormInput, "unitItems", "id">[];
@@ -10,6 +11,8 @@ type Props = {
   register: UseFormRegister<WorkEntryFormInput>;
   unitFallbackLabel: string;
   quantityLabel: string;
+  compensationMethod?: "HOURLY" | "PER_UNIT";
+  values?: Array<{ quantity?: unknown }>;
   errors?: Array<{ unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined>;
 };
 
@@ -19,6 +22,8 @@ export function UnitItemRows({
   register,
   unitFallbackLabel,
   quantityLabel,
+  compensationMethod = "HOURLY",
+  values = [],
   errors = []
 }: Props) {
   return (
@@ -26,6 +31,13 @@ export function UnitItemRows({
       {fields.map((field, index) => {
         const unitType = unitTypes[index];
 	        const unitName = unitType?.name ?? unitFallbackLabel;
+        const symbol = unitType?.symbol ? ` ${unitType.symbol}` : "";
+        const quantity = parseDecimalInput(values[index]?.quantity ?? 0);
+        const rate = Number(unitType?.ratePerUnit ?? NaN);
+        const subtotal =
+          compensationMethod === "PER_UNIT" && Number.isFinite(quantity) && Number.isFinite(rate)
+            ? quantity * rate
+            : null;
 	        const quantityRegistration = register(`unitItems.${index}.quantity`, {
 	          setValueAs: parseDecimalInput
 	        });
@@ -41,10 +53,23 @@ export function UnitItemRows({
                 <p className="truncate text-base font-semibold tracking-[-0.03em] text-white">
                   {unitName}
                 </p>
-                <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-white/42">
-                  <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
-                  <span>{unitType?.unitsPerHour ?? ""}</span>
-                </p>
+                {compensationMethod === "PER_UNIT" ? (
+                  <p className="mt-1.5 text-sm font-medium text-white/48">
+                    {Number.isFinite(rate) && unitType?.currency
+                      ? `${unitType.ratePerUnit} ${unitType.currency}/${unitType.symbol ?? unitName}`
+                      : ""}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-white/42">
+                    <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
+                    <span>{unitType?.unitsPerHour ?? ""}</span>
+                  </p>
+                )}
+                {subtotal !== null && subtotal > 0 && unitType?.currency ? (
+                  <p className="mt-2 text-sm font-semibold text-white/75">
+                    {`${quantity}${symbol} × ${unitType.ratePerUnit} ${unitType.currency}/${unitType.symbol ?? unitName} = ${formatCurrency(String(subtotal), unitType.currency)}`}
+                  </p>
+                ) : null}
                 {errors[index]?.unitTypeId?.message ? (
                   <p className="mt-2 text-sm text-red-300">{errors[index]?.unitTypeId?.message}</p>
                 ) : null}

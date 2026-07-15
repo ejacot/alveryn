@@ -78,6 +78,7 @@ export type UpdateHourlyRatePayload = CreateHourlyRatePayload;
 export type CreateWorkTypePayload = {
   name: string;
   calculationMethod: WorkType["calculationMethod"];
+  compensationMethod?: WorkType["compensationMethod"] | null;
   color?: string | null;
   icon?: string | null;
   defaultBreakMinutes?: number | null;
@@ -90,7 +91,10 @@ export type UpdateWorkTypePayload = CreateWorkTypePayload & {
 
 export type CreateUnitTypePayload = {
   name: string;
-  unitsPerHour: number;
+  unitsPerHour?: number | null;
+  symbol?: string | null;
+  ratePerUnit?: number | null;
+  currency?: string | null;
   displayOrder?: number | null;
   active: boolean;
 };

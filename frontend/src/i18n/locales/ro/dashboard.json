@@ -21,6 +21,7 @@
     "gross": "Brut",
     "workedTime": "{{duration}} lucrate",
     "equivalentTime": "Timp lucrat echivalent: {{duration}}",
+    "directUnitPay": "Plata directa per unitate",
     "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {

@@ -9,6 +9,7 @@ import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
 import com.alveryn.api.worktype.dto.UnitTypeRequest;
 import com.alveryn.api.worktype.dto.UnitTypeResponse;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.mapper.WorkTypeMapper;
@@ -35,7 +36,9 @@ public class UnitTypeService {
   @Transactional
   public UnitTypeResponse create(UUID workTypeId, @Valid UnitTypeRequest dto) {
     WorkType wt = findOwnedUnitBasedWorkType(workTypeId);
+    validateUnitConfig(wt, dto);
     var e = new UnitType(wt, dto.name(), dto.unitsPerHour());
+    applyUnitConfig(e, dto);
     if (repository.existsByWorkTypeIdAndNormalizedName(wt.getId(), e.getNormalizedName()))
       throw new ConflictException("UnitType name already exists");
     applyCreateDefaults(e, wt.getId(), dto);
@@ -46,11 +49,13 @@ public class UnitTypeService {
   public UnitTypeResponse update(UUID workTypeId, UUID id, @Valid UnitTypeRequest dto) {
     findOwnedUnitBasedWorkType(workTypeId);
     var e = find(workTypeId, id);
+    validateUnitConfig(e.getWorkType(), dto);
     e.rename(dto.name());
     if (repository.existsByWorkTypeIdAndNormalizedNameAndIdNot(
         workTypeId, e.getNormalizedName(), id))
       throw new ConflictException("UnitType name already exists");
     e.changeUnitsPerHour(dto.unitsPerHour());
+    applyUnitConfig(e, dto);
     if (dto.displayOrder() != null) {
       e.changeDisplayOrder(dto.displayOrder());
     }
@@ -93,6 +98,27 @@ public class UnitTypeService {
             : repository.findMaxDisplayOrderByWorkTypeId(workTypeId) + 1);
     if (d.active()) e.activate();
     else e.deactivate();
+  }
+
+  private void applyUnitConfig(UnitType e, UnitTypeRequest d) {
+    e.changeSymbol(InputSanitizer.trimToNull(d.symbol()));
+    e.changeRatePerUnit(d.ratePerUnit());
+    e.changeCurrency(InputSanitizer.trimToNull(d.currency()));
+  }
+
+  private void validateUnitConfig(WorkType workType, UnitTypeRequest dto) {
+    if (workType.getCompensationMethod() == CompensationMethod.HOURLY) {
+      if (dto.unitsPerHour() == null) {
+        throw new ValidationException("unitsPerHour is required for hourly unit-based work");
+      }
+      return;
+    }
+    if (dto.ratePerUnit() == null) {
+      throw new ValidationException("ratePerUnit is required for per-unit compensation");
+    }
+    if (dto.currency() == null || dto.currency().isBlank()) {
+      throw new ValidationException("currency is required for per-unit compensation");
+    }
   }
 
   private WorkType findOwnedUnitBasedWorkType(UUID workTypeId) {

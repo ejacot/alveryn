@@ -1,6 +1,7 @@
 package com.alveryn.api.worktype.dto;
 
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ public record WorkTypeResponse(
     UUID id,
     String name,
     CalculationMethod calculationMethod,
+    CompensationMethod compensationMethod,
     String color,
     String icon,
     Integer defaultBreakMinutes,

@@ -30,7 +30,6 @@ export function WorkTypesPage() {
   const [editingWorkType, setEditingWorkType] = useState<WorkType | null>(null);
   const [creatingWorkType, setCreatingWorkType] = useState(false);
   const [editName, setEditName] = useState("");
-  const [editIcon, setEditIcon] = useState("");
   const [editColor, setEditColor] = useState<string>(DEFAULT_WORK_TYPE_COLOR);
   const [editDefaultBreakMinutes, setEditDefaultBreakMinutes] = useState(30);
   const [editCalculationMethod, setEditCalculationMethod] = useState<WorkType["calculationMethod"]>("TIME_BASED");
@@ -42,20 +41,19 @@ export function WorkTypesPage() {
   const updateMutation = useMutation({
     mutationFn: (workType: WorkType) =>
       updateWorkType(workType.id, {
-	        name: editName.trim().toLocaleUpperCase(),
-	        calculationMethod: editCalculationMethod,
-	        color: editColor,
-	        icon: editIcon.trim() || null,
+		        name: editName.trim().toLocaleUpperCase(),
+		        calculationMethod: editCalculationMethod,
+		        color: editColor,
+		        icon: null,
 	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null,
         displayOrder: workType.displayOrder,
         active: workType.active
       }),
 	    onSuccess: async (workType) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
-      setEditingWorkType(null);
-	      setEditName("");
-	      setEditIcon("");
-	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
+	      await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
+	      setEditingWorkType(null);
+		      setEditName("");
+		      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
       setEditError(null);
@@ -70,18 +68,17 @@ export function WorkTypesPage() {
   const createMutation = useMutation({
     mutationFn: () =>
       createWorkType({
-	        name: editName.trim().toLocaleUpperCase(),
-	        calculationMethod: editCalculationMethod,
-	        color: editColor,
-	        icon: editIcon.trim() || null,
+		        name: editName.trim().toLocaleUpperCase(),
+		        calculationMethod: editCalculationMethod,
+		        color: editColor,
+		        icon: null,
 	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null
 	      }),
     onSuccess: async (workType) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
       setCreatingWorkType(false);
-	      setEditName("");
-	      setEditIcon("");
-	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
+		      setEditName("");
+		      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
       setEditError(null);
@@ -99,7 +96,6 @@ export function WorkTypesPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() });
 	      setEditingWorkType(null);
 	      setEditName("");
-	      setEditIcon("");
 	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
@@ -118,7 +114,6 @@ export function WorkTypesPage() {
 
     setEditError(null);
 	    setEditName(workType.name);
-	    setEditIcon(workType.icon ?? "");
 	    setEditColor(workType.color);
 	    setEditDefaultBreakMinutes(workType.defaultBreakMinutes ?? 30);
     setEditCalculationMethod(workType.calculationMethod);
@@ -128,7 +123,6 @@ export function WorkTypesPage() {
   function openCreateWorkType() {
 	    setEditError(null);
 	    setEditName("");
-	    setEditIcon("");
 	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	    setEditDefaultBreakMinutes(30);
     setEditCalculationMethod("TIME_BASED");
@@ -140,7 +134,6 @@ export function WorkTypesPage() {
 	    setEditingWorkType(null);
 	    setCreatingWorkType(false);
 	    setEditName("");
-	    setEditIcon("");
 	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	    setEditDefaultBreakMinutes(30);
     setEditCalculationMethod("TIME_BASED");
@@ -195,7 +188,6 @@ export function WorkTypesPage() {
         mode={creatingWorkType ? "create" : "edit"}
         workType={editingWorkType}
 	        name={editName}
-	        icon={editIcon}
 	        color={editColor}
 	        defaultBreakMinutes={editDefaultBreakMinutes}
 	        calculationMethod={editCalculationMethod}
@@ -206,7 +198,6 @@ export function WorkTypesPage() {
           setEditError(null);
         }}
 	        onColorChange={setEditColor}
-	        onIconChange={setEditIcon}
 	        onDefaultBreakMinutesChange={setEditDefaultBreakMinutes}
         onCalculationMethodChange={setEditCalculationMethod}
         onClose={closeWorkTypeDialog}
@@ -280,14 +271,12 @@ function WorkTypeDialog({
   mode,
   workType,
   name,
-  icon,
   color,
   defaultBreakMinutes,
   calculationMethod,
   error,
   pending,
   onNameChange,
-  onIconChange,
   onColorChange,
   onDefaultBreakMinutesChange,
   onCalculationMethodChange,
@@ -301,14 +290,12 @@ function WorkTypeDialog({
   mode: "create" | "edit";
   workType: WorkType | null;
   name: string;
-  icon: string;
   color: string;
   defaultBreakMinutes: number;
   calculationMethod: WorkType["calculationMethod"];
   error: string | null;
   pending: boolean;
   onNameChange: (value: string) => void;
-  onIconChange: (value: string) => void;
   onColorChange: (value: string) => void;
   onDefaultBreakMinutesChange: (value: number) => void;
   onCalculationMethodChange: (value: WorkType["calculationMethod"]) => void;
@@ -369,12 +356,6 @@ function WorkTypeDialog({
 	            label="Name"
 	            value={name}
 	            onChange={(event) => onNameChange(event.currentTarget.value)}
-	          />
-	          <Input
-	            label="Icon"
-	            value={icon}
-	            maxLength={100}
-	            onChange={(event) => onIconChange(event.currentTarget.value)}
 	          />
           <div className="space-y-2">
             <p className="hairline-text">Type</p>

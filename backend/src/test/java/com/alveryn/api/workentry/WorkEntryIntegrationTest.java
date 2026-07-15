@@ -26,6 +26,7 @@ import com.alveryn.api.workentry.repository.TimeEntryDetailsRepository;
 import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
 import com.alveryn.api.workentry.repository.WorkEntryRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.UnitTypeRepository;
@@ -227,6 +228,127 @@ class WorkEntryIntegrationTest {
     var currentRate = salaryCalculationService.resolveCurrentRate(user.getId());
     assertThat(historicalRate.getHourlyRate()).isEqualByComparingTo("15.50");
     assertThat(currentRate.getHourlyRate()).isEqualByComparingTo("17.50");
+  }
+
+  @Test
+  void perUnitEntryUsesDirectRateSnapshotsWithoutAddingWorkedTime() throws Exception {
+    UserAccount user = createVerifiedUser("per-unit@example.com");
+    WorkType workType =
+        createWorkType(
+            user, "Montaj pardoseala", CalculationMethod.UNIT_BASED, CompensationMethod.PER_UNIT);
+    UnitType squareMeter = createPerUnitType(workType, "Metru patrat", "m2", "50.0000", "EUR", null);
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-15",
+                      "unitItems":[
+                        {"unitTypeId":"%s","quantity":300}
+                      ]
+                    }
+                    """
+                        .formatted(workType.getId(), squareMeter.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.calculationMethod").value("UNIT_BASED"))
+        .andExpect(jsonPath("$.data.compensationMethod").value("PER_UNIT"))
+        .andExpect(jsonPath("$.data.calculatedMinutes").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.workedHours").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.grossAmount").value(15000.000000000000000))
+        .andExpect(jsonPath("$.data.unitItems[0].ratePerUnitSnapshot").value(50.0000))
+        .andExpect(jsonPath("$.data.unitItems[0].grossAmountSnapshot").value(15000.000000000000000));
+
+    WorkEntry firstEntry = workEntries.findAll().getFirst();
+    assertThat(firstEntry.getCalculatedMinutes()).isEqualByComparingTo("0.000000000000000");
+    assertThat(firstEntry.getGrossAmount()).isEqualByComparingTo("15000.000000000000000");
+
+    squareMeter.changeRatePerUnit(new BigDecimal("60.0000"));
+    unitTypes.saveAndFlush(squareMeter);
+
+    WorkEntry persistedFirstEntry = workEntries.findById(firstEntry.getId()).orElseThrow();
+    UnitEntryItem firstItem = unitEntryItems.findAllByWorkEntryId(firstEntry.getId()).getFirst();
+    assertThat(persistedFirstEntry.getGrossAmount()).isEqualByComparingTo("15000.000000000000000");
+    assertThat(firstItem.getRatePerUnitSnapshot()).isEqualByComparingTo("50.0000");
+    assertThat(firstItem.getCurrencySnapshot()).isEqualTo("EUR");
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-16",
+                      "unitItems":[
+                        {"unitTypeId":"%s","quantity":10}
+                      ]
+                    }
+                    """
+                        .formatted(workType.getId(), squareMeter.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.grossAmount").value(600.000000000000000))
+        .andExpect(jsonPath("$.data.unitItems[0].ratePerUnitSnapshot").value(60.0000));
+  }
+
+  @Test
+  void perUnitEntrySupportsDecimalQuantitiesAndMultipleUnits() throws Exception {
+    UserAccount user = createVerifiedUser("per-unit-multiple@example.com");
+    WorkType workType =
+        createWorkType(user, "Finish work", CalculationMethod.UNIT_BASED, CompensationMethod.PER_UNIT);
+    UnitType squareMeter = createPerUnitType(workType, "Square meter", "m2", "50.0000", "EUR", "25.0000");
+    UnitType linearMeter = createPerUnitType(workType, "Linear meter", "ml", "10.0000", "EUR", null);
+    UnitType task = createPerUnitType(workType, "Task", "task", "40.0000", "EUR", null);
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-17",
+                      "unitItems":[
+                        {"unitTypeId":"%s","quantity":100},
+                        {"unitTypeId":"%s","quantity":20}
+                      ]
+                    }
+                    """
+                        .formatted(workType.getId(), squareMeter.getId(), linearMeter.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.grossAmount").value(5200.000000000000000))
+        .andExpect(jsonPath("$.data.calculatedMinutes").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.unitItems[0].grossAmountSnapshot").value(5000.000000000000000))
+        .andExpect(jsonPath("$.data.unitItems[1].grossAmountSnapshot").value(200.000000000000000));
+
+    mockMvc
+        .perform(
+            post("/api/work-entries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workTypeId":"%s",
+                      "workDate":"2026-07-18",
+                      "unitItems":[
+                        {"unitTypeId":"%s","quantity":12.5}
+                      ]
+                    }
+                    """
+                        .formatted(workType.getId(), task.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.grossAmount").value(500.000000000000000))
+        .andExpect(jsonPath("$.data.unitItems[0].ratePerUnitSnapshot").value(40.0000))
+        .andExpect(jsonPath("$.data.unitItems[0].grossAmountSnapshot").value(500.000000000000000));
   }
 
   @Test
@@ -727,13 +849,29 @@ class WorkEntryIntegrationTest {
   }
 
   private WorkType createWorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
+    return createWorkType(user, name, calculationMethod, CompensationMethod.HOURLY);
+  }
+
+  private WorkType createWorkType(
+      UserAccount user, String name, CalculationMethod calculationMethod, CompensationMethod compensationMethod) {
     WorkType workType = new WorkType(user, name, calculationMethod);
+    workType.changeCompensationMethod(compensationMethod);
     workType.changeColor("#87C95A");
     return workTypes.saveAndFlush(workType);
   }
 
   private UnitType createUnitType(WorkType workType, String name, String unitsPerHour) {
     return unitTypes.saveAndFlush(new UnitType(workType, name, new BigDecimal(unitsPerHour)));
+  }
+
+  private UnitType createPerUnitType(
+      WorkType workType, String name, String symbol, String ratePerUnit, String currency, String unitsPerHour) {
+    UnitType unitType =
+        new UnitType(workType, name, unitsPerHour == null ? null : new BigDecimal(unitsPerHour));
+    unitType.changeSymbol(symbol);
+    unitType.changeRatePerUnit(new BigDecimal(ratePerUnit));
+    unitType.changeCurrency(currency);
+    return unitTypes.saveAndFlush(unitType);
   }
 
   private HourlyRatePeriod createRate(

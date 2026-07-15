@@ -19,6 +19,7 @@
     "gross": "Brutto",
     "workedTime": "{{duration}} gearbeitet",
     "equivalentTime": "Entsprechende Arbeitszeit: {{duration}}",
+    "directUnitPay": "Direkte Zahlung pro Einheit",
     "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {

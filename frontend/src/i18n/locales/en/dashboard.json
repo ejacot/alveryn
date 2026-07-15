@@ -19,6 +19,7 @@
     "gross": "Gross",
     "workedTime": "{{duration}} worked",
     "equivalentTime": "Equivalent worked time: {{duration}}",
+    "directUnitPay": "Direct per-unit payment",
     "unitLine": "{{name}}: {{quantity}}"
   },
   "summary": {

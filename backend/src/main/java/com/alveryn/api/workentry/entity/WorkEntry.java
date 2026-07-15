@@ -4,6 +4,7 @@ import com.alveryn.api.common.persistence.BaseEntity;
 import com.alveryn.api.imports.entity.ExcelImportBatch;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.WorkType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,6 +54,10 @@ public class WorkEntry extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(name = "calculation_method_snapshot", nullable = false, length = 30)
   private CalculationMethod calculationMethodSnapshot;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "compensation_method_snapshot", nullable = false, length = 30)
+  private CompensationMethod compensationMethodSnapshot;
 
   @Column(name = "hourly_rate_snapshot", nullable = false, precision = 10, scale = 2)
   private BigDecimal hourlyRateSnapshot;
@@ -111,24 +116,50 @@ public class WorkEntry extends BaseEntity {
       String currency,
       BigDecimal calculatedMinutes,
       int extraPayPercentage) {
+    this(
+        user,
+        workType,
+        workDate,
+        hourlyRate,
+        currency,
+        calculatedMinutes,
+        extraPayPercentage,
+        CompensationMethod.HOURLY,
+        null);
+  }
+
+  public WorkEntry(
+      UserAccount user,
+      WorkType workType,
+      LocalDate workDate,
+      BigDecimal hourlyRate,
+      String currency,
+      BigDecimal calculatedMinutes,
+      int extraPayPercentage,
+      CompensationMethod compensationMethod,
+      BigDecimal grossAmount) {
     this.user = Objects.requireNonNull(user, "user is required");
     this.workType = Objects.requireNonNull(workType, "workType is required");
     if (workType.getUser() != user
         && (workType.getUser().getId() == null || !workType.getUser().getId().equals(user.getId())))
       throw new IllegalArgumentException("workType must belong to user");
     this.workDate = Objects.requireNonNull(workDate, "workDate is required");
+    CompensationMethod resolvedCompensation =
+        Objects.requireNonNull(compensationMethod, "compensationMethod is required");
     if (hourlyRate == null || hourlyRate.signum() < 0)
       throw new IllegalArgumentException("hourlyRate must be non-negative");
-    if (calculatedMinutes == null || calculatedMinutes.signum() <= 0)
-      throw new IllegalArgumentException("calculatedMinutes must be positive");
+    validateCalculatedMinutes(calculatedMinutes, resolvedCompensation);
     this.workTypeNameSnapshot = workType.getName();
     this.calculationMethodSnapshot = workType.getCalculationMethod();
+    this.compensationMethodSnapshot = resolvedCompensation;
     this.hourlyRateSnapshot = hourlyRate.setScale(RATE_SCALE, RATE_ROUNDING);
     this.currencySnapshot = normalizeCurrency(currency);
     this.calculatedMinutes = calculatedMinutes.setScale(TIME_SCALE, RoundingMode.UNNECESSARY);
     this.extraPayPercentage = normalizeExtraPayPercentage(extraPayPercentage);
     this.grossAmount =
-        calculateGross(calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
+        resolvedCompensation == CompensationMethod.PER_UNIT
+            ? normalizeGrossAmount(grossAmount)
+            : calculateGross(calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
   }
 
   public void recalculate(
@@ -147,6 +178,26 @@ public class WorkEntry extends BaseEntity {
       String currency,
       BigDecimal calculatedMinutes,
       int extraPayPercentage) {
+    recalculate(
+        workType,
+        workDate,
+        hourlyRate,
+        currency,
+        calculatedMinutes,
+        extraPayPercentage,
+        CompensationMethod.HOURLY,
+        null);
+  }
+
+  public void recalculate(
+      WorkType workType,
+      LocalDate workDate,
+      BigDecimal hourlyRate,
+      String currency,
+      BigDecimal calculatedMinutes,
+      int extraPayPercentage,
+      CompensationMethod compensationMethod,
+      BigDecimal grossAmount) {
     Objects.requireNonNull(workType, "workType is required");
     if (workType.getUser() != user
         && (workType.getUser().getId() == null || !workType.getUser().getId().equals(user.getId()))) {
@@ -157,17 +208,20 @@ public class WorkEntry extends BaseEntity {
     if (hourlyRate == null || hourlyRate.signum() < 0) {
       throw new IllegalArgumentException("hourlyRate must be non-negative");
     }
-    if (calculatedMinutes == null || calculatedMinutes.signum() <= 0) {
-      throw new IllegalArgumentException("calculatedMinutes must be positive");
-    }
+    CompensationMethod resolvedCompensation =
+        Objects.requireNonNull(compensationMethod, "compensationMethod is required");
+    validateCalculatedMinutes(calculatedMinutes, resolvedCompensation);
     this.workTypeNameSnapshot = workType.getName();
     this.calculationMethodSnapshot = workType.getCalculationMethod();
+    this.compensationMethodSnapshot = resolvedCompensation;
     this.hourlyRateSnapshot = hourlyRate.setScale(RATE_SCALE, RATE_ROUNDING);
     this.currencySnapshot = normalizeCurrency(currency);
     this.calculatedMinutes = calculatedMinutes.setScale(TIME_SCALE, RoundingMode.UNNECESSARY);
     this.extraPayPercentage = normalizeExtraPayPercentage(extraPayPercentage);
     this.grossAmount =
-        calculateGross(this.calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
+        resolvedCompensation == CompensationMethod.PER_UNIT
+            ? normalizeGrossAmount(grossAmount)
+            : calculateGross(this.calculatedMinutes, this.hourlyRateSnapshot, this.extraPayPercentage);
   }
 
   public static BigDecimal calculateGross(int minutes, BigDecimal hourlyRate) {
@@ -192,6 +246,13 @@ public class WorkEntry extends BaseEntity {
         .setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
 
+  public static BigDecimal calculatePerUnitGross(BigDecimal quantity, BigDecimal ratePerUnit) {
+    if (quantity == null || quantity.signum() <= 0 || ratePerUnit == null || ratePerUnit.signum() <= 0) {
+      throw new IllegalArgumentException("invalid per-unit calculation inputs");
+    }
+    return quantity.multiply(ratePerUnit, TIME_MATH_CONTEXT).setScale(GROSS_SCALE, RoundingMode.HALF_UP);
+  }
+
   public void updateNotes(String value) {
     if (value != null && value.length() > 500)
       throw new IllegalArgumentException("notes exceeds 500 characters");
@@ -212,6 +273,26 @@ public class WorkEntry extends BaseEntity {
     if (value == null || !value.trim().matches("[A-Za-z]{3}"))
       throw new IllegalArgumentException("currency must have three letters");
     return value.trim().toUpperCase(Locale.ROOT);
+  }
+
+  private static void validateCalculatedMinutes(
+      BigDecimal calculatedMinutes, CompensationMethod compensationMethod) {
+    if (calculatedMinutes == null) {
+      throw new IllegalArgumentException("calculatedMinutes is required");
+    }
+    if (compensationMethod == CompensationMethod.HOURLY && calculatedMinutes.signum() <= 0) {
+      throw new IllegalArgumentException("calculatedMinutes must be positive");
+    }
+    if (compensationMethod == CompensationMethod.PER_UNIT && calculatedMinutes.signum() < 0) {
+      throw new IllegalArgumentException("calculatedMinutes must be non-negative");
+    }
+  }
+
+  private static BigDecimal normalizeGrossAmount(BigDecimal value) {
+    if (value == null || value.signum() < 0) {
+      throw new IllegalArgumentException("grossAmount must be non-negative");
+    }
+    return value.setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
 
   private static int normalizeExtraPayPercentage(int value) {

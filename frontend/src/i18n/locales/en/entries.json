@@ -51,7 +51,8 @@
   "unitRows": {
     "fallbackUnit": "Unit",
     "quantity": "Units",
-    "perHour": "{{value}} per hour"
+    "perHour": "{{value}} per hour",
+    "totalGross": "Total gross"
   },
   "validation": {
     "dateRequired": "Date is required",

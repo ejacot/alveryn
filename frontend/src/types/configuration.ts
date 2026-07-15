@@ -49,6 +49,7 @@ export type WorkType = {
   id: string;
   name: string;
   calculationMethod: import("./work-entry").CalculationMethod;
+  compensationMethod?: import("./work-entry").CompensationMethod;
   color: string;
   icon: string | null;
   defaultBreakMinutes: number | null;
@@ -60,7 +61,10 @@ export type UnitType = {
   id: string;
   workTypeId: string;
   name: string;
-  unitsPerHour: string;
+  unitsPerHour?: string | null;
+  symbol?: string | null;
+  ratePerUnit?: string | null;
+  currency?: string | null;
   displayOrder: number;
   active: boolean;
 };

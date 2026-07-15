@@ -30,5 +30,6 @@
   },
   "emptyDay": "No activity.",
   "equivalentWorked": "Equivalent worked {{duration}}",
+  "directUnitPay": "Direct per-unit payment",
   "addEntryForDay": "Add entry for this day"
 }

@@ -71,6 +71,15 @@ public class WorkEntryValidationService {
     }
   }
 
+  public void validatePerUnitType(UnitType unitType) {
+    if (unitType.getRatePerUnit() == null || unitType.getRatePerUnit().signum() <= 0) {
+      throw new ValidationException("Unit type must have a positive ratePerUnit");
+    }
+    if (unitType.getCurrency() == null || unitType.getCurrency().isBlank()) {
+      throw new ValidationException("Unit type must have a currency");
+    }
+  }
+
   public DateRange resolveRange(Integer year, Integer month) {
     if (month != null && year == null) {
       throw new ValidationException("year is required when month is provided");

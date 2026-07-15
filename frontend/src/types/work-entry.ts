@@ -1,4 +1,5 @@
 export type CalculationMethod = "TIME_BASED" | "UNIT_BASED";
+export type CompensationMethod = "HOURLY" | "PER_UNIT";
 
 export type TimeEntryDetails = {
   startTime: string;
@@ -12,10 +13,14 @@ export type UnitEntryItem = {
   id: string;
   unitTypeId: string;
   unitName: string;
+  unitSymbol?: string | null;
   quantity: string;
   displayOrder?: number | null;
-  unitsPerHourSnapshot: string;
+  unitsPerHourSnapshot?: string | null;
   calculatedMinutes: string;
+  ratePerUnitSnapshot?: string | null;
+  currencySnapshot?: string | null;
+  grossAmountSnapshot?: string | null;
 };
 
 export type WorkEntry = {
@@ -23,6 +28,7 @@ export type WorkEntry = {
   workTypeId: string;
   workTypeName: string;
   calculationMethod: CalculationMethod;
+  compensationMethod?: CompensationMethod;
   workDate: string;
   hourlyRateSnapshot: string;
   currencySnapshot: string;

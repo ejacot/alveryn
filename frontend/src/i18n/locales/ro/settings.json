@@ -20,8 +20,8 @@
     "fields": {
       "name": "Nume",
       "calculationMethod": "Metoda de calcul",
+      "compensationMethod": "Metoda de plata",
       "color": "Culoare",
-      "icon": "Icon",
       "defaultBreakMinutes": "Pauză implicită",
       "status": "Status"
     },
@@ -29,6 +29,12 @@
       "nameRequired": "Numele este obligatoriu",
       "nameTooLong": "Numele este prea lung",
       "fixErrors": "Verifică câmpurile marcate și încearcă din nou."
+    },
+    "compensation": {
+      "hourly": "Platit la ora prin timp echivalent",
+      "hourlyDescription": "Cantitatile devin timp echivalent si folosesc tariful orar.",
+      "perUnit": "Platit direct per unitate",
+      "perUnitDescription": "Fiecare unitate are tariful ei, de exemplu EUR pe m²."
     }
   },
   "unitTypes": {
@@ -46,6 +52,8 @@
     "emptyDescription": "Adaugă prima unitate pe care o numeri în timpul lucrului.",
     "rateLine": "{{value}} / oră",
     "unitsPerHourPlaceholder": "Exemplu: 2,4",
+    "symbolPlaceholder": "Exemplu: m²",
+    "ratePerUnitPlaceholder": "Exemplu: 50",
     "unitsPerHourHelper": "Introdu câte unități de acest tip finalizezi de obicei într-o oră.",
     "deactivate": "Dezactivează unitatea",
     "moveUp": "Mută {{name}} mai sus",
@@ -55,13 +63,18 @@
     "deactivateConfirm": "Dezactivează",
     "fields": {
       "name": "Nume",
+      "symbol": "Simbol",
       "unitsPerHour": "Unități pe oră",
+      "ratePerUnit": "Tarif per unitate",
+      "currency": "Valută",
       "status": "Status"
     },
     "validation": {
       "nameRequired": "Numele este obligatoriu",
       "nameTooLong": "Numele este prea lung",
       "unitsPerHour": "Unitățile pe oră trebuie să fie mai mari decât zero",
+      "ratePerUnit": "Tariful per unitate trebuie să fie mai mare decât zero",
+      "currency": "Folosește un cod valutar din trei litere",
       "fixErrors": "Verifică câmpurile marcate și încearcă din nou."
     }
   },

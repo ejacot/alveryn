@@ -42,6 +42,10 @@ public class WorkType extends BaseEntity {
   @Column(name = "calculation_method", nullable = false, length = 30)
   private CalculationMethod calculationMethod;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "compensation_method", nullable = false, length = 30)
+  private CompensationMethod compensationMethod = CompensationMethod.HOURLY;
+
   @Column(nullable = false, length = 7)
   private String color = "#87C95A";
 
@@ -58,9 +62,18 @@ public class WorkType extends BaseEntity {
   private int displayOrder;
 
   public WorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
+    this(user, name, calculationMethod, CompensationMethod.HOURLY);
+  }
+
+  public WorkType(
+      UserAccount user,
+      String name,
+      CalculationMethod calculationMethod,
+      CompensationMethod compensationMethod) {
     this.user = Objects.requireNonNull(user, "user is required");
     this.calculationMethod =
         Objects.requireNonNull(calculationMethod, "calculationMethod is required");
+    changeCompensationMethod(compensationMethod);
     rename(name);
   }
 
@@ -93,6 +106,18 @@ public class WorkType extends BaseEntity {
 
   public void changeCalculationMethod(CalculationMethod value) {
     calculationMethod = Objects.requireNonNull(value, "calculationMethod is required");
+    if (calculationMethod == CalculationMethod.TIME_BASED
+        && compensationMethod == CompensationMethod.PER_UNIT) {
+      compensationMethod = CompensationMethod.HOURLY;
+    }
+  }
+
+  public void changeCompensationMethod(CompensationMethod value) {
+    CompensationMethod next = Objects.requireNonNull(value, "compensationMethod is required");
+    if (calculationMethod == CalculationMethod.TIME_BASED && next == CompensationMethod.PER_UNIT) {
+      throw new IllegalArgumentException("TIME_BASED work types must use HOURLY compensation");
+    }
+    compensationMethod = next;
   }
 
   public void activate() {

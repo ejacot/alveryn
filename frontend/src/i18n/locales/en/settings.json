@@ -20,8 +20,8 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Calculation method",
+      "compensationMethod": "Payment method",
       "color": "Color",
-      "icon": "Icon",
       "defaultBreakMinutes": "Default break",
       "status": "Status"
     },
@@ -29,6 +29,12 @@
       "nameRequired": "Name is required",
       "nameTooLong": "Name is too long",
       "fixErrors": "Check the highlighted fields and try again."
+    },
+    "compensation": {
+      "hourly": "Paid hourly using equivalent time",
+      "hourlyDescription": "Quantities become equivalent time and use your hourly rate.",
+      "perUnit": "Paid directly per unit",
+      "perUnitDescription": "Each unit has its own rate, for example EUR per m²."
     }
   },
   "unitTypes": {
@@ -46,6 +52,8 @@
     "emptyDescription": "Add the first unit you count during work.",
     "rateLine": "{{value}} / hour",
     "unitsPerHourPlaceholder": "Example: 2.4",
+    "symbolPlaceholder": "Example: m²",
+    "ratePerUnitPlaceholder": "Example: 50",
     "unitsPerHourHelper": "Enter how many of this unit you usually complete in one hour.",
     "deactivate": "Deactivate unit type",
     "moveUp": "Move {{name}} up",
@@ -55,13 +63,18 @@
     "deactivateConfirm": "Deactivate",
     "fields": {
       "name": "Name",
+      "symbol": "Symbol",
       "unitsPerHour": "Units per hour",
+      "ratePerUnit": "Rate per unit",
+      "currency": "Currency",
       "status": "Status"
     },
     "validation": {
       "nameRequired": "Name is required",
       "nameTooLong": "Name is too long",
       "unitsPerHour": "Units per hour must be greater than zero",
+      "ratePerUnit": "Rate per unit must be greater than zero",
+      "currency": "Use a three-letter currency code",
       "fixErrors": "Check the highlighted fields and try again."
     }
   },

@@ -51,7 +51,8 @@
   "unitRows": {
     "fallbackUnit": "Einheit",
     "quantity": "Einheiten",
-    "perHour": "{{value}} pro Stunde"
+    "perHour": "{{value}} pro Stunde",
+    "totalGross": "Brutto gesamt"
   },
   "validation": {
     "dateRequired": "Datum ist erforderlich",

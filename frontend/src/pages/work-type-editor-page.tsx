@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Clock3 } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock3, Coins } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -30,6 +30,7 @@ import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import type { UnitType } from "../types/configuration";
+import { formatCurrency } from "../utils/format";
 
 const WORK_TYPE_COLORS = [
   "#A3E635",
@@ -46,9 +47,9 @@ function createWorkTypeSchema(t: (key: string) => string) {
 	      .trim()
 	      .transform((value) => value.toLocaleUpperCase())
 	      .pipe(z.string().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong"))),
-	    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
-	    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default(DEFAULT_WORK_TYPE_COLOR),
-	    icon: z.string().trim().max(100).optional().or(z.literal("")),
+		    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
+		    compensationMethod: z.enum(["HOURLY", "PER_UNIT"]).default("HOURLY"),
+		    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default(DEFAULT_WORK_TYPE_COLOR),
 	    defaultBreakMinutes: z.coerce.number().int().min(0).optional(),
 	    active: z.boolean().optional().default(true)
   });
@@ -64,12 +65,18 @@ function parseDecimalInput(value: unknown) {
 
 function createUnitDialogSchema(t: (key: string) => string) {
   return z.object({
-    name: z.string().trim().min(1, t("unitTypes.validation.nameRequired")).max(100, t("unitTypes.validation.nameTooLong")),
+	    name: z.string().trim().min(1, t("unitTypes.validation.nameRequired")).max(100, t("unitTypes.validation.nameTooLong")),
     unitsPerHour: z.preprocess(
       parseDecimalInput,
-      z.number({ error: t("unitTypes.validation.unitsPerHour") }).gt(0, t("unitTypes.validation.unitsPerHour"))
-    )
-  });
+      z.number({ error: t("unitTypes.validation.unitsPerHour") }).gt(0, t("unitTypes.validation.unitsPerHour")).optional().or(z.nan())
+    ),
+    symbol: z.string().trim().max(20).optional().or(z.literal("")),
+    ratePerUnit: z.preprocess(
+      parseDecimalInput,
+      z.number({ error: t("unitTypes.validation.ratePerUnit") }).gt(0, t("unitTypes.validation.ratePerUnit")).optional().or(z.nan())
+    ),
+    currency: z.string().trim().length(3, t("unitTypes.validation.currency")).optional().or(z.literal(""))
+	  });
 }
 
 type Schema = ReturnType<typeof createWorkTypeSchema>;
@@ -109,9 +116,9 @@ export function WorkTypeEditorPage() {
     resolver: zodResolver(schema),
     defaultValues: {
 	      name: "",
-	      calculationMethod: "TIME_BASED",
-	      color: DEFAULT_WORK_TYPE_COLOR,
-	      icon: "",
+		      calculationMethod: "TIME_BASED",
+		      compensationMethod: "HOURLY",
+		      color: DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: 30,
 	      active: true
     }
@@ -119,18 +126,21 @@ export function WorkTypeEditorPage() {
   const unitForm = useForm<UnitDialogInput, undefined, UnitDialogValues>({
     resolver: zodResolver(unitDialogSchema),
     defaultValues: {
-      name: "",
-      unitsPerHour: ""
+	      name: "",
+	      unitsPerHour: "",
+	      symbol: "",
+	      ratePerUnit: "",
+	      currency: "EUR"
     }
   });
 
   useEffect(() => {
     if (!workTypeQuery.data) return;
     form.reset({
-	      name: workTypeQuery.data.name,
-	      calculationMethod: workTypeQuery.data.calculationMethod,
+		      name: workTypeQuery.data.name,
+		      calculationMethod: workTypeQuery.data.calculationMethod,
+		      compensationMethod: workTypeQuery.data.compensationMethod ?? "HOURLY",
 	      color: workTypeQuery.data.color,
-	      icon: workTypeQuery.data.icon ?? "",
 	      defaultBreakMinutes: workTypeQuery.data.defaultBreakMinutes ?? 30,
 	      active: workTypeQuery.data.active
     });
@@ -154,11 +164,14 @@ export function WorkTypeEditorPage() {
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       if (isEditing) {
-        return updateWorkType(workTypeId!, {
-	          name: values.name,
-	          calculationMethod: values.calculationMethod,
-	          color: values.color,
-	          icon: values.icon?.trim() || null,
+	        return updateWorkType(workTypeId!, {
+		          name: values.name,
+		          calculationMethod: values.calculationMethod,
+		          ...(values.calculationMethod === "UNIT_BASED" && values.compensationMethod === "PER_UNIT"
+		            ? { compensationMethod: values.compensationMethod }
+		            : {}),
+		          color: values.color,
+	          icon: null,
 	          defaultBreakMinutes:
 	            values.calculationMethod === "TIME_BASED"
 	              ? values.defaultBreakMinutes ?? 0
@@ -169,10 +182,13 @@ export function WorkTypeEditorPage() {
       }
 
 	      return createWorkType({
-	        name: values.name,
-	        calculationMethod: values.calculationMethod,
-	        color: values.color,
-	        icon: values.icon?.trim() || null,
+		        name: values.name,
+		        calculationMethod: values.calculationMethod,
+		        ...(values.calculationMethod === "UNIT_BASED" && values.compensationMethod === "PER_UNIT"
+		          ? { compensationMethod: values.compensationMethod }
+		          : {}),
+		        color: values.color,
+	        icon: null,
 	        defaultBreakMinutes: values.calculationMethod === "TIME_BASED" ? values.defaultBreakMinutes ?? 0 : null
 	      });
     },
@@ -209,11 +225,7 @@ export function WorkTypeEditorPage() {
 
   const createUnitMutation = useMutation({
     mutationFn: (values: UnitDialogValues) =>
-      createUnitType(workTypeId!, {
-        name: values.name.trim(),
-        unitsPerHour: values.unitsPerHour,
-        active: true
-      }),
+      createUnitType(workTypeId!, buildUnitTypePayload(values, { active: true })),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
@@ -223,7 +235,7 @@ export function WorkTypeEditorPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-      unitForm.reset({ name: "", unitsPerHour: "" });
+	      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
       setUnitDialogOpen(false);
     },
     onError: (error) => {
@@ -237,12 +249,11 @@ export function WorkTypeEditorPage() {
 
   const updateUnitMutation = useMutation({
     mutationFn: ({ unitType, values }: { unitType: UnitType; values: UnitDialogValues }) =>
-      updateUnitType(workTypeId!, unitType.id, {
-        name: values.name.trim(),
-        unitsPerHour: values.unitsPerHour,
-        displayOrder: unitType.displayOrder,
-        active: unitType.active
-      }),
+      updateUnitType(
+        workTypeId!,
+        unitType.id,
+        buildUnitTypePayload(values, { displayOrder: unitType.displayOrder, active: unitType.active })
+      ),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
@@ -252,7 +263,7 @@ export function WorkTypeEditorPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-      unitForm.reset({ name: "", unitsPerHour: "" });
+	      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
       setSelectedUnitType(null);
       setUnitDialogOpen(false);
     },
@@ -276,7 +287,7 @@ export function WorkTypeEditorPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-      unitForm.reset({ name: "", unitsPerHour: "" });
+      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
       setSelectedUnitType(null);
       setUnitDialogOpen(false);
     },
@@ -287,18 +298,16 @@ export function WorkTypeEditorPage() {
 
   const reorderUnitMutation = useMutation({
     mutationFn: async ({ current, target }: { current: UnitType; target: UnitType }) => {
-      await updateUnitType(workTypeId!, current.id, {
-        name: current.name,
-        unitsPerHour: Number(current.unitsPerHour),
-        displayOrder: target.displayOrder,
-        active: current.active
-      });
-      await updateUnitType(workTypeId!, target.id, {
-        name: target.name,
-        unitsPerHour: Number(target.unitsPerHour),
-        displayOrder: current.displayOrder,
-        active: target.active
-      });
+      await updateUnitType(
+        workTypeId!,
+        current.id,
+        buildExistingUnitTypePayload(current, { displayOrder: target.displayOrder })
+      );
+      await updateUnitType(
+        workTypeId!,
+        target.id,
+        buildExistingUnitTypePayload(target, { displayOrder: current.displayOrder })
+      );
     },
     onSuccess: async () => {
       await Promise.all([
@@ -314,7 +323,7 @@ export function WorkTypeEditorPage() {
 
   function openUnitDialog() {
     unitForm.clearErrors();
-    unitForm.reset({ name: "", unitsPerHour: "" });
+	    unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
     setSelectedUnitType(null);
     setUnitDialogOpen(true);
   }
@@ -322,8 +331,11 @@ export function WorkTypeEditorPage() {
   function openUnitEditDialog(unitType: UnitType) {
     unitForm.clearErrors();
     unitForm.reset({
-      name: unitType.name,
-      unitsPerHour: unitType.unitsPerHour
+	      name: unitType.name,
+	      unitsPerHour: unitType.unitsPerHour ?? "",
+	      symbol: unitType.symbol ?? "",
+	      ratePerUnit: unitType.ratePerUnit ?? "",
+	      currency: unitType.currency ?? "EUR"
     });
     setSelectedUnitType(unitType);
     setUnitDialogOpen(true);
@@ -333,7 +345,7 @@ export function WorkTypeEditorPage() {
     if (createUnitMutation.isPending || updateUnitMutation.isPending || deleteUnitMutation.isPending || reorderUnitMutation.isPending) return;
     setUnitDialogOpen(false);
     setSelectedUnitType(null);
-    unitForm.reset({ name: "", unitsPerHour: "" });
+	    unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
   }
 
   function moveUnit(unitType: UnitType, direction: -1 | 1) {
@@ -362,6 +374,7 @@ export function WorkTypeEditorPage() {
     ? workTypeQuery.data?.name ?? t("settings:workTypeEditor.editTitle")
     : t("settings:workTypeEditor.addTitle");
   const selectedCalculationMethod = form.watch("calculationMethod");
+  const selectedCompensationMethod = form.watch("compensationMethod");
   const orderedUnitTypes = [...(unitTypesQuery.data ?? [])].sort((left, right) => {
     return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
   });
@@ -415,11 +428,6 @@ export function WorkTypeEditorPage() {
                 }
 	              })}
 	            />
-	            <Input
-	              label={t("settings:workTypeEditor.fields.icon")}
-	              error={form.formState.errors.icon?.message}
-	              {...form.register("icon")}
-	            />
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium text-white/78">
                 {t("settings:workTypeEditor.fields.calculationMethod")}
@@ -441,6 +449,13 @@ export function WorkTypeEditorPage() {
                           shouldTouch: true,
                           shouldValidate: true
                         });
+                        if (option.value === "TIME_BASED") {
+                          form.setValue("compensationMethod", "HOURLY", {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true
+                          });
+                        }
                       }}
                       className={[
                         "min-h-12 rounded-full border px-4 text-sm font-semibold tracking-[-0.03em] transition",
@@ -460,6 +475,52 @@ export function WorkTypeEditorPage() {
                 </p>
               ) : null}
             </fieldset>
+            {selectedCalculationMethod === "UNIT_BASED" ? (
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-white/78">
+                  {t("settings:workTypeEditor.fields.compensationMethod")}
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      value: "HOURLY" as const,
+                      label: t("settings:workTypeEditor.compensation.hourly"),
+                      description: t("settings:workTypeEditor.compensation.hourlyDescription")
+                    },
+                    {
+                      value: "PER_UNIT" as const,
+                      label: t("settings:workTypeEditor.compensation.perUnit"),
+                      description: t("settings:workTypeEditor.compensation.perUnitDescription")
+                    }
+                  ].map((option) => {
+                    const selected = selectedCompensationMethod === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={selected}
+                        className={[
+                          "rounded-[22px] border px-4 py-3 text-left transition",
+                          selected
+                            ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
+                            : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                        ].join(" ")}
+                        onClick={() => {
+                          form.setValue("compensationMethod", option.value, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true
+                          });
+                        }}
+                      >
+                        <span className="block text-sm font-semibold">{option.label}</span>
+                        <span className="mt-1 block text-xs opacity-70">{option.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
 	            {isEditing ? (
 	              <ColorPicker
                 label={t("settings:workTypeEditor.fields.color")}
@@ -509,10 +570,20 @@ export function WorkTypeEditorPage() {
                           <p className={`text-[1.05rem] font-semibold tracking-[-0.04em] ${unit.active ? "text-white" : "text-white/42"}`}>
                             {unit.name}
                           </p>
-                          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/46">
-                            <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
-                            <span>{unit.unitsPerHour}</span>
-                          </p>
+                          {(workTypeQuery.data?.compensationMethod ?? "HOURLY") === "PER_UNIT" ? (
+                            <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/46">
+                              <Coins className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
+                              <span>
+                                {formatCurrency(String(unit.ratePerUnit ?? 0), unit.currency ?? "EUR")}
+                                {unit.symbol ? `/${unit.symbol}` : ""}
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/46">
+                              <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
+                              <span>{unit.unitsPerHour}</span>
+                            </p>
+                          )}
                         </div>
                         {!unit.active ? (
                           <span className="text-xs uppercase tracking-[0.16em] text-white/28">
@@ -584,6 +655,7 @@ export function WorkTypeEditorPage() {
         mode={selectedUnitType ? "edit" : "create"}
         pending={createUnitMutation.isPending || updateUnitMutation.isPending || deleteUnitMutation.isPending}
         form={unitForm}
+        compensationMethod={workTypeQuery.data?.compensationMethod ?? selectedCompensationMethod ?? "HOURLY"}
         onClose={closeUnitDialog}
         onSubmit={(values) =>
           selectedUnitType
@@ -647,6 +719,7 @@ function UnitTypeCreateDialog({
   mode,
   pending,
   form,
+  compensationMethod,
   onClose,
   onSubmit,
   onDeactivate
@@ -654,13 +727,15 @@ function UnitTypeCreateDialog({
   open: boolean;
   mode: "create" | "edit";
   pending: boolean;
-  form: ReturnType<typeof useForm<UnitDialogInput, undefined, UnitDialogValues>>;
-  onClose: () => void;
+	  form: ReturnType<typeof useForm<UnitDialogInput, undefined, UnitDialogValues>>;
+	  compensationMethod: "HOURLY" | "PER_UNIT";
+	  onClose: () => void;
   onSubmit: (values: UnitDialogValues) => Promise<unknown>;
   onDeactivate?: () => Promise<unknown>;
 }) {
   const { t } = useTranslation(["settings", "common"]);
   const unitsPerHourField = form.register("unitsPerHour");
+  const ratePerUnitField = form.register("ratePerUnit");
 
   if (!open) {
     return null;
@@ -726,6 +801,43 @@ function UnitTypeCreateDialog({
             {...form.register("name")}
           />
           <Input
+            label={t("settings:unitTypes.fields.symbol")}
+            placeholder={t("settings:unitTypes.symbolPlaceholder")}
+            error={form.formState.errors.symbol?.message}
+            {...form.register("symbol")}
+          />
+          {compensationMethod === "PER_UNIT" ? (
+            <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder={t("settings:unitTypes.ratePerUnitPlaceholder")}
+                label={t("settings:unitTypes.fields.ratePerUnit")}
+                autoComplete="off"
+                error={form.formState.errors.ratePerUnit?.message}
+                {...ratePerUnitField}
+                onChange={(event) => {
+                  const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
+                  if (event.currentTarget.value !== sanitized) {
+                    event.currentTarget.value = sanitized;
+                  }
+                  void ratePerUnitField.onChange(event);
+                }}
+              />
+              <Input
+                label={t("settings:unitTypes.fields.currency")}
+                maxLength={3}
+                error={form.formState.errors.currency?.message}
+                {...form.register("currency", {
+                  onChange: (event) => {
+                    const input = event.target as HTMLInputElement;
+                    input.value = input.value.toUpperCase();
+                  }
+                })}
+              />
+            </div>
+          ) : null}
+          <Input
             type="text"
             inputMode="decimal"
             placeholder={t("settings:unitTypes.unitsPerHourPlaceholder")}
@@ -780,4 +892,60 @@ function formatWorkTypeError(message: string, savedEntriesMessage?: string) {
     return savedEntriesMessage ?? message;
   }
   return message;
+}
+
+function normalizeOptionalNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(parseDecimalInput(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildUnitTypePayload(
+  values: UnitDialogValues,
+  options: { displayOrder?: number | null; active: boolean }
+) {
+  const payload: {
+    name: string;
+    unitsPerHour?: number | null;
+    symbol?: string | null;
+    ratePerUnit?: number | null;
+    currency?: string | null;
+    displayOrder?: number | null;
+    active: boolean;
+  } = {
+    name: values.name.trim(),
+    active: options.active
+  };
+  const unitsPerHour = normalizeOptionalNumber(values.unitsPerHour);
+  if (unitsPerHour !== null) payload.unitsPerHour = unitsPerHour;
+  const symbol = values.symbol?.trim();
+  if (symbol) payload.symbol = symbol;
+  const ratePerUnit = normalizeOptionalNumber(values.ratePerUnit);
+  if (ratePerUnit !== null) payload.ratePerUnit = ratePerUnit;
+  const currency = values.currency?.trim();
+  if (currency && ratePerUnit !== null) payload.currency = currency;
+  if (options.displayOrder != null) payload.displayOrder = options.displayOrder;
+  return payload;
+}
+
+function buildExistingUnitTypePayload(unitType: UnitType, options: { displayOrder: number }) {
+  const payload: {
+    name: string;
+    unitsPerHour?: number | null;
+    symbol?: string | null;
+    ratePerUnit?: number | null;
+    currency?: string | null;
+    displayOrder: number;
+    active: boolean;
+  } = {
+    name: unitType.name,
+    displayOrder: options.displayOrder,
+    active: unitType.active
+  };
+  const unitsPerHour = normalizeOptionalNumber(unitType.unitsPerHour);
+  if (unitsPerHour !== null) payload.unitsPerHour = unitsPerHour;
+  if (unitType.symbol) payload.symbol = unitType.symbol;
+  const ratePerUnit = normalizeOptionalNumber(unitType.ratePerUnit);
+  if (ratePerUnit !== null) payload.ratePerUnit = ratePerUnit;
+  if (unitType.currency && ratePerUnit !== null) payload.currency = unitType.currency;
+  return payload;
 }

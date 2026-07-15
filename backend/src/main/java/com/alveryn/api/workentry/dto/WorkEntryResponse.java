@@ -1,6 +1,7 @@
 package com.alveryn.api.workentry.dto;
 
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public record WorkEntryResponse(
     UUID workTypeId,
     String workTypeName,
     CalculationMethod calculationMethod,
+    CompensationMethod compensationMethod,
     LocalDate workDate,
     BigDecimal hourlyRateSnapshot,
     String currencySnapshot,

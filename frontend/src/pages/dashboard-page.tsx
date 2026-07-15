@@ -254,7 +254,9 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
             formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
             "",
           duration:
-            entry.calculationMethod === "UNIT_BASED"
+            (entry.compensationMethod ?? "HOURLY") === "PER_UNIT"
+              ? t("dashboard:selectedDay.directUnitPay")
+              : entry.calculationMethod === "UNIT_BASED"
               ? t("dashboard:selectedDay.equivalentTime", {
                   duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
                 })
@@ -266,7 +268,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
           unitBreakdown: entry.unitItems.map((item) => ({
             id: item.id,
             label: item.unitName,
-            quantity: formatQuantity(item.quantity),
+            quantity: item.unitSymbol ? `${formatQuantity(item.quantity)} ${item.unitSymbol}` : formatQuantity(item.quantity),
             displayOrder: item.displayOrder
           }))
         })),
