@@ -1,0 +1,31 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Alveryn repository banner</title>
+  <desc id="desc">A professional banner for Alveryn, a work tracking and earnings analytics app.</desc>
+  <rect width="1280" height="640" fill="#080A0F"/>
+  <rect x="72" y="72" width="1136" height="496" rx="28" fill="#10141D" stroke="#2D3442" stroke-width="2"/>
+  <path d="M820 111H1162V529H820V111Z" fill="#0B0F17"/>
+  <path d="M820 111H1162V529H820V111Z" stroke="#252D3A" stroke-width="2"/>
+  <rect x="862" y="161" width="258" height="20" rx="10" fill="#DCE7F3" opacity="0.9"/>
+  <rect x="862" y="215" width="194" height="16" rx="8" fill="#728093"/>
+  <rect x="862" y="253" width="240" height="16" rx="8" fill="#728093"/>
+  <rect x="862" y="323" width="96" height="96" rx="18" fill="#151C27" stroke="#344052" stroke-width="2"/>
+  <rect x="982" y="323" width="96" height="96" rx="18" fill="#151C27" stroke="#344052" stroke-width="2"/>
+  <rect x="1102" y="323" width="96" height="96" rx="18" fill="#151C27" stroke="#344052" stroke-width="2"/>
+  <path d="M886 391L914 359L936 381L952 363" stroke="#DCE7F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M1010 371H1050M1010 397H1034" stroke="#DCE7F3" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1132 356V395M1154 338V395M1176 372V395" stroke="#DCE7F3" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="259" cy="248" r="104" fill="#F8FAFC"/>
+  <path d="M211 303L252 193H278L319 303H288L280 279H249L241 303H211ZM257 254H272L265 231L257 254Z" fill="#080A0F"/>
+  <text x="394" y="224" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="84" font-weight="800" letter-spacing="1">Alveryn</text>
+  <text x="398" y="286" fill="#C3CFDD" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="500">Work tracking, earnings analytics, and personal operations.</text>
+  <g fill="#DCE7F3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">
+    <rect x="398" y="345" width="132" height="48" rx="24" fill="#1B2433"/>
+    <text x="424" y="377">React</text>
+    <rect x="546" y="345" width="170" height="48" rx="24" fill="#1B2433"/>
+    <text x="572" y="377">Spring Boot</text>
+    <rect x="398" y="415" width="164" height="48" rx="24" fill="#1B2433"/>
+    <text x="424" y="447">PostgreSQL</text>
+    <rect x="578" y="415" width="110" height="48" rx="24" fill="#1B2433"/>
+    <text x="604" y="447">PWA</text>
+  </g>
+</svg>

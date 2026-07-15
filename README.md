@@ -1,6 +1,37 @@
 # Alveryn
 
-Alveryn is organized as a Spring Boot backend plus a Vite/React frontend, with infrastructure code around them.
+![Alveryn repository banner](docs/assets/alveryn-repo-banner.svg)
+
+[![Backend CI](https://github.com/ejacot/alveryn/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/ejacot/alveryn/actions/workflows/backend-ci.yml)
+[![Live app](https://img.shields.io/badge/live-alveryn.com-0f172a?style=flat-square)](https://alveryn.com)
+[![API health](https://img.shields.io/badge/api-api.alveryn.com-0f172a?style=flat-square)](https://api.alveryn.com/actuator/health)
+
+Alveryn is a work tracking and earnings analytics application for people who need a precise view of time, unit-based work, rates, absences, salary periods, and statistics.
+
+The project is organized as a Spring Boot backend plus a Vite/React frontend, with production infrastructure for Render.
+
+## Product
+
+- Track time-based and unit-based work entries.
+- Model personal work types, rates, calculation methods, unit types, and salary periods.
+- Review dashboard, calendar, settings, and statistics views.
+- Support registration, email verification, onboarding, JWT auth, refresh cookies, and production email delivery.
+- Run as a deployable web app with PWA assets and mobile-focused flows.
+
+## Stack
+
+- Backend: Java 21, Spring Boot, Spring Security, Hibernate, Flyway, PostgreSQL, MapStruct.
+- Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, TailwindCSS, Framer Motion.
+- Testing and CI: Maven tests, Vitest, Playwright, GitHub Actions, PostgreSQL service containers.
+- Deployment: Render Blueprint, managed PostgreSQL, static frontend, Dockerized API.
+
+## Links
+
+- Production app: <https://alveryn.com>
+- Production API health: <https://api.alveryn.com/actuator/health>
+- Deployment notes: [docs/deployment.md](docs/deployment.md)
+- Architecture notes: [docs/architecture.md](docs/architecture.md)
+- API notes: [docs/api.md](docs/api.md)
 
 ## Local development
 

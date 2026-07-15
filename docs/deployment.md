@@ -19,7 +19,7 @@ Use these production hostnames:
 1. Open Render and create a new Blueprint from the GitHub repository:
    `https://github.com/ejacot/alveryn`
 2. Select branch:
-   `develop`
+   `main`
 3. Render reads `render.yaml` and creates:
    - `alveryn-web`
    - `alveryn-api`
