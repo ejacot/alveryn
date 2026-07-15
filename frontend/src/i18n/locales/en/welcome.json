@@ -1,0 +1,101 @@
+{
+  "loading": "Loading Alveryn...",
+  "nav": {
+    "login": "Login",
+    "register": "Create account"
+  },
+  "hero": {
+    "eyebrow": "For hourly work, unit work, and estimated earnings",
+    "title": "Understand clearly how much you worked and earned.",
+    "subtitle": "Alveryn helps you record hours, unit-based work, rates, and absences. It then shows totals, statistics, and comparisons by day, week, or month.",
+    "primaryCta": "Start free",
+    "secondaryCta": "I already have an account"
+  },
+  "preview": {
+    "today": "Today",
+    "gross": "Estimated gross",
+    "timeEntryTitle": "Morning shift",
+    "timeEntryMeta": "08:00-16:30 · 30m break",
+    "unitEntryTitle": "Completed orders",
+    "unitEntryMeta": "14 units · 3.50 EUR",
+    "dailyAverage": "Daily average",
+    "monthTotal": "This month"
+  },
+  "steps": {
+    "eyebrow": "How it works",
+    "title": "Start with the things you already know.",
+    "items": [
+      {
+        "title": "Set your profile and rate",
+        "description": "Choose your currency, preferred schedule, hourly rate, or the calculation rules you use."
+      },
+      {
+        "title": "Add daily work",
+        "description": "Enter worked hours, breaks, or how many units you completed: orders, trips, rooms, products, or any other work type."
+      },
+      {
+        "title": "Review the results",
+        "description": "See totals, estimated gross income, worked days, averages, and comparisons between periods."
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "What you get",
+    "title": "A simple app for tracking your work.",
+    "subtitle": "You do not need to remember formulas or maintain spreadsheets. Alveryn keeps the history and calculates consistently.",
+    "items": [
+      {
+        "title": "Hourly tracking",
+        "description": "Enter start time, end time, and break. The app calculates worked minutes and hours."
+      },
+      {
+        "title": "Unit-based work",
+        "description": "For work paid per item, enter quantity and value for each unit."
+      },
+      {
+        "title": "Rates and periods",
+        "description": "When your rate changes, old entries stay calculated with the correct rate for that period."
+      },
+      {
+        "title": "Calendar and absences",
+        "description": "See worked days, free days, and paid absences in a calendar that is easy to check."
+      },
+      {
+        "title": "Clear statistics",
+        "description": "Track hours, estimated gross income, worked days, averages, and differences between two periods."
+      },
+      {
+        "title": "Installable on your phone",
+        "description": "Use it quickly from your phone and add it to your home screen as a web app."
+      }
+    ]
+  },
+  "examples": {
+    "eyebrow": "Quick examples",
+    "title": "What it can calculate for you",
+    "items": [
+      "If you worked 08:00-16:30 with a 30-minute break, Alveryn records 8 worked hours.",
+      "If you completed 14 units at 3.50 EUR each, you immediately see the total for that work type.",
+      "If your rate changes next month, history stays calculated with the old rates.",
+      "If you want to compare two weeks, statistics show the difference by day."
+    ]
+  },
+  "calculations": {
+    "title": "Alveryn can track",
+    "items": [
+      "worked hours and minutes",
+      "estimated gross income",
+      "daily, weekly, or monthly totals",
+      "unit-based work",
+      "paid absences",
+      "period comparisons"
+    ],
+    "note": "Results are estimates for personal organization. Final payment depends on your contract, payslip, and employer rules."
+  },
+  "final": {
+    "title": "If you want order in your hours, rates, and earnings, start with your first entry.",
+    "subtitle": "Create your account, set your rate, and add the work types you use day by day.",
+    "primaryCta": "Create account",
+    "secondaryCta": "Sign in"
+  }
+}

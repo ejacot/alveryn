@@ -1,0 +1,101 @@
+{
+  "loading": "Se încarcă Alveryn...",
+  "nav": {
+    "login": "Login",
+    "register": "Creează cont"
+  },
+  "hero": {
+    "eyebrow": "Pentru lucru pe ore, pe unități și venit estimat",
+    "title": "Înțelege clar cât ai lucrat și cât ai câștigat.",
+    "subtitle": "Alveryn te ajută să notezi orele, lucrările pe bucată, tarifele și absențele. Apoi îți arată automat totaluri, statistici și comparații pe zile, săptămâni sau luni.",
+    "primaryCta": "Începe gratuit",
+    "secondaryCta": "Am deja cont"
+  },
+  "preview": {
+    "today": "Astăzi",
+    "gross": "Brut estimat",
+    "timeEntryTitle": "Schimb dimineața",
+    "timeEntryMeta": "08:00-16:30 · pauză 30m",
+    "unitEntryTitle": "Comenzi finalizate",
+    "unitEntryMeta": "14 unități · 3,50 EUR",
+    "dailyAverage": "Media zilnică",
+    "monthTotal": "Luna aceasta"
+  },
+  "steps": {
+    "eyebrow": "Cum funcționează",
+    "title": "Începi cu lucrurile pe care le știi deja.",
+    "items": [
+      {
+        "title": "Setezi profilul și tariful",
+        "description": "Alegi moneda, programul preferat și tariful orar sau regulile de calcul pe care le folosești."
+      },
+      {
+        "title": "Adaugi munca zilnică",
+        "description": "Scrii orele lucrate, pauza sau câte unități ai făcut: comenzi, curse, camere, produse sau orice alt tip de lucru."
+      },
+      {
+        "title": "Verifici rezultatele",
+        "description": "Vezi totaluri, estimări de brut, zile lucrate, medii și comparații între perioade."
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "Ce primești",
+    "title": "O aplicație simplă pentru evidența muncii tale.",
+    "subtitle": "Nu trebuie să ții minte formule sau să faci tabele. Alveryn păstrează istoricul și calculează consecvent.",
+    "items": [
+      {
+        "title": "Pontaj pe ore",
+        "description": "Introduci începutul, finalul și pauza. Aplicația calculează minutele și orele lucrate."
+      },
+      {
+        "title": "Lucru pe unități",
+        "description": "Pentru activități plătite pe bucată, notezi cantitatea și valoarea fiecărei unități."
+      },
+      {
+        "title": "Tarife și perioade",
+        "description": "Când tariful se schimbă, intrările vechi rămân calculate cu tariful corect din acea perioadă."
+      },
+      {
+        "title": "Calendar și absențe",
+        "description": "Vezi zilele lucrate, zilele libere și absențele plătite într-un calendar ușor de verificat."
+      },
+      {
+        "title": "Statistici clare",
+        "description": "Urmărești ore, brut estimat, zile lucrate, medii și diferențe între două perioade."
+      },
+      {
+        "title": "Instalabil pe telefon",
+        "description": "Îl poți folosi rapid de pe telefon și îl poți adăuga pe ecran ca aplicație web."
+      }
+    ]
+  },
+  "examples": {
+    "eyebrow": "Exemple rapide",
+    "title": "Ce poate calcula pentru tine",
+    "items": [
+      "Dacă ai lucrat 08:00-16:30 cu 30 de minute pauză, Alveryn notează 8 ore lucrate.",
+      "Dacă ai făcut 14 unități la 3,50 EUR, vezi imediat totalul pentru acel tip de lucru.",
+      "Dacă schimbi tariful luna viitoare, istoricul rămâne calculat cu tarifele vechi.",
+      "Dacă vrei să compari două săptămâni, statisticile îți arată diferența pe zile."
+    ]
+  },
+  "calculations": {
+    "title": "Alveryn poate urmări",
+    "items": [
+      "ore și minute lucrate",
+      "venit brut estimat",
+      "total pe zi, săptămână sau lună",
+      "lucru pe unități",
+      "absențe plătite",
+      "comparații între perioade"
+    ],
+    "note": "Rezultatele sunt estimări pentru organizarea personală. Pentru plata finală contează contractul, fluturașul de salariu și regulile angajatorului."
+  },
+  "final": {
+    "title": "Dacă vrei ordine în ore, tarife și venituri, începe cu prima înregistrare.",
+    "subtitle": "Creezi contul, setezi tariful și adaugi tipurile de lucru pe care le folosești zi de zi.",
+    "primaryCta": "Creează cont",
+    "secondaryCta": "Intră în cont"
+  }
+}

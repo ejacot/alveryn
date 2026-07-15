@@ -1,0 +1,101 @@
+{
+  "loading": "Alveryn wird geladen...",
+  "nav": {
+    "login": "Login",
+    "register": "Konto erstellen"
+  },
+  "hero": {
+    "eyebrow": "Für Stundenarbeit, Stückarbeit und geschätztes Einkommen",
+    "title": "Verstehe klar, wie viel du gearbeitet und verdient hast.",
+    "subtitle": "Alveryn hilft dir, Stunden, mengenbasierte Arbeit, Tarife und Abwesenheiten zu erfassen. Danach siehst du Summen, Statistiken und Vergleiche nach Tag, Woche oder Monat.",
+    "primaryCta": "Kostenlos starten",
+    "secondaryCta": "Ich habe ein Konto"
+  },
+  "preview": {
+    "today": "Heute",
+    "gross": "Geschätztes Brutto",
+    "timeEntryTitle": "Frühschicht",
+    "timeEntryMeta": "08:00-16:30 · 30 Min. Pause",
+    "unitEntryTitle": "Erledigte Aufträge",
+    "unitEntryMeta": "14 Einheiten · 3,50 EUR",
+    "dailyAverage": "Tagesdurchschnitt",
+    "monthTotal": "Dieser Monat"
+  },
+  "steps": {
+    "eyebrow": "So funktioniert es",
+    "title": "Beginne mit den Dingen, die du schon kennst.",
+    "items": [
+      {
+        "title": "Profil und Tarif festlegen",
+        "description": "Wähle Währung, bevorzugten Arbeitsrhythmus, Stundensatz oder die Berechnungsregeln, die du nutzt."
+      },
+      {
+        "title": "Tägliche Arbeit eintragen",
+        "description": "Trage Arbeitszeiten, Pausen oder erledigte Einheiten ein: Aufträge, Fahrten, Zimmer, Produkte oder andere Arbeitstypen."
+      },
+      {
+        "title": "Ergebnisse prüfen",
+        "description": "Sieh Summen, geschätztes Brutto, Arbeitstage, Durchschnitte und Vergleiche zwischen Zeiträumen."
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "Was du bekommst",
+    "title": "Eine einfache App für deine Arbeitsübersicht.",
+    "subtitle": "Du musst keine Formeln merken und keine Tabellen pflegen. Alveryn speichert den Verlauf und rechnet konsistent.",
+    "items": [
+      {
+        "title": "Zeiterfassung",
+        "description": "Du gibst Start, Ende und Pause ein. Die App berechnet Arbeitsminuten und Stunden."
+      },
+      {
+        "title": "Mengenbasierte Arbeit",
+        "description": "Für Arbeit pro Stück erfasst du Menge und Wert jeder Einheit."
+      },
+      {
+        "title": "Tarife und Zeiträume",
+        "description": "Wenn sich dein Tarif ändert, bleiben alte Einträge mit dem richtigen Tarif aus diesem Zeitraum berechnet."
+      },
+      {
+        "title": "Kalender und Abwesenheiten",
+        "description": "Sieh Arbeitstage, freie Tage und bezahlte Abwesenheiten in einem leicht prüfbaren Kalender."
+      },
+      {
+        "title": "Klare Statistiken",
+        "description": "Verfolge Stunden, geschätztes Brutto, Arbeitstage, Durchschnitte und Unterschiede zwischen zwei Zeiträumen."
+      },
+      {
+        "title": "Auf dem Telefon installierbar",
+        "description": "Nutze Alveryn schnell am Telefon und füge es als Web-App zum Startbildschirm hinzu."
+      }
+    ]
+  },
+  "examples": {
+    "eyebrow": "Kurze Beispiele",
+    "title": "Was Alveryn für dich berechnen kann",
+    "items": [
+      "Wenn du 08:00-16:30 mit 30 Minuten Pause gearbeitet hast, erfasst Alveryn 8 Arbeitsstunden.",
+      "Wenn du 14 Einheiten zu je 3,50 EUR erledigt hast, siehst du sofort die Summe für diesen Arbeitstyp.",
+      "Wenn sich dein Tarif nächsten Monat ändert, bleibt die Vergangenheit mit den alten Tarifen berechnet.",
+      "Wenn du zwei Wochen vergleichen willst, zeigen die Statistiken den Unterschied pro Tag."
+    ]
+  },
+  "calculations": {
+    "title": "Alveryn kann erfassen",
+    "items": [
+      "Arbeitsstunden und Minuten",
+      "geschätztes Bruttoeinkommen",
+      "Summen pro Tag, Woche oder Monat",
+      "mengenbasierte Arbeit",
+      "bezahlte Abwesenheiten",
+      "Vergleiche zwischen Zeiträumen"
+    ],
+    "note": "Die Ergebnisse sind Schätzungen für deine persönliche Organisation. Für die endgültige Zahlung zählen Vertrag, Gehaltsabrechnung und Regeln des Arbeitgebers."
+  },
+  "final": {
+    "title": "Wenn du Ordnung in Stunden, Tarife und Einkommen bringen willst, beginne mit dem ersten Eintrag.",
+    "subtitle": "Erstelle dein Konto, setze deinen Tarif und füge die Arbeitstypen hinzu, die du täglich nutzt.",
+    "primaryCta": "Konto erstellen",
+    "secondaryCta": "Einloggen"
+  }
+}
