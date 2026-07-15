@@ -38,7 +38,7 @@ describe("http refresh queue", () => {
         accessTokenExpiresIn: 900,
         user: {
           id: "1",
-          email: "roomly@example.com",
+          email: "alveryn@example.com",
           emailVerified: true,
           status: "ACTIVE",
           lastLoginAt: null
@@ -86,7 +86,7 @@ describe("http refresh queue", () => {
     });
 
     await expect(
-      http.post("/api/auth/login", { email: "roomly@example.com", password: "bad" })
+      http.post("/api/auth/login", { email: "alveryn@example.com", password: "bad" })
     ).rejects.toBeDefined();
 
     expect(axiosMock.history.post).toHaveLength(0);

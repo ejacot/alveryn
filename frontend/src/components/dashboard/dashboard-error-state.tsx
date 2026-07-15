@@ -14,7 +14,7 @@ export function DashboardErrorState({ message, onRetry }: Props) {
             Dashboard
           </p>
           <h1 className="mt-2 text-[2rem] font-semibold tracking-[-0.05em] text-white">
-            Roomly could not load your live data.
+            Alveryn could not load your live data.
           </h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-white/66">{message}</p>
         </div>

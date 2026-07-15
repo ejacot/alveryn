@@ -5,9 +5,9 @@
 ### users
 
 ### work_entries
-# Roomly database model
+# Alveryn database model
 
-Roomly uses PostgreSQL UUID values for every primary and foreign key. All entities inherit `id`, `created_at`, and `updated_at` from the Java `BaseEntity`; timestamps map to `TIMESTAMPTZ`.
+Alveryn uses PostgreSQL UUID values for every primary and foreign key. All entities inherit `id`, `created_at`, and `updated_at` from the Java `BaseEntity`; timestamps map to `TIMESTAMPTZ`.
 
 ## Tables and relationships
 

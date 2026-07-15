@@ -1,0 +1,14 @@
+package com.alveryn.api.auth.config;
+
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "alveryn.cors")
+public record WebCorsProperties(
+    List<String> allowedOrigins, List<String> allowedOriginPatterns) {
+  public WebCorsProperties {
+    allowedOrigins = allowedOrigins == null ? List.of() : List.copyOf(allowedOrigins);
+    allowedOriginPatterns =
+        allowedOriginPatterns == null ? List.of() : List.copyOf(allowedOriginPatterns);
+  }
+}

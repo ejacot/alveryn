@@ -33,6 +33,7 @@ const baseAuthValue: AuthContextValue = {
   isHydrating: false,
   loginWithPassword: vi.fn(),
   registerWithPassword: vi.fn(),
+  completeEmailVerification: vi.fn(),
   completeOAuthLogin: vi.fn(),
   logout: vi.fn(),
   refreshCurrentUser: vi.fn()
@@ -70,7 +71,7 @@ describe("auth routes", () => {
           user: {
             account: {
               id: "1",
-              email: "roomly@example.com",
+              email: "alveryn@example.com",
               emailVerified: true,
               status: "ACTIVE",
               lastLoginAt: null
@@ -100,7 +101,7 @@ describe("auth routes", () => {
           user: {
             account: {
               id: "1",
-              email: "roomly@example.com",
+              email: "alveryn@example.com",
               emailVerified: true,
               status: "ACTIVE",
               lastLoginAt: null
@@ -129,7 +130,7 @@ describe("auth routes", () => {
           user: {
             account: {
               id: "1",
-              email: "roomly@example.com",
+              email: "alveryn@example.com",
               emailVerified: true,
               status: "ACTIVE",
               lastLoginAt: null
@@ -170,6 +171,6 @@ describe("auth routes", () => {
       }
     );
 
-    expect(screen.getByText("Warming up Roomly...")).toBeInTheDocument();
+    expect(screen.getByText("Warming up Alveryn...")).toBeInTheDocument();
   });
 });

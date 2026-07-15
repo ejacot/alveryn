@@ -1,6 +1,6 @@
-# Roomly backend architecture
+# Alveryn backend architecture
 
-The backend is organized by feature under `com.roomly.api`: `user`, `salary`, `worktype`, `workentry`, and `absence`. Shared persistence infrastructure is limited to `common.persistence.BaseEntity`; empty controller, service, and DTO layers are not created in advance.
+The backend is organized by feature under `com.alveryn.api`: `user`, `salary`, `worktype`, `workentry`, and `absence`. Shared persistence infrastructure is limited to `common.persistence.BaseEntity`; empty controller, service, and DTO layers are not created in advance.
 
 All persisted domain objects use UUID identifiers. `BaseEntity` is a mapped superclass that supplies the UUID plus immutable-from-the-domain `createdAt` and `updatedAt` values. Hibernate's UUID and timestamp annotations keep the implementation small and consistent while Flyway remains the schema authority (`ddl-auto: validate`).
 

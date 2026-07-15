@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17
 
-    container_name: roomly-postgres
+    container_name: alveryn-postgres
 
     restart: unless-stopped
 
@@ -21,15 +21,15 @@ services:
       - "5432:5432"
 
     volumes:
-      - roomly-postgres-data:/var/lib/postgresql/data
+      - alveryn-postgres-data:/var/lib/postgresql/data
 
     networks:
-      - roomly-network
+      - alveryn-network
 
 volumes:
-  roomly-postgres-data:
-    name: roomly-postgres-data
+  alveryn-postgres-data:
+    name: alveryn-postgres-data
 
 networks:
-  roomly-network:
-    name: roomly-network
+  alveryn-network:
+    name: alveryn-network

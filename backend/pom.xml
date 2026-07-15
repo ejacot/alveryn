@@ -8,11 +8,11 @@
 		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.roomly</groupId>
-	<artifactId>roomly-api</artifactId>
+	<groupId>com.alveryn</groupId>
+	<artifactId>alveryn-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>roomly-api</name>
-	<description>Roomly backend API</description>
+	<name>alveryn-api</name>
+	<description>Alveryn backend API</description>
 	<url/>
 	<licenses>
 		<license/>

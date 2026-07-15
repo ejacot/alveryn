@@ -40,7 +40,7 @@ export function ProfilePage() {
       .filter(Boolean)
       .join(" ");
 
-    return composed || profile?.displayName?.trim() || user?.account.email || "Roomly";
+    return composed || profile?.displayName?.trim() || user?.account.email || "Alveryn";
   }, [profile?.displayName, profile?.firstName, profile?.lastName, user?.account.email]);
 
   const initials = useMemo(() => {

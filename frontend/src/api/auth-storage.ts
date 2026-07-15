@@ -1,7 +1,7 @@
-const LEGACY_ACCESS_TOKEN_KEY = "roomly.access-token";
-const LEGACY_REFRESH_TOKEN_KEY = "roomly.refresh-token";
-const SESSION_MARKER_KEY = "roomly.session";
-const AUTH_SYNC_CHANNEL = "roomly.auth-sync";
+const LEGACY_ACCESS_TOKEN_KEY = "alveryn.access-token";
+const LEGACY_REFRESH_TOKEN_KEY = "alveryn.refresh-token";
+const SESSION_MARKER_KEY = "alveryn.session";
+const AUTH_SYNC_CHANNEL = "alveryn.auth-sync";
 
 type AuthStorageListener = () => void;
 type AuthSyncMessage = { type: "login" | "logout" | "session-changed" };

@@ -5,7 +5,7 @@
   "EXCEL_INVALID_TYPE": "Only valid .xlsx workbooks are supported.",
   "EXCEL_CORRUPTED": "This workbook could not be read safely.",
   "EXCEL_ENCRYPTED": "Encrypted workbooks are not supported.",
-  "EXCEL_YEAR_MISSING": "Roomly could not detect the workbook year.",
+  "EXCEL_YEAR_MISSING": "Alveryn could not detect the workbook year.",
   "EXCEL_YEAR_CONFLICT": "The workbook contains conflicting year information.",
   "EXCEL_NO_SUPPORTED_SHEETS": "No supported monthly sheets were found.",
   "EXCEL_NO_IMPORTABLE_ROWS": "No importable rows were found in this workbook.",

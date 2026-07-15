@@ -1,6 +1,6 @@
-# Roomly
+# Alveryn
 
-Roomly is organized as a Spring Boot backend plus a Vite/React frontend, with infrastructure code around them.
+Alveryn is organized as a Spring Boot backend plus a Vite/React frontend, with infrastructure code around them.
 
 ## Local development
 
@@ -10,11 +10,11 @@ Roomly is organized as a Spring Boot backend plus a Vite/React frontend, with in
 4. Start the backend from `backend` with `SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run` on Unix-like systems or the equivalent local profile configuration in IntelliJ IDEA / Windows.
 5. Start the frontend from `frontend` with `npm install` once, then `npm run dev`.
 
-For local development, the backend defaults to `jdbc:postgresql://localhost:5432/roomly` with username `roomly` and password `change-me`. The `local` Spring profile also provides a development-only JWT secret so the application can start locally once PostgreSQL is running. Gmail SMTP defaults for host, port, username, and STARTTLS are supplied only in the `local` profile; the app password must still come from `MAIL_PASSWORD`.
+For local development, the backend defaults to `jdbc:postgresql://localhost:5432/alveryn` with username `alveryn` and password `change-me`. The `local` Spring profile also provides a development-only JWT secret so the application can start locally once PostgreSQL is running. Gmail SMTP defaults for host, port, username, and STARTTLS are supplied only in the `local` profile; the app password must still come from `MAIL_PASSWORD`.
 
 ### Local development account
 
-When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically if the account does not already exist. Existing local account data is not reset on startup. To deliberately reset that local account, start the backend with `roomly.local-dev.reset-account=true`.
+When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically if the account does not already exist. Existing local account data is not reset on startup. To deliberately reset that local account, start the backend with `alveryn.local-dev.reset-account=true`.
 
 This is a Spring `@Profile("local")` bootstrap component, not a Flyway migration, so staging and production never create this account. Production-style runs without the `local` profile execute only environment-neutral Flyway migrations. Migration `V11__remove_local_development_account.sql` is intentionally reserved/no-op and does not delete user data.
 
@@ -22,12 +22,12 @@ If an existing local database reports a Flyway checksum mismatch for the old V9 
 
 ```bash
 cd backend
-./mvnw flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/roomly -Dflyway.user=roomly -Dflyway.password=change-me -Dflyway.locations=classpath:db/migration
+./mvnw flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/alveryn -Dflyway.user=alveryn -Dflyway.password=change-me -Dflyway.locations=classpath:db/migration
 ```
 
 New local databases do not need this. Playwright creates isolated users for browser tests and does not depend on this local account.
 
-The backend uses Java 21, PostgreSQL, Flyway, Hibernate, and the Java package `com.roomly.api`.
+The backend uses Java 21, PostgreSQL, Flyway, Hibernate, and the Java package `com.alveryn.api`.
 
 ## Frontend local workflow
 
@@ -85,6 +85,6 @@ Optional backend variables:
 
 ## Configuration
 
-The backend accepts `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_STARTTLS`. `DB_URL` must be a JDBC URL such as `jdbc:postgresql://host:5432/roomly`. `JWT_SECRET` is required outside the `local` profile and must be a sufficiently long secret value. Local defaults are provided for database development only; deployment environments should supply their own values.
+The backend accepts `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_STARTTLS`. `DB_URL` must be a JDBC URL such as `jdbc:postgresql://host:5432/alveryn`. `JWT_SECRET` is required outside the `local` profile and must be a sufficiently long secret value. Local defaults are provided for database development only; deployment environments should supply their own values.
 
 GitHub Actions provisions an isolated PostgreSQL 17 service and needs no repository secrets. Render deployment is described by `render.yaml`; set `DB_URL` once to the managed database's internal JDBC URL (`jdbc:postgresql://host:5432/database`), while username and password are linked automatically. Render builds with `backend/` as Docker context, checks `/actuator/health`, and provides `PORT` to Spring Boot.

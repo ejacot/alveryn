@@ -52,7 +52,7 @@ export function StatisticsLineChart({ points, metric, granularity, onPointSelect
   const series = groupedSeries(points);
 
   return (
-    <section className="section-card" aria-labelledby="statistics-trend-title" data-no-workspace-swipe>
+    <section className="section-card" aria-labelledby="statistics-trend-title">
       <div className="mb-5 flex items-center justify-between">
         <h2 id="statistics-trend-title" className="text-base font-semibold text-white">
           {t("statistics.trend.title")}

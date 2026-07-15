@@ -5,7 +5,7 @@
   "EXCEL_INVALID_TYPE": "Sunt acceptate doar fisiere .xlsx valide.",
   "EXCEL_CORRUPTED": "Fisierul nu a putut fi citit in siguranta.",
   "EXCEL_ENCRYPTED": "Fisierele Excel criptate nu sunt acceptate.",
-  "EXCEL_YEAR_MISSING": "Roomly nu a putut detecta anul fisierului.",
+  "EXCEL_YEAR_MISSING": "Alveryn nu a putut detecta anul fisierului.",
   "EXCEL_YEAR_CONFLICT": "Fisierul contine informatii de an aflate in conflict.",
   "EXCEL_NO_SUPPORTED_SHEETS": "Nu au fost gasite foi lunare compatibile.",
   "EXCEL_NO_IMPORTABLE_ROWS": "Nu au fost gasite randuri importabile in acest fisier.",

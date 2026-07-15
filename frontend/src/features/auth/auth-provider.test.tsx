@@ -21,7 +21,7 @@ function Consumer() {
 
   return (
     <div>
-      <button onClick={() => void auth.loginWithPassword("roomly@example.com", "Password123!")}>
+      <button onClick={() => void auth.loginWithPassword("alveryn@example.com", "Password123!")}>
         Login
       </button>
       <button onClick={() => void auth.completeOAuthLogin()}>OAuth</button>
@@ -49,7 +49,7 @@ describe("AuthProvider", () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
       account: {
         id: "1",
-        email: "roomly@example.com",
+        email: "alveryn@example.com",
         emailVerified: true,
         status: "ACTIVE",
         lastLoginAt: null
@@ -66,7 +66,7 @@ describe("AuthProvider", () => {
       accessTokenExpiresIn: 900,
       user: {
         id: "1",
-        email: "roomly@example.com",
+        email: "alveryn@example.com",
         emailVerified: true,
         status: "ACTIVE",
         lastLoginAt: null
@@ -78,7 +78,7 @@ describe("AuthProvider", () => {
 
     await user.click(screen.getByText("Login"));
 
-    expect(await screen.findByText("roomly@example.com")).toBeInTheDocument();
+    expect(await screen.findByText("alveryn@example.com")).toBeInTheDocument();
     expect(getStoredAccessToken()).toBe("access-token");
     expect(hasStoredSession()).toBe(true);
   });
@@ -90,7 +90,7 @@ describe("AuthProvider", () => {
       accessTokenExpiresIn: 900,
       user: {
         id: "1",
-        email: "roomly@example.com",
+        email: "alveryn@example.com",
         emailVerified: true,
         status: "ACTIVE",
         lastLoginAt: null
@@ -102,7 +102,7 @@ describe("AuthProvider", () => {
 
     await user.click(screen.getByText("OAuth"));
 
-    expect(await screen.findByText("roomly@example.com")).toBeInTheDocument();
+    expect(await screen.findByText("alveryn@example.com")).toBeInTheDocument();
     expect(getStoredAccessToken()).toBe("oauth-access-token");
     expect(hasStoredSession()).toBe(true);
   });
@@ -114,7 +114,7 @@ describe("AuthProvider", () => {
 
     renderProvider();
     const user = userEvent.setup();
-    await screen.findByText("roomly@example.com");
+    await screen.findByText("alveryn@example.com");
 
     await user.click(screen.getByText("Logout"));
 

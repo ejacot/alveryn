@@ -20,8 +20,8 @@
   },
   "messages": {
     "genericError": "Ceva nu a mers bine. Încearcă din nou.",
-    "networkError": "Roomly nu a putut contacta backendul. Verifică serverul și încearcă din nou.",
-    "serverUnavailable": "Roomly este temporar indisponibil. Încearcă din nou peste câteva momente.",
+    "networkError": "Alveryn nu a putut contacta backendul. Verifică serverul și încearcă din nou.",
+    "serverUnavailable": "Alveryn este temporar indisponibil. Încearcă din nou peste câteva momente.",
     "unexpectedResponse": "Backendul a returnat un răspuns neașteptat.",
     "saved": "Salvat",
     "changesSaved": "Modificările au fost salvate.",
@@ -184,7 +184,7 @@
     "insights": {
       "eyebrow": "Observații",
       "title": "Ce s-a schimbat",
-      "empty": "Roomly are nevoie de mai multă activitate ca să identifice tipare utile.",
+      "empty": "Alveryn are nevoie de mai multă activitate ca să identifice tipare utile.",
       "hoursChange": "Ai lucrat cu {{value}} mai multe ore decât în perioada precedentă.",
       "workedDaysChange": "Zilele lucrate s-au schimbat cu {{value}}.",
       "bestWeekday": "{{subject}} este cea mai puternică zi a ta.",

@@ -18,17 +18,6 @@ vi.mock("../api/endpoints", () => ({
   })
 }));
 
-vi.mock("../components/navigation/main-workspace", () => ({
-  MainWorkspace: ({ visible }: { visible: boolean }) =>
-    visible ? (
-      <main data-testid="main-workspace">
-        <header data-scroll-region="page-top" className="pt-1">
-          <span>Roomly</span>
-        </header>
-      </main>
-    ) : null
-}));
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>(
     "react-router-dom"
@@ -43,14 +32,14 @@ vi.mock("react-router-dom", async () => {
 });
 
 describe("AppLayout", () => {
-  it("keeps the top section in normal page flow instead of a sticky header", () => {
+  it("renders normal routed content without the persistent swipe workspace", () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false }
       }
     });
 
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/"]}>
         <QueryClientProvider client={queryClient}>
           <AppLayout />
@@ -58,13 +47,8 @@ describe("AppLayout", () => {
       </MemoryRouter>
     );
 
-    const header = container.querySelector("header");
-
-    expect(header).not.toBeNull();
-    expect(header).toHaveAttribute("data-scroll-region", "page-top");
-    expect(header?.className).not.toMatch(/\bsticky\b/);
-    expect(header?.className).not.toMatch(/\bfixed\b/);
-    expect(screen.getByText("Roomly")).toBeInTheDocument();
+    expect(screen.getByTestId("outlet")).toHaveAttribute("data-has-context", "true");
+    expect(screen.queryByTestId("main-workspace")).not.toBeInTheDocument();
   });
 
   it("keeps full-screen background and primary navigation on settings subroutes", () => {

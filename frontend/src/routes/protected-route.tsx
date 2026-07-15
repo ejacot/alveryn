@@ -7,7 +7,7 @@ export function ProtectedRoute() {
   const location = useLocation();
 
   if (isHydrating) {
-    return <ScreenMessage title="Warming up Roomly..." />;
+    return <ScreenMessage title="Warming up Alveryn..." />;
   }
 
   if (!isAuthenticated) {

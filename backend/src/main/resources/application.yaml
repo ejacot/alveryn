@@ -1,6 +1,6 @@
 spring:
   application:
-    name: roomly-api
+    name: alveryn-api
   config:
     import:
       - optional:file:.env[.properties]
@@ -12,8 +12,8 @@ spring:
       max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/roomly}
-    username: ${DB_USERNAME:roomly}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/alveryn}
+    username: ${DB_USERNAME:alveryn}
     password: ${DB_PASSWORD:change-me}
 
   jpa:
@@ -43,7 +43,7 @@ management:
       probes:
         enabled: true
 
-roomly:
+alveryn:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
@@ -65,16 +65,16 @@ roomly:
         frontend-success-url: ${GOOGLE_OAUTH_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/callback}
         frontend-failure-url: ${GOOGLE_OAUTH_FRONTEND_FAILURE_URL:http://localhost:5173/login?oauth=error}
     refresh-cookie:
-      name: ${REFRESH_COOKIE_NAME:roomly_refresh_token}
+      name: ${REFRESH_COOKIE_NAME:alveryn_refresh_token}
       path: ${REFRESH_COOKIE_PATH:/api/auth}
       same-site: ${REFRESH_COOKIE_SAME_SITE:Lax}
       secure: ${REFRESH_COOKIE_SECURE:true}
   imports:
     excel:
-      max-file-size-bytes: ${ROOMLY_IMPORTS_EXCEL_MAX_FILE_SIZE_BYTES:10485760}
-      max-sheets: ${ROOMLY_IMPORTS_EXCEL_MAX_SHEETS:24}
-      max-rows-per-sheet: ${ROOMLY_IMPORTS_EXCEL_MAX_ROWS_PER_SHEET:1000}
-      max-total-rows: ${ROOMLY_IMPORTS_EXCEL_MAX_TOTAL_ROWS:12000}
-      max-warnings: ${ROOMLY_IMPORTS_EXCEL_MAX_WARNINGS:50}
-      max-filename-length: ${ROOMLY_IMPORTS_EXCEL_MAX_FILENAME_LENGTH:255}
-      preview-token-lifetime: ${ROOMLY_IMPORTS_EXCEL_PREVIEW_TOKEN_LIFETIME:15m}
+      max-file-size-bytes: ${ALVERYN_IMPORTS_EXCEL_MAX_FILE_SIZE_BYTES:10485760}
+      max-sheets: ${ALVERYN_IMPORTS_EXCEL_MAX_SHEETS:24}
+      max-rows-per-sheet: ${ALVERYN_IMPORTS_EXCEL_MAX_ROWS_PER_SHEET:1000}
+      max-total-rows: ${ALVERYN_IMPORTS_EXCEL_MAX_TOTAL_ROWS:12000}
+      max-warnings: ${ALVERYN_IMPORTS_EXCEL_MAX_WARNINGS:50}
+      max-filename-length: ${ALVERYN_IMPORTS_EXCEL_MAX_FILENAME_LENGTH:255}
+      preview-token-lifetime: ${ALVERYN_IMPORTS_EXCEL_PREVIEW_TOKEN_LIFETIME:15m}

@@ -11,7 +11,7 @@ import {
 import { applyAppLanguage } from "../../i18n";
 import { setAuthFailureHandler } from "../../api/http";
 import { AuthContext } from "./auth-context";
-import type { CurrentUser } from "../../types/auth";
+import type { AuthTokens, CurrentUser } from "../../types/auth";
 
 type Props = {
   children: React.ReactNode;
@@ -40,6 +40,11 @@ export function AuthProvider({ children }: Props) {
 
   async function registerWithPassword(email: string, password: string) {
     await register({ email, password });
+  }
+
+  async function completeEmailVerification(tokens: AuthTokens) {
+    storeSession(tokens.accessToken);
+    return refreshCurrentUser();
   }
 
   async function completeOAuthLogin() {
@@ -115,6 +120,7 @@ export function AuthProvider({ children }: Props) {
         isHydrating,
         loginWithPassword,
         registerWithPassword,
+        completeEmailVerification,
         completeOAuthLogin,
         logout: signOut,
         refreshCurrentUser

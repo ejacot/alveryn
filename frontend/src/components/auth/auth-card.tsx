@@ -4,7 +4,7 @@ import { AppLogo } from "../branding/app-logo";
 
 type Props = {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
   backLink?: {
@@ -23,26 +23,29 @@ export function AuthCard({
   const { t } = useTranslation(["auth"]);
 
   return (
-    <div className="screen-shell flex min-h-screen items-start justify-center pb-10 pt-[max(2.75rem,calc(env(safe-area-inset-top)+1.75rem))]">
-      <div className="glass-panel w-full rounded-[36px] p-6">
-        <AppLogo />
-        <div className="mt-8 space-y-2">
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white">
+    <div className="mx-auto flex h-screen h-[100dvh] w-full max-w-[560px] items-start justify-center overflow-hidden overscroll-none px-5 pb-5 pt-[max(1.75rem,calc(env(safe-area-inset-top)+1rem))]">
+      <div className="w-full pt-[clamp(0.5rem,5dvh,3rem)]">
+        <div className="mb-7 flex justify-center">
+          <AppLogo />
+        </div>
+        <div className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-[22px] sm:p-6">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/20" />
+        <div className="space-y-1">
+          <h1 className="text-[1.9rem] font-semibold leading-none tracking-[-0.055em] text-white">
             {title}
           </h1>
-          <p className="max-w-sm text-sm leading-6 text-white/68">{subtitle}</p>
+          {subtitle ? (
+            <p className="max-w-sm text-[0.82rem] leading-5 text-white/46">{subtitle}</p>
+          ) : null}
         </div>
-        <div className="mt-8">{children}</div>
+        <div className="mt-5">{children}</div>
         {footer ? (
-          <div className="mt-6 border-t border-white/10 pt-5 text-sm text-white/62">
+          <div className="mt-4 border-t border-white/[0.07] pt-4 text-center text-sm text-white/48">
             {footer}
           </div>
         ) : null}
-        <div className="mt-6 text-center text-xs text-white/40">
-          {t("legal.footnote")}
-        </div>
         {backLink ? (
-          <div className="mt-3 text-center text-xs">
+          <div className="mt-2 text-center text-xs">
             <Link
               to={backLink.to}
               className="text-white/46 transition hover:text-white/70"
@@ -51,6 +54,10 @@ export function AuthCard({
             </Link>
           </div>
         ) : null}
+        </div>
+        <div className="mt-4 text-center text-[0.68rem] leading-4 text-white/24">
+          {t("legal.footnote")}
+        </div>
       </div>
     </div>
   );

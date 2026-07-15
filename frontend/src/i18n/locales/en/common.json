@@ -20,8 +20,8 @@
   },
   "messages": {
     "genericError": "Something went wrong. Please try again.",
-    "networkError": "Roomly could not reach the backend. Check the server and try again.",
-    "serverUnavailable": "Roomly is temporarily unavailable. Try again in a moment.",
+    "networkError": "Alveryn could not reach the backend. Check the server and try again.",
+    "serverUnavailable": "Alveryn is temporarily unavailable. Try again in a moment.",
     "unexpectedResponse": "The backend returned an unexpected response.",
     "saved": "Saved",
     "changesSaved": "Changes saved.",
@@ -184,7 +184,7 @@
     "insights": {
       "eyebrow": "Insights",
       "title": "What changed",
-      "empty": "More activity is needed before Roomly can identify useful patterns.",
+      "empty": "More activity is needed before Alveryn can identify useful patterns.",
       "hoursChange": "You worked {{value}} more hours than the previous period.",
       "workedDaysChange": "Worked days changed by {{value}}.",
       "bestWeekday": "{{subject}} is your strongest weekday.",

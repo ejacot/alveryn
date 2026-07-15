@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: roomly-api
+    name: alveryn-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -12,14 +12,14 @@ services:
         sync: false
       - key: DB_USERNAME
         fromDatabase:
-          name: roomly-db
+          name: alveryn-db
           property: user
       - key: DB_PASSWORD
         fromDatabase:
-          name: roomly-db
+          name: alveryn-db
           property: password
 
 databases:
-  - name: roomly-db
-    databaseName: roomly
-    user: roomly
+  - name: alveryn-db
+    databaseName: alveryn
+    user: alveryn

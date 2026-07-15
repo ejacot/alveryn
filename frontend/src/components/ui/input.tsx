@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from "react";
-import { useId } from "react";
+import { forwardRef, useId } from "react";
 import { cn } from "../../utils/cn";
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
@@ -8,7 +8,10 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
 };
 
-export function Input({ className, error, helperText, label, ...props }: Props) {
+export const Input = forwardRef<HTMLInputElement, Props>(function Input(
+  { className, error, helperText, label, ...props },
+  ref
+) {
   const id = useId();
   const errorId = `${id}-error`;
   const helperId = `${id}-helper`;
@@ -28,6 +31,7 @@ export function Input({ className, error, helperText, label, ...props }: Props) 
           error && "border-red-400/40 focus:border-red-400/40",
           className
         )}
+        ref={ref}
         {...props}
       />
       {error ? (
@@ -42,4 +46,4 @@ export function Input({ className, error, helperText, label, ...props }: Props) 
       ) : null}
     </label>
   );
-}
+});

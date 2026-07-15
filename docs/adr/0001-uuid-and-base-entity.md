@@ -2,7 +2,7 @@
 
 Status: accepted
 
-Roomly uses PostgreSQL UUID for every entity identifier and relationship. UUIDs avoid coordination around integer sequences and are safe to create before persistence, which suits future distributed and offline-capable workflows.
+Alveryn uses PostgreSQL UUID for every entity identifier and relationship. UUIDs avoid coordination around integer sequences and are safe to create before persistence, which suits future distributed and offline-capable workflows.
 
 All entities extend a JPA mapped superclass, `BaseEntity`, containing the UUID and creation/update timestamps. This removes duplicated mapping while keeping feature entities focused on domain state. Hibernate generates UUIDs and maintains timestamps; Flyway defines matching UUID and `TIMESTAMPTZ` columns.
 

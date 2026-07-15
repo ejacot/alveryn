@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
-import { GoogleAuthButton } from "../components/auth/google-auth-button";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -14,11 +13,12 @@ import {
 } from "../features/auth/auth-schemas";
 import { useAuth } from "../features/auth/use-auth";
 
+const PENDING_VERIFICATION_EMAIL_KEY = "alveryn.pendingVerificationEmail";
+
 export function RegisterPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const { registerWithPassword } = useAuth();
-  const [serverMessage, setServerMessage] = useState("");
   const [serverError, setServerError] = useState("");
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -32,11 +32,10 @@ export function RegisterPage() {
     try {
       setServerError("");
       await registerWithPassword(values.email, values.password);
-      setServerMessage(t("auth:register.created"));
+      window.sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, values.email);
       navigate("/verify-email", {
         state: {
-          email: values.email,
-          message: t("auth:register.createdNavigate")
+          email: values.email
         }
       });
     } catch (error) {
@@ -54,7 +53,6 @@ export function RegisterPage() {
   return (
     <AuthCard
       title={t("auth:register.title")}
-      subtitle={t("auth:register.subtitle")}
       footer={
         <span>
           {t("auth:register.footer")}{" "}
@@ -65,15 +63,7 @@ export function RegisterPage() {
       }
       backLink={{ to: "/login", label: t("auth:register.backToLogin") }}
     >
-      <div className="space-y-4">
-        <GoogleAuthButton />
-        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/28">
-          <span className="h-px flex-1 bg-white/10" />
-          {t("auth:oauth.or")}
-          <span className="h-px flex-1 bg-white/10" />
-        </div>
-      </div>
-      <form className="mt-4 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
           label={t("common:labels.email")}
           type="email"
@@ -86,9 +76,6 @@ export function RegisterPage() {
           error={form.formState.errors.password?.message}
           {...form.register("password")}
         />
-        {serverMessage ? (
-          <p className="text-sm text-white/54">{serverMessage}</p>
-        ) : null}
         {serverError ? <p className="text-sm text-red-300">{serverError}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? t("auth:register.submitting") : t("auth:register.submit")}

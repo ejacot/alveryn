@@ -48,7 +48,6 @@ export function LoginPage() {
   return (
     <AuthCard
       title={t("auth:login.title")}
-      subtitle={t("auth:login.subtitle")}
       footer={
         <span>
           {t("auth:login.footer")}{" "}
@@ -58,15 +57,7 @@ export function LoginPage() {
         </span>
       }
     >
-      <div className="space-y-4">
-        <GoogleAuthButton />
-        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/28">
-          <span className="h-px flex-1 bg-white/10" />
-          {t("auth:oauth.or")}
-          <span className="h-px flex-1 bg-white/10" />
-        </div>
-      </div>
-      <form className="mt-4 space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
           label={t("common:labels.email")}
           type="email"
@@ -94,6 +85,14 @@ export function LoginPage() {
           >
             {t("auth:login.forgotPassword")}
           </Link>
+        </div>
+        <div className="pt-2.5">
+          <div className="mb-3 flex items-center gap-3 text-[0.64rem] uppercase tracking-[0.22em] text-white/20">
+            <span className="h-px flex-1 bg-white/10" />
+            {t("auth:oauth.or")}
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+          <GoogleAuthButton />
         </div>
       </form>
     </AuthCard>

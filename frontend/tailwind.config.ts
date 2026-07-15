@@ -31,8 +31,25 @@ export default {
         "fade-up": "fade-up 0.4s ease-out"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        brand: ["Snell Roundhand", "Segoe Script", "Apple Chancery", "cursive"]
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Display",
+          "SF Pro Text",
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif"
+        ],
+        brand: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Display",
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif"
+        ]
       }
     }
   },

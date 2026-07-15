@@ -63,7 +63,6 @@ export function StatisticsHeatmap({
     <section
       className="section-card space-y-4"
       aria-labelledby="statistics-heatmap-title"
-      data-no-workspace-swipe
     >
       <div className="flex items-center justify-between gap-3">
         <div>

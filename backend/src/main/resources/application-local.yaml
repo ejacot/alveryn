@@ -2,7 +2,7 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:roomly000app@gmail.com}
+    username: ${MAIL_USERNAME:alveryn000app@gmail.com}
     password: ${MAIL_PASSWORD:}
     properties:
       mail:
@@ -17,7 +17,7 @@ springdoc:
   swagger-ui:
     enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
 
-roomly:
+alveryn:
   cors:
     allowed-origins:
       - http://localhost:5173

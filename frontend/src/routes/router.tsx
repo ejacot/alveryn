@@ -13,6 +13,21 @@ const WorkEntryEditorPage = lazy(() =>
     default: module.WorkEntryEditorPage
   }))
 );
+const HomePage = lazy(() =>
+  import("../pages/home-page").then((module) => ({
+    default: module.HomePage
+  }))
+);
+const CalendarPage = lazy(() =>
+  import("../pages/calendar-page").then((module) => ({
+    default: module.CalendarPage
+  }))
+);
+const StatisticsPage = lazy(() =>
+  import("../pages/statistics-page").then((module) => ({
+    default: module.StatisticsPage
+  }))
+);
 const ProfilePage = lazy(() =>
   import("../pages/profile-page").then((module) => ({
     default: module.ProfilePage
@@ -53,9 +68,9 @@ const UnitTypeEditorPage = lazy(() =>
     default: module.UnitTypeEditorPage
   }))
 );
-const AboutRoomlyPage = lazy(() =>
-  import("../pages/about-roomly-page").then((module) => ({
-    default: module.AboutRoomlyPage
+const AboutAlverynPage = lazy(() =>
+  import("../pages/about-alveryn-page").then((module) => ({
+    default: module.AboutAlverynPage
   }))
 );
 const HelpSupportPage = lazy(() =>
@@ -148,11 +163,11 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
         {
           element: <AppLayout />,
           children: [
-            { path: "/" },
-            { path: "/calendar" },
+            { path: "/", element: withSuspense(<HomePage />) },
+            { path: "/calendar", element: withSuspense(<CalendarPage />) },
             { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
-            { path: "/statistics" },
+            { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
@@ -172,7 +187,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             },
             { path: "/settings/import", element: withSuspense(<SettingsImportPage />) },
             { path: "/settings/import/:batchId", element: withSuspense(<SettingsImportDetailPage />) },
-            { path: "/settings/about", element: withSuspense(<AboutRoomlyPage />) },
+            { path: "/settings/about", element: withSuspense(<AboutAlverynPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
           ]
         },

@@ -16,20 +16,20 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: roomly
-          POSTGRES_USER: roomly
-          POSTGRES_PASSWORD: roomly_ci
+          POSTGRES_DB: alveryn
+          POSTGRES_USER: alveryn
+          POSTGRES_PASSWORD: alveryn_ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U roomly -d roomly"
+          --health-cmd "pg_isready -U alveryn -d alveryn"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DB_URL: jdbc:postgresql://localhost:5432/roomly
-      DB_USERNAME: roomly
-      DB_PASSWORD: roomly_ci
+      DB_URL: jdbc:postgresql://localhost:5432/alveryn
+      DB_USERNAME: alveryn
+      DB_PASSWORD: alveryn_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -66,28 +66,28 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: roomly
-          POSTGRES_USER: roomly
-          POSTGRES_PASSWORD: roomly_ci
+          POSTGRES_DB: alveryn
+          POSTGRES_USER: alveryn
+          POSTGRES_PASSWORD: alveryn_ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U roomly -d roomly"
+          --health-cmd "pg_isready -U alveryn -d alveryn"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DB_URL: jdbc:postgresql://localhost:5432/roomly
-      DB_USERNAME: roomly
-      DB_PASSWORD: roomly_ci
-      E2E_DB_NAME: roomly
-      E2E_DB_USER: roomly
-      E2E_DB_PASSWORD: roomly_ci
+      DB_URL: jdbc:postgresql://localhost:5432/alveryn
+      DB_USERNAME: alveryn
+      DB_PASSWORD: alveryn_ci
+      E2E_DB_NAME: alveryn
+      E2E_DB_USER: alveryn
+      E2E_DB_PASSWORD: alveryn_ci
       E2E_DB_HOST: 127.0.0.1
       E2E_DB_PORT: "5432"
       SPRING_PROFILES_ACTIVE: local,e2e
-      ROOMLY_E2E_BASE_URL: http://127.0.0.1:5173
-      ROOMLY_E2E_API_URL: http://127.0.0.1:8080
+      ALVERYN_E2E_BASE_URL: http://127.0.0.1:5173
+      ALVERYN_E2E_API_URL: http://127.0.0.1:8080
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

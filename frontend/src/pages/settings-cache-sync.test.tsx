@@ -13,7 +13,7 @@ vi.mock("../features/auth/use-auth", () => ({
     user: {
       account: {
         id: "user-1",
-        email: "roomly000app@gmail.com",
+        email: "alveryn000app@gmail.com",
         emailVerified: true,
         status: "ACTIVE",
         lastLoginAt: null

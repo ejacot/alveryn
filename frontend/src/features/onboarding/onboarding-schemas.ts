@@ -18,7 +18,17 @@ export const preferencesStepSchema = z.object({
 export type PreferencesStepValues = z.infer<typeof preferencesStepSchema>;
 
 export const hourlyRateStepSchema = z.object({
-  hourlyRate: z.coerce.number().min(0, "Rate must be zero or positive")
+  hourlyRate: z.preprocess(
+    (value) => {
+      if (typeof value === "string") {
+        const normalized = value.trim().replace(",", ".");
+        return normalized === "" ? undefined : Number(normalized);
+      }
+      return value;
+    },
+    z.number().min(0, "Rate must be zero or positive")
+  ),
+  currency: z.string().trim().length(3, "Use a 3-letter currency").transform((value) => value.toUpperCase())
 });
 
 export type HourlyRateStepValues = z.infer<typeof hourlyRateStepSchema>;

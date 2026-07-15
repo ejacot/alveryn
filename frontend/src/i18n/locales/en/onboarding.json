@@ -1,9 +1,9 @@
 {
   "title": "Onboarding",
-  "loadingTitle": "Preparing Roomly...",
+  "loadingTitle": "Preparing Alveryn...",
   "loadingDescription": "Applying your defaults and restoring the shortest path into the app.",
   "errorTitle": "Onboarding needs another try",
-  "welcomeTitle": "Welcome to Roomly",
+  "welcomeTitle": "Welcome to Alveryn",
   "profileTitle": "Let's get to know you.",
   "hourlyRateTitle": "How much do you earn per hour?",
   "hourlyRateHint": "Saved as EUR from today."

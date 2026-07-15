@@ -1,5 +1,5 @@
-const STEP_KEY_PREFIX = "roomly.onboarding.step";
-const UNIT_WORK_TYPE_KEY_PREFIX = "roomly.onboarding.unit-work-type";
+const STEP_KEY_PREFIX = "alveryn.onboarding.step";
+const UNIT_WORK_TYPE_KEY_PREFIX = "alveryn.onboarding.unit-work-type";
 
 export function getStoredOnboardingStep(userId: string) {
   if (typeof window === "undefined") {

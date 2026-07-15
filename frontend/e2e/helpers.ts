@@ -1,13 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { request, type APIResponse, type Page } from "@playwright/test";
 
-const apiURL = process.env.ROOMLY_E2E_API_URL ?? "http://127.0.0.1:8080";
-const dbName = process.env.E2E_DB_NAME ?? "roomly";
-const dbUser = process.env.E2E_DB_USER ?? "roomly";
+const apiURL = process.env.ALVERYN_E2E_API_URL ?? "http://127.0.0.1:8080";
+const dbName = process.env.E2E_DB_NAME ?? "alveryn";
+const dbUser = process.env.E2E_DB_USER ?? "alveryn";
 const dbPassword = process.env.E2E_DB_PASSWORD ?? "change-me";
 const dbHost = process.env.E2E_DB_HOST ?? "127.0.0.1";
 const dbPort = process.env.E2E_DB_PORT ?? "5432";
-const dbContainer = process.env.E2E_DB_CONTAINER ?? "roomly-postgres";
+const dbContainer = process.env.E2E_DB_CONTAINER ?? "alveryn-postgres";
 
 export type E2eUser = {
   email: string;
@@ -38,7 +38,7 @@ async function requireSuccessfulResponse<T extends { data?: unknown }>(
 
 export async function createE2eUser(testName: string): Promise<E2eUser> {
   const safeName = testName.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
-  const email = `roomly.e2e.${safeName}.${Date.now()}@example.com`;
+  const email = `alveryn.e2e.${safeName}.${Date.now()}@example.com`;
   const emailSql = email.replace(/'/g, "''");
   const password = `Password-${Date.now()}!`;
   const api = await request.newContext({ baseURL: apiURL });

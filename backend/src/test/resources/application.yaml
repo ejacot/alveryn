@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/roomly}
-    username: ${DB_USERNAME:roomly}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/alveryn}
+    username: ${DB_USERNAME:alveryn}
     password: ${DB_PASSWORD:change-me}
 
 server:
@@ -13,7 +13,7 @@ springdoc:
   swagger-ui:
     enabled: false
 
-roomly:
+alveryn:
   cors:
     allowed-origins:
       - http://localhost:5173

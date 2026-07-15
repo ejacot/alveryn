@@ -25,7 +25,7 @@ type AuthFailureHandler = () => void;
 let isRefreshing = false;
 let pendingRequests: PendingRequest[] = [];
 let authFailureHandler: AuthFailureHandler | null = null;
-const REFRESH_LOCK_KEY = "roomly.refresh-lock";
+const REFRESH_LOCK_KEY = "alveryn.refresh-lock";
 const REFRESH_LOCK_TTL_MS = 10_000;
 const TAB_ID = Math.random().toString(36).slice(2);
 

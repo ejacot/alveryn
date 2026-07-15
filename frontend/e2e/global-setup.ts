@@ -22,7 +22,7 @@ async function waitFor(url: string) {
 
 export default async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL?.toString() ?? "http://127.0.0.1:5173";
-  const apiURL = process.env.ROOMLY_E2E_API_URL ?? "http://127.0.0.1:8080";
+  const apiURL = process.env.ALVERYN_E2E_API_URL ?? "http://127.0.0.1:8080";
 
   await waitFor(baseURL);
   await waitFor(`${apiURL}/actuator/health`);

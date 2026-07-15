@@ -16,6 +16,7 @@ import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import { ScreenMessage } from "../components/ui/screen-message";
 import {
   clearStoredOnboardingStep,
@@ -33,6 +34,7 @@ const STEP_PROFILE = 1;
 const STEP_HOURLY_RATE = 2;
 const TOTAL_STEPS = 2;
 const DEFAULT_DATE_FORMAT = "dd/MM/yyyy";
+const CURRENCY_OPTIONS = ["EUR", "CHF", "RON", "USD", "GBP", "PLN"];
 
 export function OnboardingPage() {
   const navigate = useNavigate();
@@ -68,10 +70,10 @@ export function OnboardingPage() {
   const hourlyRateForm = useForm({
     resolver: zodResolver(hourlyRateStepSchema),
     defaultValues: {
-      hourlyRate: 0
+      hourlyRate: "",
+      currency: "EUR"
     }
   });
-
   useEffect(() => {
     setDefaultsReady(false);
   }, [userId]);
@@ -190,6 +192,9 @@ export function OnboardingPage() {
   const hourlyRateMutation = useMutation({
     mutationFn: createHourlyRate
   });
+  const currencyPreferenceMutation = useMutation({
+    mutationFn: updatePreferences
+  });
 
   const isBootstrapping =
     !userId ||
@@ -206,7 +211,7 @@ export function OnboardingPage() {
   if (!userId || isBootstrapping) {
     return (
       <ScreenMessage
-        title="Preparing Roomly..."
+        title="Preparing Alveryn..."
         description="Applying your defaults and restoring the shortest path into the app."
       />
     );
@@ -280,8 +285,7 @@ export function OnboardingPage() {
             })}
           >
             <StepHeader
-              title="Welcome to Roomly"
-              description="Let's get to know you."
+              title="Let's get to know you"
             />
             <Input
               label="First name"
@@ -306,27 +310,53 @@ export function OnboardingPage() {
             onSubmit={hourlyRateForm.handleSubmit(async (values) => {
               await hourlyRateMutation.mutateAsync({
                 hourlyRate: values.hourlyRate,
-                currency: "EUR",
+                currency: values.currency,
                 validFrom: todayLocalIsoDate()
               });
+              if (values.currency !== user?.preferences?.currency) {
+                await currencyPreferenceMutation.mutateAsync({
+                  language: user?.preferences?.language ?? automaticPreferences.language,
+                  timezone: user?.preferences?.timezone ?? automaticPreferences.timezone,
+                  currency: values.currency,
+                  dateFormat: user?.preferences?.dateFormat ?? automaticPreferences.dateFormat,
+                  timeFormat: user?.preferences?.timeFormat ?? automaticPreferences.timeFormat,
+                  theme: user?.preferences?.theme ?? automaticPreferences.theme,
+                  defaultBreakMinutes: user?.preferences?.defaultBreakMinutes ?? automaticPreferences.defaultBreakMinutes,
+                  preferredDailyMinutes: user?.preferences?.preferredDailyMinutes ?? automaticPreferences.preferredDailyMinutes
+                });
+              }
               await finishMutation.mutateAsync();
             })}
           >
             <StepHeader
-              title="How much do you earn per hour?"
-              description="Enter the number and continue. Roomly handles the rest."
+              title="What is your hourly rate?"
             />
-            <Input
-              label="Hourly rate"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="17.50"
-              error={hourlyRateForm.formState.errors.hourlyRate?.message}
-              {...hourlyRateForm.register("hourlyRate")}
-            />
-            <div className="rounded-[22px] border border-white/[0.06] bg-white/[0.03] px-4 py-3 text-sm text-white/64">
-              Saved as EUR from today.
+            <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <Input
+                label="Amount per hour"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                placeholder="17.50"
+                error={hourlyRateForm.formState.errors.hourlyRate?.message}
+                {...hourlyRateForm.register("hourlyRate", {
+                  setValueAs: (value) => (typeof value === "string" ? value.replace(",", ".") : value)
+                })}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(",", ".");
+                }}
+              />
+              <Select
+                label="Currency"
+                error={hourlyRateForm.formState.errors.currency?.message}
+                {...hourlyRateForm.register("currency")}
+              >
+                {CURRENCY_OPTIONS.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button
@@ -339,14 +369,20 @@ export function OnboardingPage() {
               <Button
                 className="w-full"
                 type="submit"
-                disabled={hourlyRateMutation.isPending || finishMutation.isPending}
+                disabled={
+                  hourlyRateMutation.isPending ||
+                  currencyPreferenceMutation.isPending ||
+                  finishMutation.isPending
+                }
               >
-                {hourlyRateMutation.isPending || finishMutation.isPending
+                {hourlyRateMutation.isPending ||
+                currencyPreferenceMutation.isPending ||
+                finishMutation.isPending
                   ? "Finishing..."
-                  : "Enter Roomly"}
+                  : "Let's go"}
               </Button>
             </div>
-            <FormLevelError error={hourlyRateMutation.error ?? finishMutation.error} />
+            <FormLevelError error={hourlyRateMutation.error ?? currencyPreferenceMutation.error ?? finishMutation.error} />
           </form>
         ) : null}
       </motion.div>
@@ -359,12 +395,14 @@ function StepHeader({
   description
 }: {
   title: string;
-  description: string;
+  description?: string;
 }) {
   return (
     <div className="space-y-2">
       <h1 className="text-[1.9rem] font-semibold leading-tight text-white">{title}</h1>
-      <p className="text-sm leading-6 text-white/62">{description}</p>
+      {description ? (
+        <p className="text-sm leading-6 text-white/62">{description}</p>
+      ) : null}
     </div>
   );
 }

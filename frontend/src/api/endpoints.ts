@@ -132,7 +132,7 @@ export async function resetPassword(payload: ResetPasswordPayload) {
 }
 
 export async function verifyEmail(payload: VerifyEmailPayload) {
-  const response = await http.post<ApiResponse<ApiMessage>>(
+  const response = await http.post<ApiResponse<AuthTokens>>(
     "/api/auth/verify-email",
     payload
   );

@@ -220,11 +220,11 @@ describe("CalendarPage", () => {
     expect(screen.queryByRole("gridcell", { name: /monday, august 3, 2026/i })).not.toBeInTheDocument();
   });
 
-  it("does not render the removed roomly header", async () => {
+  it("does not render the removed brand header", async () => {
     renderPage();
 
     await screen.findByText("July 2026");
-    expect(screen.queryByText("Roomly")).not.toBeInTheDocument();
+    expect(screen.queryByText("Alveryn")).not.toBeInTheDocument();
   });
 
   it("updates the detail panel and preserves selected versus today styling", async () => {

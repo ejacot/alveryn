@@ -13,8 +13,11 @@ import { RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./features/auth/auth-provider";
 import { createAppRouter } from "./routes/router";
 import { queryClient } from "./api/query-client";
+import { registerServiceWorker } from "./register-service-worker";
 
 const router = createAppRouter();
+
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

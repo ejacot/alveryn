@@ -11,7 +11,7 @@ vi.mock("../features/auth/use-auth", () => ({
     user: {
       account: {
         id: "user-1",
-        email: "roomly000app@gmail.com",
+        email: "alveryn000app@gmail.com",
         emailVerified: true,
         status: "ACTIVE",
         lastLoginAt: null
@@ -125,7 +125,7 @@ describe("ProfilePage", () => {
 
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByText("Eusebiu Jacot")).toBeInTheDocument();
-    expect(screen.getByText("roomly000app@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("alveryn000app@gmail.com")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /^profile$/i })).toHaveLength(1);
     expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/settings/profile");
     expect(screen.getByText("Hourly rates")).toBeInTheDocument();

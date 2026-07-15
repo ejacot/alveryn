@@ -11,7 +11,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.ROOMLY_E2E_BASE_URL ?? "http://127.0.0.1:5173",
+    baseURL: process.env.ALVERYN_E2E_BASE_URL ?? "http://127.0.0.1:5173",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure"

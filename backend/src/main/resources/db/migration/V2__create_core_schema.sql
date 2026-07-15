@@ -1,5 +1,5 @@
 -- =========================================================
--- Roomly core database schema
+-- Alveryn core database schema
 -- =========================================================
 
 CREATE TABLE user_accounts (
