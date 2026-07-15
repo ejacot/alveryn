@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.alveryn.api.user.entity.UserAccount;
@@ -50,7 +51,7 @@ class LocalDevelopmentAccountSeederProfileTest {
     when(profiles.findByUserId(user.getId())).thenReturn(Optional.of(profile));
     when(preferences.findByUserId(user.getId())).thenReturn(Optional.of(userPreferences));
 
-    new LocalDevelopmentAccountSeeder(users, profiles, preferences, false).run(null);
+    new LocalDevelopmentAccountSeeder(users, profiles, preferences, true, false).run(null);
 
     assertThat(user.getPasswordHash()).isEqualTo("custom-hash");
     assertThat(userPreferences.getLanguage()).isEqualTo("de");
@@ -72,7 +73,7 @@ class LocalDevelopmentAccountSeederProfileTest {
     when(profiles.findByUserId(null)).thenReturn(Optional.empty());
     when(preferences.findByUserId(null)).thenReturn(Optional.empty());
 
-    new LocalDevelopmentAccountSeeder(users, profiles, preferences, false).run(null);
+    new LocalDevelopmentAccountSeeder(users, profiles, preferences, true, false).run(null);
 
     verify(users).save(any(UserAccount.class));
     verify(profiles).save(any(UserProfile.class));
@@ -92,11 +93,22 @@ class LocalDevelopmentAccountSeederProfileTest {
     when(profiles.findByUserId(user.getId())).thenReturn(Optional.of(new UserProfile(user)));
     when(preferences.findByUserId(user.getId())).thenReturn(Optional.of(userPreferences));
 
-    new LocalDevelopmentAccountSeeder(users, profiles, preferences, true).run(null);
+    new LocalDevelopmentAccountSeeder(users, profiles, preferences, true, true).run(null);
 
     assertThat(user.getPasswordHash()).isNotEqualTo("custom-hash");
     assertThat(user.isEmailVerified()).isTrue();
     assertThat(userPreferences.getLanguage()).isEqualTo("ro");
+  }
+
+  @Test
+  void seedCanBeDisabledForEmptyLocalRegistrationTesting() {
+    UserAccountRepository users = mock(UserAccountRepository.class);
+    UserProfileRepository profiles = mock(UserProfileRepository.class);
+    UserPreferencesRepository preferences = mock(UserPreferencesRepository.class);
+
+    new LocalDevelopmentAccountSeeder(users, profiles, preferences, false, false).run(null);
+
+    verifyNoInteractions(users, profiles, preferences);
   }
 
   @Configuration(proxyBeanMethods = false)

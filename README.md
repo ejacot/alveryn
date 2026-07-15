@@ -14,7 +14,7 @@ For local development, the backend defaults to `jdbc:postgresql://localhost:5432
 
 ### Local development account
 
-When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` creates the local verified developer account, profile, and preferences automatically if the account does not already exist. Existing local account data is not reset on startup. To deliberately reset that local account, start the backend with `alveryn.local-dev.reset-account=true`.
+When the backend starts with `SPRING_PROFILES_ACTIVE=local`, `LocalDevelopmentAccountSeeder` can create the local verified developer account, profile, and preferences automatically if the account does not already exist. This is enabled by default. Set `ALVERYN_LOCAL_DEV_SEED_ACCOUNT=false` in `.env` when you want to test registration from an empty database. Existing local account data is not reset on startup. To deliberately reset that local account, start the backend with `ALVERYN_LOCAL_DEV_RESET_ACCOUNT=true`.
 
 This is a Spring `@Profile("local")` bootstrap component, not a Flyway migration, so staging and production never create this account. Production-style runs without the `local` profile execute only environment-neutral Flyway migrations. Migration `V11__remove_local_development_account.sql` is intentionally reserved/no-op and does not delete user data.
 

@@ -38,6 +38,7 @@ public interface WorkEntryMapper {
 
   @Mapping(target = "unitTypeId", source = "unitType.id")
   @Mapping(target = "unitName", source = "unitNameSnapshot")
+  @Mapping(target = "displayOrder", source = "unitType.displayOrder")
   UnitEntryItemResponse toResponse(UnitEntryItem entity);
 
   List<UnitEntryItemResponse> toUnitItemResponses(List<UnitEntryItem> entities);

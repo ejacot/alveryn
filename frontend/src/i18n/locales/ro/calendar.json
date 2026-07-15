@@ -3,11 +3,29 @@
   "monthlySummaryLabel": "Rezumat lunar",
   "unavailable": "Calendarul nu este disponibil.",
   "monthlySummary": {
-    "worked": "Lucrate",
+    "worked": "Ore",
     "grossPay": "Brut",
-    "entries": "Intrari",
-    "absenceDays": "Zile absenta"
+    "workedDays": "Zile",
+    "absenceDays": "Libere"
+  },
+  "legend": {
+    "dayOff": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation"
+  },
+  "marker": {
+    "dayOff": "zi liberă",
+    "sick": "medical",
+    "vacation": "concediu"
+  },
+  "absence": {
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "days": "days"
   },
   "emptyDay": "Nicio activitate.",
+  "equivalentWorked": "Timp echivalent lucrat {{duration}}",
   "addEntryForDay": "Adauga o intrare pentru aceasta zi"
 }

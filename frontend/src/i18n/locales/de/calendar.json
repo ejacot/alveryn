@@ -3,11 +3,29 @@
   "monthlySummaryLabel": "Monatsubersicht",
   "unavailable": "Kalender ist nicht verfugbar.",
   "monthlySummary": {
-    "worked": "Arbeitszeit",
+    "worked": "Stunden",
     "grossPay": "Brutto",
-    "entries": "Eintrage",
-    "absenceDays": "Fehltage"
+    "workedDays": "Tage",
+    "absenceDays": "Abwesenheit"
+  },
+  "legend": {
+    "dayOff": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation"
+  },
+  "marker": {
+    "dayOff": "freier Tag",
+    "sick": "krank",
+    "vacation": "Urlaub"
+  },
+  "absence": {
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "days": "days"
   },
   "emptyDay": "Keine Aktivitaten.",
+  "equivalentWorked": "Entsprechende Arbeitszeit {{duration}}",
   "addEntryForDay": "Eintrag fur diesen Tag hinzufugen"
 }

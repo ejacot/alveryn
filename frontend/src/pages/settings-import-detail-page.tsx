@@ -112,7 +112,7 @@ export function SettingsImportDetailPage() {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-3">
+    <div className="dashboard-glass-card flex items-center justify-between gap-4 px-4 py-3">
       <span className="text-sm text-white/52">{label}</span>
       <span className="text-sm font-medium text-white">{value}</span>
     </div>

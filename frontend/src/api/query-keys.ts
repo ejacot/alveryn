@@ -44,6 +44,9 @@ export const queryKeys = {
   preferences: () => ["preferences"] as const,
   onboardingStatus: () => ["onboarding-status"] as const,
   dashboard: () => ["dashboard"] as const,
+  calendar: {
+    activityRange: () => ["calendar", "activity-range"] as const
+  },
   hourlyRates: {
     all: () => ["hourly-rates"] as const,
     detail: (id: string) => ["hourly-rates", "detail", id] as const

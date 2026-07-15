@@ -20,6 +20,7 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Calculation method",
+      "color": "Color",
       "status": "Status"
     },
     "validation": {
@@ -34,6 +35,7 @@
     "addFirst": "Add first unit type",
     "addTitle": "Add unit type",
     "editTitle": "Edit unit type",
+    "editUnit": "Edit {{name}}",
     "created": "Unit type created.",
     "updated": "Unit type updated.",
     "unavailableTitle": "Unit type is unavailable",
@@ -44,6 +46,8 @@
     "unitsPerHourPlaceholder": "Example: 2.4",
     "unitsPerHourHelper": "Enter how many of this unit you usually complete in one hour.",
     "deactivate": "Deactivate unit type",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
     "deactivateTitle": "Deactivate unit type?",
     "deactivateDescription": "Historical entry snapshots remain unchanged. This only removes the unit from future entry creation.",
     "deactivateConfirm": "Deactivate",

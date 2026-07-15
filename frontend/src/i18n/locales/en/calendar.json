@@ -3,11 +3,29 @@
   "monthlySummaryLabel": "Monthly summary",
   "unavailable": "Calendar is unavailable.",
   "monthlySummary": {
-    "worked": "Worked",
-    "grossPay": "Gross pay",
-    "entries": "Entries",
-    "absenceDays": "Absence days"
+    "worked": "Hours",
+    "grossPay": "Gross",
+    "workedDays": "Days",
+    "absenceDays": "Absence"
+  },
+  "legend": {
+    "dayOff": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation"
+  },
+  "marker": {
+    "dayOff": "day off",
+    "sick": "sick leave",
+    "vacation": "vacation"
+  },
+  "absence": {
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "days": "days"
   },
   "emptyDay": "No activity.",
+  "equivalentWorked": "Equivalent worked {{duration}}",
   "addEntryForDay": "Add entry for this day"
 }

@@ -1,11 +1,14 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DashboardOverview } from "./dashboard-overview";
-import { RecentEntriesList } from "./recent-entries-list";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { i18n } from "../../i18n";
-import type { DashboardSummaryMetrics, SelectedDayOverview } from "../../types/dashboard";
+import type {
+  DashboardSummaryMetrics,
+  SelectedDayOverview,
+  WeeklyRhythmDay
+} from "../../types/dashboard";
 
 const baseSummary: DashboardSummaryMetrics = {
   primaryMetric: {
@@ -38,6 +41,35 @@ const baseSelectedDay: SelectedDayOverview = {
   totalGross: "EUR 0.00",
   activities: []
 };
+const weeklyDays: WeeklyRhythmDay[] = [
+  {
+    key: "2026-07-13",
+    label: "Mon",
+    value: "0h 00m",
+    markerLabel: null,
+    status: "idle",
+    percentage: 0,
+    selected: false
+  },
+  {
+    key: "2026-07-14",
+    label: "Tue",
+    value: "4h 00m",
+    markerLabel: "-4",
+    status: "under",
+    percentage: 50,
+    selected: false
+  },
+  {
+    key: "2026-07-15",
+    label: "Wed",
+    value: "8h 00m",
+    markerLabel: null,
+    status: "met",
+    percentage: 100,
+    selected: true
+  }
+];
 
 describe("dashboard components", () => {
   beforeEach(async () => {
@@ -51,46 +83,98 @@ describe("dashboard components", () => {
     render(
       <DashboardOverview
         summary={baseSummary}
-        recentEntries={[]}
         selectedDay={baseSelectedDay}
-        weeklyBars={[]}
-        weeklyDescription="No entries saved for this week yet."
+        weeklyDays={[]}
         onQuickAdd={onQuickAdd}
+        onCreateAbsence={vi.fn()}
       />
     );
 
-    expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Today" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a new work entry" })).toBeInTheDocument();
     expect(screen.getByText("Add entry")).toBeInTheDocument();
+    expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add a new work entry" }));
     expect(onQuickAdd).toHaveBeenCalledTimes(1);
   });
 
-  it("renders passive recent-entry header affordance and empty state", () => {
-    render(<RecentEntriesList entries={[]} />);
+  it("shows absence choices only when the selected day has no activity", async () => {
+    const onCreateAbsence = vi.fn();
+    const user = userEvent.setup();
 
-    expect(screen.getByText("Latest")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /see all/i })).not.toBeInTheDocument();
-    expect(screen.getByText("No entries yet")).toBeInTheDocument();
-  });
-
-  it("renders populated recent entries", () => {
     render(
-      <RecentEntriesList
-        entries={[
-          {
-            id: "entry-1",
-            title: "Regular Shift",
-            subtitle: "08:00 – 16:00",
-            duration: "8h 00m",
-            amount: "EUR 160.00"
-          }
-        ]}
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={baseSelectedDay}
+        weeklyDays={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={onCreateAbsence}
       />
     );
 
-    expect(screen.getByRole("button", { name: "Open Regular Shift" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Absence" }));
+    await user.click(screen.getByRole("button", { name: "Sick" }));
+    expect(onCreateAbsence).toHaveBeenCalledWith("SICK_LEAVE");
+  });
+
+  it("hides absence action when the selected day already has activity", () => {
+    render(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={{
+          ...baseSelectedDay,
+          entriesCount: 1,
+          activities: [
+            {
+              id: "entry-1",
+              title: "Regular Shift",
+              kind: "TIME_BASED",
+              subtitle: "08:00 – 16:00",
+              duration: "7h 30m worked",
+              amount: "€150.00",
+              unitBreakdown: []
+            }
+          ]
+        }}
+        weeklyDays={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
+  });
+
+  it("renders absence as a day activity item", () => {
+    render(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={{
+          ...baseSelectedDay,
+          entriesCount: 1,
+          activities: [
+            {
+              id: "absence-1",
+              title: "Vacation",
+              kind: "ABSENCE",
+              subtitle: "Day off",
+              duration: "No work planned",
+              amount: "",
+              marker: "vacation",
+              unitBreakdown: []
+            }
+          ]
+        }}
+        weeklyDays={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Vacation")).toBeInTheDocument();
+    expect(screen.getByText("Day off")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /vacation/i })).not.toBeInTheDocument();
   });
 
   it("does not crash without metrics and renders one metric safely", () => {
@@ -144,15 +228,17 @@ describe("dashboard components", () => {
   });
 
   it("renders localized weekly-hours empty state and chart", async () => {
-    const { rerender } = render(<WeeklyHoursCard bars={[]} description="Weekly summary." />);
-    expect(
-      screen.getByText("Weekly activity will appear after you save work this week.")
-    ).toBeInTheDocument();
+    const { rerender } = render(<WeeklyHoursCard days={[]} />);
+    expect(screen.queryByText("Weekly hours")).not.toBeInTheDocument();
 
     await act(async () => {
       await i18n.changeLanguage("de");
     });
-    rerender(<WeeklyHoursCard bars={[20, 40, 60]} description="Wochenuberblick." />);
-    expect(screen.getByText("Wochenstunden")).toBeInTheDocument();
+    rerender(<WeeklyHoursCard days={weeklyDays} />);
+    expect(screen.queryByText("Wochenstunden")).not.toBeInTheDocument();
+    expect(screen.getByText("Wed")).toBeInTheDocument();
+    expect(screen.queryByText("8")).not.toBeInTheDocument();
+    expect(screen.getByText("-4")).toBeInTheDocument();
+    expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
   });
 });

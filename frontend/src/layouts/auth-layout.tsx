@@ -1,10 +1,7 @@
 import { useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { PageTransition } from "../components/ui/page-transition";
+import { Outlet } from "react-router-dom";
 
 export function AuthLayout() {
-  const location = useLocation();
-
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -26,9 +23,7 @@ export function AuthLayout() {
 
   return (
     <div className="fixed inset-0 overflow-hidden overscroll-none bg-black">
-      <PageTransition routeKey={location.pathname}>
-        <Outlet />
-      </PageTransition>
+      <Outlet />
     </div>
   );
 }

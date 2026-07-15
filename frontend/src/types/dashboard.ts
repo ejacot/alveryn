@@ -30,11 +30,17 @@ export type RecentEntry = {
 export type SelectedDayActivity = {
   id: string;
   title: string;
-  kind: "TIME_BASED" | "UNIT_BASED";
+  kind: "TIME_BASED" | "UNIT_BASED" | "ABSENCE";
   subtitle: string;
   duration: string;
   amount: string;
-  unitBreakdown: string[];
+  unitBreakdown: Array<{
+    id?: string;
+    label: string;
+    quantity: string;
+    displayOrder?: number | null;
+  }>;
+  marker?: "free" | "sick" | "vacation";
 };
 
 export type SelectedDayOverview = {
@@ -43,6 +49,16 @@ export type SelectedDayOverview = {
   totalDuration: string;
   totalGross: string;
   activities: SelectedDayActivity[];
+};
+
+export type WeeklyRhythmDay = {
+  key: string;
+  label: string;
+  value: string;
+  markerLabel: string | null;
+  status: "under" | "met" | "over" | "idle";
+  percentage: number;
+  selected: boolean;
 };
 
 export type WorkEntrySummary = {

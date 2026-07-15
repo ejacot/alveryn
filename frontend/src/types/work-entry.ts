@@ -13,6 +13,7 @@ export type UnitEntryItem = {
   unitTypeId: string;
   unitName: string;
   quantity: string;
+  displayOrder?: number | null;
   unitsPerHourSnapshot: string;
   calculatedMinutes: string;
 };

@@ -77,10 +77,6 @@ vi.mock("../components/work-entry/unit-item-rows", () => ({
   )
 }));
 
-vi.mock("../components/work-entry/work-entry-summary-card", () => ({
-  WorkEntrySummaryCard: () => <div>Summary</div>
-}));
-
 vi.mock("../hooks/use-unsaved-changes-guard", () => ({
   useUnsavedChangesGuard: () => ({
     confirmOrRun: (action: () => void) => action(),
@@ -271,10 +267,10 @@ describe("WorkEntryEditorPage", () => {
     fireEvent.change(screen.getByLabelText("Work date"), {
       target: { value: "2026-07-13" }
     });
-    fireEvent.change(screen.getByLabelText("Start time"), {
+    fireEvent.change(screen.getByLabelText("Start"), {
       target: { value: "08:00" }
     });
-    fireEvent.change(screen.getByLabelText("End time"), {
+    fireEvent.change(screen.getByLabelText("End"), {
       target: { value: "16:00" }
     });
     fireEvent.change(screen.getByLabelText("Break (minutes)"), {
@@ -317,10 +313,10 @@ describe("WorkEntryEditorPage", () => {
     fireEvent.change(screen.getByLabelText("Work date"), {
       target: { value: "2026-07-13" }
     });
-    fireEvent.change(screen.getByLabelText("Start time"), {
+    fireEvent.change(screen.getByLabelText("Start"), {
       target: { value: "14:00" }
     });
-    fireEvent.change(screen.getByLabelText("End time"), {
+    fireEvent.change(screen.getByLabelText("End"), {
       target: { value: "19:00" }
     });
     fireEvent.change(screen.getByLabelText("Break (minutes)"), {
@@ -334,8 +330,8 @@ describe("WorkEntryEditorPage", () => {
     expect(
       await screen.findByText("This activity overlaps an existing activity from 09:00 to 17:00.")
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Start time")).toHaveValue("14:00");
-    expect(screen.getByLabelText("End time")).toHaveValue("19:00");
+    expect(screen.getByLabelText("Start")).toHaveValue("14:00");
+    expect(screen.getByLabelText("End")).toHaveValue("19:00");
     expect(navigateMock).not.toHaveBeenCalled();
   });
 

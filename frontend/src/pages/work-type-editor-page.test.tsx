@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WorkTypeEditorPage } from "./work-type-editor-page";
 
@@ -19,10 +19,13 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
+  createUnitType: vi.fn(),
   createWorkType: vi.fn(),
+  deleteUnitType: vi.fn(),
   deleteWorkType: vi.fn(),
   getWorkType: vi.fn(),
   listUnitTypes: vi.fn(),
+  updateUnitType: vi.fn(),
   updateWorkType: vi.fn()
 }));
 
@@ -34,10 +37,13 @@ vi.mock("../hooks/use-unsaved-changes-guard", () => ({
 }));
 
 import {
+  createUnitType,
   createWorkType,
+  deleteUnitType,
   deleteWorkType,
   getWorkType,
   listUnitTypes,
+  updateUnitType,
   updateWorkType
 } from "../api/endpoints";
 
@@ -101,6 +107,14 @@ describe("WorkTypeEditorPage", () => {
       displayOrder: 0,
       active: true
     });
+    vi.mocked(createUnitType).mockResolvedValue({
+      id: "unit-type-1",
+      workTypeId: "work-type-1",
+      name: "NORMAL",
+      unitsPerHour: "2.4",
+      displayOrder: 0,
+      active: true
+    });
     vi.mocked(updateWorkType).mockResolvedValue({
       id: "work-type-1",
       name: "Check",
@@ -122,20 +136,30 @@ describe("WorkTypeEditorPage", () => {
       active: true
     });
     vi.mocked(listUnitTypes).mockResolvedValue([]);
+    vi.mocked(updateUnitType).mockImplementation(async (workTypeId, unitTypeId, payload) => ({
+      id: unitTypeId,
+      workTypeId,
+      name: payload.name,
+      unitsPerHour: String(payload.unitsPerHour),
+      displayOrder: payload.displayOrder ?? 0,
+      active: payload.active
+    }));
     vi.mocked(deleteWorkType).mockResolvedValue(undefined);
+    vi.mocked(deleteUnitType).mockResolvedValue(undefined);
   });
 
   it("creates a time-based work type and returns to the list", async () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("Name"), "Check");
+    await user.type(screen.getByLabelText("Name"), "check");
+    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalled();
       expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
-        name: "Check",
+        name: "CHECK",
         calculationMethod: "TIME_BASED"
       });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types", { replace: true });
@@ -162,7 +186,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual({
-        name: "Camere",
+        name: "CAMERE",
         calculationMethod: "UNIT_BASED"
       });
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit", { replace: true });
@@ -189,7 +213,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith({
-        name: "Rooms",
+        name: "ROOMS",
         calculationMethod: "UNIT_BASED"
       });
       expect(screen.queryByText("Check the highlighted fields and try again.")).not.toBeInTheDocument();
@@ -205,7 +229,7 @@ describe("WorkTypeEditorPage", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     expect(await screen.findAllByText("A work type with this name already exists.")).toHaveLength(2);
-    expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -218,7 +242,7 @@ describe("WorkTypeEditorPage", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     expect(await screen.findAllByText("Name already exists")).toHaveLength(2);
-    expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -233,5 +257,232 @@ describe("WorkTypeEditorPage", () => {
     await user.click(screen.getByRole("button", { name: /saving/i }));
 
     expect(createWorkType).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the status field and preserves existing active state on update", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 3,
+      active: false
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByDisplayValue("ROOMS")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Status")).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "president");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
+        name: "PRESIDENT",
+        active: false
+      }));
+    });
+  });
+
+  it("creates a unit type in a centered dialog from the work type detail page", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    vi.mocked(listUnitTypes).mockResolvedValue([]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: "ROOMS" });
+    await user.click(screen.getByRole("button", { name: "Add first unit type" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Add unit type" });
+    expect(dialog).toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText("Name"), "Normal");
+    await user.type(within(dialog).getByLabelText("Units per hour"), "2,4");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(createUnitType).toHaveBeenCalledWith("work-type-1", {
+        name: "Normal",
+        unitsPerHour: 2.4,
+        active: true
+      });
+      expect(navigateMock).not.toHaveBeenCalledWith("/settings/work-types/work-type-1/unit-types/new");
+    });
+  });
+
+  it("edits an existing unit type in the same centered dialog", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    vi.mocked(listUnitTypes).mockResolvedValue([
+      {
+        id: "unit-normal",
+        workTypeId: "work-type-1",
+        name: "NORMAL",
+        unitsPerHour: "2.4",
+        displayOrder: 7,
+        active: true
+      }
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("2.4")).toBeInTheDocument();
+    expect(screen.queryByText("2.4 / hour")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Edit NORMAL" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Edit unit type" });
+    expect(within(dialog).getByDisplayValue("NORMAL")).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue("2.4")).toBeInTheDocument();
+
+    await user.clear(within(dialog).getByLabelText("Units per hour"));
+    await user.type(within(dialog).getByLabelText("Units per hour"), "3");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateUnitType).toHaveBeenCalledWith("work-type-1", "unit-normal", {
+        name: "NORMAL",
+        unitsPerHour: 3,
+        displayOrder: 7,
+        active: true
+      });
+      expect(navigateMock).not.toHaveBeenCalledWith("/settings/work-types/work-type-1/unit-types/unit-normal");
+    });
+  });
+
+  it("updates the color for a unit-based work type from its detail page", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    vi.mocked(listUnitTypes).mockResolvedValue([]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: "ROOMS" });
+    await user.click(screen.getByRole("button", { name: "Color #34D399" }));
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
+        color: "#34D399"
+      }));
+    });
+  });
+
+  it("moves unit types by swapping display order", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    vi.mocked(listUnitTypes).mockResolvedValue([
+      {
+        id: "unit-normal",
+        workTypeId: "work-type-1",
+        name: "NORMAL",
+        unitsPerHour: "2.4",
+        displayOrder: 0,
+        active: true
+      },
+      {
+        id: "unit-junior",
+        workTypeId: "work-type-1",
+        name: "JUNIOR",
+        unitsPerHour: "1.8",
+        displayOrder: 1,
+        active: true
+      }
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("button", { name: "Edit NORMAL" });
+    await user.click(screen.getByRole("button", { name: "Move JUNIOR up" }));
+
+    await waitFor(() => {
+      expect(updateUnitType).toHaveBeenNthCalledWith(1, "work-type-1", "unit-junior", {
+        name: "JUNIOR",
+        unitsPerHour: 1.8,
+        displayOrder: 0,
+        active: true
+      });
+      expect(updateUnitType).toHaveBeenNthCalledWith(2, "work-type-1", "unit-normal", {
+        name: "NORMAL",
+        unitsPerHour: 2.4,
+        displayOrder: 1,
+        active: true
+      });
+    });
+  });
+
+  it("deactivates an existing unit type from the edit dialog", async () => {
+    routeState.workTypeId = "work-type-1";
+    vi.mocked(getWorkType).mockResolvedValue({
+      id: "work-type-1",
+      name: "ROOMS",
+      calculationMethod: "UNIT_BASED",
+      color: "#FFFFFF",
+      icon: null,
+      defaultBreakMinutes: null,
+      displayOrder: 0,
+      active: true
+    });
+    vi.mocked(listUnitTypes).mockResolvedValue([
+      {
+        id: "unit-normal",
+        workTypeId: "work-type-1",
+        name: "NORMAL",
+        unitsPerHour: "2.4",
+        displayOrder: 7,
+        active: true
+      }
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Edit NORMAL" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit unit type" });
+    await user.click(within(dialog).getByRole("button", { name: "Deactivate unit type" }));
+
+    await waitFor(() => {
+      expect(deleteUnitType).toHaveBeenCalledWith("work-type-1", "unit-normal");
+    });
   });
 });

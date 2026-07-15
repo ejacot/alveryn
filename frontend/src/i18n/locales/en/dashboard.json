@@ -35,22 +35,22 @@
     "mixedCurrencies": "Mixed currencies",
     "allEntries": "All saved entries"
   },
-  "recentEntries": {
-    "eyebrow": "Recent",
-    "title": "Recent entries",
-    "trailingLabel": "Latest",
-    "emptyTitle": "No entries yet",
-    "emptyDescription": "Add your first shift.",
-    "openEntry": "Open {{title}}",
-    "unitRows_one": "{{count}} unit row • {{date}}",
-    "unitRows_other": "{{count}} unit rows • {{date}}"
-  },
   "quickAdd": {
     "eyebrow": "Quick add",
     "description": "Add a shift before the moment passes.",
     "emptyDescription": "No activity yet",
     "cta": "Add entry",
     "accessibleLabel": "Add a new work entry"
+  },
+  "absence": {
+    "cta": "Absence",
+    "title": "Mark absence",
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "noWork": "No work planned",
+    "cancel": "Cancel"
   },
   "weeklyHours": {
     "eyebrow": "Rhythm",

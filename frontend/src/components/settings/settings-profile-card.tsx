@@ -13,9 +13,9 @@ export function SettingsProfileCard({ initials, fullName, email, ariaLabel }: Pr
     <Link
       to="/settings/profile"
       aria-label={ariaLabel}
-      className="flex items-center gap-4 rounded-[32px] border border-white/[0.05] bg-white/[0.04] px-5 py-5 transition hover:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-white/24"
+      className="dashboard-glass-card flex items-center gap-4 px-5 py-5 transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.06] text-[1.1rem] font-semibold tracking-[-0.04em] text-white">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] text-[1.1rem] font-semibold tracking-[-0.04em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
         {initials}
       </div>
       <div className="min-w-0 flex-1">

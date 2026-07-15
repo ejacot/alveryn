@@ -3,9 +3,10 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { CalendarPage } from "./calendar-page";
-import { resolveMonthSwipeDirection } from "../features/calendar/calendar-utils";
+import { resolveMonthSwipeDirection, toIsoDate } from "../features/calendar/calendar-utils";
 
 const navigateMock = vi.fn();
+const setSelectedDateMock = vi.fn();
 const RealDate = Date;
 
 vi.mock("framer-motion", () => {
@@ -48,16 +49,18 @@ vi.mock("react-router-dom", async () => {
 
   return {
     ...actual,
-    useNavigate: () => navigateMock
+    useNavigate: () => navigateMock,
+    useOutletContext: () => ({ setSelectedDate: setSelectedDateMock })
   };
 });
 
 vi.mock("../api/endpoints", () => ({
+  getCalendarActivityRange: vi.fn(),
   listWorkEntriesInRange: vi.fn(),
   listAbsencesInRange: vi.fn()
 }));
 
-import { listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
+import { getCalendarActivityRange, listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
 
 const julyEntries = [
     {
@@ -183,6 +186,8 @@ describe("CalendarPage", () => {
 
     globalThis.Date = MockDate as DateConstructor;
     navigateMock.mockReset();
+    setSelectedDateMock.mockReset();
+    vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-15" });
     vi.mocked(listWorkEntriesInRange).mockImplementation(async ({ year, month } = {}) => {
       if (year === 2026 && month === 7) {
         return julyEntries;
@@ -232,16 +237,29 @@ describe("CalendarPage", () => {
     const user = userEvent.setup();
 
     const todayCell = await screen.findByRole("gridcell", {
-      name: /wednesday, july 15, 2026, selected/i
+      name: /wednesday, july 15, 2026, today, 1 work entry/i
     });
-    expect(todayCell).toHaveAttribute("data-state", "selected");
+    expect(todayCell).toHaveAttribute("data-state", "today");
+    expect(screen.queryByLabelText("Selected day details")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("gridcell", { name: /thursday, july 16, 2026/i }));
 
-    expect(screen.getByText("Thursday, July 16")).toBeInTheDocument();
+    expect(screen.getByText(/thursday july 16/i)).toBeInTheDocument();
+    expect(screen.queryByText("Thursday, July 16")).not.toBeInTheDocument();
     expect(
       screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, 1 work entry/i })
     ).toHaveAttribute("data-state", "today");
+  });
+
+  it("syncs the selected calendar date with the app shell for bottom-nav add entry", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("July 2026");
+    await user.click(screen.getByRole("gridcell", { name: /sunday, july 19, 2026/i }));
+
+    expect(setSelectedDateMock).toHaveBeenCalledTimes(1);
+    expect(toIsoDate(setSelectedDateMock.mock.calls[0][0])).toBe("2026-07-19");
   });
 
   it("renders work entry indicators, absence details, and monthly summary values", async () => {
@@ -250,19 +268,52 @@ describe("CalendarPage", () => {
 
     expect(
       await screen.findByRole("gridcell", {
-        name: /wednesday, july 15, 2026, selected, 1 work entry/i
+        name: /wednesday, july 15, 2026, today, 1 work entry/i
       })
     ).toBeInTheDocument();
     const summary = screen.getByLabelText("Monthly summary");
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
     expect(within(summary).getByText("€190.00")).toBeInTheDocument();
-    expect(within(summary).getByText("Entries")).toBeInTheDocument();
-    expect(summary).toHaveTextContent("Absence days");
-    expect(summary).toHaveTextContent("2");
+    expect(within(summary).getByText("Days")).toBeInTheDocument();
+    expect(within(summary).getByText("Absence")).toBeInTheDocument();
+    expect(within(summary).getAllByText("2")).toHaveLength(2);
 
-    await user.click(screen.getByRole("gridcell", { name: /monday, july 20, 2026, absence/i }));
-    expect(screen.getByText("Vacation")).toBeInTheDocument();
+    expect(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i })).not.toHaveAccessibleName(/vacation|absence|day off/i);
+
+    await user.click(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i }));
+    expect(screen.getAllByText("Vacation").length).toBeGreaterThan(1);
+    expect(screen.getByText("Day off")).toBeInTheDocument();
     expect(screen.getByText("Summer break")).toBeInTheDocument();
+  });
+
+  it("marks days between first activity and today without marking future days", async () => {
+    vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-13" });
+    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(listAbsencesInRange).mockResolvedValue([
+      {
+        id: "absence-sick",
+        absenceType: "SICK_LEAVE",
+        startDate: "2026-07-14",
+        endDate: "2026-07-14",
+        notes: null
+      },
+      {
+        id: "absence-vacation",
+        absenceType: "VACATION",
+        startDate: "2026-07-20",
+        endDate: "2026-07-20",
+        notes: null
+      }
+    ]);
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("gridcell", { name: /monday, july 13, 2026, day off/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("gridcell", { name: /tuesday, july 14, 2026, sick leave/i })).toBeInTheDocument();
+    expect(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, day off/i })).toBeInTheDocument();
+    expect(screen.getByRole("gridcell", { name: /monday, july 20, 2026/i })).not.toHaveAccessibleName(/vacation|day off/i);
   });
 
   it("shows empty and error states from real query results", async () => {
@@ -271,24 +322,70 @@ describe("CalendarPage", () => {
 
     renderPage();
 
+    const user = userEvent.setup();
+    await screen.findByText("July 2026");
+    await user.click(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today/i }));
+
     expect(await screen.findByText("No activity.")).toBeInTheDocument();
   });
 
-  it("navigates to add entry with the selected date and opens edit on tap", async () => {
+  it("opens edit on activity tap without rendering an add action", async () => {
     renderPage();
     const user = userEvent.setup();
 
     await screen.findByText("July 2026");
-    await user.click(screen.getByRole("button", { name: /add entry for selected date/i }));
+    await user.click(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, 1 work entry/i }));
 
-    expect(navigateMock).toHaveBeenCalledWith("/entries/new?date=2026-07-15", {
-      state: { returnTo: "/calendar" }
-    });
+    expect(screen.queryByRole("button", { name: /add entry for selected date/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /regular shift/i }));
     expect(navigateMock).toHaveBeenCalledWith("/entries/entry-1", {
       state: { returnTo: "/calendar" }
     });
+  });
+
+  it("sorts selected day activities by earliest start time", async () => {
+    vi.mocked(listWorkEntriesInRange).mockImplementation(async ({ year, month } = {}) => {
+      if (year === 2026 && month === 7) {
+        return [
+          {
+            ...julyEntries[0],
+            id: "late-entry",
+            workTypeName: "Late shift",
+            timeEntry: {
+              ...julyEntries[0].timeEntry!,
+              startTime: "14:00",
+              endTime: "18:00"
+            },
+            createdAt: "2026-07-15T14:00:00Z"
+          },
+          {
+            ...julyEntries[0],
+            id: "early-entry",
+            workTypeName: "Early shift",
+            timeEntry: {
+              ...julyEntries[0].timeEntry!,
+              startTime: "07:00",
+              endTime: "11:00"
+            },
+            createdAt: "2026-07-15T07:00:00Z"
+          }
+        ];
+      }
+
+      return [];
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("July 2026");
+    await user.click(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today, 2 work entries/i }));
+
+    const earlyEntry = screen.getByRole("button", { name: /early shift/i });
+    const lateEntry = screen.getByRole("button", { name: /late shift/i });
+    expect(
+      earlyEntry.compareDocumentPosition(lateEntry) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
   it("renders a friendly error state when monthly loading fails", async () => {

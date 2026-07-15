@@ -20,6 +20,7 @@
     "fields": {
       "name": "Name",
       "calculationMethod": "Berechnungsmethode",
+      "color": "Farbe",
       "status": "Status"
     },
     "validation": {
@@ -34,6 +35,7 @@
     "addFirst": "Erste Einheit hinzufügen",
     "addTitle": "Einheitstyp hinzufügen",
     "editTitle": "Einheitstyp bearbeiten",
+    "editUnit": "{{name}} bearbeiten",
     "created": "Einheitstyp erstellt.",
     "updated": "Einheitstyp aktualisiert.",
     "unavailableTitle": "Einheitstyp ist nicht verfügbar",
@@ -44,6 +46,8 @@
     "unitsPerHourPlaceholder": "Beispiel: 2,4",
     "unitsPerHourHelper": "Gib ein, wie viele dieser Einheiten du normalerweise in einer Stunde schaffst.",
     "deactivate": "Einheitstyp deaktivieren",
+    "moveUp": "{{name}} nach oben verschieben",
+    "moveDown": "{{name}} nach unten verschieben",
     "deactivateTitle": "Einheitstyp deaktivieren?",
     "deactivateDescription": "Historische Eintragssnapshots bleiben unverändert. Das entfernt die Einheit nur aus zukünftigen Einträgen.",
     "deactivateConfirm": "Deaktivieren",

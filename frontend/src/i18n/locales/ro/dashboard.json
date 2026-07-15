@@ -39,23 +39,22 @@
     "mixedCurrencies": "Monede diferite",
     "allEntries": "Toate intrările salvate"
   },
-  "recentEntries": {
-    "eyebrow": "Recente",
-    "title": "Intrări recente",
-    "trailingLabel": "Ultimele",
-    "emptyTitle": "Nicio intrare încă",
-    "emptyDescription": "Adaugă prima ta tură.",
-    "openEntry": "Deschide {{title}}",
-    "unitRows_one": "{{count}} rând de unități • {{date}}",
-    "unitRows_few": "{{count}} rânduri de unități • {{date}}",
-    "unitRows_other": "{{count}} de rânduri de unități • {{date}}"
-  },
   "quickAdd": {
     "eyebrow": "Adăugare rapidă",
     "description": "Adaugă o tură înainte să treacă momentul.",
     "emptyDescription": "Nu există activitate încă",
     "cta": "Adaugă intrare",
     "accessibleLabel": "Adaugă o nouă intrare de lucru"
+  },
+  "absence": {
+    "cta": "Absence",
+    "title": "Marchează absența",
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "noWork": "No work planned",
+    "cancel": "Anulează"
   },
   "weeklyHours": {
     "eyebrow": "Ritm",

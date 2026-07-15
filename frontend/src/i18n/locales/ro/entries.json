@@ -9,7 +9,9 @@
     "noWorkTypesTitle": "Nu exista tipuri de lucru active",
     "noWorkTypesDescription": "Finalizeaza onboardingul sau adauga un tip de lucru inainte de a crea inregistrari.",
     "newEntry": "Inregistrare noua",
-    "eyebrow": "Inregistrare lucru",
+    "eyebrow": "Dată",
+    "newActivity": "Activitate nouă",
+    "editActivity": "Editează activitatea",
     "editTitle": "Editeaza aceasta inregistrare.",
     "createTitle": "Inregistreaza lucrul dintr-o singura miscare.",
     "description": "Rapid, clar si adaptat tipului de lucru ales.",
@@ -17,6 +19,7 @@
     "step2": "Pasul 2",
     "chooseDate": "Alege data",
     "chooseWorkType": "Alege tipul de lucru",
+    "workTypeQuestion": "Activitate",
     "shiftDetails": "Detalii tura",
     "overnightHint": "Turele peste noapte sunt gestionate automat.",
     "countUnits": "Numara unitati",
@@ -31,11 +34,11 @@
   },
   "fields": {
     "workDate": "Data lucrului",
-    "startTime": "Ora de inceput",
-    "endTime": "Ora de sfarsit",
+    "startTime": "Start",
+    "endTime": "End",
     "breakMinutes": "Pauza (minute)",
-    "notes": "Notite (optional)",
-    "notesPlaceholder": "Orice detaliu util despre tura, traseu sau context."
+    "notes": "Notițe",
+    "notesPlaceholder": "Opțional"
   },
   "delete": {
     "title": "Stergi aceasta inregistrare?",
@@ -68,8 +71,8 @@
     "workType": "Tip de lucru"
   },
   "workTypePicker": {
-    "timeBased": "Bazat pe timp",
-    "unitBased": "Bazat pe unități",
+    "timeBased": "Timp",
+    "unitBased": "Unități",
     "inactive": "Inactiv",
     "optionLabel": "{{name}}, {{method}}"
   }

@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
-  listRecentWorkEntries,
+  createAbsence,
+  getAbsences,
   listWorkEntriesForDay,
   listWorkEntriesInRange
 } from "../api/endpoints";
@@ -13,7 +14,8 @@ import { i18n } from "../i18n";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
-import type { DashboardSummaryMetrics, RecentEntry } from "../types/dashboard";
+import type { DashboardSummaryMetrics, WeeklyRhythmDay } from "../types/dashboard";
+import type { Absence, AbsenceType } from "../types/absence";
 import type { WorkEntry } from "../types/work-entry";
 import { addDays, formatLocalIsoDate, isSameDay, startOfWeek } from "../utils/date";
 import {
@@ -38,6 +40,7 @@ type MonthRequest = {
 export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageProps = {}) {
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = useMemo(
     () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
@@ -73,19 +76,36 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     queryKey: queryKeys.workEntries.day(selectedDateKey),
     queryFn: () => listWorkEntriesForDay(selectedDateKey)
   });
-  const recentQuery = useQuery({
-    queryKey: queryKeys.workEntries.recent(5),
-    queryFn: () => listRecentWorkEntries(5)
+  const selectedAbsenceQuery = useQuery({
+    queryKey: queryKeys.absences.list({ from: selectedDateKey, to: selectedDateKey }),
+    queryFn: () => getAbsences({ from: selectedDateKey, to: selectedDateKey, size: 1 })
+  });
+  const absenceMutation = useMutation({
+    mutationFn: (absenceType: AbsenceType) =>
+      createAbsence({
+        absenceType,
+        startDate: selectedDateKey,
+        endDate: selectedDateKey,
+        notes: null
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.absences.list({ from: selectedDateKey, to: selectedDateKey }) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
+      ]);
+    }
   });
 
   const isLoading =
     monthQueries.some((query) => query.isLoading) ||
     selectedDayQuery.isLoading ||
-    recentQuery.isLoading;
+    selectedAbsenceQuery.isLoading;
   const errorQuery =
     monthQueries.find((query) => query.error) ??
     (selectedDayQuery.error ? selectedDayQuery : null) ??
-    (recentQuery.error ? recentQuery : null);
+    (selectedAbsenceQuery.error ? selectedAbsenceQuery : null);
 
   const allEntries = useMemo<WorkEntry[]>(() => {
     const merged = new Map<string, WorkEntry>();
@@ -104,7 +124,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   }, [monthQueries]);
 
   const selectedDayEntries = useMemo(() => selectedDayQuery.data ?? [], [selectedDayQuery.data]);
-  const recentEntriesData = useMemo(() => recentQuery.data ?? [], [recentQuery.data]);
+  const selectedAbsence = selectedAbsenceQuery.data?.content[0] ?? null;
 
   const weeklyEntries = useMemo(
     () =>
@@ -156,69 +176,49 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     };
   }, [selectedDayEntries, selectedDayLabel, t, weeklyEntries]);
 
-  const recentEntries = useMemo<RecentEntry[]>(
-    () =>
-      recentEntriesData.map((entry) => ({
-        id: entry.id,
-        title: entry.workTypeName,
-        subtitle:
-          formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
-          t("dashboard:recentEntries.unitRows", {
-            count: entry.unitItems.length,
-            date: entry.workDate
-          }),
-        duration: formatMinutesAsDuration(Number(entry.calculatedMinutes)),
-        amount: formatCurrency(entry.grossAmount, entry.currencySnapshot)
-      })),
-    [recentEntriesData, t]
+  const weeklyDays = useMemo(
+    () => buildWeeklyRhythmDays(weekDays, weeklyEntries, selectedDate),
+    [selectedDate, weekDays, weeklyEntries]
   );
-
-  const weeklyBars = useMemo(() => buildWeekBars(weekDays, weeklyEntries), [weekDays, weeklyEntries]);
   const selectedDayOverview = useMemo(
     () => ({
       label: selectedDayLabel,
-      entriesCount: selectedDayEntries.length,
+      entriesCount: selectedDayEntries.length + (selectedAbsence ? 1 : 0),
       totalDuration: formatMinutesAsDuration(sumMinutes(selectedDayEntries)),
       totalGross: formatGrossTotal(
         selectedDayEntries,
         sumGross(selectedDayEntries),
         t("dashboard:summary.mixedCurrencies")
       ),
-      activities: selectedDayEntries.map((entry) => ({
-        id: entry.id,
-        title: entry.workTypeName,
-        kind: entry.calculationMethod,
-        subtitle:
-          formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
-          t("dashboard:selectedDay.equivalentTime", {
-            duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-          }),
-        duration:
-          entry.calculationMethod === "UNIT_BASED"
-            ? t("dashboard:selectedDay.equivalentTime", {
-                duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-              })
-            : t("dashboard:selectedDay.workedTime", {
-                duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-              }),
-        amount: formatCurrency(entry.grossAmount, entry.currencySnapshot),
-        unitBreakdown: entry.unitItems.map((item) =>
-          t("dashboard:selectedDay.unitLine", {
-            name: item.unitName,
-            quantity: formatQuantity(item.quantity)
-          })
-        )
-      }))
+      activities: [
+        ...selectedDayEntries.map((entry) => ({
+          id: entry.id,
+          title: entry.workTypeName,
+          kind: entry.calculationMethod,
+          subtitle:
+            formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
+            "",
+          duration:
+            entry.calculationMethod === "UNIT_BASED"
+              ? t("dashboard:selectedDay.equivalentTime", {
+                  duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
+                })
+              : t("dashboard:selectedDay.workedTime", {
+                  duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
+                }),
+          amount: formatCurrency(entry.grossAmount, entry.currencySnapshot),
+          unitBreakdown: entry.unitItems.map((item) => ({
+            id: item.id,
+            label: item.unitName,
+            quantity: formatQuantity(item.quantity),
+            displayOrder: item.displayOrder
+          }))
+        })),
+        ...(selectedAbsence ? [toAbsenceActivity(selectedAbsence, t)] : [])
+      ]
     }),
-    [selectedDayEntries, selectedDayLabel, t]
+    [selectedAbsence, selectedDayEntries, selectedDayLabel, t]
   );
-  const weeklyDescription = useMemo(() => {
-    const total = formatMinutesAsDuration(sumMinutes(weeklyEntries));
-    return weeklyEntries.length
-      ? t("dashboard:weeklyHours.description", { total })
-      : t("dashboard:weeklyHours.emptyDescription");
-  }, [t, weeklyEntries]);
-
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -232,7 +232,6 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
             void query.refetch();
           });
           void selectedDayQuery.refetch();
-          void recentQuery.refetch();
         }}
       />
     );
@@ -241,11 +240,12 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   return (
       <DashboardOverview
         summary={summary}
-        recentEntries={recentEntries}
         selectedDay={selectedDayOverview}
-        weeklyBars={weeklyBars}
-        weeklyDescription={weeklyDescription}
+        weeklyDays={weeklyDays}
         onQuickAdd={() => navigate(`/entries/new?date=${selectedDateKey}`)}
+        onCreateAbsence={(absenceType) => absenceMutation.mutate(absenceType)}
+        absencePending={absenceMutation.isPending || Boolean(selectedAbsence)}
+        absenceError={absenceMutation.error ? getApiError(absenceMutation.error).message : null}
         onEntrySelect={(entryId) => navigate(`/entries/${entryId}`)}
       />
   );
@@ -269,19 +269,70 @@ function formatGrossTotal(entries: WorkEntry[], total: number, mixedCurrencyLabe
   return formatCurrency(String(total), entries[0]?.currencySnapshot ?? "EUR");
 }
 
-function buildWeekBars(days: Date[], entries: WorkEntry[]) {
+function toAbsenceActivity(absence: Absence, t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]) {
+  const marker = absenceMarker(absence.absenceType);
+  return {
+    id: `absence-${absence.id}`,
+    title: t(`dashboard:absence.${marker}`),
+    kind: "ABSENCE" as const,
+    subtitle: t("dashboard:absence.dayOff"),
+    duration: t("dashboard:absence.noWork"),
+    amount: "",
+    unitBreakdown: [],
+    marker
+  };
+}
+
+function absenceMarker(absenceType: AbsenceType) {
+  if (absenceType === "SICK_LEAVE") {
+    return "sick" as const;
+  }
+  if (absenceType === "VACATION") {
+    return "vacation" as const;
+  }
+  return "free" as const;
+}
+
+const DAILY_TARGET_MINUTES = 8 * 60;
+
+function buildWeeklyRhythmDays(days: Date[], entries: WorkEntry[], selectedDate: Date): WeeklyRhythmDay[] {
   const minutesPerDay = days.map((day) =>
     sumMinutes(
       entries.filter((entry) => isSameDay(new Date(`${entry.workDate}T00:00:00`), day))
     )
   );
-  const maxMinutes = Math.max(...minutesPerDay, 0);
+  return days.map((day, index) => {
+    const minutes = minutesPerDay[index] ?? 0;
+    const hasEntries = minutes > 0;
+    const difference = minutes - DAILY_TARGET_MINUTES;
+    const status = !hasEntries
+      ? "idle"
+      : difference < 0
+        ? "under"
+        : difference > 0
+          ? "over"
+          : "met";
 
-  if (maxMinutes === 0) {
-    return [];
-  }
+    return {
+      key: formatLocalIsoDate(day),
+      label: new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+        weekday: "short"
+      }).format(day),
+      value: formatMinutesAsDuration(minutes),
+      markerLabel: hasEntries && difference !== 0 ? formatTargetDifferenceMarker(difference) : null,
+      status,
+      percentage: Math.min(Math.round((minutes / DAILY_TARGET_MINUTES) * 100), 100),
+      selected: isSameDay(day, selectedDate)
+    };
+  });
+}
 
-  return minutesPerDay.map((value) => Math.round((value / maxMinutes) * 100));
+function formatTargetDifferenceMarker(minutes: number) {
+  const hours = Math.abs(minutes) / 60;
+  const prefix = minutes > 0 ? "+" : "-";
+  return new Intl.NumberFormat(i18n.resolvedLanguage, {
+    maximumFractionDigits: 1
+  }).format(hours).replace(/^/, prefix);
 }
 
 function formatSelectedDayLabel(date: Date, todayLabel: string) {

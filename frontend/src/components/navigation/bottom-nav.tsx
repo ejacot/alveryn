@@ -18,14 +18,19 @@ type NavItem = {
   prominent?: boolean;
 };
 
-export function BottomNav() {
+type BottomNavProps = {
+  addEntryDate?: string;
+};
+
+export function BottomNav({ addEntryDate }: BottomNavProps) {
   const { t } = useTranslation("common");
   const direction = useScrollDirection();
   const compact = direction === "down";
+  const addEntryPath = addEntryDate ? `/entries/new?date=${addEntryDate}` : "/entries/new";
   const items: NavItem[] = [
     { to: "/", icon: House, label: t("nav.home") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
-    { to: "/entries/new", icon: Plus, label: t("nav.addEntry"), prominent: true },
+    { to: addEntryPath, icon: Plus, label: t("nav.addEntry"), prominent: true },
     { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },
     { to: "/profile", icon: CircleUserRound, label: t("nav.settings") }
   ];
@@ -59,7 +64,7 @@ export function BottomNav() {
                 prominent
                   ? "h-12 w-12 rounded-full border border-white/[0.66] bg-white/[0.78] text-black shadow-[0_18px_42px_rgba(0,0,0,0.3),0_0_26px_rgba(255,255,255,0.12),inset_0_1px_0_rgba(255,255,255,0.96),inset_0_-14px_24px_rgba(0,0,0,0.12)] backdrop-blur-[8px]"
                   : isActive
-                    ? "h-11 w-11 rounded-[19px] border border-white/[0.24] bg-white/[0.13] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.42),inset_0_-10px_18px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[8px]"
+                    ? "h-11 w-11 text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.22)]"
                     : "h-11 w-11 text-white/52"
               )}
               title={label}
@@ -67,9 +72,9 @@ export function BottomNav() {
             >
               <Icon
                 className={cn(
-                  prominent ? "h-5 w-5" : isActive ? "h-[22px] w-[22px] text-white" : "h-5 w-5"
+                  prominent ? "h-5 w-5" : isActive ? "h-[23px] w-[23px] text-white" : "h-5 w-5"
                 )}
-                strokeWidth={prominent ? 2.4 : isActive ? 2.5 : 2.1}
+                strokeWidth={prominent ? 2.4 : isActive ? 2.85 : 2.1}
                 aria-hidden="true"
               />
             </motion.div>

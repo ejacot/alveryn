@@ -5,15 +5,16 @@ import { cn } from "../../utils/cn";
 type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: string;
   label: string;
+  labelClassName?: string;
 };
 
-export function Textarea({ className, error, label, rows = 4, ...props }: Props) {
+export function Textarea({ className, error, label, labelClassName, rows = 4, ...props }: Props) {
   const id = useId();
   const errorId = `${id}-error`;
 
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-white/78">{label}</span>
+      <span className={labelClassName ?? "text-sm font-medium text-white/78"}>{label}</span>
       <textarea
         id={id}
         rows={rows}

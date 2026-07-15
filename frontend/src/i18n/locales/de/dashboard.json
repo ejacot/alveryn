@@ -35,22 +35,22 @@
     "mixedCurrencies": "Mehrere Währungen",
     "allEntries": "Alle gespeicherten Einträge"
   },
-  "recentEntries": {
-    "eyebrow": "Zuletzt",
-    "title": "Letzte Einträge",
-    "trailingLabel": "Neueste",
-    "emptyTitle": "Noch keine Einträge",
-    "emptyDescription": "Lege deine erste Schicht an.",
-    "openEntry": "{{title}} öffnen",
-    "unitRows_one": "{{count}} Mengenzeile • {{date}}",
-    "unitRows_other": "{{count}} Mengenzeilen • {{date}}"
-  },
   "quickAdd": {
     "eyebrow": "Schnell erfassen",
     "description": "Erfasse eine Schicht, bevor der Moment vorbei ist.",
     "emptyDescription": "Noch keine Aktivität",
     "cta": "Eintrag erfassen",
     "accessibleLabel": "Neuen Arbeitseintrag erfassen"
+  },
+  "absence": {
+    "cta": "Absence",
+    "title": "Absence markieren",
+    "free": "Free",
+    "sick": "Sick",
+    "vacation": "Vacation",
+    "dayOff": "Day off",
+    "noWork": "No work planned",
+    "cancel": "Abbrechen"
   },
   "weeklyHours": {
     "eyebrow": "Rhythmus",

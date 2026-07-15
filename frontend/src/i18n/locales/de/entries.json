@@ -9,7 +9,9 @@
     "noWorkTypesTitle": "Noch keine aktiven Arbeitsarten",
     "noWorkTypesDescription": "Schliesse das Onboarding ab oder lege eine Arbeitsart an, bevor du Eintrage erstellst.",
     "newEntry": "Neuer Eintrag",
-    "eyebrow": "Arbeitseintrag",
+    "eyebrow": "Datum",
+    "newActivity": "Neue Aktivität",
+    "editActivity": "Aktivität bearbeiten",
     "editTitle": "Diesen Eintrag bearbeiten.",
     "createTitle": "Arbeit in einem Schritt erfassen.",
     "description": "Schnell, ruhig und passend zur gewahlten Arbeitsart.",
@@ -17,6 +19,7 @@
     "step2": "Schritt 2",
     "chooseDate": "Datum wahlen",
     "chooseWorkType": "Arbeitsart wahlen",
+    "workTypeQuestion": "Aktivität",
     "shiftDetails": "Schichtdetails",
     "overnightHint": "Nachtschichten werden automatisch unterstutzt.",
     "countUnits": "Einheiten zahlen",
@@ -31,11 +34,11 @@
   },
   "fields": {
     "workDate": "Arbeitsdatum",
-    "startTime": "Startzeit",
-    "endTime": "Endzeit",
+    "startTime": "Start",
+    "endTime": "Ende",
     "breakMinutes": "Pause (Minuten)",
-    "notes": "Notizen (optional)",
-    "notesPlaceholder": "Alles Nutzliche zur Schicht, Route oder zum Kontext."
+    "notes": "Notizen",
+    "notesPlaceholder": "Optional"
   },
   "delete": {
     "title": "Diesen Eintrag loschen?",
@@ -68,8 +71,8 @@
     "workType": "Arbeitsart"
   },
   "workTypePicker": {
-    "timeBased": "Zeitbasiert",
-    "unitBased": "Mengenbasiert",
+    "timeBased": "Zeit",
+    "unitBased": "Einheiten",
     "inactive": "Inaktiv",
     "optionLabel": "{{name}}, {{method}}"
   }

@@ -36,18 +36,21 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
             })}
             disabled={inactive}
             className={cn(
-              "surface-muted flex min-h-[72px] items-center gap-4 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
+              "dashboard-glass-card flex min-h-[76px] items-center gap-4 px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
               selected
-                ? "border-white/[0.12] bg-white/[0.07]"
-                : "hover:bg-white/[0.045]",
-              inactive && "cursor-not-allowed opacity-55 hover:bg-white/[0.03]"
+                ? "border-white/[0.18] bg-white/[0.075] shadow-[0_18px_54px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.14)]"
+                : "hover:bg-white/[0.06]",
+              inactive && "cursor-not-allowed opacity-55 hover:bg-white/[0.045]"
             )}
           >
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06]"
-              style={{ backgroundColor: `${workType.color}22`, color: workType.color }}
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/[0.08]",
+                selected ? "bg-white text-black" : "bg-white/[0.045]"
+              )}
+              style={selected ? undefined : { color: workType.color }}
             >
-              <span className="text-lg font-semibold">
+              <span className="text-base font-semibold">
                 {(workType.icon?.trim()?.[0] ?? workType.name[0] ?? "W").toUpperCase()}
               </span>
             </div>

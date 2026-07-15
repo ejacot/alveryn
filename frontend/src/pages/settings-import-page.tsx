@@ -169,7 +169,7 @@ export function SettingsImportPage() {
               value={String(preview.duplicateCandidates.length)}
             />
 
-            <div className="space-y-2 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-4">
+            <div className="dashboard-glass-card space-y-2 px-4 py-4">
               <p className="text-sm font-medium text-white">{t("settings:import.months")}</p>
               <div className="space-y-2 text-sm text-white/60">
                 {preview.recognizedSheets.map((sheet) => (
@@ -184,7 +184,7 @@ export function SettingsImportPage() {
             </div>
 
             {preview.ignoredSheets.length ? (
-              <div className="space-y-2 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-4">
+              <div className="dashboard-glass-card space-y-2 px-4 py-4">
                 <p className="text-sm font-medium text-white">{t("settings:import.ignoredSheets")}</p>
                 <p className="text-sm leading-6 text-white/56">{preview.ignoredSheets.join(", ")}</p>
               </div>
@@ -207,7 +207,7 @@ export function SettingsImportPage() {
             ) : null}
 
             {preview.warnings.length ? (
-              <div className="space-y-3 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-4">
+              <div className="dashboard-glass-card space-y-3 px-4 py-4">
                 <button
                   type="button"
                   onClick={() => setShowWarnings((value) => !value)}
@@ -279,7 +279,7 @@ export function SettingsImportPage() {
               <Link
                 key={batch.id}
                 to={`/settings/import/${batch.id}`}
-                className="flex items-center justify-between gap-4 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-4"
+                className="dashboard-glass-card flex items-center justify-between gap-4 px-4 py-4"
               >
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-white">{batch.fileName}</p>
@@ -309,7 +309,7 @@ export function SettingsImportPage() {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-3">
+    <div className="dashboard-glass-card flex items-center justify-between gap-4 px-4 py-3">
       <span className="text-sm text-white/52">{label}</span>
       <span className="text-sm font-medium text-white">{value}</span>
     </div>
@@ -318,7 +318,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function IssueList({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="space-y-2 rounded-[22px] border border-white/[0.05] bg-white/[0.03] px-4 py-4">
+    <div className="dashboard-glass-card space-y-2 px-4 py-4">
       <p className="text-sm font-medium text-white">{title}</p>
       <ul className="space-y-2 text-sm leading-6 text-white/56">
         {items.map((item) => (

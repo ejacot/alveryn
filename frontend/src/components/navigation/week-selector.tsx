@@ -65,13 +65,13 @@ export function WeekSelector({ value, onChange }: Props) {
     <section className="space-y-2.5 overflow-hidden">
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-[1rem] font-medium tracking-[-0.03em] text-white/68">
+          <h2 className="hairline-text">
             {monthLabel}
           </h2>
         </div>
       </div>
       <div className="relative min-h-[84px] touch-pan-y overflow-hidden">
-        <AnimatePresence custom={slideDirection} initial={false} mode="wait">
+        <AnimatePresence custom={slideDirection} initial={false}>
           <motion.div
             key={weekKey}
             custom={slideDirection}
@@ -89,25 +89,22 @@ export function WeekSelector({ value, onChange }: Props) {
             }}
             variants={{
               enter: (direction: number) => ({
-                x: direction === 0 ? 0 : direction > 0 ? 36 : -36,
-                opacity: 0
+                x: direction === 0 ? 0 : direction > 0 ? "100%" : "-100%"
               }),
               center: {
-                x: 0,
-                opacity: 1
+                x: 0
               },
               exit: (direction: number) => ({
-                x: direction > 0 ? -36 : 36,
-                opacity: 0
+                x: direction > 0 ? "-100%" : "100%"
               })
             }}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-7 gap-1"
+            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            className="absolute inset-0 grid grid-cols-7 gap-1"
           >
-            {days.map((day, index) => {
+            {days.map((day) => {
               const selected = isSameDay(day.date, value);
               const current = !selected && isSameDay(day.date, today);
               const hasEntries = markedDates.has(formatLocalIsoDate(day.date));
@@ -120,9 +117,6 @@ export function WeekSelector({ value, onChange }: Props) {
                   aria-pressed={selected}
                   aria-label={`${day.weekday} ${day.dayNumber}`}
                   data-state={state}
-                  initial={{ opacity: 0.94, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.02 }}
                   onClick={() => onChange(day.date)}
                   className="flex min-h-[74px] flex-col items-center justify-between rounded-[24px] px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]"
                 >

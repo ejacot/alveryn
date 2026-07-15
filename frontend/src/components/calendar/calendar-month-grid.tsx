@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { getCalendarWeekdays, formatAriaDate, type CalendarDayCell } from "../../features/calendar/calendar-utils";
+import type { AbsenceType } from "../../types/absence";
 
 type DayMeta = {
   entriesCount: number;
-  hasAbsence: boolean;
+  marker: AbsenceType | "AUTO_DAY_OFF" | null;
 };
 
 type Props = {
@@ -12,7 +14,7 @@ type Props = {
   monthKey: string;
   slideDirection: number;
   days: CalendarDayCell[];
-  selectedDate: Date;
+  selectedDate: Date | null;
   today: Date;
   getDayMeta: (isoDate: string) => DayMeta;
   onSelect: (date: Date) => void;
@@ -34,6 +36,7 @@ export function CalendarMonthGrid({
   onSwipeChange,
   onResolveSwipe
 }: Props) {
+  const { t } = useTranslation("calendar");
   const rowCount = days.length / 7;
   const gridClassName =
     rowCount === 4
@@ -52,7 +55,7 @@ export function CalendarMonthGrid({
     <section className="mx-auto w-full max-w-[28rem] space-y-2.5 overflow-hidden sm:max-w-[32rem]" aria-label="Monthly calendar">
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-[1rem] font-medium tracking-[-0.03em] text-white/68">
+          <h2 className="hairline-text">
           {monthLabel}
           </h2>
         </div>
@@ -64,13 +67,24 @@ export function CalendarMonthGrid({
             key={weekday}
             className="text-center text-[10px] font-semibold tracking-[0.2em] text-white/34"
           >
-            {weekday}
+            {weekday.slice(0, 3)}
           </div>
         ))}
       </div>
 
       <div className="relative overflow-hidden touch-pan-y">
-        <AnimatePresence custom={slideDirection} initial={false} mode="wait">
+        <div className={`${gridClassName} invisible pointer-events-none`} aria-hidden="true">
+          {days.map((day) => (
+            <div
+              key={`placeholder-${day.key}`}
+              className={cn(`${cellClassName} justify-between`)}
+            >
+              <div className="h-9 w-9 sm:h-10 sm:w-10" />
+              <div className="min-h-[4px]" />
+            </div>
+          ))}
+        </div>
+        <AnimatePresence custom={slideDirection} initial={false}>
           <motion.div
             key={monthKey}
             custom={slideDirection}
@@ -88,24 +102,23 @@ export function CalendarMonthGrid({
             }}
             variants={{
               enter: (direction: number) => ({
-                x: direction === 0 ? 0 : direction > 0 ? 38 : -38,
-                opacity: 0
+                x: direction === 0 ? 0 : direction > 0 ? "100%" : "-100%"
               }),
-              center: { x: 0, opacity: 1 },
+              center: { x: 0 },
               exit: (direction: number) => ({
-                x: direction > 0 ? -38 : 38,
-                opacity: 0
+                x: direction > 0 ? "-100%" : "100%"
               })
             }}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className={gridClassName}
+            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            className={`absolute inset-x-0 top-0 ${gridClassName}`}
             role="grid"
           >
             {days.map((day) => {
               const selected =
+                selectedDate !== null &&
                 day.date.getFullYear() === selectedDate.getFullYear() &&
                 day.date.getMonth() === selectedDate.getMonth() &&
                 day.date.getDate() === selectedDate.getDate();
@@ -127,8 +140,8 @@ export function CalendarMonthGrid({
                   `${meta.entriesCount} work entr${meta.entriesCount === 1 ? "y" : "ies"}`
                 );
               }
-              if (meta.hasAbsence) {
-                ariaSegments.push("absence");
+              if (meta.marker) {
+                ariaSegments.push(markerAriaLabel(meta.marker, t));
               }
 
               return (
@@ -162,15 +175,15 @@ export function CalendarMonthGrid({
                   </div>
 
                   <div className="flex min-h-[4px] items-center gap-1" aria-hidden="true">
-                    {meta.hasAbsence ? (
+                    {meta.marker ? (
                       <span
                         className={cn(
-                          "h-1.5 w-1.5 rounded-full border",
-                          day.inActiveMonth ? "border-white/42" : "border-white/18"
+                          "h-1.5 w-1.5 rounded-full",
+                          markerClassName(meta.marker, day.inActiveMonth)
                         )}
                       />
                     ) : null}
-                    {!meta.hasAbsence && meta.entriesCount > 0 ? (
+                    {!meta.marker && meta.entriesCount > 0 ? (
                       meta.entriesCount <= 3 ? (
                         Array.from({ length: meta.entriesCount }, (_, index) => (
                           <span
@@ -199,6 +212,41 @@ export function CalendarMonthGrid({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <div className="flex items-center justify-center gap-4 pt-1 text-[10px] font-medium tracking-[0.14em] text-white/34">
+        <LegendDot className="border border-white/24" label={t("legend.dayOff")} />
+        <LegendDot className="bg-red-500/90" label={t("legend.sick")} />
+        <LegendDot className="bg-emerald-500/90" label={t("legend.vacation")} />
+      </div>
     </section>
   );
+}
+
+function LegendDot({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={cn("h-1.5 w-1.5 rounded-full", className)} aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function markerClassName(marker: DayMeta["marker"], inactive: boolean) {
+  if (marker === "SICK_LEAVE") {
+    return inactive ? "bg-red-500/45" : "bg-red-500/90";
+  }
+  if (marker === "VACATION") {
+    return inactive ? "bg-emerald-500/45" : "bg-emerald-500/90";
+  }
+  return inactive ? "border border-white/42" : "border border-white/24";
+}
+
+function markerAriaLabel(marker: DayMeta["marker"], t: ReturnType<typeof useTranslation<"calendar">>["t"]) {
+  if (marker === "SICK_LEAVE") {
+    return t("marker.sick");
+  }
+  if (marker === "VACATION") {
+    return t("marker.vacation");
+  }
+  return t("marker.dayOff");
 }

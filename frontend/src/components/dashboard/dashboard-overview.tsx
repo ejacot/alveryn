@@ -1,32 +1,35 @@
 import { useTranslation } from "react-i18next";
-import { RecentEntriesList } from "./recent-entries-list";
+import { useState } from "react";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
-import { SectionHeading } from "../ui/section-heading";
+import { UnitBreakdownBadges } from "../work-entry/unit-breakdown-badges";
+import type { AbsenceType } from "../../types/absence";
 import type {
   DashboardSummaryMetrics,
-  RecentEntry,
-  SelectedDayOverview
+  SelectedDayOverview,
+  WeeklyRhythmDay
 } from "../../types/dashboard";
 
 type Props = {
   summary: DashboardSummaryMetrics | null;
-  recentEntries: RecentEntry[];
   selectedDay: SelectedDayOverview;
-  weeklyBars?: number[];
-  weeklyDescription: string;
+  weeklyDays?: WeeklyRhythmDay[];
   onQuickAdd: () => void;
+  onCreateAbsence: (absenceType: AbsenceType) => void;
+  absencePending?: boolean;
+  absenceError?: string | null;
   onEntrySelect?: (entryId: string) => void;
   preview?: boolean;
 };
 
 export function DashboardOverview({
   summary,
-  recentEntries,
   selectedDay,
-  weeklyBars,
-  weeklyDescription,
+  weeklyDays,
   onQuickAdd,
+  onCreateAbsence,
+  absencePending = false,
+  absenceError = null,
   onEntrySelect,
   preview = false
 }: Props) {
@@ -34,31 +37,26 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-8 pb-6">
-      <SectionHeading
-        eyebrow={preview ? t("heading.previewEyebrow") : t("heading.eyebrow")}
-        title={selectedDay.label}
-        description={
-          preview
-            ? t("heading.previewDescription")
-            : selectedDay.entriesCount
-              ? t("heading.activityDescription", { count: selectedDay.entriesCount })
-              : t("heading.emptyDescription")
-        }
-      />
+      {preview ? (
+        <div className="space-y-2">
+          <p className="hairline-text">{t("heading.previewEyebrow")}</p>
+          <h1 className="text-3xl font-semibold tracking-[-0.07em] text-white">
+            {selectedDay.label}
+          </h1>
+          <p className="text-sm leading-6 text-white/46">{t("heading.previewDescription")}</p>
+        </div>
+      ) : null}
       <SelectedDayPanel
         selectedDay={selectedDay}
         onEntrySelect={onEntrySelect}
         onQuickAdd={onQuickAdd}
+        onCreateAbsence={onCreateAbsence}
+        absencePending={absencePending}
+        absenceError={absenceError}
       />
       <SummaryCards metrics={summary} />
-      <RecentEntriesList
-        entries={recentEntries}
-        emptyMessage={t("recentEntries.emptyDescription")}
-        onEntrySelect={onEntrySelect}
-      />
       <WeeklyHoursCard
-        bars={weeklyBars}
-        description={weeklyDescription}
+        days={weeklyDays}
       />
     </div>
   );
@@ -67,97 +65,195 @@ export function DashboardOverview({
 function SelectedDayPanel({
   selectedDay,
   onEntrySelect,
-  onQuickAdd
+  onQuickAdd,
+  onCreateAbsence,
+  absencePending,
+  absenceError
 }: {
   selectedDay: SelectedDayOverview;
   onEntrySelect?: (entryId: string) => void;
   onQuickAdd: () => void;
+  onCreateAbsence: (absenceType: AbsenceType) => void;
+  absencePending: boolean;
+  absenceError: string | null;
 }) {
   const { t } = useTranslation("dashboard");
+  const [absenceOpen, setAbsenceOpen] = useState(false);
+
+  function handleAbsence(absenceType: AbsenceType) {
+    onCreateAbsence(absenceType);
+    setAbsenceOpen(false);
+  }
 
   if (!selectedDay.entriesCount) {
     return (
-      <button
-        type="button"
-        onClick={onQuickAdd}
-        aria-label={t("quickAdd.accessibleLabel")}
-        className="surface-muted flex w-full items-center justify-between px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24 hover:bg-white/[0.05]"
-      >
-        <div>
+      <section className="space-y-3">
+        <div className="surface-muted flex w-full items-center justify-between px-5 py-4 text-left">
           <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
-          <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.05em] text-white">
-            {t("quickAdd.emptyDescription")}
-          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAbsenceOpen(true)}
+              className="rounded-full border border-white/[0.08] bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12]"
+            >
+              {t("absence.cta")}
+            </button>
+            <button
+              type="button"
+              onClick={onQuickAdd}
+              aria-label={t("quickAdd.accessibleLabel")}
+              className="rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
+            >
+              {t("quickAdd.cta")}
+            </button>
+          </div>
         </div>
-        <span className="rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]">
-          {t("quickAdd.cta")}
-        </span>
-      </button>
+        {absenceError ? <p className="px-2 text-sm text-red-200/90">{absenceError}</p> : null}
+        <AbsenceChooser
+          open={absenceOpen}
+          pending={absencePending}
+          onClose={() => setAbsenceOpen(false)}
+          onSelect={handleAbsence}
+        />
+      </section>
     );
   }
 
-  const primary = selectedDay.activities[0];
   const multiple = selectedDay.entriesCount > 1;
 
   return (
-    <section className="surface-muted space-y-4 px-5 py-5">
-      <div className="flex items-start justify-between gap-4">
+    <section className="space-y-4">
+      <div>
         <div>
           <p className="hairline-text">
             {multiple
               ? t("selectedDay.activities", { count: selectedDay.entriesCount })
               : t("selectedDay.activity")}
           </p>
-          <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
-            {multiple ? t("selectedDay.activities", { count: selectedDay.entriesCount }) : primary.title}
-          </h2>
         </div>
-        <button
-          type="button"
-          onClick={onQuickAdd}
-          className="rounded-full border border-white/[0.08] bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12]"
-        >
-          {t("quickAdd.cta")}
-        </button>
       </div>
 
       <div className="space-y-3">
-        {selectedDay.activities.map((activity) => (
-          <button
+        {selectedDay.activities.map((activity) => {
+          const interactive = activity.kind !== "ABSENCE";
+          const Component = interactive ? "button" : "div";
+
+          return (
+          <Component
             key={activity.id}
-            type="button"
-            onClick={() => onEntrySelect?.(activity.id)}
-            className="w-full rounded-[24px] border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-left transition hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24"
+            {...(interactive
+              ? {
+                  type: "button",
+                  onClick: () => onEntrySelect?.(activity.id)
+                }
+              : {})}
+            className="dashboard-glass-card w-full px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold tracking-[-0.03em] text-white">{activity.title}</p>
-                <p className="mt-1 text-sm text-white/52">{activity.subtitle}</p>
+                {activity.subtitle ? (
+                  <p className="mt-1 text-sm text-white/52">{activity.subtitle}</p>
+                ) : null}
               </div>
-              <p className="text-sm font-semibold text-white/90">{activity.amount}</p>
+              {activity.marker ? (
+                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceMarkerClassName(activity.marker)}`} aria-hidden="true" />
+              ) : (
+                <p className="text-sm font-semibold text-white/90">{activity.amount}</p>
+              )}
             </div>
             {activity.unitBreakdown.length ? (
-              <div className="mt-3 space-y-1">
-                {activity.unitBreakdown.map((line) => (
-                  <p key={line} className="text-sm text-white/62">{line}</p>
-                ))}
-              </div>
+              <UnitBreakdownBadges items={activity.unitBreakdown} />
             ) : null}
-            <p className="mt-3 text-sm text-white/40">{activity.duration}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.totalTime")}</p>
-          <p className="mt-1 text-base font-semibold text-white/86">{selectedDay.totalDuration}</p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/34">{t("selectedDay.gross")}</p>
-          <p className="mt-1 text-base font-semibold text-white/86">{selectedDay.totalGross}</p>
-        </div>
+            {activity.duration ? (
+              <p className="mt-3 text-sm text-white/40">{activity.duration}</p>
+            ) : null}
+          </Component>
+          );
+        })}
       </div>
     </section>
+  );
+}
+
+function absenceMarkerClassName(marker: "free" | "sick" | "vacation") {
+  if (marker === "sick") {
+    return "bg-red-500/90";
+  }
+  if (marker === "vacation") {
+    return "bg-emerald-500/90";
+  }
+  return "border border-white/28";
+}
+
+function AbsenceChooser({
+  open,
+  pending,
+  onClose,
+  onSelect
+}: {
+  open: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onSelect: (absenceType: AbsenceType) => void;
+}) {
+  const { t } = useTranslation("dashboard");
+
+  if (!open) {
+    return null;
+  }
+
+  const options: Array<{ type: AbsenceType; label: string; dot: string }> = [
+    { type: "DAY_OFF", label: t("absence.free"), dot: "border border-white/28" },
+    { type: "SICK_LEAVE", label: t("absence.sick"), dot: "bg-red-500/90" },
+    { type: "VACATION", label: t("absence.vacation"), dot: "bg-emerald-500/90" }
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="absence-title"
+    >
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={t("absence.cancel")}
+        className="absolute inset-0 h-full w-full cursor-default"
+        onClick={onClose}
+      />
+      <div
+        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+      >
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h2 id="absence-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
+            {t("absence.title")}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-3 py-2 text-sm font-semibold text-white/48 transition hover:text-white"
+          >
+            {t("absence.cancel")}
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {options.map((option) => (
+            <button
+              key={option.type}
+              type="button"
+              disabled={pending}
+              onClick={() => onSelect(option.type)}
+              className="dashboard-glass-card flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-white/[0.06] disabled:opacity-55"
+            >
+              <span className="font-semibold tracking-[-0.03em] text-white">{option.label}</span>
+              <span className={`h-2 w-2 rounded-full ${option.dot}`} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

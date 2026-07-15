@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
+import { getCalendarActivityRange, listAbsencesInRange, listWorkEntriesInRange } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
@@ -25,15 +26,36 @@ import {
   toIsoDate
 } from "../features/calendar/calendar-utils";
 import type { Absence } from "../types/absence";
+import type { AbsenceType } from "../types/absence";
 import type { WorkEntry } from "../types/work-entry";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
 
+const EMPTY_WORK_ENTRIES: WorkEntry[] = [];
+const EMPTY_ABSENCES: Absence[] = [];
+
+type OutletContext = {
+  setSelectedDate?: (date: Date) => void;
+};
+
+function compareEntriesByStartTime(first: WorkEntry, second: WorkEntry) {
+  const firstStart = first.timeEntry?.startTime ?? "99:99";
+  const secondStart = second.timeEntry?.startTime ?? "99:99";
+
+  if (firstStart !== secondStart) {
+    return firstStart.localeCompare(secondStart);
+  }
+
+  return first.createdAt.localeCompare(second.createdAt);
+}
+
 export function CalendarPage() {
   const navigate = useNavigate();
+  const outletContext = useOutletContext<OutletContext>();
+  const { t } = useTranslation("calendar");
   const queryClient = useQueryClient();
   const today = useMemo(() => new Date(), []);
   const [activeMonth, setActiveMonth] = useState(() => startOfMonth(today));
-  const [selectedDate, setSelectedDate] = useState(() => today);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [slideDirection, setSlideDirection] = useState(0);
 
   const year = activeMonth.getFullYear();
@@ -47,6 +69,11 @@ export function CalendarPage() {
   const absencesQuery = useQuery({
     queryKey: queryKeys.absences.range({ year, month }),
     queryFn: () => listAbsencesInRange({ year, month })
+  });
+
+  const activityRangeQuery = useQuery({
+    queryKey: queryKeys.calendar.activityRange(),
+    queryFn: getCalendarActivityRange
   });
 
   useEffect(() => {
@@ -101,8 +128,10 @@ export function CalendarPage() {
 
   const isLoading = workEntriesQuery.isLoading || absencesQuery.isLoading;
   const error = workEntriesQuery.error ?? absencesQuery.error;
-  const entries = workEntriesQuery.data ?? [];
-  const absences = absencesQuery.data ?? [];
+  const entries = workEntriesQuery.data ?? EMPTY_WORK_ENTRIES;
+  const absences = absencesQuery.data ?? EMPTY_ABSENCES;
+  const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
+  const todayIso = toIsoDate(today);
 
   const monthGrid = useMemo(() => buildMonthGrid(activeMonth), [activeMonth]);
 
@@ -128,18 +157,18 @@ export function CalendarPage() {
   }, [absences, monthGrid]);
 
   useEffect(() => {
-    if (!isSameMonth(selectedDate, activeMonth)) {
-      setSelectedDate(startOfMonth(activeMonth));
+    if (selectedDate !== null && !isSameMonth(selectedDate, activeMonth)) {
+      setSelectedDate(null);
     }
   }, [activeMonth, selectedDate]);
 
   const selectedEntries = useMemo(
-    () => entriesByDate.get(toIsoDate(selectedDate)) ?? [],
+    () => (selectedDate ? [...(entriesByDate.get(toIsoDate(selectedDate)) ?? [])].sort(compareEntriesByStartTime) : []),
     [entriesByDate, selectedDate]
   );
 
   const selectedAbsence = useMemo(
-    () => absenceByDate.get(toIsoDate(selectedDate)) ?? null,
+    () => (selectedDate ? absenceByDate.get(toIsoDate(selectedDate)) ?? null : null),
     [absenceByDate, selectedDate]
   );
 
@@ -156,12 +185,13 @@ export function CalendarPage() {
       (total, absence) => total + countMonthOverlapDays(absence, activeMonth),
       0
     );
+    const workedDays = new Set(entries.map((entry) => entry.workDate)).size;
     const currency = entries[0]?.currencySnapshot ?? "EUR";
 
     return {
       workedHours: formatMinutesAsDuration(workedMinutes),
       grossAmount: formatCurrency(String(grossAmount), currency),
-      entriesCount: entries.length,
+      workedDays,
       absenceDays
     };
   }, [absences, activeMonth, entries]);
@@ -170,15 +200,7 @@ export function CalendarPage() {
     const nextMonth = direction === -1 ? getPreviousMonthDate(activeMonth) : getNextMonthDate(activeMonth);
     setSlideDirection(direction);
     setActiveMonth(nextMonth);
-    setSelectedDate((current) => {
-      const desiredDay = current.getDate();
-      const candidate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), desiredDay);
-      if (candidate.getMonth() !== nextMonth.getMonth()) {
-        return startOfMonth(nextMonth);
-      }
-      candidate.setHours(12, 0, 0, 0);
-      return candidate;
-    });
+    setSelectedDate(null);
   }
 
   if (isLoading) {
@@ -199,6 +221,12 @@ export function CalendarPage() {
 
   return (
     <div className="mx-auto max-w-[860px] space-y-5 pb-28">
+      <header>
+        <h1 className="text-[2rem] font-semibold tracking-[-0.07em] text-white">
+          {t("title")}
+        </h1>
+      </header>
+
       <section className="space-y-2">
         <div className="hidden items-center justify-end gap-2 md:flex">
           <Button
@@ -228,10 +256,17 @@ export function CalendarPage() {
           today={today}
           getDayMeta={(isoDate) => ({
             entriesCount: entriesByDate.get(isoDate)?.length ?? 0,
-            hasAbsence: absenceByDate.has(isoDate)
+            marker: resolveCalendarMarker(
+              isoDate,
+              entriesByDate.get(isoDate)?.length ?? 0,
+              absenceByDate.get(isoDate)?.absenceType ?? null,
+              firstActivityDate,
+              todayIso
+            )
           })}
           onSelect={(date) => {
             setSelectedDate(date);
+            outletContext?.setSelectedDate?.(date);
             if (!isSameMonth(date, activeMonth)) {
               setActiveMonth(startOfMonth(date));
             }
@@ -243,19 +278,37 @@ export function CalendarPage() {
 
       <CalendarMonthSummary {...summary} />
 
-      <CalendarSelectedDayPanel
-        title={formatSelectedDate(selectedDate)}
-        entries={selectedEntries}
-        absence={selectedAbsence}
-        onAddEntry={() =>
-          navigate(`/entries/new?date=${toIsoDate(selectedDate)}`, {
-            state: { returnTo: "/calendar" }
-          })
-        }
-        onEntrySelect={(entryId) =>
-          navigate(`/entries/${entryId}`, { state: { returnTo: "/calendar" } })
-        }
-      />
+      {selectedDate ? (
+        <div className="pt-5">
+          <CalendarSelectedDayPanel
+            title={formatSelectedDate(selectedDate)}
+            entries={selectedEntries}
+            absence={selectedAbsence}
+            onEntrySelect={(entryId) =>
+              navigate(`/entries/${entryId}`, { state: { returnTo: "/calendar" } })
+            }
+          />
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function resolveCalendarMarker(
+  isoDate: string,
+  entriesCount: number,
+  absenceType: AbsenceType | null,
+  firstActivityDate: string | null,
+  todayIso: string
+) {
+  if (!firstActivityDate || isoDate < firstActivityDate || isoDate > todayIso) {
+    return null;
+  }
+  if (absenceType) {
+    return absenceType;
+  }
+  if (entriesCount > 0) {
+    return null;
+  }
+  return "AUTO_DAY_OFF" as const;
 }

@@ -8,5 +8,6 @@ public record UnitEntryItemResponse(
     UUID unitTypeId,
     String unitName,
     BigDecimal quantity,
+    Integer displayOrder,
     BigDecimal unitsPerHourSnapshot,
     BigDecimal calculatedMinutes) {}

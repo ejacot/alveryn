@@ -1,7 +1,7 @@
 import type { FieldArrayWithId, UseFormRegister } from "react-hook-form";
+import { Clock3 } from "lucide-react";
 import type { UnitType } from "../../types/configuration";
 import type { WorkEntryFormInput } from "../../features/work-entries/work-entry-schemas";
-import { Input } from "../ui/input";
 
 type Props = {
   fields: FieldArrayWithId<WorkEntryFormInput, "unitItems", "id">[];
@@ -9,7 +9,6 @@ type Props = {
   register: UseFormRegister<WorkEntryFormInput>;
   unitFallbackLabel: string;
   quantityLabel: string;
-  perHourLabel: string;
   errors?: Array<{ unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined>;
 };
 
@@ -19,7 +18,6 @@ export function UnitItemRows({
   register,
   unitFallbackLabel,
   quantityLabel,
-  perHourLabel,
   errors = []
 }: Props) {
   return (
@@ -27,35 +25,58 @@ export function UnitItemRows({
       {fields.map((field, index) => {
         const unitType = unitTypes[index];
         const unitName = unitType?.name ?? unitFallbackLabel;
+        const quantityRegistration = register(`unitItems.${index}.quantity`, {
+          setValueAs: (value) => (value === "" ? 0 : Number(value))
+        });
 
         return (
           <div
             key={field.id}
-            className="surface-muted p-4"
+            className="dashboard-glass-card mx-auto w-[80%] min-w-[15.5rem] max-w-full px-5 py-4"
           >
-            <div className="grid gap-3 sm:grid-cols-[1fr,140px] sm:items-end">
-              <div>
+            <div className="grid grid-cols-[minmax(0,1fr),5.25rem] items-center gap-4">
+              <div className="min-w-0">
                 <input type="hidden" {...register(`unitItems.${index}.unitTypeId`)} />
-                <p className="text-base font-semibold tracking-[-0.03em] text-white">
+                <p className="truncate text-base font-semibold tracking-[-0.03em] text-white">
                   {unitName}
                 </p>
-                <p className="mt-1 text-sm text-white/46">
-                  {perHourLabel.replace("{{value}}", unitType?.unitsPerHour ?? "")}
+                <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-white/42">
+                  <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
+                  <span>{unitType?.unitsPerHour ?? ""}</span>
                 </p>
                 {errors[index]?.unitTypeId?.message ? (
                   <p className="mt-2 text-sm text-red-300">{errors[index]?.unitTypeId?.message}</p>
                 ) : null}
               </div>
-              <Input
-                label={`${unitName} ${quantityLabel}`}
-                type="number"
-                min={0}
-                step="0.1"
-                error={errors[index]?.quantity?.message}
-                {...register(`unitItems.${index}.quantity`, {
-                  setValueAs: (value) => (value === "" ? 0 : Number(value))
-                })}
-              />
+              <label className="block">
+                <span className="sr-only">{`${unitName} ${quantityLabel}`}</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  inputMode="decimal"
+                  className="h-12 w-full rounded-2xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold text-white outline-none transition placeholder:text-white/40 focus:border-white/[0.28] focus:bg-white/[0.09] focus:ring-2 focus:ring-white/24"
+                  onFocus={(event) => {
+                    if (event.currentTarget.value === "0") {
+                      event.currentTarget.value = "";
+                    }
+                  }}
+                  onBlur={(event) => {
+                    if (event.currentTarget.value === "") {
+                      event.currentTarget.value = "0";
+                    }
+                    void quantityRegistration.onBlur(event);
+                  }}
+                  name={quantityRegistration.name}
+                  ref={quantityRegistration.ref}
+                  onChange={quantityRegistration.onChange}
+                />
+                {errors[index]?.quantity?.message ? (
+                  <span className="text-xs text-red-300">
+                    {errors[index]?.quantity?.message}
+                  </span>
+                ) : null}
+              </label>
             </div>
           </div>
         );

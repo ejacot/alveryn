@@ -1,21 +1,32 @@
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
-import type { DashboardSummaryMetrics, RecentEntry, SelectedDayOverview } from "../types/dashboard";
+import type {
+  DashboardSummaryMetrics,
+  SelectedDayOverview,
+  WeeklyRhythmDay
+} from "../types/dashboard";
 
 const previewWeeklyBars = [42, 58, 36, 70, 55, 18, 12];
+const previewWeeklyLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const previewWeeklyStates: WeeklyRhythmDay["status"][] = ["under", "under", "met", "over", "under", "idle", "idle"];
+const previewWeeklyMarkers = ["-4", "-2", null, "+1", "-1", null, null];
 
 export function PreviewDashboardPage() {
   const { t } = useTranslation("dashboard");
   const [searchParams] = useSearchParams();
   const state = searchParams.get("state");
-  const previewWeeklyBarsState = useMemo(
-    () => (state === "compact" ? [...previewWeeklyBars, 60, 44, 22] : previewWeeklyBars),
-    [state]
-  );
+  const previewWeeklyDays: WeeklyRhythmDay[] = previewWeeklyBars.map((percentage, index) => ({
+    key: `preview-${index}`,
+    label: previewWeeklyLabels[index] ?? String(index + 1),
+    value: index === 2 ? "6h 30m" : "4h 00m",
+    markerLabel: previewWeeklyMarkers[index] ?? null,
+    status: previewWeeklyStates[index] ?? "idle",
+    percentage,
+    selected: index === 2
+  }));
 
   if (state === "loading") {
     return <DashboardSkeleton />;
@@ -55,29 +66,6 @@ export function PreviewDashboardPage() {
     }
   };
 
-  const previewEntries: RecentEntry[] = [
-    {
-      id: "1",
-      title: t("preview.entries.morningRooms.title"),
-      subtitle: t("preview.entries.morningRooms.subtitle"),
-      duration: "6.5h",
-      amount: "6.5h"
-    },
-    {
-      id: "2",
-      title: t("preview.entries.lateShift.title"),
-      subtitle: t("preview.entries.lateShift.subtitle"),
-      duration: "4.0h",
-      amount: "4.0h"
-    },
-    {
-      id: "3",
-      title: t("preview.entries.weekendPrep.title"),
-      subtitle: t("preview.entries.weekendPrep.subtitle"),
-      duration: "3.5h",
-      amount: "3.5h"
-    }
-  ];
   const previewSelectedDay: SelectedDayOverview = {
     label: t("selectedDay.today"),
     entriesCount: 1,
@@ -99,11 +87,10 @@ export function PreviewDashboardPage() {
   return (
     <DashboardOverview
       summary={previewSummary}
-      recentEntries={previewEntries}
       selectedDay={previewSelectedDay}
-      weeklyBars={previewWeeklyBarsState}
-      weeklyDescription={t("preview.weeklyDescription")}
+      weeklyDays={previewWeeklyDays}
       onQuickAdd={() => undefined}
+      onCreateAbsence={() => undefined}
       preview
     />
   );

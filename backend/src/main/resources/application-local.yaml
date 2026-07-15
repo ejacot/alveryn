@@ -18,6 +18,9 @@ springdoc:
     enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
 
 alveryn:
+  local-dev:
+    seed-account: ${ALVERYN_LOCAL_DEV_SEED_ACCOUNT:true}
+    reset-account: ${ALVERYN_LOCAL_DEV_RESET_ACCOUNT:false}
   cors:
     allowed-origins:
       - http://localhost:5173

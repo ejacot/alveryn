@@ -9,7 +9,9 @@
     "noWorkTypesTitle": "No active work types yet",
     "noWorkTypesDescription": "Finish onboarding or add a work type before creating entries.",
     "newEntry": "New entry",
-    "eyebrow": "Work Entry",
+    "eyebrow": "Date",
+    "newActivity": "New activity",
+    "editActivity": "Edit activity",
     "editTitle": "Edit this entry.",
     "createTitle": "Capture work in one motion.",
     "description": "Fast, calm, and adapted to the work type you choose.",
@@ -17,6 +19,7 @@
     "step2": "Step 2",
     "chooseDate": "Choose date",
     "chooseWorkType": "Choose work type",
+    "workTypeQuestion": "Activity",
     "shiftDetails": "Shift details",
     "overnightHint": "Overnight shifts are supported automatically.",
     "countUnits": "Count units",
@@ -31,11 +34,11 @@
   },
   "fields": {
     "workDate": "Work date",
-    "startTime": "Start time",
-    "endTime": "End time",
+    "startTime": "Start",
+    "endTime": "End",
     "breakMinutes": "Break (minutes)",
-    "notes": "Notes (optional)",
-    "notesPlaceholder": "Anything useful about the shift, route or context."
+    "notes": "Notes",
+    "notesPlaceholder": "Optional"
   },
   "delete": {
     "title": "Delete this entry?",
@@ -68,8 +71,8 @@
     "workType": "Work type"
   },
   "workTypePicker": {
-    "timeBased": "Time based",
-    "unitBased": "Unit based",
+    "timeBased": "Time",
+    "unitBased": "Units",
     "inactive": "Inactive",
     "optionLabel": "{{name}}, {{method}}"
   }

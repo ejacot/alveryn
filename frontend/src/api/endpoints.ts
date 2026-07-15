@@ -157,6 +157,17 @@ export async function getCurrentUser() {
   return response.data.data;
 }
 
+export type CalendarActivityRange = {
+  firstActivityDate: string | null;
+};
+
+export async function getCalendarActivityRange() {
+  const response = await http.get<ApiResponse<CalendarActivityRange>>(
+    "/api/calendar/activity-range"
+  );
+  return response.data.data;
+}
+
 export async function getProfile() {
   const response = await http.get<ApiResponse<UserProfile>>("/api/profile");
   return response.data.data;
@@ -441,6 +452,18 @@ export async function getAbsences(
   const response = await http.get<ApiResponse<PageResponse<Absence>>>("/api/absences", {
     params
   });
+  return response.data.data;
+}
+
+export type CreateAbsencePayload = {
+  absenceType: AbsenceType;
+  startDate: string;
+  endDate: string;
+  notes?: string | null;
+};
+
+export async function createAbsence(payload: CreateAbsencePayload) {
+  const response = await http.post<ApiResponse<Absence>>("/api/absences", payload);
   return response.data.data;
 }
 

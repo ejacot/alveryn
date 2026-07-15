@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DashboardPage } from "./dashboard-page";
 
@@ -21,13 +21,15 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
-  listRecentWorkEntries: vi.fn(),
+  createAbsence: vi.fn(),
+  getAbsences: vi.fn(),
   listWorkEntriesForDay: vi.fn(),
   listWorkEntriesInRange: vi.fn()
 }));
 
 import {
-  listRecentWorkEntries,
+  createAbsence,
+  getAbsences,
   listWorkEntriesForDay,
   listWorkEntriesInRange
 } from "../api/endpoints";
@@ -99,34 +101,143 @@ function renderPage() {
 
 describe("DashboardPage", () => {
   beforeEach(() => {
+    routeState.selectedDate = new Date("2026-07-13T00:00:00");
     navigateMock.mockReset();
+    vi.mocked(createAbsence).mockResolvedValue({
+      id: "absence-1",
+      absenceType: "VACATION",
+      startDate: "2026-07-13",
+      endDate: "2026-07-13",
+      notes: null
+    });
+    vi.mocked(getAbsences).mockResolvedValue({
+      content: [],
+      page: 0,
+      size: 1,
+      totalElements: 0,
+      totalPages: 0,
+      first: true,
+      last: true,
+      hasNext: false,
+      hasPrevious: false,
+      numberOfElements: 0
+    });
     vi.mocked(listWorkEntriesForDay).mockResolvedValue([timeEntry]);
-    vi.mocked(listRecentWorkEntries).mockResolvedValue([unitEntry, timeEntry]);
     vi.mocked(listWorkEntriesInRange).mockResolvedValue([timeEntry, unitEntry]);
   });
 
-  it("renders real recent entries and supports quick navigation", async () => {
+  it("renders the selected day without recent entries and opens existing activity", async () => {
     renderPage();
     const user = userEvent.setup();
 
-    expect(await screen.findAllByText("Regular Shift")).toHaveLength(3);
-    expect(screen.getByText("Orders")).toBeInTheDocument();
-    expect(screen.getAllByText("08:00 – 16:00")).toHaveLength(2);
-    expect(screen.getAllByText("Monday, July 13")).toHaveLength(2);
+    expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
+    expect(screen.queryByText("Orders")).not.toBeInTheDocument();
+    expect(screen.getByText("08:00 – 16:00")).toBeInTheDocument();
+    expect(screen.getAllByText("Monday, July 13")).toHaveLength(1);
+    expect(screen.queryByText("Recent entries")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(listWorkEntriesForDay).toHaveBeenCalledWith("2026-07-13");
-      expect(listRecentWorkEntries).toHaveBeenCalledWith(5);
       expect(listWorkEntriesInRange).toHaveBeenCalledWith({
         year: 2026,
         month: 7
       });
     });
 
-    await user.click(screen.getByRole("button", { name: /^add entry$/i }));
-    expect(navigateMock).toHaveBeenCalledWith("/entries/new?date=2026-07-13");
+    expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^regular shift/i }));
     expect(navigateMock).toHaveBeenCalledWith("/entries/entry-1");
+  });
+
+  it("creates an absence for an empty selected day", async () => {
+    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("button", { name: "Absence" });
+    await user.click(screen.getByRole("button", { name: "Absence" }));
+    await user.click(screen.getByRole("button", { name: "Vacation" }));
+
+    expect(createAbsence).toHaveBeenCalledWith({
+      absenceType: "VACATION",
+      startDate: "2026-07-13",
+      endDate: "2026-07-13",
+      notes: null
+    });
+  });
+
+  it("renders existing absence as selected-day activity", async () => {
+    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
+    vi.mocked(getAbsences).mockResolvedValue({
+      content: [
+        {
+          id: "absence-1",
+          absenceType: "SICK_LEAVE",
+          startDate: "2026-07-13",
+          endDate: "2026-07-13",
+          notes: null
+        }
+      ],
+      page: 0,
+      size: 1,
+      totalElements: 1,
+      totalPages: 1,
+      first: true,
+      last: true,
+      hasNext: false,
+      hasPrevious: false,
+      numberOfElements: 1
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Sick")).toBeInTheDocument();
+    expect(screen.getByText("Day off")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
+  });
+
+  it("renders unit-based activity as compact initial and quantity badges", async () => {
+    routeState.selectedDate = new Date("2026-07-12T00:00:00");
+    vi.mocked(listWorkEntriesForDay).mockResolvedValue([
+      {
+        ...unitEntry,
+        unitItems: [
+          {
+            id: "unit-entry-normal",
+            unitTypeId: "unit-normal",
+            unitName: "Normal",
+            quantity: "10",
+            unitsPerHourSnapshot: "2.4",
+            calculatedMinutes: "250"
+          },
+          {
+            id: "unit-entry-junior",
+            unitTypeId: "unit-junior",
+            unitName: "Junior",
+            quantity: "2",
+            unitsPerHourSnapshot: "1.8",
+            calculatedMinutes: "67"
+          },
+          {
+            id: "unit-entry-president",
+            unitTypeId: "unit-president",
+            unitName: "President",
+            quantity: "2",
+            unitsPerHourSnapshot: "1.2",
+            calculatedMinutes: "100"
+          }
+        ]
+      }
+    ]);
+
+    renderPage();
+
+    const activityCard = await screen.findByRole("button", { name: /orders/i });
+    expect(screen.getByLabelText("Normal 10")).toHaveTextContent("N10");
+    expect(screen.getByLabelText("Junior 2")).toHaveTextContent("J2");
+    expect(screen.getByLabelText("President 2")).toHaveTextContent("P2");
+    expect(within(activityCard).getByText(/equivalent/i)).toBeInTheDocument();
+    expect(within(activityCard).getByText(/2h 00m/i)).toBeInTheDocument();
   });
 });

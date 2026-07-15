@@ -20,6 +20,7 @@
     "fields": {
       "name": "Nume",
       "calculationMethod": "Metoda de calcul",
+      "color": "Culoare",
       "status": "Status"
     },
     "validation": {
@@ -34,6 +35,7 @@
     "addFirst": "Adaugă prima unitate",
     "addTitle": "Adaugă unitate",
     "editTitle": "Editează unitatea",
+    "editUnit": "Editează {{name}}",
     "created": "Unitate creată.",
     "updated": "Unitate actualizată.",
     "unavailableTitle": "Unitatea nu este disponibilă",
@@ -44,6 +46,8 @@
     "unitsPerHourPlaceholder": "Exemplu: 2,4",
     "unitsPerHourHelper": "Introdu câte unități de acest tip finalizezi de obicei într-o oră.",
     "deactivate": "Dezactivează unitatea",
+    "moveUp": "Mută {{name}} mai sus",
+    "moveDown": "Mută {{name}} mai jos",
     "deactivateTitle": "Dezactivezi unitatea?",
     "deactivateDescription": "Snapshoturile istorice rămân neschimbate. Aceasta doar elimină unitatea din înregistrările viitoare.",
     "deactivateConfirm": "Dezactivează",

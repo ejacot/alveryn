@@ -26,22 +26,29 @@ public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
   private final UserAccountRepository users;
   private final UserProfileRepository profiles;
   private final UserPreferencesRepository preferences;
+  private final boolean seedAccount;
   private final boolean resetAccount;
 
   public LocalDevelopmentAccountSeeder(
       UserAccountRepository users,
       UserProfileRepository profiles,
       UserPreferencesRepository preferences,
+      @Value("${alveryn.local-dev.seed-account:true}") boolean seedAccount,
       @Value("${alveryn.local-dev.reset-account:false}") boolean resetAccount) {
     this.users = users;
     this.profiles = profiles;
     this.preferences = preferences;
+    this.seedAccount = seedAccount;
     this.resetAccount = resetAccount;
   }
 
   @Override
   @Transactional
   public void run(ApplicationArguments args) {
+    if (!seedAccount) {
+      return;
+    }
+
     UserAccount user =
         users
             .findByEmailIgnoreCase(EMAIL)

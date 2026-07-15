@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface WorkEntryRepository extends JpaRepository<WorkEntry, UUID> {
   @EntityGraph(attributePaths = "workType")
@@ -39,6 +40,9 @@ public interface WorkEntryRepository extends JpaRepository<WorkEntry, UUID> {
   boolean existsByUserIdAndWorkTypeId(UUID userId, UUID workTypeId);
 
   boolean existsByUserIdAndWorkDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
+  @Query("select min(entry.workDate) from WorkEntry entry where entry.user.id = :userId")
+  LocalDate findEarliestWorkDateByUserId(UUID userId);
 
   List<WorkEntry> findAllByUserIdAndImportSourceKeyIn(UUID userId, Collection<String> importSourceKeys);
 

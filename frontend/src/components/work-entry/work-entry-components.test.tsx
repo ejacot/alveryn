@@ -1,61 +1,11 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { WorkEntrySummaryCard } from "./work-entry-summary-card";
 import { WorkTypePicker } from "./work-type-picker";
 import { i18n } from "../../i18n";
 
 describe("work-entry components", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
-  });
-
-  it("renders time-based summary labels and values", () => {
-    render(
-      <WorkEntrySummaryCard
-        workTypeName="Regular Shift"
-        workDate="2026-07-13"
-        hourlyRate="20"
-        currency="EUR"
-        workedMinutes={480}
-        grossAmount={160}
-      />
-    );
-
-    expect(screen.getByText("Ready to save")).toBeInTheDocument();
-    expect(screen.getByText("Worked hours")).toBeInTheDocument();
-    expect(screen.getByText("Pay rate")).toBeInTheDocument();
-    expect(screen.getByText("Work type")).toBeInTheDocument();
-    expect(screen.getByText("Regular Shift")).toBeInTheDocument();
-  });
-
-  it("updates summary labels when the language changes", async () => {
-    const { rerender } = render(
-      <WorkEntrySummaryCard
-        workTypeName="Orders"
-        workDate="2026-07-13"
-        hourlyRate="20"
-        currency="EUR"
-        workedMinutes={120}
-        grossAmount={40}
-      />
-    );
-
-    await act(async () => {
-      await i18n.changeLanguage("ro");
-    });
-    rerender(
-      <WorkEntrySummaryCard
-        workTypeName="Orders"
-        workDate="2026-07-13"
-        hourlyRate="20"
-        currency="EUR"
-        workedMinutes={120}
-        grossAmount={40}
-      />
-    );
-
-    expect(screen.getByText("Rezumat")).toBeInTheDocument();
-    expect(screen.getByText("Tarif")).toBeInTheDocument();
   });
 
   it("renders translated work-type labels and accessible selected state", async () => {
@@ -92,10 +42,10 @@ describe("work-entry components", () => {
     );
 
     const activeButton = screen.getByRole("button", {
-      name: "Regular Shift, Time based"
+      name: "Regular Shift, Time"
     });
     const inactiveButton = screen.getByRole("button", {
-      name: "Orders, Unit based"
+      name: "Orders, Units"
     });
 
     expect(activeButton).toHaveAttribute("aria-pressed", "true");
@@ -147,6 +97,6 @@ describe("work-entry components", () => {
       />
     );
 
-    expect(screen.getByText("Zeitbasiert")).toBeInTheDocument();
+    expect(screen.getByText("Zeit")).toBeInTheDocument();
   });
 });

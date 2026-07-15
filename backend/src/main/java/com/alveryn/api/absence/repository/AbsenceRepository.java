@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpecificationExecutor<Absence> {
   List<Absence> findAllByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
@@ -20,6 +21,9 @@ public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpec
 
   boolean existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndIdNot(
       UUID userId, LocalDate rangeEnd, LocalDate rangeStart, UUID id);
+
+  @Query("select min(absence.startDate) from Absence absence where absence.user.id = :userId")
+  LocalDate findEarliestStartDateByUserId(UUID userId);
 
   List<Absence> findAllByUserIdAndImportSourceKeyIn(UUID userId, Collection<String> importSourceKeys);
 

@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm, type UseFormSetError } from "react-hook-form";
+import { useFieldArray, useForm, useWatch, type UseFormSetError } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CalendarDays, Check, Clock3, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -18,20 +18,15 @@ import {
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { UnitItemRows } from "../components/work-entry/unit-item-rows";
-import { WorkEntrySummaryCard } from "../components/work-entry/work-entry-summary-card";
 import { WorkTypePicker } from "../components/work-entry/work-type-picker";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
-import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { formatLocalIsoDate } from "../utils/date";
 import {
-  calculateGrossAmount,
   calculateTimeEntryMinutes,
-  calculateUnitEntryMinutes,
-  findApplicableHourlyRate,
   workTypeIsTimeBased,
   workTypeIsUnitBased
 } from "../features/work-entries/work-entry-calculations";
@@ -50,6 +45,8 @@ type RawUnitRow = {
   unitTypeId?: string;
   quantity?: unknown;
 };
+
+const DEFAULT_SHIFT_INTERVAL_MINUTES = 8 * 60 + 30;
 
 export function WorkEntryEditorPage() {
   const navigate = useNavigate();
@@ -70,10 +67,10 @@ export function WorkEntryEditorPage() {
   }, [outletContext?.selectedDate, prefilledDate]);
   const returnTo =
     (location.state as { returnTo?: string } | null)?.returnTo ?? "/";
-  const safeBack = useSafeBackNavigation({ fallback: returnTo });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successState, setSuccessState] = useState<"idle" | "saved" | "deleted">("idle");
   const hydratedUnitRowsForEntry = useRef<string | null>(null);
+  const endTimeEditedByUser = useRef(false);
   const workEntrySchema = useMemo(
     () => createWorkEntrySchema((key) => t(`entries:${key}`)),
     [t]
@@ -84,8 +81,8 @@ export function WorkEntryEditorPage() {
     defaultValues: {
       workDate: formatLocalIsoDate(selectedDate),
       workTypeId: "",
-      startTime: "09:00",
-      endTime: "17:00",
+      startTime: "08:00",
+      endTime: "16:30",
       unpaidBreakMinutes: 30,
       notes: "",
       unitItems: []
@@ -95,6 +92,7 @@ export function WorkEntryEditorPage() {
     control: form.control,
     name: "unitItems"
   });
+  const watchedStartTime = useWatch({ control: form.control, name: "startTime" });
 
   const workTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -134,6 +132,7 @@ export function WorkEntryEditorPage() {
       return;
     }
 
+    endTimeEditedByUser.current = true;
     form.reset({
       workDate: entryQuery.data.workDate,
       workTypeId: entryQuery.data.workTypeId,
@@ -152,12 +151,37 @@ export function WorkEntryEditorPage() {
   }, [entryQuery.data, form]);
 
   useEffect(() => {
+    if (isEditing || endTimeEditedByUser.current) {
+      return;
+    }
+
+    const nextEndTime = addMinutesToTime(watchedStartTime, DEFAULT_SHIFT_INTERVAL_MINUTES);
+    if (!nextEndTime) {
+      return;
+    }
+
+    if (form.getValues("endTime") === nextEndTime) {
+      return;
+    }
+
+    form.setValue("endTime", nextEndTime, {
+      shouldDirty: true,
+      shouldValidate: false
+    });
+  }, [form, isEditing, watchedStartTime]);
+
+  useEffect(() => {
     if (!selectedWorkType) {
       return;
     }
 
     if (workTypeIsTimeBased(selectedWorkType) && !isEditing) {
-      form.setValue("unpaidBreakMinutes", selectedWorkType.defaultBreakMinutes ?? 0);
+      form.setValue(
+        "unpaidBreakMinutes",
+        selectedWorkType.defaultBreakMinutes && selectedWorkType.defaultBreakMinutes > 0
+          ? selectedWorkType.defaultBreakMinutes
+          : 30
+      );
     }
 
     if (workTypeIsTimeBased(selectedWorkType)) {
@@ -230,45 +254,6 @@ export function WorkEntryEditorPage() {
     }, 520);
   }
 
-  const values = form.watch();
-  const applicableRate = useMemo(
-    () =>
-      findApplicableHourlyRate(hourlyRatesQuery.data ?? [], values.workDate) ??
-      hourlyRatesQuery.data?.[0] ??
-      null,
-    [hourlyRatesQuery.data, values.workDate]
-  );
-
-  const workedMinutes = useMemo(() => {
-    if (!selectedWorkType) {
-      return null;
-    }
-
-    if (workTypeIsTimeBased(selectedWorkType)) {
-      return (
-        calculateTimeEntryMinutes({
-          startTime: values.startTime ?? "",
-          endTime: values.endTime ?? "",
-          breakMinutes: values.unpaidBreakMinutes ?? 0
-        })?.workedMinutes ?? null
-      );
-    }
-
-    return calculateUnitEntryMinutes(toUnitCalculationRows(values.unitItems), activeUnitTypes);
-  }, [
-    activeUnitTypes,
-    selectedWorkType,
-    values.endTime,
-    values.startTime,
-    values.unitItems,
-    values.unpaidBreakMinutes
-  ]);
-
-  const grossAmount = useMemo(
-    () => calculateGrossAmount(workedMinutes ?? 0, applicableRate?.hourlyRate ?? 0),
-    [applicableRate?.hourlyRate, workedMinutes]
-  );
-
   const isLoading =
     workTypesQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
@@ -279,7 +264,7 @@ export function WorkEntryEditorPage() {
     hourlyRatesQuery.error ??
     entryQuery.error ??
     unitTypesQuery.error;
-  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+  const { dialog } = useUnsavedChangesGuard({
     isDirty:
       form.formState.isDirty &&
       successState === "idle" &&
@@ -325,12 +310,11 @@ export function WorkEntryEditorPage() {
     saveApiError && saveApiError.code !== "WORK_ENTRY_TIME_OVERLAP" ? saveApiError.message : null;
 
   return (
-    <div className="space-y-6 pb-6">
-      <header className="flex items-center justify-between">
-        <Button variant="ghost" className="px-0" onClick={() => confirmOrRun(safeBack)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t("common:actions.back")}
-        </Button>
+    <div className="min-w-0 max-w-full overflow-x-clip space-y-6 pb-6">
+      <header className="flex items-center justify-between gap-4">
+        <h1 className="text-[2rem] font-semibold tracking-[-0.07em] text-white">
+          {isEditing ? t("entries:editor.editActivity") : t("entries:editor.newActivity")}
+        </h1>
         {isEditing ? (
           <Button
             variant="ghost"
@@ -340,19 +324,11 @@ export function WorkEntryEditorPage() {
             <Trash2 className="mr-2 h-4 w-4" />
             {t("common:actions.delete")}
           </Button>
-        ) : (
-          <span className="text-sm text-white/46">{t("entries:editor.newEntry")}</span>
-        )}
+        ) : null}
       </header>
 
       <div className="space-y-3">
         <p className="hairline-text">{t("entries:editor.eyebrow")}</p>
-        <h1 className="text-[2.4rem] font-semibold tracking-[-0.08em] text-white">
-          {isEditing ? t("entries:editor.editTitle") : t("entries:editor.createTitle")}
-        </h1>
-        <p className="max-w-md text-sm leading-6 text-white/56">
-          {t("entries:editor.description")}
-        </p>
       </div>
 
       <AnimatePresence>
@@ -422,34 +398,26 @@ export function WorkEntryEditorPage() {
           }
         })}
       >
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04]">
-              <CalendarDays className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="hairline-text">{t("entries:editor.step1")}</p>
-              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.chooseDate")}</h2>
-            </div>
+        <section>
+          <div className="mx-auto w-full max-w-[15rem]">
+            <input
+              type="date"
+              aria-label={t("entries:fields.workDate")}
+              className="h-12 w-full appearance-none rounded-full border border-white/[0.12] bg-white/[0.06] px-4 text-center text-[0.95rem] font-semibold text-white outline-none transition focus:border-white/[0.28] focus:bg-white/[0.09] focus:ring-2 focus:ring-white/24"
+              {...form.register("workDate")}
+            />
+            {form.formState.errors.workDate?.message ? (
+              <p className="mt-2 text-center text-xs text-red-300">
+                {form.formState.errors.workDate.message}
+              </p>
+            ) : null}
           </div>
-          <Input
-            label={t("entries:fields.workDate")}
-            type="date"
-            error={form.formState.errors.workDate?.message}
-            {...form.register("workDate")}
-          />
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04]">
-              <Clock3 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="hairline-text">{t("entries:editor.step2")}</p>
-              <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.chooseWorkType")}</h2>
-            </div>
-          </div>
+        <section className="space-y-3">
+          <p className="hairline-text">
+            {t("entries:editor.workTypeQuestion")}
+          </p>
           <WorkTypePicker
             selectedId={selectedWorkTypeId}
             workTypes={workTypesQuery.data}
@@ -464,32 +432,54 @@ export function WorkEntryEditorPage() {
           <section className="space-y-4">
             <div>
               <p className="hairline-text">{t("entries:workTypePicker.timeBased")}</p>
-              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.shiftDetails")}</h2>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                label={t("entries:fields.startTime")}
-                type="time"
-                error={form.formState.errors.startTime?.message}
-                {...form.register("startTime")}
-              />
-              <Input
-                label={t("entries:fields.endTime")}
-                type="time"
-                error={form.formState.errors.endTime?.message}
-                {...form.register("endTime")}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-2">
+                <span className="block text-sm font-medium text-white/78">{t("entries:fields.startTime")}</span>
+                <input
+                  type="time"
+                  aria-label={t("entries:fields.startTime")}
+                  className="h-12 w-full appearance-none rounded-full border border-white/[0.12] bg-white/[0.06] px-3 text-center text-[0.95rem] font-semibold text-white outline-none transition focus:border-white/[0.28] focus:bg-white/[0.09] focus:ring-2 focus:ring-white/24"
+                  {...form.register("startTime")}
+                />
+                {form.formState.errors.startTime?.message ? (
+                  <p className="text-xs text-red-300">{form.formState.errors.startTime.message}</p>
+                ) : null}
+              </label>
+              <label className="space-y-2">
+                <span className="block text-sm font-medium text-white/78">{t("entries:fields.endTime")}</span>
+                <input
+                  type="time"
+                  aria-label={t("entries:fields.endTime")}
+                  className="h-12 w-full appearance-none rounded-full border border-white/[0.12] bg-white/[0.06] px-3 text-center text-[0.95rem] font-semibold text-white outline-none transition focus:border-white/[0.28] focus:bg-white/[0.09] focus:ring-2 focus:ring-white/24"
+                  onFocus={() => {
+                    endTimeEditedByUser.current = true;
+                  }}
+                  {...form.register("endTime")}
+                />
+                {form.formState.errors.endTime?.message ? (
+                  <p className="text-xs text-red-300">{form.formState.errors.endTime.message}</p>
+                ) : null}
+              </label>
             </div>
             <Input
               label={t("entries:fields.breakMinutes")}
               type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
               min={0}
               error={form.formState.errors.unpaidBreakMinutes?.message}
               {...form.register("unpaidBreakMinutes", { valueAsNumber: true })}
+              onFocus={(event) => {
+                if (event.currentTarget.value === "30") {
+                  event.currentTarget.value = "";
+                  form.setValue("unpaidBreakMinutes", Number.NaN, {
+                    shouldDirty: true,
+                    shouldValidate: false
+                  });
+                }
+              }}
             />
-            <p className="text-sm text-white/46">
-              {t("entries:editor.overnightHint")}
-            </p>
             {timeOverlapError ? (
               <p className="text-sm text-red-300">{timeOverlapError}</p>
             ) : null}
@@ -500,20 +490,15 @@ export function WorkEntryEditorPage() {
           <section className="space-y-4">
             <div>
               <p className="hairline-text">{t("entries:workTypePicker.unitBased")}</p>
-              <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{t("entries:editor.countUnits")}</h2>
             </div>
             {activeUnitTypes.length ? (
               <>
-                <p className="text-sm leading-6 text-white/52">
-                  {t("entries:editor.unitQuantityHint")}
-                </p>
                 <UnitItemRows
                   fields={unitItemFields}
                   unitTypes={activeUnitTypes}
                   register={form.register}
                   unitFallbackLabel={t("entries:unitRows.fallbackUnit")}
                   quantityLabel={t("entries:unitRows.quantity")}
-                  perHourLabel={t("entries:unitRows.perHour")}
                   errors={form.formState.errors.unitItems as Array<
                     { unitTypeId?: { message?: string }; quantity?: { message?: string } } | undefined
                   >}
@@ -545,20 +530,12 @@ export function WorkEntryEditorPage() {
         <section className="space-y-4">
           <Textarea
             label={t("entries:fields.notes")}
+            labelClassName="hairline-text"
             placeholder={t("entries:fields.notesPlaceholder")}
             error={form.formState.errors.notes?.message}
             {...form.register("notes")}
           />
         </section>
-
-        <WorkEntrySummaryCard
-          workTypeName={selectedWorkType?.name ?? t("entries:validation.chooseWorkType")}
-          workDate={values.workDate}
-          hourlyRate={applicableRate?.hourlyRate ?? "0"}
-          currency={applicableRate?.currency ?? "EUR"}
-          workedMinutes={workedMinutes}
-          grossAmount={grossAmount}
-        />
 
         {form.formState.errors.root?.message ? (
           <p className="text-sm text-red-300">{form.formState.errors.root.message}</p>
@@ -639,6 +616,25 @@ export function buildWorkEntryPayload(
 function emptyToNull(value?: string | null) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+function addMinutesToTime(value: string | undefined, minutesToAdd: number) {
+  const match = value?.match(/^(\d{2}):(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) {
+    return null;
+  }
+
+  const totalMinutes = (hours * 60 + minutes + minutesToAdd) % (24 * 60);
+  const nextHours = Math.floor(totalMinutes / 60);
+  const nextMinutes = totalMinutes % 60;
+
+  return `${String(nextHours).padStart(2, "0")}:${String(nextMinutes).padStart(2, "0")}`;
 }
 
 function buildUnitRows(

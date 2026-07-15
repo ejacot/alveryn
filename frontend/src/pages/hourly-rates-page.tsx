@@ -49,7 +49,7 @@ export function HourlyRatesPage() {
               key={rate.id}
               type="button"
               onClick={() => navigate(`/settings/hourly-rates/${rate.id}`)}
-              className="w-full rounded-[28px] border border-white/[0.05] bg-white/[0.035] px-5 py-5 text-left transition hover:bg-white/[0.045] focus:outline-none focus:ring-2 focus:ring-white/24"
+              className="dashboard-glass-card w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">

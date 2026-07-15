@@ -20,4 +20,17 @@ describe("BottomNav", () => {
     const nav = container.querySelector("nav");
     expect(nav).toHaveClass("ios-glass-nav");
   });
+
+  it("opens new activity with the selected date when provided", () => {
+    render(
+      <MemoryRouter>
+        <BottomNav addEntryDate="2026-07-19" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText("Add entry")).toHaveAttribute(
+      "href",
+      "/entries/new?date=2026-07-19"
+    );
+  });
 });
