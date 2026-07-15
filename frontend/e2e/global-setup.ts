@@ -1,7 +1,8 @@
 import type { FullConfig } from "@playwright/test";
 
 async function waitFor(url: string) {
-  const deadline = Date.now() + 30_000;
+  const timeoutMs = Number(process.env.ALVERYN_E2E_STARTUP_TIMEOUT_MS ?? 120_000);
+  const deadline = Date.now() + timeoutMs;
   let lastError: unknown;
 
   while (Date.now() < deadline) {
