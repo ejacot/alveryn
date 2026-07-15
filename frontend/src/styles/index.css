@@ -76,6 +76,20 @@ body::-webkit-scrollbar {
   background: rgba(255, 255, 255, 0.22);
 }
 
+@keyframes alveryn-loading {
+  0% {
+    transform: translateX(-2.5rem);
+  }
+
+  50% {
+    transform: translateX(5.25rem);
+  }
+
+  100% {
+    transform: translateX(9rem);
+  }
+}
+
 @layer components {
   .app-background {
     position: fixed;

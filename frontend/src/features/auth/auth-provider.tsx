@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser, login, logout, refreshSession, register } from "../../api/endpoints";
 import { queryKeys } from "../../api/query-keys";
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: Props) {
   const [isHydrating, setIsHydrating] = useState(() => hasStoredSession());
   const queryClient = useQueryClient();
 
-  async function refreshCurrentUser() {
+  const refreshCurrentUser = useCallback(async () => {
     const nextUser = await getCurrentUser();
     queryClient.setQueryData(queryKeys.currentUser(), nextUser);
     queryClient.setQueryData(queryKeys.profile(), nextUser.profile);
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: Props) {
     applyAppTheme(nextUser.preferences?.theme);
     setUser(nextUser);
     return nextUser;
-  }
+  }, [queryClient]);
 
   async function loginWithPassword(email: string, password: string) {
     const result = await login({ email, password });
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: Props) {
       unsubscribe();
       setAuthFailureHandler(null);
     };
-  }, [queryClient]);
+  }, [queryClient, refreshCurrentUser]);
 
   return (
     <AuthContext.Provider

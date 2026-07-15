@@ -7,6 +7,7 @@ import { OnboardingLayout } from "../layouts/onboarding-layout";
 import { RouteFallback } from "../components/ui/route-fallback";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
+import { RouteErrorPage } from "../components/ui/route-error-page";
 
 const WorkEntryEditorPage = lazy(() =>
   import("../pages/work-entry-editor-page").then((module) => ({
@@ -142,10 +143,12 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
   const routes: RouteObject[] = [
     {
       element: <AuthLayout />,
+      errorElement: <RouteErrorPage />,
       children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]
     },
     {
       element: <GuestRoute />,
+      errorElement: <RouteErrorPage />,
       children: [
         {
           element: <AuthLayout />,
@@ -164,6 +167,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
     },
     {
       element: <ProtectedRoute />,
+      errorElement: <RouteErrorPage />,
       children: [
         {
           element: <AppLayout />,
@@ -209,9 +213,20 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
     routes.splice(1, 0, {
       path: "/preview/dashboard",
       element: <AppLayout />,
+      errorElement: <RouteErrorPage />,
       children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
     });
   }
+
+  routes.push({
+    path: "*",
+    element: (
+      <RouteErrorPage
+        title="Page not found"
+        description="This screen is not available or the link has changed."
+      />
+    )
+  });
 
   return routes;
 }

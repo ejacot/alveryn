@@ -13,18 +13,31 @@ vi.mock("framer-motion", () => {
   const createMockMotion = (tag: keyof HTMLElementTagNameMap) =>
     React.forwardRef<HTMLElement, Record<string, unknown>>(({ children, ...props }, ref) => {
       const {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         animate,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         custom,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         drag,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         dragConstraints,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         dragDirectionLock,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         dragElastic,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         exit,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         initial,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onDragEnd,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         transition,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         variants,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         whileHover,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         whileTap,
         ...domProps
       } = props;
@@ -174,12 +187,14 @@ describe("resolveMonthSwipeDirection", () => {
 describe("CalendarPage", () => {
   beforeEach(() => {
     class MockDate extends RealDate {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       constructor(...args: any[]) {
         if (args.length === 0) {
           super("2026-07-15T10:00:00Z");
           return;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         super(...(args as [any]));
       }
 

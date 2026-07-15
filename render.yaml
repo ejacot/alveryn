@@ -2,7 +2,7 @@ services:
   - type: web
     name: alveryn-web
     runtime: static
-    branch: develop
+    branch: main
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
@@ -40,7 +40,7 @@ services:
   - type: web
     name: alveryn-api
     runtime: docker
-    branch: develop
+    branch: main
     region: frankfurt
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend

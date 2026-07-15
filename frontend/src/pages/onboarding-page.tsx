@@ -20,7 +20,6 @@ import { Select } from "../components/ui/select";
 import { ScreenMessage } from "../components/ui/screen-message";
 import {
   clearStoredOnboardingStep,
-  getStoredOnboardingStep,
   storeOnboardingStep
 } from "../features/onboarding/onboarding-storage";
 import {
@@ -144,10 +143,8 @@ export function OnboardingPage() {
       return;
     }
 
-    const storedStep = getStoredOnboardingStep(userId);
     setCurrentStep(
       deriveCurrentStep({
-        storedStep,
         profileComplete,
         hourlyRateComplete
       })
@@ -422,11 +419,9 @@ function FormLevelError({ error }: { error: unknown }) {
 }
 
 export function deriveCurrentStep({
-  storedStep,
   profileComplete,
   hourlyRateComplete
 }: {
-  storedStep: number | null;
   profileComplete: boolean;
   hourlyRateComplete: boolean;
 }) {
