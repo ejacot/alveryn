@@ -12,6 +12,7 @@ import { queryKeys } from "../api/query-keys";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsSection } from "../components/settings/settings-section";
+import { APP_HOME_PATH } from "../routes/app-paths";
 import type { ExcelImportConfirmResult, ExcelImportPreview } from "../types/imports";
 
 export function SettingsImportPage() {
@@ -259,7 +260,7 @@ export function SettingsImportPage() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate("/")}
+                onClick={() => navigate(APP_HOME_PATH)}
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] px-5 py-3 text-sm font-semibold text-white"
               >
                 {t("settings:import.goDashboard")}

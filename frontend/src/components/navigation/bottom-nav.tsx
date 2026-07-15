@@ -9,6 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { useScrollDirection } from "../../hooks/use-scroll-direction";
+import { APP_HOME_PATH } from "../../routes/app-paths";
 import { cn } from "../../utils/cn";
 
 type NavItem = {
@@ -28,7 +29,7 @@ export function BottomNav({ addEntryDate }: BottomNavProps) {
   const compact = direction === "down";
   const addEntryPath = addEntryDate ? `/entries/new?date=${addEntryDate}` : "/entries/new";
   const items: NavItem[] = [
-    { to: "/", icon: House, label: t("nav.home") },
+    { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
     { to: addEntryPath, icon: Plus, label: t("nav.addEntry"), prominent: true },
     { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },

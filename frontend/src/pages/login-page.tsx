@@ -12,6 +12,7 @@ import {
   type LoginValues
 } from "../features/auth/auth-schemas";
 import { useAuth } from "../features/auth/use-auth";
+import { APP_HOME_PATH } from "../routes/app-paths";
 
 export function LoginPage() {
   const { t } = useTranslation(["auth", "common"]);
@@ -37,7 +38,7 @@ export function LoginPage() {
       await loginWithPassword(values.email, values.password);
       const next = (location.state as { from?: { pathname?: string } } | null)
         ?.from?.pathname;
-      navigate(next ?? "/", { replace: true });
+      navigate(next ?? APP_HOME_PATH, { replace: true });
     } catch (error) {
       const apiError = getApiError(error);
       setServerError(apiError.message);

@@ -1,4 +1,5 @@
 import { buildRoutes } from "./router";
+import { APP_HOME_PATH } from "./app-paths";
 
 function hasRoutePath(path: string, routes: ReturnType<typeof buildRoutes>): boolean {
   return routes.some(
@@ -9,6 +10,13 @@ function hasRoutePath(path: string, routes: ReturnType<typeof buildRoutes>): boo
 }
 
 describe("preview routes", () => {
+  it("uses a public welcome page at the root and a protected app home", () => {
+    const routes = buildRoutes(false);
+
+    expect(hasRoutePath("/", routes)).toBe(true);
+    expect(hasRoutePath(APP_HOME_PATH, routes)).toBe(true);
+  });
+
   it("includes the onboarding route in protected navigation", () => {
     const routes = buildRoutes(false);
 

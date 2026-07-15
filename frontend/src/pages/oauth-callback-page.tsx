@@ -5,6 +5,7 @@ import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../features/auth/use-auth";
+import { APP_HOME_PATH } from "../routes/app-paths";
 
 export function OAuthCallbackPage() {
   const { t } = useTranslation("auth");
@@ -22,7 +23,7 @@ export function OAuthCallbackPage() {
       try {
         const user = await completeOAuthLogin();
         if (!active) return;
-        navigate(user.preferences?.onboardingCompleted ? "/" : "/onboarding", { replace: true });
+        navigate(user.preferences?.onboardingCompleted ? APP_HOME_PATH : "/onboarding", { replace: true });
       } catch (caught) {
         if (!active) return;
         const apiError = getApiError(caught);

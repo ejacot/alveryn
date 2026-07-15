@@ -27,6 +27,7 @@ import {
   profileStepSchema
 } from "../features/onboarding/onboarding-schemas";
 import { useAuth } from "../features/auth/use-auth";
+import { APP_HOME_PATH } from "../routes/app-paths";
 import { todayLocalIsoDate } from "../utils/date";
 
 const STEP_PROFILE = 1;
@@ -139,7 +140,7 @@ export function OnboardingPage() {
 
     if (onboardingStatusQuery.data?.onboardingCompleted) {
       clearStoredOnboardingStep(userId);
-      void refreshCurrentUser().then(() => navigate("/", { replace: true }));
+      void refreshCurrentUser().then(() => navigate(APP_HOME_PATH, { replace: true }));
       return;
     }
 
@@ -185,7 +186,7 @@ export function OnboardingPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
         refreshCurrentUser()
       ]);
-      navigate("/", { replace: true });
+      navigate(APP_HOME_PATH, { replace: true });
     }
   });
 

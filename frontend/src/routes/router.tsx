@@ -8,6 +8,7 @@ import { RouteFallback } from "../components/ui/route-fallback";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
 import { RouteErrorPage } from "../components/ui/route-error-page";
+import { APP_HOME_PATH } from "./app-paths";
 
 const WorkEntryEditorPage = lazy(() =>
   import("../pages/work-entry-editor-page").then((module) => ({
@@ -17,6 +18,11 @@ const WorkEntryEditorPage = lazy(() =>
 const HomePage = lazy(() =>
   import("../pages/home-page").then((module) => ({
     default: module.HomePage
+  }))
+);
+const WelcomePage = lazy(() =>
+  import("../pages/welcome-page").then((module) => ({
+    default: module.WelcomePage
   }))
 );
 const CalendarPage = lazy(() =>
@@ -142,6 +148,11 @@ function withSuspense(element: ReactNode) {
 export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): RouteObject[] {
   const routes: RouteObject[] = [
     {
+      path: "/",
+      element: withSuspense(<WelcomePage />),
+      errorElement: <RouteErrorPage />
+    },
+    {
       element: <AuthLayout />,
       errorElement: <RouteErrorPage />,
       children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]
@@ -172,7 +183,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
         {
           element: <AppLayout />,
           children: [
-            { path: "/", element: withSuspense(<HomePage />) },
+            { path: APP_HOME_PATH, element: withSuspense(<HomePage />) },
             { path: "/calendar", element: withSuspense(<CalendarPage />) },
             { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
             { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },

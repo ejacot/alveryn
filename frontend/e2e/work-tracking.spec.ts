@@ -174,7 +174,7 @@ test("settings subpage keeps bottom navigation and protects dirty forms", async 
   await page.goto("/settings/work-types/new");
   await expect(page.getByLabel("Primary navigation")).toBeVisible();
   await page.getByLabel("Home").click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/app$/);
 
   await page.goto("/settings/work-types/new");
   await page.getByLabel("Name").fill("Dirty type");

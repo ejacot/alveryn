@@ -98,7 +98,7 @@ export async function loginThroughUi(page: Page, user: E2eUser) {
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL("/");
+  await page.waitForURL("/app");
 }
 
 export async function createHourlyRate(accessToken: string) {

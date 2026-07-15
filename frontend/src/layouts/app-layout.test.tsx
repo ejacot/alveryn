@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { APP_HOME_PATH } from "../routes/app-paths";
 import { AppLayout } from "./app-layout";
 
 vi.mock("../api/endpoints", () => ({
@@ -40,7 +41,7 @@ describe("AppLayout", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={[APP_HOME_PATH]}>
         <QueryClientProvider client={queryClient}>
           <AppLayout />
         </QueryClientProvider>

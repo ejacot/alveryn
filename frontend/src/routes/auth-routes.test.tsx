@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AuthContext, type AuthContextValue } from "../features/auth/auth-context";
+import { APP_HOME_PATH } from "./app-paths";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
 
@@ -60,7 +61,7 @@ describe("auth routes", () => {
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<div>Login</div>} />
         </Route>
-        <Route path="/" element={<div>Dashboard</div>} />
+        <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
         <Route path="/onboarding" element={<div>Onboarding</div>} />
       </Routes>,
       {
@@ -90,11 +91,12 @@ describe("auth routes", () => {
     renderWithAuth(
       <Routes>
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<div>Dashboard</div>} />
+          <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
           <Route path="/onboarding" element={<div>Onboarding</div>} />
         </Route>
       </Routes>,
       {
+        route: APP_HOME_PATH,
         authValue: {
           ...baseAuthValue,
           isAuthenticated: true,
@@ -120,10 +122,11 @@ describe("auth routes", () => {
     renderWithAuth(
       <Routes>
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<div>Dashboard</div>} />
+          <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
         </Route>
       </Routes>,
       {
+        route: APP_HOME_PATH,
         authValue: {
           ...baseAuthValue,
           isAuthenticated: true,
