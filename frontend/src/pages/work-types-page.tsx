@@ -33,6 +33,8 @@ export function WorkTypesPage() {
   const [editColor, setEditColor] = useState<string>(DEFAULT_WORK_TYPE_COLOR);
   const [editDefaultBreakMinutes, setEditDefaultBreakMinutes] = useState(30);
   const [editCalculationMethod, setEditCalculationMethod] = useState<WorkType["calculationMethod"]>("TIME_BASED");
+  const [editCompensationMethod, setEditCompensationMethod] =
+    useState<NonNullable<WorkType["compensationMethod"]>>("HOURLY");
   const [editError, setEditError] = useState<string | null>(null);
   const workTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -41,9 +43,12 @@ export function WorkTypesPage() {
   const updateMutation = useMutation({
     mutationFn: (workType: WorkType) =>
       updateWorkType(workType.id, {
-		        name: editName.trim().toLocaleUpperCase(),
-		        calculationMethod: editCalculationMethod,
-		        color: editColor,
+			        name: editName.trim().toLocaleUpperCase(),
+			        calculationMethod: editCalculationMethod,
+			        ...(editCalculationMethod === "UNIT_BASED" && editCompensationMethod === "PER_UNIT"
+			          ? { compensationMethod: editCompensationMethod }
+			          : {}),
+			        color: editColor,
 		        icon: null,
 	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null,
         displayOrder: workType.displayOrder,
@@ -56,6 +61,7 @@ export function WorkTypesPage() {
 		      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
+      setEditCompensationMethod("HOURLY");
       setEditError(null);
       if (workType.calculationMethod === "UNIT_BASED") {
         navigate(`/settings/work-types/${workType.id}`);
@@ -68,9 +74,12 @@ export function WorkTypesPage() {
   const createMutation = useMutation({
     mutationFn: () =>
       createWorkType({
-		        name: editName.trim().toLocaleUpperCase(),
-		        calculationMethod: editCalculationMethod,
-		        color: editColor,
+			        name: editName.trim().toLocaleUpperCase(),
+			        calculationMethod: editCalculationMethod,
+			        ...(editCalculationMethod === "UNIT_BASED" && editCompensationMethod === "PER_UNIT"
+			          ? { compensationMethod: editCompensationMethod }
+			          : {}),
+			        color: editColor,
 		        icon: null,
 	        defaultBreakMinutes: editCalculationMethod === "TIME_BASED" ? editDefaultBreakMinutes : null
 	      }),
@@ -81,6 +90,7 @@ export function WorkTypesPage() {
 		      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
+      setEditCompensationMethod("HOURLY");
       setEditError(null);
       if (workType.calculationMethod === "UNIT_BASED") {
         navigate(`/settings/work-types/${workType.id}`);
@@ -99,6 +109,7 @@ export function WorkTypesPage() {
 	      setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	      setEditDefaultBreakMinutes(30);
       setEditCalculationMethod("TIME_BASED");
+      setEditCompensationMethod("HOURLY");
       setEditError(null);
     },
     onError: (error) => {
@@ -115,8 +126,9 @@ export function WorkTypesPage() {
     setEditError(null);
 	    setEditName(workType.name);
 	    setEditColor(workType.color);
-	    setEditDefaultBreakMinutes(workType.defaultBreakMinutes ?? 30);
+    setEditDefaultBreakMinutes(workType.defaultBreakMinutes ?? 30);
     setEditCalculationMethod(workType.calculationMethod);
+    setEditCompensationMethod(workType.compensationMethod ?? "HOURLY");
     setEditingWorkType(workType);
   }
 
@@ -126,6 +138,7 @@ export function WorkTypesPage() {
 	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	    setEditDefaultBreakMinutes(30);
     setEditCalculationMethod("TIME_BASED");
+    setEditCompensationMethod("HOURLY");
     setCreatingWorkType(true);
   }
 
@@ -137,6 +150,7 @@ export function WorkTypesPage() {
 	    setEditColor(DEFAULT_WORK_TYPE_COLOR);
 	    setEditDefaultBreakMinutes(30);
     setEditCalculationMethod("TIME_BASED");
+    setEditCompensationMethod("HOURLY");
     setEditError(null);
   }
 
@@ -191,6 +205,7 @@ export function WorkTypesPage() {
 	        color={editColor}
 	        defaultBreakMinutes={editDefaultBreakMinutes}
 	        calculationMethod={editCalculationMethod}
+	        compensationMethod={editCompensationMethod}
         error={editError}
         pending={createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
         onNameChange={(value) => {
@@ -199,7 +214,13 @@ export function WorkTypesPage() {
         }}
 	        onColorChange={setEditColor}
 	        onDefaultBreakMinutesChange={setEditDefaultBreakMinutes}
-        onCalculationMethodChange={setEditCalculationMethod}
+        onCalculationMethodChange={(value) => {
+          setEditCalculationMethod(value);
+          if (value === "TIME_BASED") {
+            setEditCompensationMethod("HOURLY");
+          }
+        }}
+        onCompensationMethodChange={setEditCompensationMethod}
         onClose={closeWorkTypeDialog}
         onSave={() => {
           if (!editName.trim()) {
@@ -274,12 +295,14 @@ function WorkTypeDialog({
   color,
   defaultBreakMinutes,
   calculationMethod,
+  compensationMethod,
   error,
   pending,
   onNameChange,
   onColorChange,
   onDefaultBreakMinutesChange,
   onCalculationMethodChange,
+  onCompensationMethodChange,
   onClose,
   onSave,
   onDeactivate,
@@ -293,12 +316,14 @@ function WorkTypeDialog({
   color: string;
   defaultBreakMinutes: number;
   calculationMethod: WorkType["calculationMethod"];
+  compensationMethod: NonNullable<WorkType["compensationMethod"]>;
   error: string | null;
   pending: boolean;
   onNameChange: (value: string) => void;
   onColorChange: (value: string) => void;
   onDefaultBreakMinutesChange: (value: number) => void;
   onCalculationMethodChange: (value: WorkType["calculationMethod"]) => void;
+  onCompensationMethodChange: (value: NonNullable<WorkType["compensationMethod"]>) => void;
   onClose: () => void;
   onSave: () => void;
   onDeactivate: () => void;
@@ -306,6 +331,8 @@ function WorkTypeDialog({
   cancelLabel: string;
   deactivateLabel: string;
 }) {
+  const { t } = useTranslation(["settings"]);
+
   if (mode === "edit" && !workType) {
     return null;
   }
@@ -385,6 +412,45 @@ function WorkTypeDialog({
               })}
             </div>
           </div>
+          {calculationMethod === "UNIT_BASED" ? (
+            <div className="space-y-2">
+              <p className="hairline-text">{t("workTypeEditor.fields.compensationMethod")}</p>
+              <div className="grid gap-3">
+                {[
+                  {
+                    value: "HOURLY" as const,
+                    label: t("workTypeEditor.compensation.hourly"),
+                    description: t("workTypeEditor.compensation.hourlyDescription")
+                  },
+                  {
+                    value: "PER_UNIT" as const,
+                    label: t("workTypeEditor.compensation.perUnit"),
+                    description: t("workTypeEditor.compensation.perUnitDescription")
+                  }
+                ].map((option) => {
+                  const selected = compensationMethod === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      disabled={pending}
+                      onClick={() => onCompensationMethodChange(option.value)}
+                      className={[
+                        "rounded-[22px] border px-4 py-3 text-left transition disabled:opacity-55",
+                        selected
+                          ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
+                          : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                      ].join(" ")}
+                    >
+                      <span className="block text-sm font-semibold">{option.label}</span>
+                      <span className="mt-1 block text-xs opacity-70">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 	          <div className="space-y-2">
 	            <p className="hairline-text">Color</p>
             <div className="grid grid-cols-6 gap-2">

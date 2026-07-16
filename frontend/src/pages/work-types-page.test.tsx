@@ -114,6 +114,30 @@ describe("WorkTypesPage", () => {
     });
   });
 
+  it("creates a unit work type with direct per-unit payment from settings", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Add work type" }));
+    const dialog = screen.getByRole("dialog", { name: "Add work type" });
+    await user.type(within(dialog).getByLabelText("Name"), "montaj pardoseala");
+    await user.click(within(dialog).getByRole("button", { name: "Units" }));
+    await user.click(within(dialog).getByRole("button", { name: /paid directly per unit/i }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(createWorkType).toHaveBeenCalledWith({
+        name: "MONTAJ PARDOSEALA",
+        calculationMethod: "UNIT_BASED",
+        compensationMethod: "PER_UNIT",
+        color: "#A3E635",
+        icon: null,
+        defaultBreakMinutes: null
+      });
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-new");
+    });
+  });
+
   it("edits a time-based work type in a centered dialog", async () => {
     renderPage();
     const user = userEvent.setup();
