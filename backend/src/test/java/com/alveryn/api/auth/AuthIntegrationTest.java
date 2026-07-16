@@ -524,6 +524,49 @@ class AuthIntegrationTest {
   }
 
   @Test
+  void resetPasswordConfirmsUnverifiedAccountAfterEmailCodeProof() throws Exception {
+    registerUser("unverified-reset@example.com", "super-secret");
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"unverified-reset@example.com\",\"password\":\"super-secret\"}"))
+        .andExpect(status().isUnauthorized());
+
+    mockMvc
+        .perform(
+            post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"unverified-reset@example.com\"}"))
+        .andExpect(status().isOk());
+
+    String resetCode = emailService.resetCodeFor("unverified-reset@example.com");
+    mockMvc
+        .perform(
+            post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"email":"unverified-reset@example.com","code":"%s","newPassword":"new-secret-pass"}
+                    """
+                        .formatted(resetCode)))
+        .andExpect(status().isOk());
+
+    var user = users.findByEmailIgnoreCase("unverified-reset@example.com").orElseThrow();
+    assertThat(user.isEmailVerified()).isTrue();
+    assertThat(user.getSecurityCodeHash()).isNull();
+    assertThat(user.getSecurityCodeExpiresAt()).isNull();
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"unverified-reset@example.com\",\"password\":\"new-secret-pass\"}"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
   void resetPasswordRejectsExpiredAndInvalidCodes() throws Exception {
     registerUser("expired-reset@example.com", "super-secret");
     verifyUser("expired-reset@example.com");

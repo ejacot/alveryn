@@ -61,6 +61,9 @@ public class PasswordResetService {
     token.markUsed(now);
     tokens.save(token);
     user.updatePasswordHash(newPasswordHash);
+    if (!user.isEmailVerified()) {
+      user.verifyEmail();
+    }
     user.resetFailedLoginAttempts();
     if (user.getStatus() == UserStatus.LOCKED) {
       user.unlock();
