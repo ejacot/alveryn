@@ -11,9 +11,7 @@ import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
-import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
-import com.alveryn.api.worktype.repository.UnitTypeRepository;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 class RepositoryDomainTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
-  @Autowired UnitTypeRepository unitTypes;
   @Autowired HourlyRatePeriodRepository rates;
   @Autowired AbsenceRepository absences;
 
@@ -43,15 +40,6 @@ class RepositoryDomainTest {
             () ->
                 workTypes.saveAndFlush(
                     new WorkType(first, "CHECKER", CalculationMethod.TIME_BASED)))
-        .isInstanceOf(DataIntegrityViolationException.class);
-  }
-
-  @Test
-  void unitTypeNameIsUniqueWithinWorkType() {
-    var user = users.save(new UserAccount("units-" + UUID.randomUUID() + "@example.com", "hash"));
-    var type = workTypes.save(new WorkType(user, "Rooms", CalculationMethod.UNIT_BASED));
-    unitTypes.saveAndFlush(new UnitType(type, "Normal", new BigDecimal("2.4")));
-    assertThatThrownBy(() -> unitTypes.saveAndFlush(new UnitType(type, "NORMAL", BigDecimal.ONE)))
         .isInstanceOf(DataIntegrityViolationException.class);
   }
 

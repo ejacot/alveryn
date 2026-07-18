@@ -31,6 +31,10 @@ export function useScrollDirection(threshold = 8) {
 
       frameRef.current = window.requestAnimationFrame(() => {
         frameRef.current = null;
+        if (document.documentElement.dataset.preserveScrollPosition === "true") {
+          lastValue.current = window.scrollY;
+          return;
+        }
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
         const next = getNextScrollNavState({
           currentState: stateRef.current,

@@ -634,6 +634,54 @@ class AuthIntegrationTest {
   }
 
   @Test
+  void authenticatedUserCanChangePasswordWithCurrentPassword() throws Exception {
+    registerUser("change-password@example.com", "old-secret-pass");
+    verifyUser("change-password@example.com");
+    String loginBody = mockMvc.perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"change-password@example.com\",\"password\":\"old-secret-pass\"}"))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString();
+    String accessToken = extractJsonValue(loginBody, "accessToken");
+
+    mockMvc.perform(
+            post("/api/auth/change-password")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"old-secret-pass\",\"newPassword\":\"new-secret-pass\"}"))
+        .andExpect(status().isOk());
+
+    mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"email\":\"change-password@example.com\",\"password\":\"old-secret-pass\"}"))
+        .andExpect(status().isUnauthorized());
+    mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"email\":\"change-password@example.com\",\"password\":\"new-secret-pass\"}"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void changePasswordRejectsWrongCurrentPasswordAndUnauthenticatedRequests() throws Exception {
+    registerUser("protected-password@example.com", "old-secret-pass");
+    verifyUser("protected-password@example.com");
+    String loginBody = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"email\":\"protected-password@example.com\",\"password\":\"old-secret-pass\"}"))
+        .andReturn().getResponse().getContentAsString();
+    String accessToken = extractJsonValue(loginBody, "accessToken");
+    String request = "{\"currentPassword\":\"wrong-password\",\"newPassword\":\"new-secret-pass\"}";
+
+    mockMvc.perform(post("/api/auth/change-password").contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isUnauthorized());
+    mockMvc.perform(post("/api/auth/change-password")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+            .contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isUnauthorized());
+
+    assertThat(passwordEncoder.matches("old-secret-pass",
+        users.findByEmailIgnoreCase("protected-password@example.com").orElseThrow().getPasswordHash())).isTrue();
+  }
+
+  @Test
   void meResponseOmitsSensitiveFieldsAndFlywayMigrationExists() throws Exception {
     registerUser("me@example.com", "super-secret");
     verifyUser("me@example.com");

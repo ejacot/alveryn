@@ -1,17 +1,30 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { queryKeys } from "../api/query-keys";
-import { getPreferences, getProfile, listHourlyRates, listWorkTypes } from "../api/endpoints";
+import { getPreferences, getProfile, listHourlyRates, listWorkTypes, updatePreferences } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
 import { todayLocalIsoDate } from "../utils/date";
 import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
+import { applyAppLanguage } from "../i18n";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { APP_HOME_PATH } from "../routes/app-paths";
+import type { UserPreferences } from "../types/configuration";
+import { getSupportedTimezones } from "../utils/timezones";
+import { applyAppTheme } from "../utils/theme";
 
 export function ProfilePage() {
   const { t } = useTranslation(["settings", "common"]);
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const safeBack = useSafeBackNavigation({ fallback: APP_HOME_PATH });
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
+  const supportedTimezones = useMemo(getSupportedTimezones, []);
   const profileQuery = useQuery({
     queryKey: queryKeys.profile(),
     queryFn: getProfile,
@@ -33,6 +46,38 @@ export function ProfilePage() {
 
   const profile = profileQuery.data ?? user?.profile ?? null;
   const preferences = preferencesQuery.data ?? user?.preferences ?? null;
+  const preferencesMutation = useMutation({
+    mutationFn: updatePreferences,
+    onSuccess: (nextPreferences) => {
+      queryClient.setQueryData(queryKeys.preferences(), nextPreferences);
+      applyAppLanguage(nextPreferences.language);
+      applyAppTheme(nextPreferences.theme);
+    }
+  });
+
+  const updatePreference = <Key extends keyof Pick<UserPreferences, "language" | "timezone" | "currency" | "firstDayOfWeek" | "timeFormat" | "dateFormat" | "theme">>(
+    key: Key,
+    value: UserPreferences[Key]
+  ) => {
+    if (!preferences || preferences[key] === value) {
+      return;
+    }
+
+    preferencesMutation.mutate({
+      language: preferences.language,
+      timezone: preferences.timezone,
+      currency: preferences.currency,
+      firstDayOfWeek: preferences.firstDayOfWeek,
+      dateFormat: preferences.dateFormat,
+      timeFormat: preferences.timeFormat,
+      theme: preferences.theme,
+      defaultBreakMinutes: preferences.defaultBreakMinutes,
+      preferredDailyMinutes: preferences.preferredDailyMinutes,
+      paidSickLeave: preferences.paidSickLeave,
+      paidVacation: preferences.paidVacation,
+      [key]: value
+    });
+  };
 
   const fullName = useMemo(() => {
     const composed = [profile?.firstName, profile?.lastName]
@@ -82,9 +127,66 @@ export function ProfilePage() {
     return `${activeCount}`;
   }, [workTypesQuery.data]);
 
+  useEffect(() => {
+    let frameId = 0;
+
+    const updateCompactTitle = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const titleRect = largeTitleRef.current?.getBoundingClientRect();
+        const buttonRect = backButtonRef.current?.getBoundingClientRect();
+
+        if (!titleRect || !buttonRect) {
+          setCompactTitleVisible(false);
+          return;
+        }
+
+        setCompactTitleVisible(titleRect.top <= buttonRect.top);
+      });
+    };
+
+    updateCompactTitle();
+    window.addEventListener("scroll", updateCompactTitle, { passive: true });
+    window.addEventListener("resize", updateCompactTitle);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateCompactTitle);
+      window.removeEventListener("resize", updateCompactTitle);
+    };
+  }, []);
+
   return (
-    <div className="space-y-8 pb-10">
-      <h1 className="text-[2rem] font-semibold tracking-[-0.07em] text-white">{t("settings:title")}</h1>
+    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+        <button
+          ref={backButtonRef}
+          type="button"
+          onClick={safeBack}
+          aria-label={t("common:actions.back")}
+          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+        >
+          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
+          <span>{t("common:actions.back")}</span>
+        </button>
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
+          }`}
+          aria-hidden="true"
+        >
+          {t("settings:title")}
+        </div>
+      </header>
+
+      <h1
+        ref={largeTitleRef}
+        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
+        }`}
+      >
+        {t("settings:title")}
+      </h1>
 
       <SettingsProfileCard
         initials={initials}
@@ -94,43 +196,99 @@ export function ProfilePage() {
       />
 
       <SettingsGroup title={t("settings:work")}>
+        <SettingsRow to="/settings/employment" label={t("settings:profileEditor.employment")} />
+        <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/hourly-rates" label={t("settings:hourlyRates")} value={hourlyRateValue} />
         <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/work-types" label={t("settings:workTypes")} value={workTypesValue} />
+        <SettingsRow to="/settings/work-types" label={t("settings:workSetup.title")} value={workTypesValue} />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/absences" label={t("settings:absenceSettings.title")} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:preferences")}>
-        <SettingsRow
-          to="/settings/preferences"
+        <InlinePreferenceRow
           label={t("settings:preferencesFields.language")}
-          value={formatLanguage(preferences?.language)}
+          value={preferences?.language ?? "en"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("language", value)}
+          options={["en", "de", "ro"].map((language) => ({ value: language, label: formatLanguage(language) }))}
         />
         <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
-          label={t("settings:preferencesFields.currency")}
-          value={preferences?.currency ?? "EUR"}
-        />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow
-          to="/settings/preferences"
+        <InlinePreferenceRow
           label={t("settings:preferencesFields.timezone")}
           value={preferences?.timezone ?? "Europe/Berlin"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("timezone", value)}
+          options={supportedTimezones.map((timezone) => ({ value: timezone, label: timezone }))}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <InlinePreferenceRow
+          label={t("settings:preferencesFields.currency")}
+          value={preferences?.currency ?? "EUR"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("currency", value)}
+          options={["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => ({ value: currency, label: currency }))}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <InlinePreferenceRow
+          label={t("settings:preferencesFields.firstDayOfWeek")}
+          value={preferences?.firstDayOfWeek ?? "MONDAY"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("firstDayOfWeek", value as UserPreferences["firstDayOfWeek"])}
+          options={[
+            { value: "MONDAY", label: t("settings:preferencesOptions.monday") },
+            { value: "SUNDAY", label: t("settings:preferencesOptions.sunday") }
+          ]}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <InlinePreferenceRow
+          label={t("settings:preferencesFields.timeFormat")}
+          value={preferences?.timeFormat ?? "H24"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("timeFormat", value as UserPreferences["timeFormat"])}
+          options={[
+            { value: "H24", label: t("settings:preferencesOptions.time24") },
+            { value: "H12", label: t("settings:preferencesOptions.time12") }
+          ]}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <InlinePreferenceRow
+          label={t("settings:preferencesFields.dateFormat")}
+          value={preferences?.dateFormat ?? "DD.MM.YYYY"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("dateFormat", value)}
+          options={[
+            { value: "DD.MM.YYYY", label: "31.12.2026" },
+            { value: "MM/DD/YYYY", label: "12/31/2026" },
+            { value: "YYYY-MM-DD", label: "2026-12-31" }
+          ]}
+        />
+        <div className="mx-6 h-px bg-white/[0.06]" />
+        <InlinePreferenceRow
+          label={t("settings:preferencesFields.theme")}
+          value={preferences?.theme ?? "SYSTEM"}
+          disabled={!preferences || preferencesMutation.isPending}
+          onChange={(value) => updatePreference("theme", value as UserPreferences["theme"])}
+          options={[
+            { value: "SYSTEM", label: t("settings:preferencesOptions.systemTheme") },
+            { value: "LIGHT", label: t("settings:preferencesOptions.lightTheme") },
+            { value: "DARK", label: t("settings:preferencesOptions.darkTheme") }
+          ]}
         />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:app")}>
-        <SettingsRow to="/settings/import" label={t("settings:import.title")} />
-        <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/about" label={t("settings:about")} />
         <div className="mx-6 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/help" label={t("settings:help")} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:account")}>
-        <SettingsRow label={t("settings:logout")} onClick={() => void logout()} />
+        <SettingsRow
+          label={t("settings:logout")}
+          onClick={() => void logout()}
+          destructive
+        />
       </SettingsGroup>
     </div>
   );
@@ -138,4 +296,36 @@ export function ProfilePage() {
 
 function formatLanguage(value?: string | null) {
   return getNativeLanguageName(normalizeLanguage(value));
+}
+
+function InlinePreferenceRow({
+  label,
+  value,
+  options,
+  disabled,
+  onChange
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex min-h-16 w-full items-center justify-between gap-4 px-6 py-3">
+      <span className="min-w-0 text-[1rem] tracking-[-0.02em] text-white">{label}</span>
+      <select
+        aria-label={label}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        style={{ textAlignLast: "right" }}
+        className="min-w-0 max-w-[58%] cursor-pointer appearance-none truncate border-0 bg-transparent py-2 text-right text-sm text-white/48 outline-none transition focus:text-white focus:ring-2 focus:ring-white/24 disabled:cursor-wait disabled:opacity-55"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+  );
 }

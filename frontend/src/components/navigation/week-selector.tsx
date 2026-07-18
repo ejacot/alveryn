@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { getCalendarActivityRange, listAbsencesInRange, listWorkEntriesInRange } from "../../api/endpoints";
+import {
+  getCalendarActivityRange,
+  listAbsenceTypes,
+  listAbsencesInRange,
+  listWorkRecordsInRange
+} from "../../api/endpoints";
 import { queryKeys } from "../../api/query-keys";
 import { addDays, formatLocalIsoDate, getWeekDays, isSameDay, startOfWeek } from "../../utils/date";
 import { cn } from "../../utils/cn";
@@ -33,11 +38,20 @@ export function WeekSelector({ value, onChange }: Props) {
 
     return Array.from(unique.values());
   }, [weekEnd, weekStart]);
-  const entryQueries = useQueries({
-    queries: monthRequests.map(({ year, month }) => ({
-      queryKey: queryKeys.workEntries.range({ year, month }),
-      queryFn: () => listWorkEntriesInRange({ year, month })
-    }))
+  const weekRecordsQuery = useQuery({
+    queryKey: queryKeys.workRecords.range({
+      from: formatLocalIsoDate(weekStart),
+      to: formatLocalIsoDate(weekEnd)
+    }),
+    queryFn: () =>
+      listWorkRecordsInRange({
+        from: formatLocalIsoDate(weekStart),
+        to: formatLocalIsoDate(weekEnd)
+      })
+  });
+  const absenceTypesQuery = useQuery({
+    queryKey: queryKeys.absenceTypes.list(true),
+    queryFn: () => listAbsenceTypes(true)
   });
   const absenceQueries = useQueries({
     queries: monthRequests.map(({ year, month }) => ({
@@ -51,25 +65,25 @@ export function WeekSelector({ value, onChange }: Props) {
   });
   const markedDates = useMemo(() => {
     const dates = new Set<string>();
-    entryQueries.forEach((query) => {
-      query.data?.forEach((entry) => dates.add(entry.workDate));
-    });
+    weekRecordsQuery.data?.forEach((record) => dates.add(record.workDate));
     return dates;
-  }, [entryQueries]);
+  }, [weekRecordsQuery.data]);
   const absenceByDate = useMemo(() => {
-    const absences = new Map<string, "DAY_OFF" | "SICK_LEAVE" | "VACATION" | "PUBLIC_HOLIDAY">();
+    const absences = new Map<string, { type: "DAY_OFF" | "SICK_LEAVE" | "VACATION" | "PUBLIC_HOLIDAY"; color: string }>();
     absenceQueries.forEach((query) => {
       query.data?.forEach((absence) => {
+        const color = absenceTypesQuery.data?.find((type) => type.id === absence.absenceTypeId)?.color
+          ?? defaultAbsenceColor(absence.absenceType);
         days.forEach((day) => {
           const dateKey = formatLocalIsoDate(day.date);
           if (absence.startDate <= dateKey && absence.endDate >= dateKey) {
-            absences.set(dateKey, absence.absenceType);
+            absences.set(dateKey, { type: absence.absenceType, color });
           }
         });
       });
     });
     return absences;
-  }, [absenceQueries, days]);
+  }, [absenceQueries, absenceTypesQuery.data, days]);
   const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
   const todayKey = formatLocalIsoDate(today);
   const monthLabel = useMemo(
@@ -135,7 +149,8 @@ export function WeekSelector({ value, onChange }: Props) {
               const current = !selected && isSameDay(day.date, today);
               const dateKey = formatLocalIsoDate(day.date);
               const hasEntries = markedDates.has(dateKey);
-              const absenceType = absenceByDate.get(dateKey) ?? null;
+              const absence = absenceByDate.get(dateKey) ?? null;
+              const absenceType = absence?.type ?? null;
               const isTrackedEmptyDay = Boolean(firstActivityDate && dateKey >= firstActivityDate && dateKey <= todayKey && !hasEntries && !absenceType);
               const state = selected ? "selected" : current ? "today" : "default";
 
@@ -168,22 +183,23 @@ export function WeekSelector({ value, onChange }: Props) {
                   >
                     {day.dayNumber}
                   </motion.div>
-                  <span
-                    className={cn(
-                      "block h-2 w-2 rounded-full transition",
-	                      (absenceType === "DAY_OFF" || absenceType === "PUBLIC_HOLIDAY") && (selected ? "absence-dot-free border border-black/60" : "absence-dot-free border border-white/34"),
-                      absenceType === "SICK_LEAVE" && "bg-red-500/90",
-                      absenceType === "VACATION" && "bg-emerald-500/90",
-                      !absenceType && hasEntries
-                        ? selected
-                          ? "bg-black/68"
-                          : current
-                            ? "bg-white/72"
-                            : "bg-white/46"
-                        : !absenceType ? "bg-transparent" : null
-                    )}
-                    aria-hidden="true"
-                  />
+                  {absence ? (
+                    <span
+                      className="block h-2 w-2 rounded-full"
+                      style={{ backgroundColor: absence.color }}
+                      aria-hidden="true"
+                    />
+                  ) : hasEntries ? (
+                    <span
+                      className={cn(
+                        "block h-2 w-2 rounded-full transition",
+                        selected ? "bg-black/68" : current ? "bg-white/72" : "bg-white/46"
+                      )}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <span className="block h-2 w-2" aria-hidden="true" />
+                  )}
                 </motion.button>
               );
             })}
@@ -192,4 +208,10 @@ export function WeekSelector({ value, onChange }: Props) {
       </div>
     </section>
   );
+}
+
+function defaultAbsenceColor(type: "DAY_OFF" | "SICK_LEAVE" | "VACATION" | "PUBLIC_HOLIDAY") {
+  if (type === "SICK_LEAVE") return "#ef4444";
+  if (type === "VACATION") return "#22c55e";
+  return "#737373";
 }

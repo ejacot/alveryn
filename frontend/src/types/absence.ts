@@ -6,8 +6,23 @@ export type AbsenceType =
 
 export type Absence = {
   id: string;
+  absenceTypeId?: string | null;
   absenceType: AbsenceType;
+  absenceTypeName: string;
+  paid: boolean;
+  paidMinutesPerDay: number;
   startDate: string;
   endDate: string;
   notes: string | null;
+};
+
+export type AbsenceTypeSetting = {
+  id: string;
+  name: string;
+  code: AbsenceType | null;
+  paid: boolean;
+  paidMinutesPerDay: number;
+  color: string;
+  active: boolean;
+  displayOrder: number;
 };

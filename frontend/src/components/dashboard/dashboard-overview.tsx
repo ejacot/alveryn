@@ -3,8 +3,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
-import { UnitBreakdownBadges } from "../work-entry/unit-breakdown-badges";
-import type { AbsenceType } from "../../types/absence";
+import { SelectedDayActivityCard } from "./selected-day-activity-card";
+import type { AbsenceTypeSetting } from "../../types/absence";
 import type {
   DashboardSummaryMetrics,
   SelectedDayOverview,
@@ -16,10 +16,16 @@ type Props = {
   summary: DashboardSummaryMetrics | null;
   selectedDay: SelectedDayOverview;
   weeklyDays?: WeeklyRhythmDay[];
+  previousWeekMinutes?: number;
+  previousWeekGross?: number;
+  flowCurrency?: string;
+  absenceTypes?: AbsenceTypeSetting[];
   onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
+  onRhythmDaySelect?: (date: string) => void;
   onWeekSwipe?: (direction: -1 | 1) => void;
-  onCreateAbsence: (absenceType: AbsenceType) => void;
+  onCreateAbsence: (absenceTypeId: string) => void;
+  onDeleteAbsence?: (activityId: string) => void;
   absencePending?: boolean;
   absenceError?: string | null;
   onEntrySelect?: (entryId: string) => void;
@@ -30,10 +36,16 @@ export function DashboardOverview({
   summary,
   selectedDay,
   weeklyDays,
+  previousWeekMinutes,
+  previousWeekGross,
+  flowCurrency,
+  absenceTypes = [],
   onQuickAdd,
   onDaySwipe,
+  onRhythmDaySelect,
   onWeekSwipe,
   onCreateAbsence,
+  onDeleteAbsence,
   absencePending = false,
   absenceError = null,
   onEntrySelect,
@@ -54,16 +66,28 @@ export function DashboardOverview({
       ) : null}
       <SelectedDayPanel
         selectedDay={selectedDay}
+        absenceTypes={absenceTypes}
         onEntrySelect={onEntrySelect}
         onQuickAdd={onQuickAdd}
         onDaySwipe={onDaySwipe}
         onCreateAbsence={onCreateAbsence}
+        onDeleteAbsence={onDeleteAbsence}
         absencePending={absencePending}
         absenceError={absenceError}
       />
       <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
       <WeeklyHoursCard
+        variant="flow"
         days={weeklyDays}
+        previousWeekGross={previousWeekGross}
+        flowCurrency={flowCurrency}
+        onDaySelect={onRhythmDaySelect}
+        onWeekSwipe={onWeekSwipe}
+      />
+      <WeeklyHoursCard
+        days={weeklyDays}
+        previousWeekMinutes={previousWeekMinutes}
+        onDaySelect={onRhythmDaySelect}
         onWeekSwipe={onWeekSwipe}
       />
     </div>
@@ -72,26 +96,30 @@ export function DashboardOverview({
 
 function SelectedDayPanel({
   selectedDay,
+  absenceTypes,
   onEntrySelect,
   onQuickAdd,
   onDaySwipe,
   onCreateAbsence,
+  onDeleteAbsence,
   absencePending,
   absenceError
 }: {
   selectedDay: SelectedDayOverview;
+  absenceTypes: AbsenceTypeSetting[];
   onEntrySelect?: (entryId: string) => void;
   onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
-  onCreateAbsence: (absenceType: AbsenceType) => void;
+  onCreateAbsence: (absenceTypeId: string) => void;
+  onDeleteAbsence?: (activityId: string) => void;
   absencePending: boolean;
   absenceError: string | null;
 }) {
   const { t } = useTranslation("dashboard");
   const [absenceOpen, setAbsenceOpen] = useState(false);
 
-  function handleAbsence(absenceType: AbsenceType) {
-    onCreateAbsence(absenceType);
+  function handleAbsence(absenceTypeId: string) {
+    onCreateAbsence(absenceTypeId);
     setAbsenceOpen(false);
   }
 
@@ -137,6 +165,7 @@ function SelectedDayPanel({
           pending={absencePending}
           onClose={() => setAbsenceOpen(false)}
           onSelect={handleAbsence}
+          absenceTypes={absenceTypes}
         />
       </motion.section>
     );
@@ -157,85 +186,37 @@ function SelectedDayPanel({
       </div>
 
       <div className="space-y-3">
-        {selectedDay.activities.map((activity) => {
-          const interactive = activity.kind !== "ABSENCE";
-          const Component = interactive ? "button" : "div";
-
-          return (
-          <Component
+        {selectedDay.activities.map((activity) => (
+          <SelectedDayActivityCard
             key={activity.id}
-            {...(interactive
-              ? {
-                  type: "button",
-                  onClick: () => onEntrySelect?.(activity.id)
-                }
-              : {})}
-            className="dashboard-glass-card w-full px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold tracking-[-0.03em] text-white">{activity.title}</p>
-                {activity.subtitle ? (
-                  <p className="mt-1 text-sm text-white/52">{activity.subtitle}</p>
-                ) : null}
-              </div>
-              {activity.marker ? (
-                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceMarkerClassName(activity.marker)}`} aria-hidden="true" />
-              ) : (
-                <div className="space-y-1 text-right">
-                  <p className="text-sm font-semibold text-white/90">{activity.amount}</p>
-                  {activity.extraPayLabel ? (
-                    <p className="text-xs font-semibold text-amber-200">{activity.extraPayLabel}</p>
-                  ) : null}
-                </div>
-              )}
-            </div>
-            {activity.unitBreakdown.length ? (
-              <UnitBreakdownBadges items={activity.unitBreakdown} />
-            ) : null}
-            {activity.duration ? (
-              <p className="mt-3 text-sm text-white/40">{activity.duration}</p>
-            ) : null}
-          </Component>
-          );
-        })}
+            activity={activity}
+            onSelect={onEntrySelect}
+            onDeleteAbsence={onDeleteAbsence}
+          />
+        ))}
       </div>
     </motion.section>
   );
-}
-
-function absenceMarkerClassName(marker: "free" | "sick" | "vacation") {
-  if (marker === "sick") {
-    return "bg-red-500/90";
-  }
-  if (marker === "vacation") {
-    return "bg-emerald-500/90";
-  }
-  return "absence-dot-free border border-white/28";
 }
 
 function AbsenceChooser({
   open,
   pending,
   onClose,
-  onSelect
+  onSelect,
+  absenceTypes
 }: {
   open: boolean;
   pending: boolean;
   onClose: () => void;
-  onSelect: (absenceType: AbsenceType) => void;
+  onSelect: (absenceTypeId: string) => void;
+  absenceTypes: AbsenceTypeSetting[];
 }) {
   const { t } = useTranslation("dashboard");
 
   if (!open) {
     return null;
   }
-
-  const options: Array<{ type: AbsenceType; label: string; dot: string }> = [
-    { type: "DAY_OFF", label: t("absence.free"), dot: "absence-dot-free border border-white/28" },
-    { type: "SICK_LEAVE", label: t("absence.sick"), dot: "bg-red-500/90" },
-    { type: "VACATION", label: t("absence.vacation"), dot: "bg-emerald-500/90" }
-  ];
 
   return (
     <div
@@ -268,16 +249,16 @@ function AbsenceChooser({
         </div>
 
         <div className="space-y-2">
-          {options.map((option) => (
+          {absenceTypes.map((option) => (
             <button
-              key={option.type}
+              key={option.id}
               type="button"
               disabled={pending}
-              onClick={() => onSelect(option.type)}
+              onClick={() => onSelect(option.id)}
               className="dashboard-glass-card flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-white/[0.06] disabled:opacity-55"
             >
-              <span className="font-semibold tracking-[-0.03em] text-white">{option.label}</span>
-              <span className={`h-2 w-2 rounded-full ${option.dot}`} aria-hidden="true" />
+              <span className="font-semibold tracking-[-0.03em] text-white">{option.name}</span>
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: option.color }} aria-hidden="true" />
             </button>
           ))}
         </div>

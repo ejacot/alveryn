@@ -1,5 +1,7 @@
 package com.alveryn.api.user.service;
 
+import com.alveryn.api.address.entity.Address;
+import com.alveryn.api.address.repository.AddressRepository;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.NotFoundException;
 import com.alveryn.api.common.exception.ValidationException;
@@ -23,10 +25,12 @@ public class UserProfileService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final UserProfileRepository repository;
   private final UserAccountRepository users;
+  private final AddressRepository addresses;
   private final UserMapper mapper;
 
   @Transactional
   public UserProfileResponse update(@Valid UserProfileRequest request) {
+    var userId = authenticatedUserAccessor.requireUserId();
     UserProfile profile = getOrCreateProfile();
     validateEmploymentDates(request);
     profile.updateDetails(
@@ -42,7 +46,9 @@ public class UserProfileService {
         InputSanitizer.trimToNull(request.houseNumber()),
         InputSanitizer.trimToNull(request.apartment()),
         InputSanitizer.trimToNull(request.avatarUrl()));
-    profile.updateEmploymentDates(request.employmentStartDate(), request.employmentEndDate());
+    profile.changeAddress(resolveAddress(userId, request.addressId()));
+    profile.updateEmployment(
+        request.employmentStartDate(), request.employmentEndDate(), request.employmentType());
     return mapper.toProfileResponse(repository.save(profile));
   }
 
@@ -67,5 +73,12 @@ public class UserProfileService {
         && request.employmentEndDate().isBefore(request.employmentStartDate())) {
       throw new ValidationException("employmentEndDate cannot be before employmentStartDate");
     }
+  }
+
+  private Address resolveAddress(java.util.UUID userId, java.util.UUID addressId) {
+    if (addressId == null) {
+      return null;
+    }
+    return addresses.findByIdAndUserId(addressId, userId).orElseThrow(() -> new NotFoundException("Address", addressId));
   }
 }

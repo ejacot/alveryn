@@ -63,7 +63,8 @@
     },
     "methods": {
       "time": "Zeitbasierte Arbeit",
-      "unit": "Mengenbasierte Arbeit"
+      "unit": "Mengenbasierte Arbeit",
+      "fixed": "Festpreisarbeit"
     },
     "metrics": {
       "gross": "Brutto",
@@ -88,7 +89,8 @@
       "hours": "Stunden",
       "workedDays": "Arbeitstage",
       "entries": "Einträge",
-      "averagePerDay": "Durchschnitt pro Tag"
+      "averagePerDay": "Durchschnitt pro Tag",
+      "directUnitPayNote": "Direkt pro Einheit bezahlte Einnahmen sind im Brutto enthalten. Es wurden keine Arbeitsstunden ergänzt, weil diese Arbeit nicht nach Zeit erfasst wurde."
     },
     "confidence": {
       "LOW": "Niedrige Sicherheit",

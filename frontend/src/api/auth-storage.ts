@@ -1,12 +1,28 @@
 const LEGACY_ACCESS_TOKEN_KEY = "alveryn.access-token";
 const LEGACY_REFRESH_TOKEN_KEY = "alveryn.refresh-token";
 const SESSION_MARKER_KEY = "alveryn.session";
+const INSTALLED_APP_ACCESS_TOKEN_KEY = "alveryn.installed-app-access-token";
 const AUTH_SYNC_CHANNEL = "alveryn.auth-sync";
 
 type AuthStorageListener = () => void;
 type AuthSyncMessage = { type: "login" | "logout" | "session-changed" };
 
-let accessToken: string | null = null;
+function isInstalledApp() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const iosNavigator = window.navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia?.("(display-mode: standalone)").matches === true || iosNavigator.standalone === true;
+}
+
+function readInstalledAppAccessToken() {
+  if (!isInstalledApp()) {
+    return null;
+  }
+  return localStorage.getItem(INSTALLED_APP_ACCESS_TOKEN_KEY);
+}
+
+let accessToken: string | null = readInstalledAppAccessToken();
 
 const listeners = new Set<AuthStorageListener>();
 const channel =
@@ -34,6 +50,13 @@ export function getStoredAccessToken() {
 
 export function setStoredAccessToken(token: string | null) {
   accessToken = token?.trim() ? token : null;
+  if (isInstalledApp()) {
+    if (accessToken) {
+      localStorage.setItem(INSTALLED_APP_ACCESS_TOKEN_KEY, accessToken);
+    } else {
+      localStorage.removeItem(INSTALLED_APP_ACCESS_TOKEN_KEY);
+    }
+  }
 }
 
 export function hasStoredSession() {
@@ -43,6 +66,7 @@ export function hasStoredSession() {
 export function markSessionActive() {
   localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
   localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+  localStorage.removeItem(INSTALLED_APP_ACCESS_TOKEN_KEY);
   setSessionMarker(true);
 }
 

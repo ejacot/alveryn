@@ -12,6 +12,7 @@ import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.service.*;
 import com.alveryn.api.worktype.dto.*;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.service.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 class ApplicationServiceTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeService workTypes;
-  @Autowired UnitTypeService unitTypes;
   @Autowired HourlyRatePeriodService rates;
   @Autowired UserProfileService profiles;
   @Autowired UserPreferencesService preferences;
@@ -51,20 +51,49 @@ class ApplicationServiceTest {
   }
 
   @Test
-  void managesWorkAndUnitTypesWithinOwnership() {
+  void managesParentAndChildWorkTypesWithinOwnership() {
     var work =
         workTypes.create(
             new CreateWorkTypeRequest(
-                "Rooms", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
+                "Rooms",
+                null,
+                CalculationMethod.UNIT_BASED,
+                CompensationMethod.PER_UNIT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                "#87C95A",
+                null,
+                null,
+                0));
     assertThat(workTypes.list()).hasSize(1);
-    var unit =
-        unitTypes.create(
-            work.id(), new UnitTypeRequest("Normal", new BigDecimal("2.4"), 0, true));
-    assertThat(unitTypes.get(work.id(), unit.id()).name()).isEqualTo("Normal");
-    unitTypes.delete(work.id(), unit.id());
-    assertThat(unitTypes.list(work.id())).allMatch(unitType -> !unitType.active());
+    var formula =
+        workTypes.create(
+            new CreateWorkTypeRequest(
+                "Normal",
+                work.id(),
+                CalculationMethod.UNITS_PER_HOUR_BASED,
+                CompensationMethod.HOURLY,
+                "Room",
+                null,
+                new BigDecimal("2.4"),
+                null,
+                null,
+                false,
+                false,
+                "#60A5FA",
+                null,
+                null,
+                0));
+    assertThat(workTypes.get(formula.id()).name()).isEqualTo("Normal");
+    workTypes.delete(formula.id());
+    assertThat(workTypes.list()).filteredOn(item -> item.id().equals(formula.id())).allMatch(item -> !item.active());
     workTypes.delete(work.id());
-    assertThat(workTypes.list()).allMatch(workType -> !workType.active());
+    assertThat(workTypes.list()).filteredOn(item -> item.id().equals(work.id())).allMatch(workType -> !workType.active());
   }
 
   @Test
@@ -74,7 +103,22 @@ class ApplicationServiceTest {
             new CreateWorkTypeRequest("Check", CalculationMethod.TIME_BASED, null, null, null, null));
     var unitBased =
         workTypes.create(
-            new CreateWorkTypeRequest("Rooms", CalculationMethod.UNIT_BASED, null, null, null, null));
+            new CreateWorkTypeRequest(
+                "Rooms",
+                null,
+                CalculationMethod.UNIT_BASED,
+                CompensationMethod.PER_UNIT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                null,
+                null,
+                null,
+                null));
 
     assertThat(timeBased.name()).isEqualTo("Check");
     assertThat(timeBased.color()).matches("#[0-9A-F]{6}");
@@ -92,12 +136,41 @@ class ApplicationServiceTest {
     var created =
         workTypes.create(
             new CreateWorkTypeRequest(
-                "Units", CalculationMethod.UNIT_BASED, "#87C95A", null, 0, 0));
+                "Units",
+                null,
+                CalculationMethod.UNIT_BASED,
+                CompensationMethod.PER_UNIT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                "#87C95A",
+                null,
+                null,
+                0));
     var updated =
         workTypes.update(
             created.id(),
             new UpdateWorkTypeRequest(
-                "Renamed", CalculationMethod.UNIT_BASED, "#AABBCC", "icon", 15, 3, true));
+                "Renamed",
+                null,
+                CalculationMethod.UNIT_BASED,
+                CompensationMethod.PER_UNIT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                "#AABBCC",
+                "icon",
+                null,
+                3,
+                true));
     assertThat(updated.calculationMethod()).isEqualTo(CalculationMethod.UNIT_BASED);
     assertThat(updated.name()).isEqualTo("Renamed");
     assertThat(updated.color()).isEqualTo("#AABBCC");
@@ -122,8 +195,8 @@ class ApplicationServiceTest {
     var profile =
         profiles.update(
             new UserProfileRequest(
-                "Ana", "Pop", "Ana", null, null, "RO", null, null, null, null, null, null, null,
-                null));
+                "Ana", "Pop", "Ana", null, null, "RO", null, null, null, null, null, null, null, null,
+                null, null));
     assertThat(profile.firstName()).isEqualTo("Ana");
     var prefs =
         preferences.update(

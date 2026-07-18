@@ -1,20 +1,30 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
-import { getProfile, updateProfile, type UpdateProfilePayload } from "../api/endpoints";
+import {
+  changePassword,
+  getProfile,
+  updateProfile,
+  type UpdateProfilePayload
+} from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
-import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsContextCard } from "../components/settings/settings-context-card";
+import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
+import type { EmploymentType } from "../types/configuration";
+
+const employmentTypes: EmploymentType[] = ["FULL_TIME", "PART_TIME", "MINI_JOB", "FREELANCE", "CONTRACTOR", "OTHER"];
 
 function createSchema(t: (key: string) => string) {
   return z
@@ -31,6 +41,8 @@ function createSchema(t: (key: string) => string) {
     street: z.string().trim().max(120, t("profileEditor.validation.streetTooLong")).optional(),
     houseNumber: z.string().trim().max(20, t("profileEditor.validation.houseNumberTooLong")).optional(),
     apartment: z.string().trim().max(20, t("profileEditor.validation.apartmentTooLong")).optional(),
+    addressId: z.string().optional(),
+    employmentType: z.enum(employmentTypes),
     employmentStartDate: z.string().optional(),
     employmentEndDate: z.string().optional()
   })
@@ -48,11 +60,30 @@ function createSchema(t: (key: string) => string) {
 
 type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
+function createPasswordSchema(t: (key: string) => string) {
+  return z.object({
+    currentPassword: z.string().min(1, t("profileEditor.password.currentRequired")),
+    newPassword: z.string().min(8, t("profileEditor.password.minimumLength")).max(128),
+    confirmPassword: z.string().min(1, t("profileEditor.password.confirmRequired"))
+  }).refine((values) => values.newPassword === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: t("profileEditor.password.mismatch")
+  });
+}
+
+type PasswordFormValues = z.infer<ReturnType<typeof createPasswordSchema>>;
+type ProfileSection = "overview" | "personal" | "security" | "email" | "phone" | "password" | "payment" | "subscriptions";
+
 export function SettingsProfilePage() {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
+  const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [passwordSuccessMessage, setPasswordSuccessMessage] = useState<string | null>(null);
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
   const safeBack = useSafeBackNavigation({ fallback: "/profile" });
 
   const profileQuery = useQuery({
@@ -60,10 +91,13 @@ export function SettingsProfilePage() {
     queryFn: getProfile,
     initialData: user?.profile ?? undefined
   });
-
   const form = useForm<FormValues>({
     resolver: zodResolver(createSchema(t)),
     defaultValues: toFormValues(profileQuery.data)
+  });
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(createPasswordSchema(t)),
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" }
   });
 
   useEffect(() => {
@@ -84,10 +118,47 @@ export function SettingsProfilePage() {
       });
     }
   });
-
-  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
-    isDirty: form.formState.isDirty && !mutation.isPending
+  const passwordMutation = useMutation({
+    mutationFn: changePassword,
+    onSuccess: () => {
+      passwordForm.reset();
+      setPasswordSuccessMessage(t("profileEditor.password.changed"));
+    }
   });
+  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+    isDirty:
+      (activeSection === "personal" && form.formState.isDirty && !mutation.isPending) ||
+      (activeSection === "password" && passwordForm.formState.isDirty && !passwordMutation.isPending)
+  });
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const updateCompactTitle = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const titleRect = largeTitleRef.current?.getBoundingClientRect();
+        const buttonRect = backButtonRef.current?.getBoundingClientRect();
+
+        if (!titleRect || !buttonRect) {
+          setCompactTitleVisible(false);
+          return;
+        }
+
+        setCompactTitleVisible(titleRect.top <= buttonRect.top);
+      });
+    };
+
+    updateCompactTitle();
+    window.addEventListener("scroll", updateCompactTitle, { passive: true });
+    window.addEventListener("resize", updateCompactTitle);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateCompactTitle);
+      window.removeEventListener("resize", updateCompactTitle);
+    };
+  }, []);
 
   if (profileQuery.isLoading) {
     return <SettingsPageSkeleton />;
@@ -97,76 +168,265 @@ export function SettingsProfilePage() {
     return <ScreenMessage title={t("profileEditor.unavailableTitle")} description={getApiError(profileQuery.error).message} />;
   }
 
+  const profile = profileQuery.data;
+  const fullName =
+    [profile?.firstName, profile?.lastName]
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value))
+      .join(" ") ||
+    profile?.displayName?.trim() ||
+    user?.account.email ||
+    "Alveryn";
+  const initials =
+    [profile?.firstName, profile?.lastName]
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value))
+      .slice(0, 2)
+      .map((value) => value.charAt(0).toUpperCase())
+      .join("") ||
+    user?.account.email.slice(0, 2).toUpperCase() ||
+    "AV";
+  const title =
+    activeSection === "personal"
+      ? t("profileEditor.menu.personalInformation")
+    : activeSection === "security"
+      ? t("profileEditor.menu.signInSecurity")
+      : activeSection === "email"
+        ? t("profileEditor.menu.email")
+        : activeSection === "phone"
+          ? t("profileEditor.menu.phoneNumber")
+          : activeSection === "password"
+            ? t("profileEditor.menu.changePassword")
+        : activeSection === "payment"
+          ? t("profileEditor.menu.paymentShipping")
+          : activeSection === "subscriptions"
+            ? t("profileEditor.menu.subscriptions")
+            : t("profileEditor.title");
+  const handleBack = () => {
+    if (activeSection === "overview") {
+      confirmOrRun(safeBack);
+      return;
+    }
+
+    if (activeSection === "password") {
+      confirmOrRun(() => setActiveSection("security"));
+      return;
+    }
+
+    if (activeSection === "email" || activeSection === "phone") {
+      setActiveSection("security");
+      return;
+    }
+
+    if (activeSection === "personal") {
+      confirmOrRun(() => setActiveSection("overview"));
+      return;
+    }
+
+    setActiveSection("overview");
+  };
+
   return (
-    <div className="space-y-8 pb-10">
-      <SettingsPageHeader
-        title={t("profileEditor.title")}
-        fallbackHref="/profile"
-        onBack={() => confirmOrRun(safeBack)}
-      />
-      <form
-        className="space-y-6"
-        onSubmit={form.handleSubmit(async (values) => {
-          setSuccessMessage(null);
-          await mutation.mutateAsync(toProfilePayload(values));
-        })}
+    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+        <button
+          ref={backButtonRef}
+          type="button"
+          onClick={handleBack}
+          aria-label={t("actions.back", { ns: "common" })}
+          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+        >
+          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
+          <span>{t("actions.back", { ns: "common" })}</span>
+        </button>
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
+          }`}
+          aria-hidden="true"
+        >
+          {title}
+        </div>
+      </header>
+
+      <h1
+        ref={largeTitleRef}
+        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
+        }`}
       >
+        {title}
+      </h1>
+
+      <SettingsContextCard context="profile" />
+
+      {activeSection === "overview" ? (
+        <div className="space-y-8">
+          <section className="flex flex-col items-center text-center">
+            {profile?.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="h-28 w-28 rounded-full border border-white/[0.08] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.28)]"
+              />
+            ) : (
+              <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] text-[2rem] font-semibold tracking-[-0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                {initials}
+              </div>
+            )}
+            <h2 className="mt-5 text-[2.2rem] font-semibold leading-none tracking-[-0.075em] text-white">{fullName}</h2>
+            <p className="mt-2 text-[1.05rem] font-medium tracking-[-0.04em] text-white/48">{user?.account.email}</p>
+          </section>
+
+          <SettingsGroup title={t("profileEditor.title")}>
+            <SettingsRow
+              label={t("profileEditor.menu.personalInformation")}
+              onClick={() => setActiveSection("personal")}
+              showChevron
+            />
+            <div className="mx-6 h-px bg-white/[0.06]" />
+            <SettingsRow
+              label={t("profileEditor.menu.signInSecurity")}
+              onClick={() => setActiveSection("security")}
+              showChevron
+            />
+            <div className="mx-6 h-px bg-white/[0.06]" />
+            <SettingsRow
+              label={t("profileEditor.menu.paymentShipping")}
+              value={t("profileEditor.menu.notSet")}
+              onClick={() => setActiveSection("payment")}
+              showChevron
+            />
+            <div className="mx-6 h-px bg-white/[0.06]" />
+            <SettingsRow
+              label={t("profileEditor.menu.subscriptions")}
+              onClick={() => setActiveSection("subscriptions")}
+              showChevron
+            />
+          </SettingsGroup>
+        </div>
+      ) : activeSection === "security" ? (
+        <div className="space-y-8">
+          <SettingsGroup title={t("profileEditor.security.contact")}>
+            <SettingsRow
+              label={t("profileEditor.menu.email")}
+              value={user?.account.email ?? ""}
+              onClick={() => setActiveSection("email")}
+              showChevron
+            />
+            <div className="mx-6 h-px bg-white/[0.06]" />
+            <SettingsRow
+              label={t("profileEditor.menu.phoneNumber")}
+              value={profile?.phone || t("profileEditor.menu.notSet")}
+              onClick={() => setActiveSection("phone")}
+              showChevron
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title={t("profileEditor.security.title")}>
+            <SettingsRow
+              label={t("profileEditor.menu.changePassword")}
+              onClick={() => setActiveSection("password")}
+              showChevron
+            />
+          </SettingsGroup>
+        </div>
+      ) : activeSection === "password" ? (
+        <form
+          className="space-y-6"
+          onSubmit={passwordForm.handleSubmit(async (values) => {
+            setPasswordSuccessMessage(null);
+            await passwordMutation.mutateAsync({
+              currentPassword: values.currentPassword,
+              newPassword: values.newPassword
+            });
+          })}
+        >
+          <ProfileFormSection title={t("profileEditor.menu.changePassword")}>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              label={t("profileEditor.password.current")}
+              error={passwordForm.formState.errors.currentPassword?.message}
+              {...passwordForm.register("currentPassword")}
+            />
+            <Input
+              type="password"
+              autoComplete="new-password"
+              label={t("profileEditor.password.new")}
+              error={passwordForm.formState.errors.newPassword?.message}
+              {...passwordForm.register("newPassword")}
+            />
+            <Input
+              type="password"
+              autoComplete="new-password"
+              label={t("profileEditor.password.confirm")}
+              error={passwordForm.formState.errors.confirmPassword?.message}
+              {...passwordForm.register("confirmPassword")}
+            />
+          </ProfileFormSection>
+          <SettingsFormActions
+            submitting={passwordMutation.isPending}
+            successMessage={passwordSuccessMessage}
+          />
+          {!passwordSuccessMessage && passwordMutation.error ? (
+            <p className="text-sm text-red-300">{getApiError(passwordMutation.error).message}</p>
+          ) : null}
+        </form>
+      ) : activeSection === "personal" ? (
+        <form
+          className="space-y-6"
+          onSubmit={form.handleSubmit(async (values) => {
+            setSuccessMessage(null);
+            await mutation.mutateAsync(toProfilePayload(values));
+          })}
+        >
         <ProfileFormSection title={t("profileEditor.basicInformation")}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label={t("profileEditor.fields.firstName")} error={form.formState.errors.firstName?.message} {...form.register("firstName")} />
             <Input label={t("profileEditor.fields.lastName")} error={form.formState.errors.lastName?.message} {...form.register("lastName")} />
           </div>
           <Input label={t("profileEditor.fields.displayName")} error={form.formState.errors.displayName?.message} {...form.register("displayName")} />
-          <Input label={t("profileEditor.fields.avatarUrl")} error={form.formState.errors.avatarUrl?.message} {...form.register("avatarUrl")} />
-          <Input label={t("profileEditor.fields.phone")} error={form.formState.errors.phone?.message} {...form.register("phone")} />
           <Input
             type="date"
-            wrapperClassName="mx-auto w-full max-w-[15rem]"
+            className="!mx-0 !max-w-none !rounded-2xl !text-left !text-base !font-normal"
             label={t("profileEditor.fields.dateOfBirth")}
             error={form.formState.errors.dateOfBirth?.message}
             {...form.register("dateOfBirth")}
           />
         </ProfileFormSection>
 
-        <ProfileFormSection title={t("profileEditor.employment")}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              type="date"
-              wrapperClassName="mx-auto w-full max-w-[15rem]"
-              label={t("profileEditor.fields.employmentStart")}
-              error={form.formState.errors.employmentStartDate?.message}
-              {...form.register("employmentStartDate")}
-            />
-            <Input
-              type="date"
-              wrapperClassName="mx-auto w-full max-w-[15rem]"
-              label={t("profileEditor.fields.employmentEnd")}
-              error={form.formState.errors.employmentEndDate?.message}
-              {...form.register("employmentEndDate")}
-            />
-          </div>
-        </ProfileFormSection>
-
         <ProfileFormSection title={t("profileEditor.address")}>
-          <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
-            <Input label={t("profileEditor.fields.countryCode")} error={form.formState.errors.countryCode?.message} {...form.register("countryCode")} />
-            <Input label={t("profileEditor.fields.city")} error={form.formState.errors.city?.message} {...form.register("city")} />
-          </div>
-          <Input label={t("profileEditor.fields.postalCode")} error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
           <Input label={t("profileEditor.fields.street")} error={form.formState.errors.street?.message} {...form.register("street")} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label={t("profileEditor.fields.houseNumber")} error={form.formState.errors.houseNumber?.message} {...form.register("houseNumber")} />
-            <Input label={t("profileEditor.fields.apartment")} error={form.formState.errors.apartment?.message} {...form.register("apartment")} />
-          </div>
+          <Input label={t("profileEditor.fields.street2Optional")} error={form.formState.errors.apartment?.message} {...form.register("apartment")} />
+          <Input label={t("profileEditor.fields.city")} error={form.formState.errors.city?.message} {...form.register("city")} />
+          <Input label={t("profileEditor.fields.postalCode")} error={form.formState.errors.postalCode?.message} {...form.register("postalCode")} />
+          <Input label={t("profileEditor.fields.region")} error={form.formState.errors.houseNumber?.message} {...form.register("houseNumber")} />
+          <Input label={t("profileEditor.fields.countryCode")} error={form.formState.errors.countryCode?.message} {...form.register("countryCode")} />
         </ProfileFormSection>
 
         <SettingsFormActions submitting={mutation.isPending} successMessage={successMessage} />
         {!successMessage && mutation.error ? (
           <p className="text-sm text-red-300">{getApiError(mutation.error).message}</p>
         ) : null}
-      </form>
+        </form>
+      ) : (
+        <ProfilePlaceholder
+          title={title}
+          description={t(`profileEditor.menuDescriptions.${activeSection}`)}
+        />
+      )}
       {dialog}
     </div>
+  );
+}
+
+function ProfilePlaceholder({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="dashboard-glass-card px-5 py-6">
+      <p className="text-[1.15rem] font-semibold tracking-[-0.05em] text-white">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-white/48">{description}</p>
+    </section>
   );
 }
 
@@ -201,6 +461,8 @@ function toFormValues(profile: Awaited<ReturnType<typeof getProfile>> | null | u
     street: profile?.street ?? "",
     houseNumber: profile?.houseNumber ?? "",
     apartment: profile?.apartment ?? "",
+    addressId: profile?.addressId ?? "",
+    employmentType: profile?.employmentType ?? "FULL_TIME",
     employmentStartDate: profile?.employmentStartDate ?? "",
     employmentEndDate: profile?.employmentEndDate ?? ""
   };
@@ -220,6 +482,8 @@ function toProfilePayload(values: FormValues): UpdateProfilePayload {
     street: normalizeOptional(values.street),
     houseNumber: normalizeOptional(values.houseNumber),
     apartment: normalizeOptional(values.apartment),
+    addressId: normalizeOptional(values.addressId),
+    employmentType: values.employmentType,
     employmentStartDate: normalizeOptional(values.employmentStartDate),
     employmentEndDate: normalizeOptional(values.employmentEndDate)
   };

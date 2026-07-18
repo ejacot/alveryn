@@ -1,22 +1,57 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { listHourlyRates } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
-import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { parseLocalIsoDate, todayLocalIsoDate } from "../utils/date";
 
 export function HourlyRatesPage() {
   const navigate = useNavigate();
+  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
   const ratesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const updateCompactTitle = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const titleRect = largeTitleRef.current?.getBoundingClientRect();
+        const buttonRect = backButtonRef.current?.getBoundingClientRect();
+
+        if (!titleRect || !buttonRect) {
+          setCompactTitleVisible(false);
+          return;
+        }
+
+        setCompactTitleVisible(titleRect.top <= buttonRect.top);
+      });
+    };
+
+    updateCompactTitle();
+    window.addEventListener("scroll", updateCompactTitle, { passive: true });
+    window.addEventListener("resize", updateCompactTitle);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateCompactTitle);
+      window.removeEventListener("resize", updateCompactTitle);
+    };
+  }, []);
 
   if (ratesQuery.isLoading) {
     return <SettingsPageSkeleton />;
@@ -27,10 +62,40 @@ export function HourlyRatesPage() {
   }
 
   const rates = [...(ratesQuery.data ?? [])].sort(compareRates);
+  const title = "Hourly rates";
 
   return (
-    <div className="space-y-8 pb-10">
-      <SettingsPageHeader title="Hourly rates" />
+    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+        <button
+          ref={backButtonRef}
+          type="button"
+          onClick={safeBack}
+          aria-label="Back"
+          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+        >
+          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
+          <span>Back</span>
+        </button>
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
+          }`}
+          aria-hidden="true"
+        >
+          {title}
+        </div>
+      </header>
+
+      <h1
+        ref={largeTitleRef}
+        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
+        }`}
+      >
+        {title}
+      </h1>
+      <SettingsContextCard context="hourlyRates" />
       <Button className="w-full gap-2" onClick={() => navigate("/settings/hourly-rates/new")}>
         <Plus className="h-4 w-4" />
         Add hourly rate

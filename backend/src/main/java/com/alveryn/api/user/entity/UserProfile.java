@@ -1,10 +1,14 @@
 package com.alveryn.api.user.entity;
 
+import com.alveryn.api.address.entity.Address;
 import com.alveryn.api.common.persistence.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
@@ -21,6 +25,10 @@ public class UserProfile extends BaseEntity {
   @OneToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false, unique = true)
   private UserAccount user;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "address_id")
+  private Address address;
 
   @Column(name = "first_name", length = 80)
   private String firstName;
@@ -64,15 +72,20 @@ public class UserProfile extends BaseEntity {
   @Column(name = "employment_end_date")
   private LocalDate employmentEndDate;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "employment_type", nullable = false, length = 30)
+  private EmploymentType employmentType = EmploymentType.FULL_TIME;
+
   public UserProfile(UserAccount user) {
     this.user = Objects.requireNonNull(user, "user is required");
   }
 
-  public void updateEmploymentDates(LocalDate start, LocalDate end) {
+  public void updateEmployment(LocalDate start, LocalDate end, EmploymentType type) {
     if (start != null && end != null && end.isBefore(start))
       throw new IllegalArgumentException("employmentEndDate cannot precede employmentStartDate");
     employmentStartDate = start;
     employmentEndDate = end;
+    employmentType = type == null ? EmploymentType.FULL_TIME : type;
   }
 
   public void updateDetails(
@@ -101,4 +114,12 @@ public class UserProfile extends BaseEntity {
     this.apartment = apartment;
     this.avatarUrl = avatarUrl;
   }
+
+  public void changeAddress(Address address) {
+    if (address != null && !address.getUser().getId().equals(user.getId())) {
+      throw new IllegalArgumentException("address must belong to profile user");
+    }
+    this.address = address;
+  }
+
 }

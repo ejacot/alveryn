@@ -1,123 +1,67 @@
 {
   "loading": "Loading Alveryn...",
-  "nav": {
-    "features": "Features",
-    "how": "How it works",
-    "login": "Sign in",
-    "register": "Start tracking"
-  },
+  "nav": { "features": "Features", "how": "How it works", "login": "Sign in", "register": "Start tracking" },
   "hero": {
-    "eyebrow": "Clarity for real work, not just clock-ins",
+    "eyebrow": "One clear record for every kind of work",
     "title": "Know your hours. Understand your earnings.",
-    "subtitle": "Alveryn turns every shift, task and completed unit into a clear picture of your time, income and progress.",
-    "primaryCta": "Start tracking",
-    "secondaryCta": "See how it works",
-    "benefits": [
-      "No spreadsheets",
-      "Automatic calculations",
-      "Built for real work"
-    ]
+    "subtitle": "Alveryn brings hours, completed work and earnings together, even when a working day contains several different activities.",
+    "primaryCta": "Start tracking", "secondaryCta": "See how it works",
+    "benefits": ["No spreadsheets", "Automatic calculations", "Built for real work"]
   },
   "problem": {
-    "eyebrow": "The problem",
-    "title": "Your workday ends. The questions remain.",
-    "body": "When your work changes from day to day, rough notes are not enough. Alveryn keeps the useful answers close.",
-    "questions": [
-      "How many hours did I actually work?",
-      "How much have I earned so far?",
-      "Am I working more than last month?"
-    ],
-    "answer": "Alveryn keeps the answers ready — without notes, spreadsheets or calculations at the end of the month."
+    "eyebrow": "Clarity after every workday", "title": "Your workday ends. The questions remain.",
+    "body": "A day can include a shift, completed units and a fixed-price task. Alveryn keeps them together without flattening them into one inaccurate total.",
+    "questions": ["How many hours did I actually work?", "What work did I complete today?", "How much have I earned so far?"],
+    "answer": "The answers stay ready in one work history, without loose notes or end-of-month calculations."
   },
-  "how": {
-    "eyebrow": "How it works",
-    "title": "Log the work. Alveryn handles the numbers.",
-    "body": "Add the work exactly as it happened. Alveryn calculates time, gross income, paid absences and progress from the data you enter.",
+  "setup": {
+    "eyebrow": "Your work setup", "title": "Configure the way you work once.",
+    "body": "Create simple work types or advanced categories, then let every future record use the rules that fit your job.",
     "steps": [
-      {
-        "title": "Select the type of work",
-        "description": "Choose an hourly shift, unit-based work or another configured work type."
-      },
-      {
-        "title": "Enter hours or units",
-        "description": "Add start and end time, breaks, extra pay percentage or completed units."
-      },
-      {
-        "title": "See the result immediately",
-        "description": "The app calculates worked time, estimated gross earnings and progress toward your rhythm."
-      }
-    ]
-  },
-  "analytics": {
-    "eyebrow": "Analytics",
-    "title": "See more than totals. See your pattern.",
-    "body": "Statistics turn daily entries into trend lines, comparisons, forecasts and practical highlights.",
-    "items": [
-      {
-        "title": "Trends",
-        "description": "Follow worked time, gross income, entries and worked days across the selected period."
-      },
-      {
-        "title": "Period comparisons",
-        "description": "Compare this month with the previous month or use custom periods."
-      },
-      {
-        "title": "Forecast and highlights",
-        "description": "Estimate the end of the active period and surface best days, long shifts and streaks."
-      },
-      {
-        "title": "Productivity and heatmap",
-        "description": "See unit-based workload, configured pace and the days where activity was strongest."
-      }
+      { "title": "Choose a calculation", "description": "Track time, direct unit pay, units converted to equivalent hours, or a fixed amount." },
+      { "title": "Add the relevant details", "description": "Configure breaks, unit symbols, rates, pace, teamwork and child work types only where they apply." },
+      { "title": "Reuse the setup every day", "description": "Your configured work types are ready whenever you create a new work record." }
     ]
   },
   "workTypes": {
-    "eyebrow": "Flexible tracking",
-    "title": "Made for the way you actually work.",
-    "body": "Alveryn supports hourly work, unit-based work and mixed days, so the history matches real life.",
     "items": [
-      {
-        "title": "Hourly work",
-        "description": "Track shifts, breaks, overnight work and extra pay percentages.",
-        "examples": "Examples: regular shifts, admin time, night support."
-      },
-      {
-        "title": "Unit-based work",
-        "description": "Track quantities that convert into equivalent work time.",
-        "examples": "Examples: deliveries, rooms, orders, packages or completed tasks."
-      },
-      {
-        "title": "Mixed work",
-        "description": "Combine multiple work types on the same day and keep the total clear.",
-        "examples": "Examples: a shift, then evening admin, plus completed units."
-      }
+      { "title": "Time based", "description": "Record a time interval or duration and calculate earnings from the valid hourly rate.", "examples": "Shifts, cleaning, checks or administration." },
+      { "title": "Units per hour", "description": "Convert completed quantity into equivalent hours using your configured pace.", "examples": "Rooms, deliveries, packages or orders." },
+      { "title": "Direct per unit", "description": "Calculate earnings directly from quantity multiplied by the rate per unit.", "examples": "Square metres, pieces, tasks or kilometres." },
+      { "title": "Fixed price", "description": "Record a task whose agreed amount is entered directly when the work is completed.", "examples": "A repair, installation or one-off service." }
+    ]
+  },
+  "record": {
+    "eyebrow": "One day, one clear record", "title": "Combine everything you did without losing detail.",
+    "body": "A Work Record groups the activities from one job or working day. Each Work Line keeps its own input, calculation and historical result.",
+    "steps": [
+      { "title": "Create the record", "description": "Choose the date and add the context needed for that day." },
+      { "title": "Add multiple activities", "description": "Mix hours, square metres, completed units and fixed-price work in the same record." },
+      { "title": "Save a reliable history", "description": "Alveryn stores quantity, time and money results so later configuration changes do not rewrite old work." }
+    ]
+  },
+  "analytics": {
+    "eyebrow": "From entries to understanding", "title": "See more than totals. See your pattern.",
+    "body": "As your history grows, Alveryn turns daily records into a clearer view of time, earnings and workload.",
+    "items": [
+      { "title": "Weekly rhythm", "description": "See how each day compares with the strongest day and the active week's average." },
+      { "title": "Earnings flow", "description": "Follow daily calculated income while keeping zero-activity days out of the worked-day average." },
+      { "title": "Period overview", "description": "Review totals and comparisons across the period you select." },
+      { "title": "Activity pattern", "description": "Spot stronger and lighter days without reading every record separately." }
     ]
   },
   "calendar": {
-    "eyebrow": "Calendar and absences",
-    "title": "Your entire working month, in one place.",
-    "body": "The calendar shows worked days, empty days and absences together with monthly totals for hours, paid time and gross income.",
-    "stats": [
-      "Worked days",
-      "Worked hours",
-      "Vacation and sick leave",
-      "Estimated gross income"
-    ]
+    "eyebrow": "Calendar and absences", "title": "Your entire working month, in one place.",
+    "body": "See work records and configurable absences together, while each day keeps its detailed activities.",
+    "stats": ["Worked days", "Actual and equivalent hours", "Vacation and sick leave", "Calculated gross earnings"]
   },
-  "final": {
-    "title": "Your work deserves more than a rough estimate.",
-    "subtitle": "Start building a clear history of your hours, earnings and progress today.",
-    "primaryCta": "Create your account",
-    "secondaryCta": "Sign in"
-  },
+  "final": { "title": "Your work deserves more than a rough estimate.", "subtitle": "Build a clear history of your hours, completed work and earnings from today.", "primaryCta": "Create your account", "secondaryCta": "Sign in" },
   "images": {
-    "dashboardAlt": "Alveryn dashboard showing tracked entries, gross earnings and weekly rhythm.",
-    "entryAlt": "Alveryn entry form with work type, time fields, break and extra pay percentage.",
-    "statisticsAlt": "Alveryn statistics page with trend chart, insights, forecast, comparison, productivity and heatmap.",
-    "comparisonAlt": "Alveryn comparison section comparing the current month with the previous month.",
-    "forecastAlt": "Alveryn forecast card estimating end-of-period earnings.",
-    "productivityAlt": "Alveryn productivity card showing unit totals and equivalent workload.",
-    "heatmapAlt": "Alveryn activity heatmap showing stronger and lighter working days.",
-    "calendarAlt": "Alveryn calendar page showing the month, work activity and absence markers."
+    "dashboardLabel": "Dashboard", "entryLabel": "Work record", "statisticsLabel": "Overview", "calendarLabel": "Calendar",
+    "dashboardAlt": "Alveryn dashboard component showing work records and weekly rhythm.",
+    "entryAlt": "Alveryn work record form with several activities.", "statisticsAlt": "Alveryn overview with time and earnings patterns.",
+    "comparisonAlt": "Alveryn period comparison component.", "forecastAlt": "Alveryn earnings forecast component.",
+    "productivityAlt": "Alveryn productivity component.", "heatmapAlt": "Alveryn work activity heatmap.",
+    "calendarAlt": "Alveryn calendar component showing work and absences."
   }
 }

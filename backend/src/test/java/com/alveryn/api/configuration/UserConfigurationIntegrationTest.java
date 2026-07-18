@@ -11,19 +11,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.alveryn.api.absence.entity.Absence;
 import com.alveryn.api.absence.entity.AbsenceType;
+import com.alveryn.api.absence.entity.AbsenceTypeSetting;
 import com.alveryn.api.absence.repository.AbsenceRepository;
+import com.alveryn.api.absence.repository.AbsenceTypeSettingRepository;
+import com.alveryn.api.address.repository.AddressRepository;
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
-import com.alveryn.api.workentry.entity.WorkEntry;
-import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
-import com.alveryn.api.workentry.repository.WorkEntryRepository;
+import com.alveryn.api.user.repository.UserProfileRepository;
+import com.alveryn.api.workrecord.entity.WorkRecord;
+import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
+import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
-import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
-import com.alveryn.api.worktype.repository.UnitTypeRepository;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,23 +46,26 @@ class UserConfigurationIntegrationTest {
   @Autowired JwtService jwtService;
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
-  @Autowired UnitTypeRepository unitTypes;
   @Autowired HourlyRatePeriodRepository hourlyRates;
   @Autowired AbsenceRepository absences;
-  @Autowired WorkEntryRepository workEntries;
-  @Autowired UnitEntryItemRepository unitEntryItems;
-
+  @Autowired AbsenceTypeSettingRepository absenceTypes;
+  @Autowired WorkRecordRepository workRecords;
+  @Autowired WorkRecordLineRepository workRecordLines;
+  @Autowired AddressRepository addresses;
+  @Autowired UserProfileRepository profiles;
   private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-    unitEntryItems.deleteAll();
-    workEntries.deleteAll();
+    workRecordLines.deleteAll();
+    workRecords.deleteAll();
     absences.deleteAll();
-    unitTypes.deleteAll();
+    absenceTypes.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
+    profiles.deleteAll();
+    addresses.deleteAll();
     users.deleteAll();
   }
 
@@ -97,6 +102,109 @@ class UserConfigurationIntegrationTest {
         .andExpect(jsonPath("$.data.countryCode").value("RO"))
         .andExpect(jsonPath("$.data.city").value("Bucharest"))
         .andExpect(jsonPath("$.data.apartment").doesNotExist());
+
+    var profile = profiles.findByUserId(user.getId()).orElseThrow();
+    assertThat(profile.getEmploymentStartDate()).isEqualTo(LocalDate.of(2026, 1, 10));
+    assertThat(profile.getEmploymentEndDate()).isEqualTo(LocalDate.of(2026, 1, 31));
+  }
+
+  @Test
+  void addressCrudIsUserOwnedAndCanBeAttachedToProfile() throws Exception {
+    UserAccount user = createVerifiedUser("addresses@example.com");
+    UserAccount otherUser = createVerifiedUser("addresses-other@example.com");
+
+    String addressId =
+        extractJsonValue(
+            mockMvc
+                .perform(
+                    post("/api/addresses")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "street":" Leopoldstrasse 120 ",
+                              "street2":" Etaj 2 ",
+                              "city":" Munchen ",
+                              "region":" Bavaria ",
+                              "country":"de"
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.street").value("Leopoldstrasse 120"))
+                .andExpect(jsonPath("$.data.street2").value("Etaj 2"))
+                .andExpect(jsonPath("$.data.city").value("Munchen"))
+                .andExpect(jsonPath("$.data.region").value("Bavaria"))
+                .andExpect(jsonPath("$.data.country").value("DE"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            "id");
+
+    mockMvc
+        .perform(get("/api/addresses").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.data[0].id").value(addressId));
+
+    mockMvc
+        .perform(get("/api/addresses").header(HttpHeaders.AUTHORIZATION, bearerToken(otherUser)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(0));
+
+    mockMvc
+        .perform(
+            put("/api/addresses/" + addressId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "street":"Leopoldstrasse 125",
+                      "street2":null,
+                      "city":"Munchen",
+                      "region":"Bavaria",
+                      "country":"DE"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.street").value("Leopoldstrasse 125"))
+        .andExpect(jsonPath("$.data.street2").doesNotExist());
+
+    mockMvc
+        .perform(
+            put("/api/profile")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "firstName":"Ana",
+                      "lastName":"Pop",
+                      "addressId":"%s"
+                    }
+                    """
+                        .formatted(addressId)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.addressId").value(addressId))
+        .andExpect(jsonPath("$.data.address.street").value("Leopoldstrasse 125"));
+
+    mockMvc
+        .perform(
+            put("/api/addresses/" + addressId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(otherUser))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "street":"Other",
+                      "city":"Berlin",
+                      "country":"DE"
+                    }
+                    """))
+        .andExpect(status().isNotFound());
+
+    assertThat(addresses.findAll()).hasSize(1);
   }
 
   @Test
@@ -236,6 +344,10 @@ class UserConfigurationIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.hourlyRate").value(16.00));
 
+    HourlyRatePeriod updatedRate = hourlyRates.findById(UUID.fromString(firstRateId)).orElseThrow();
+    assertThat(updatedRate.getValidFrom()).isEqualTo(LocalDate.of(2026, 1, 1));
+    assertThat(updatedRate.getValidTo()).isEqualTo(LocalDate.of(2026, 1, 31));
+
     mockMvc
         .perform(get("/api/hourly-rates/" + firstRateId).header(HttpHeaders.AUTHORIZATION, bearerToken(otherUser)))
         .andExpect(status().isNotFound());
@@ -255,12 +367,17 @@ class UserConfigurationIntegrationTest {
                     """
                     {
                       "name":"Rooms",
-                      "calculationMethod":"UNIT_BASED",
+                      "calculationMethod":"TIME_BASED",
                       "color":"#87C95A",
                       "displayOrder":1
                     }
                     """))
         .andExpect(status().isCreated());
+
+    WorkType rooms = workTypes.findAll().getFirst();
+    assertThat(rooms.getName()).isEqualTo("Rooms");
+    assertThat(rooms.getCalculationMethod()).isEqualTo(CalculationMethod.TIME_BASED);
+    assertThat(rooms.getDefaultBreakMinutes()).isEqualTo(30);
 
     mockMvc
         .perform(
@@ -296,8 +413,7 @@ class UserConfigurationIntegrationTest {
                     """))
         .andExpect(status().isBadRequest());
 
-    WorkType rooms = workTypes.findAll().getFirst();
-    createUnitBasedWorkEntry(user, rooms, createUnitType(rooms, "Suite", "2.0000"));
+    createTimeBasedWorkRecord(user, rooms, LocalDate.of(2026, 7, 1));
 
     mockMvc
         .perform(
@@ -308,7 +424,7 @@ class UserConfigurationIntegrationTest {
                     """
                     {
                       "name":"Rooms",
-                      "calculationMethod":"TIME_BASED",
+                      "calculationMethod":"UNIT_BASED",
                       "color":"#87C95A",
                       "displayOrder":1,
                       "active":true
@@ -324,89 +440,147 @@ class UserConfigurationIntegrationTest {
   }
 
   @Test
-  void unitTypeCrudRequiresUnitBasedParentRejectsDuplicatesAndSoftDeletesHistoricalTypes() throws Exception {
-    UserAccount user = createVerifiedUser("units@example.com");
+  void unusedWorkTypeWithoutChildrenIsDeletedInsteadOfDeactivated() throws Exception {
+    UserAccount user = createVerifiedUser("delete-unused-worktype@example.com");
+    WorkType unused = new WorkType(user, "Unused", CalculationMethod.TIME_BASED);
+    unused.changeColor("#87C95A");
+    workTypes.saveAndFlush(unused);
+
+    mockMvc
+        .perform(get("/api/work-types/" + unused.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.deletable").value(true));
+
+    mockMvc
+        .perform(delete("/api/work-types/" + unused.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isNoContent());
+
+    assertThat(workTypes.findById(unused.getId())).isEmpty();
+  }
+
+  @Test
+  void childWorkTypeCrudRejectsDuplicatesAndDeletesUnusedTypes() throws Exception {
+    UserAccount user = createVerifiedUser("work-formulas@example.com");
     createOpenEndedRate(user, "18.00");
-    WorkType unitBased = workTypes.saveAndFlush(new WorkType(user, "Rooms", CalculationMethod.UNIT_BASED));
+    WorkType unitBased = new WorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
     unitBased.changeColor("#87C95A");
+    unitBased.changeCompositeEnabled(true);
     workTypes.saveAndFlush(unitBased);
     WorkType timeBased = workTypes.saveAndFlush(new WorkType(user, "Hours", CalculationMethod.TIME_BASED));
     timeBased.changeColor("#87C95A");
     workTypes.saveAndFlush(timeBased);
 
-    String unitTypeId =
+    String configurationResponse =
         mockMvc
             .perform(
-                post("/api/work-types/" + unitBased.getId() + "/unit-types")
+                post("/api/work-types")
                     .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
                         {
+                          "parentId":"%s",
                           "name":"Standard",
+                          "calculationMethod":"UNITS_PER_HOUR_BASED",
+                          "compensationMethod":"HOURLY",
+                          "unitLabel":"Room",
                           "unitsPerHour":2.5,
                           "displayOrder":1,
                           "active":true
                         }
-                        """))
+                        """
+                            .formatted(unitBased.getId())))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()
             .getContentAsString();
-    String parsedUnitTypeId = extractJsonValue(unitTypeId, "id");
+    String parsedConfigurationId = extractJsonValue(configurationResponse, "id");
 
     mockMvc
         .perform(
-            post("/api/work-types/" + unitBased.getId() + "/unit-types")
+            post("/api/work-types")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "parentId":"%s",
                       "name":" standard ",
+                      "calculationMethod":"UNITS_PER_HOUR_BASED",
+                      "compensationMethod":"HOURLY",
+                      "unitLabel":"Room",
                       "unitsPerHour":3.0,
                       "displayOrder":2,
                       "active":true
                     }
-                    """))
+                    """
+                        .formatted(unitBased.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
         .perform(
-            post("/api/work-types/" + timeBased.getId() + "/unit-types")
+            post("/api/work-types")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "parentId":"%s",
                       "name":"Invalid",
+                      "calculationMethod":"UNITS_PER_HOUR_BASED",
+                      "compensationMethod":"HOURLY",
                       "unitsPerHour":1.0,
                       "displayOrder":0,
                       "active":true
                     }
-                    """))
-        .andExpect(status().isConflict());
-
-    UnitType unitType = unitTypes.findById(UUID.fromString(parsedUnitTypeId)).orElseThrow();
-    createUnitBasedWorkEntry(user, unitBased, unitType);
+                    """
+                        .formatted(timeBased.getId())))
+        .andExpect(status().isBadRequest());
 
     mockMvc
         .perform(
-            delete("/api/work-types/" + unitBased.getId() + "/unit-types/" + parsedUnitTypeId)
-                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+            delete("/api/work-types/" + parsedConfigurationId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isNoContent());
 
-    assertThat(unitTypes.findById(unitType.getId()).orElseThrow().isActive()).isFalse();
-    assertThat(unitEntryItems.existsByUnitTypeId(unitType.getId())).isTrue();
+    assertThat(workTypes.findById(UUID.fromString(parsedConfigurationId))).isEmpty();
   }
 
   @Test
-  void absencesRejectInvalidAndOverlappingRangesSupportFiltersAndOwnership() throws Exception {
-    UserAccount user = createVerifiedUser("absences@example.com");
-    UserAccount otherUser = createVerifiedUser("absences-other@example.com");
-    WorkType workType = createTimeWorkType(user, "Shift");
-    createOpenEndedRate(user, "20.00");
-    createTimeBasedWorkEntry(user, workType, LocalDate.of(2026, 7, 10));
+  void absenceTypesAreUserOwnedConfigurableAndSnapshotAbsences() throws Exception {
+    UserAccount user = createVerifiedUser("absence-types@example.com");
+    UserAccount otherUser = createVerifiedUser("absence-types-other@example.com");
+
+    mockMvc
+        .perform(get("/api/absence-types").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(0));
+
+    String customTypeId =
+        extractJsonValue(
+            mockMvc
+                .perform(
+                    post("/api/absence-types")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "name":" Training ",
+                              "code":null,
+                              "paid":true,
+                              "paidMinutesPerDay":120,
+                              "color":"#123ABC",
+                              "active":true,
+                              "displayOrder":9
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.name").value("Training"))
+                .andExpect(jsonPath("$.data.paidMinutesPerDay").value(120))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            "id");
 
     mockMvc
         .perform(
@@ -416,12 +590,93 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
-                      "absenceType":"VACATION",
+                      "absenceTypeId":"%s",
+                      "startDate":"2026-08-01",
+                      "endDate":"2026-08-01"
+                    }
+                    """
+                        .formatted(customTypeId)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.absenceTypeId").value(customTypeId))
+        .andExpect(jsonPath("$.data.absenceTypeName").value("Training"))
+        .andExpect(jsonPath("$.data.paid").value(true))
+        .andExpect(jsonPath("$.data.paidMinutesPerDay").value(120));
+
+    String absenceId = absences.findAll().getFirst().getId().toString();
+
+    mockMvc
+        .perform(
+            put("/api/absence-types/" + customTypeId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "name":"Training changed",
+                      "code":null,
+                      "paid":true,
+                      "paidMinutesPerDay":180,
+                      "color":"#123ABC",
+                      "active":true,
+                      "displayOrder":9
+                    }
+                    """))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/absences/" + absenceId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.absenceTypeName").value("Training"))
+        .andExpect(jsonPath("$.data.paidMinutesPerDay").value(120));
+
+    mockMvc
+        .perform(
+            post("/api/absences")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(otherUser))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "absenceTypeId":"%s",
+                      "startDate":"2026-08-02",
+                      "endDate":"2026-08-02"
+                    }
+                    """
+                        .formatted(customTypeId)))
+        .andExpect(status().isNotFound());
+
+    mockMvc
+        .perform(delete("/api/absence-types/" + customTypeId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isNoContent());
+
+    assertThat(absenceTypes.findById(UUID.fromString(customTypeId)).orElseThrow().isActive()).isFalse();
+  }
+
+  @Test
+  void absencesRejectInvalidAndOverlappingRangesSupportFiltersAndOwnership() throws Exception {
+    UserAccount user = createVerifiedUser("absences@example.com");
+    UserAccount otherUser = createVerifiedUser("absences-other@example.com");
+    WorkType workType = createTimeWorkType(user, "Shift");
+    createOpenEndedRate(user, "20.00");
+    createTimeBasedWorkRecord(user, workType, LocalDate.of(2026, 7, 10));
+    workRecords.saveAndFlush(new WorkRecord(user, null, LocalDate.of(2026, 7, 14), null, null));
+    AbsenceTypeSetting vacationType =
+        absenceTypes.saveAndFlush(new AbsenceTypeSetting(user, "Vacation", null, true, 150, "#10B981", 0));
+
+    mockMvc
+        .perform(
+            post("/api/absences")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "absenceTypeId":"%s",
                       "startDate":"2026-07-11",
                       "endDate":"2026-07-12",
                       "notes":" Summer "
                     }
-                    """))
+                    """.formatted(vacationType.getId())))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.notes").value("Summer"));
 
@@ -433,11 +688,11 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
-                      "absenceType":"VACATION",
+                      "absenceTypeId":"%s",
                       "startDate":"2026-07-12",
                       "endDate":"2026-07-13"
                     }
-                    """))
+                    """.formatted(vacationType.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -448,11 +703,26 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
-                      "absenceType":"SICK_LEAVE",
+                      "absenceTypeId":"%s",
                       "startDate":"2026-07-10",
                       "endDate":"2026-07-10"
                     }
-                    """))
+                    """.formatted(vacationType.getId())))
+        .andExpect(status().isConflict());
+
+    mockMvc
+        .perform(
+            post("/api/absences")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "absenceTypeId":"%s",
+                      "startDate":"2026-07-14",
+                      "endDate":"2026-07-14"
+                    }
+                    """.formatted(vacationType.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -461,13 +731,15 @@ class UserConfigurationIntegrationTest {
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .param("year", "2026")
                 .param("month", "7")
-                .param("absenceType", "VACATION")
+                .param("absenceTypeId", vacationType.getId().toString())
                 .param("size", "1"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.totalElements").value(1))
         .andExpect(jsonPath("$.data.content.length()").value(1));
 
     Absence ownedAbsence = absences.findAll().getFirst();
+    assertThat(ownedAbsence.getStartDate()).isEqualTo(LocalDate.of(2026, 7, 11));
+    assertThat(ownedAbsence.getEndDate()).isEqualTo(LocalDate.of(2026, 7, 12));
     mockMvc
         .perform(get("/api/absences/" + ownedAbsence.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(otherUser)))
         .andExpect(status().isNotFound());
@@ -545,13 +817,10 @@ class UserConfigurationIntegrationTest {
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.onboardingCompleted").value(true))
-        .andExpect(jsonPath("$.data.workTypeConfigured").value(true))
+        .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
         .andExpect(jsonPath("$.data.missingSteps.length()").value(0));
 
-    assertThat(workTypes.findAll()).hasSize(1);
-    assertThat(workTypes.findAll().getFirst().getName()).isEqualTo("Regular Shift");
-    assertThat(workTypes.findAll().getFirst().getCalculationMethod())
-        .isEqualTo(CalculationMethod.TIME_BASED);
+    assertThat(workTypes.findAll()).isEmpty();
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -581,52 +850,33 @@ class UserConfigurationIntegrationTest {
     return workTypes.saveAndFlush(workType);
   }
 
-  private UnitType createUnitType(WorkType workType, String name, String unitsPerHour) {
-    return unitTypes.saveAndFlush(new UnitType(workType, name, new BigDecimal(unitsPerHour)));
-  }
-
   private void createOpenEndedRate(UserAccount user, String rate) {
     hourlyRates.saveAndFlush(
         new HourlyRatePeriod(user, new BigDecimal(rate), "EUR", LocalDate.of(2026, 1, 1), null));
   }
 
-  private void createTimeBasedWorkEntry(UserAccount user, WorkType workType, LocalDate workDate)
+  private void createTimeBasedWorkRecord(UserAccount user, WorkType workType, LocalDate workDate)
       throws Exception {
     mockMvc
         .perform(
-            post("/api/work-entries")
+            post("/api/work-records")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
-                      "workTypeId":"%s",
                       "workDate":"%s",
-                      "startTime":"08:00:00",
-                      "endTime":"12:00:00",
-                      "unpaidBreakMinutes":0
+                      "lines":[
+                        {
+                          "workTypeId":"%s",
+                          "startTime":"08:00:00",
+                          "endTime":"12:00:00",
+                          "unpaidBreakMinutes":0
+                        }
+                      ]
                     }
                     """
-                        .formatted(workType.getId(), workDate)))
-        .andExpect(status().isCreated());
-  }
-
-  private void createUnitBasedWorkEntry(UserAccount user, WorkType workType, UnitType unitType)
-      throws Exception {
-    mockMvc
-        .perform(
-            post("/api/work-entries")
-                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "workTypeId":"%s",
-                      "workDate":"2026-07-01",
-                      "unitItems":[{"unitTypeId":"%s","quantity":2}]
-                    }
-                    """
-                        .formatted(workType.getId(), unitType.getId())))
+                        .formatted(workDate, workType.getId())))
         .andExpect(status().isCreated());
   }
 

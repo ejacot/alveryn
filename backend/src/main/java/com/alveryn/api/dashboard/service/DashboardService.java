@@ -4,8 +4,11 @@ import com.alveryn.api.absence.entity.Absence;
 import com.alveryn.api.absence.repository.AbsenceRepository;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.dashboard.dto.DashboardResponse;
-import com.alveryn.api.workentry.entity.WorkEntry;
-import com.alveryn.api.workentry.service.WorkEntryQueryService;
+import com.alveryn.api.workrecord.calculation.WorkCalculation;
+import com.alveryn.api.workrecord.entity.WorkRecord;
+import com.alveryn.api.workrecord.line.entity.WorkRecordLine;
+import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
+import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -13,6 +16,9 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DashboardService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
-  private final WorkEntryQueryService workEntryQueryService;
+  private final WorkRecordRepository workRecordRepository;
+  private final WorkRecordLineRepository workRecordLineRepository;
   private final AbsenceRepository absences;
   private final Clock clock;
 
@@ -32,17 +39,22 @@ public class DashboardService {
     LocalDate toDate = currentMonth.atEndOfMonth();
     var userId = authenticatedUserAccessor.requireUserId();
 
-    List<WorkEntry> entries = workEntryQueryService.findEntriesInRange(userId, fromDate, toDate);
+    List<WorkRecord> records =
+        workRecordRepository.findAllOverlappingRange(
+            userId, fromDate, toDate);
+    Set<UUID> recordIds = records.stream().map(WorkRecord::getId).collect(Collectors.toSet());
+    List<WorkRecordLine> recordLines =
+        recordIds.isEmpty() ? List.of() : workRecordLineRepository.findAllByWorkRecordIdIn(recordIds);
     BigDecimal workedMinutes =
-        entries.stream()
-            .map(WorkEntry::getCalculatedMinutes)
-            .reduce(BigDecimal.ZERO.setScale(WorkEntry.TIME_SCALE), BigDecimal::add);
+        recordLines.stream()
+            .map(WorkRecordLine::getCalculatedMinutes)
+            .reduce(BigDecimal.ZERO.setScale(WorkCalculation.TIME_SCALE), BigDecimal::add);
     BigDecimal grossAmount =
-        entries.stream()
-            .map(WorkEntry::getGrossAmount)
-            .reduce(BigDecimal.ZERO.setScale(WorkEntry.GROSS_SCALE), BigDecimal::add);
+        recordLines.stream()
+            .map(WorkRecordLine::getGrossAmount)
+            .reduce(BigDecimal.ZERO.setScale(WorkCalculation.GROSS_SCALE), BigDecimal::add);
     BigDecimal workedHours =
-        workedMinutes.divide(BigDecimal.valueOf(60), WorkEntry.TIME_SCALE, RoundingMode.HALF_UP);
+        workedMinutes.divide(BigDecimal.valueOf(60), WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
 
     long absenceDays =
         absences.findAllByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(userId, toDate, fromDate)
@@ -51,7 +63,7 @@ public class DashboardService {
             .sum();
 
     return new DashboardResponse(
-        currentMonth, workedHours, workedMinutes, grossAmount, entries.size(), absenceDays);
+        currentMonth, workedHours, workedMinutes, grossAmount, records.size(), absenceDays);
   }
 
   private long overlappingDays(Absence absence, LocalDate fromDate, LocalDate toDate) {

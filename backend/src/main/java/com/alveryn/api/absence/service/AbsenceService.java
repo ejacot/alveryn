@@ -4,14 +4,16 @@ import com.alveryn.api.absence.dto.AbsenceRequest;
 import com.alveryn.api.absence.dto.AbsenceResponse;
 import com.alveryn.api.absence.entity.Absence;
 import com.alveryn.api.absence.entity.AbsenceType;
+import com.alveryn.api.absence.entity.AbsenceTypeSetting;
 import com.alveryn.api.absence.repository.AbsenceRepository;
+import com.alveryn.api.absence.repository.AbsenceTypeSettingRepository;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.NotFoundException;
 import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.common.util.InputSanitizer;
 import com.alveryn.api.user.repository.UserAccountRepository;
-import com.alveryn.api.workentry.repository.WorkEntryRepository;
+import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -33,32 +35,40 @@ import org.springframework.validation.annotation.Validated;
 public class AbsenceService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final AbsenceRepository absences;
+  private final AbsenceTypeSettingRepository absenceTypes;
   private final UserAccountRepository users;
-  private final WorkEntryRepository workEntries;
+  private final WorkRecordRepository workRecords;
 
   @Transactional
   public AbsenceResponse create(@Valid AbsenceRequest request) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     validateRange(request.startDate(), request.endDate());
     ensureNoAbsenceOverlap(userId, request.startDate(), request.endDate(), null);
-    ensureNoWorkEntryOverlap(userId, request.startDate(), request.endDate());
+    ensureNoWorkRecordOverlap(userId, request.startDate(), request.endDate());
+    AbsenceTypeSetting type = resolveType(userId, request);
     Absence absence =
         new Absence(
             users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId)),
-            request.absenceType(),
+            type,
             request.startDate(),
             request.endDate());
     absence.updateNotes(InputSanitizer.trimToNull(request.notes()));
     return toResponse(absences.save(absence));
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public Page<AbsenceResponse> list(
-      Integer year, Integer month, LocalDate from, LocalDate to, AbsenceType absenceType, Pageable pageable) {
+      Integer year,
+      Integer month,
+      LocalDate from,
+      LocalDate to,
+      UUID absenceTypeId,
+      AbsenceType absenceType,
+      Pageable pageable) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     DateRange range = resolveRange(year, month, from, to);
     return absences
-        .findAll(specification(userId, range, absenceType), pageable)
+        .findAll(specification(userId, range, absenceTypeId, absenceType), pageable)
         .map(this::toResponse);
   }
 
@@ -72,10 +82,11 @@ public class AbsenceService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     validateRange(request.startDate(), request.endDate());
     ensureNoAbsenceOverlap(userId, request.startDate(), request.endDate(), id);
-    ensureNoWorkEntryOverlap(userId, request.startDate(), request.endDate());
+    ensureNoWorkRecordOverlap(userId, request.startDate(), request.endDate());
+    AbsenceTypeSetting type = resolveType(userId, request);
     Absence absence = findCurrentUserAbsence(id);
     absence.update(
-        request.absenceType(),
+        type,
         request.startDate(),
         request.endDate(),
         InputSanitizer.trimToNull(request.notes()));
@@ -105,9 +116,9 @@ public class AbsenceService {
     }
   }
 
-  private void ensureNoWorkEntryOverlap(UUID userId, LocalDate startDate, LocalDate endDate) {
-    if (workEntries.existsByUserIdAndWorkDateBetween(userId, startDate, endDate)) {
-      throw new ConflictException("Absence range overlaps existing work entries");
+  private void ensureNoWorkRecordOverlap(UUID userId, LocalDate startDate, LocalDate endDate) {
+    if (workRecords.existsByUserIdAndWorkDateBetween(userId, startDate, endDate)) {
+      throw new ConflictException("Absence range overlaps existing work records");
     }
   }
 
@@ -146,10 +157,27 @@ public class AbsenceService {
     return new DateRange(start, start.withDayOfMonth(start.lengthOfMonth()));
   }
 
-  private Specification<Absence> specification(UUID userId, DateRange range, AbsenceType absenceType) {
+  private AbsenceTypeSetting resolveType(UUID userId, AbsenceRequest request) {
+    if (request.absenceTypeId() != null) {
+      return absenceTypes
+          .findByIdAndUserId(request.absenceTypeId(), userId)
+          .filter(AbsenceTypeSetting::isActive)
+          .orElseThrow(() -> new NotFoundException("AbsenceType", request.absenceTypeId()));
+    }
+    AbsenceType legacyType = request.absenceType() == null ? AbsenceType.DAY_OFF : request.absenceType();
+    return absenceTypes
+        .findByUserIdAndCode(userId, legacyType)
+        .orElseThrow(() -> new NotFoundException("AbsenceType", legacyType.name()));
+  }
+
+  private Specification<Absence> specification(
+      UUID userId, DateRange range, UUID absenceTypeId, AbsenceType absenceType) {
     return (root, query, builder) -> {
       List<Predicate> predicates = new ArrayList<>();
       predicates.add(builder.equal(root.get("user").get("id"), userId));
+      if (absenceTypeId != null) {
+        predicates.add(builder.equal(root.get("absenceTypeSetting").get("id"), absenceTypeId));
+      }
       if (absenceType != null) {
         predicates.add(builder.equal(root.get("absenceType"), absenceType));
       }
@@ -166,11 +194,14 @@ public class AbsenceService {
   private AbsenceResponse toResponse(Absence absence) {
     return new AbsenceResponse(
         absence.getId(),
+        absence.getAbsenceTypeSetting() == null ? null : absence.getAbsenceTypeSetting().getId(),
         absence.getAbsenceType(),
+        absence.getAbsenceTypeNameSnapshot(),
+        absence.isPaidSnapshot(),
+        absence.getPaidMinutesPerDaySnapshot(),
         absence.getStartDate(),
         absence.getEndDate(),
         absence.getNotes());
   }
-
   private record DateRange(LocalDate from, LocalDate to) {}
 }

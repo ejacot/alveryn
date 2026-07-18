@@ -22,7 +22,7 @@ public class CalendarController {
   @Operation(
       summary = "Get calendar activity range",
       description =
-          "Returns the earliest date with a work entry or absence for the authenticated user. Used by the calendar to mark days between the first activity and today.",
+          "Returns the earliest date with a work record or absence for the authenticated user. Used by the calendar to mark days between the first activity and today.",
       security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<CalendarActivityRangeResponse> activityRange() {
     return ApiResponse.of(activityRangeService.getRange());

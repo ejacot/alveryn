@@ -4,19 +4,14 @@ import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.onboarding.dto.OnboardingStatusResponse;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
-import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.entity.UserPreferences;
 import com.alveryn.api.user.entity.UserProfile;
-import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.user.repository.UserProfileRepository;
 import com.alveryn.api.user.service.UserPreferencesService;
-import com.alveryn.api.worktype.entity.CalculationMethod;
-import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,10 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class OnboardingService {
-  private static final String DEFAULT_WORK_TYPE_NAME = "Regular Shift";
-
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
-  private final UserAccountRepository users;
   private final UserProfileRepository profiles;
   private final UserPreferencesRepository preferences;
   private final UserPreferencesService userPreferencesService;
@@ -77,7 +69,6 @@ public class OnboardingService {
           "Onboarding cannot be completed until missing steps are resolved: "
               + String.join(", ", status.missingSteps()));
     }
-    ensureDefaultWorkType(userId);
     UserPreferences preferences = userPreferencesService.findCurrentPreferencesOrNull();
     if (preferences == null) {
       throw new ConflictException("Onboarding cannot be completed until preferences are configured");
@@ -95,27 +86,4 @@ public class OnboardingService {
         && !profile.getLastName().isBlank();
   }
 
-  private void ensureDefaultWorkType(UUID userId) {
-    if (workTypes.existsByUserIdAndActiveTrue(userId)) {
-      return;
-    }
-
-    workTypes
-        .findByUserIdAndNormalizedName(userId, normalize(DEFAULT_WORK_TYPE_NAME))
-        .ifPresentOrElse(
-            WorkType::activate,
-            () -> {
-              UserAccount user =
-                  users.findById(userId).orElseThrow(() -> new ConflictException("User not found"));
-              WorkType workType = new WorkType(user, DEFAULT_WORK_TYPE_NAME, CalculationMethod.TIME_BASED);
-              workType.changeColor("#F4F4F5");
-              workType.changeDefaultBreakMinutes(0);
-              workType.changeDisplayOrder(0);
-              workTypes.save(workType);
-            });
-  }
-
-  private String normalize(String value) {
-    return value.trim().toLowerCase(Locale.ROOT);
-  }
 }

@@ -31,42 +31,64 @@ describe("paid absence calculation", () => {
     const paid = calculatePaidAbsenceDays({
       preferences,
       hourlyRates,
-      entries: [
-        {
-          id: "entry-1",
-          workTypeId: "wt-1",
-          workTypeName: "CHECK",
-          calculationMethod: "TIME_BASED",
-          workDate: "2026-07-15",
-          hourlyRateSnapshot: "20",
-          currencySnapshot: "EUR",
-          calculatedMinutes: "480",
-          workedHours: "8",
-          grossAmount: "160",
-          notes: null,
-          timeEntry: null,
-          unitItems: [],
-          createdAt: "2026-07-15T08:00:00Z",
-          updatedAt: "2026-07-15T08:00:00Z"
-        }
-      ],
+      activityDates: ["2026-07-15"],
       absences: [
         {
           id: "absence-sick",
+          absenceTypeId: "absence-sick-type",
           absenceType: "SICK_LEAVE",
+          absenceTypeName: "Sick",
+          paid: false,
+          paidMinutesPerDay: 480,
           startDate: "2026-07-14",
           endDate: "2026-07-14",
           notes: null
         },
         {
           id: "absence-vacation",
+          absenceTypeId: "absence-vacation-type",
           absenceType: "VACATION",
+          absenceTypeName: "Vacation",
+          paid: true,
+          paidMinutesPerDay: 480,
           startDate: "2026-07-15",
           endDate: "2026-07-16",
           notes: null
         }
       ],
       from: "2026-07-14",
+      to: "2026-07-16"
+    });
+
+    expect(paid).toEqual([
+      {
+        date: "2026-07-16",
+        minutes: 480,
+        grossAmount: 160,
+        currency: "EUR"
+      }
+    ]);
+  });
+
+  it("does not pay an absence on days covered by work records", () => {
+    const paid = calculatePaidAbsenceDays({
+      preferences,
+      hourlyRates,
+      activityDates: ["2026-07-15"],
+      absences: [
+        {
+          id: "absence-vacation",
+          absenceTypeId: "absence-vacation-type",
+          absenceType: "VACATION",
+          absenceTypeName: "Vacation",
+          paid: true,
+          paidMinutesPerDay: 480,
+          startDate: "2026-07-15",
+          endDate: "2026-07-16",
+          notes: null
+        }
+      ],
+      from: "2026-07-15",
       to: "2026-07-16"
     });
 

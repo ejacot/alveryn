@@ -63,7 +63,8 @@
     },
     "methods": {
       "time": "Muncă bazată pe timp",
-      "unit": "Muncă bazată pe unități"
+      "unit": "Muncă bazată pe unități",
+      "fixed": "Muncă cu preț fix"
     },
     "metrics": {
       "gross": "Brut",
@@ -88,7 +89,8 @@
       "hours": "Ore",
       "workedDays": "Zile lucrate",
       "entries": "Înregistrări",
-      "averagePerDay": "Medie pe zi"
+      "averagePerDay": "Medie pe zi",
+      "directUnitPayNote": "Veniturile plătite direct per unitate sunt incluse în brut. Nu au fost adăugate ore lucrate deoarece această muncă nu a fost urmărită pe timp."
     },
     "confidence": {
       "LOW": "Încredere scăzută",

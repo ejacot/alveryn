@@ -2,7 +2,6 @@ package com.alveryn.api.absence.repository;
 
 import com.alveryn.api.absence.entity.Absence;
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,7 +24,4 @@ public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpec
   @Query("select min(absence.startDate) from Absence absence where absence.user.id = :userId")
   LocalDate findEarliestStartDateByUserId(UUID userId);
 
-  List<Absence> findAllByUserIdAndImportSourceKeyIn(UUID userId, Collection<String> importSourceKeys);
-
-  List<Absence> findAllByImportBatchId(UUID importBatchId);
 }

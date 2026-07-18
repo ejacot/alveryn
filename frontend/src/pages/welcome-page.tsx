@@ -1,16 +1,26 @@
-import { ArrowRight, BarChart3, BriefcaseBusiness, Check, Clock3, LineChart, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BriefcaseBusiness,
+  CalendarDays,
+  Check,
+  ClipboardList,
+  Layers3,
+  Sparkles,
+  WalletCards
+} from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
+import calendarImage from "../assets/landing/calendar-desktop.webp";
 import dashboardDesktop from "../assets/landing/dashboard-desktop.webp";
 import dashboardMobile from "../assets/landing/dashboard-mobile.webp";
 import entryFormImage from "../assets/landing/entry-form.webp";
-import statisticsOverviewImage from "../assets/landing/statistics-overview.webp";
 import statisticsComparisonImage from "../assets/landing/statistics-comparison.webp";
 import statisticsForecastImage from "../assets/landing/statistics-forecast.webp";
-import statisticsProductivityImage from "../assets/landing/statistics-productivity.webp";
 import statisticsHeatmapImage from "../assets/landing/statistics-heatmap.webp";
-import calendarImage from "../assets/landing/calendar-desktop.webp";
+import statisticsOverviewImage from "../assets/landing/statistics-overview.webp";
+import statisticsProductivityImage from "../assets/landing/statistics-productivity.webp";
 import { AppLogo } from "../components/branding/app-logo";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
@@ -25,6 +35,18 @@ type WorkTypeItem = TextItem & {
   examples: string;
 };
 
+type ProductShotProps = {
+  src: string;
+  mobileSrc?: string;
+  alt: string;
+  loading?: "eager" | "lazy";
+  className?: string;
+  imageClassName?: string;
+  label?: string;
+};
+
+const benefitIcons = [ClipboardList, WalletCards, BriefcaseBusiness];
+const workTypeIcons = [BriefcaseBusiness, BarChart3, WalletCards, Layers3];
 const analyticsImages = [
   { key: "comparison", src: statisticsComparisonImage },
   { key: "forecast", src: statisticsForecastImage },
@@ -32,19 +54,18 @@ const analyticsImages = [
   { key: "heatmap", src: statisticsHeatmapImage }
 ];
 
-const benefitIcons = [Clock3, LineChart, BriefcaseBusiness];
-const workTypeIcons = [Clock3, BarChart3, BriefcaseBusiness];
-
 export function WelcomePage() {
   const { t } = useTranslation("welcome");
   const { isAuthenticated, isHydrating, user } = useAuth();
   const reduceMotion = useReducedMotion();
   const heroBenefits = t("hero.benefits", { returnObjects: true }) as string[];
   const problemQuestions = t("problem.questions", { returnObjects: true }) as string[];
-  const steps = t("how.steps", { returnObjects: true }) as TextItem[];
-  const analyticsItems = t("analytics.items", { returnObjects: true }) as TextItem[];
+  const setupSteps = t("setup.steps", { returnObjects: true }) as TextItem[];
+  const recordSteps = t("record.steps", { returnObjects: true }) as TextItem[];
   const workTypes = t("workTypes.items", { returnObjects: true }) as WorkTypeItem[];
+  const analyticsItems = t("analytics.items", { returnObjects: true }) as TextItem[];
   const calendarStats = t("calendar.stats", { returnObjects: true }) as string[];
+  const isInstalledApp = isStandaloneDisplayMode();
 
   if (isHydrating) {
     return <ScreenMessage title={t("loading")} />;
@@ -54,19 +75,30 @@ export function WelcomePage() {
     return <Navigate to={user?.preferences?.onboardingCompleted ? APP_HOME_PATH : "/onboarding"} replace />;
   }
 
+  if (isInstalledApp) {
+    return <Navigate to={APP_HOME_PATH} replace />;
+  }
+
   return (
-    <main className="landing-page relative isolate min-h-screen overflow-x-clip bg-[#030303] text-white">
+    <main
+      data-testid="welcome-scroll"
+      className="landing-page fixed inset-0 isolate overflow-y-auto overflow-x-hidden overscroll-y-contain bg-[#030303] text-white"
+    >
       <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-10%,rgba(244,201,93,0.13),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0)_34%)]"
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-12%,rgba(244,201,93,0.15),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_34%)]"
         aria-hidden="true"
       />
 
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-2xl">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/72 backdrop-blur-2xl">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
           <AppLogo className="justify-start" />
           <div className="hidden items-center gap-7 text-sm font-medium text-white/58 md:flex">
-            <a href="#features" className="transition hover:text-white">{t("nav.features")}</a>
-            <a href="#how-it-works" className="transition hover:text-white">{t("nav.how")}</a>
+            <a href="#features" className="transition hover:text-white">
+              {t("nav.features")}
+            </a>
+            <a href="#how-it-works" className="transition hover:text-white">
+              {t("nav.how")}
+            </a>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -85,11 +117,11 @@ export function WelcomePage() {
         </nav>
       </header>
 
-      <section className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-7xl gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:px-10 lg:py-20">
+      <section className="relative mx-auto grid min-h-[calc(100dvh-4rem)] w-full max-w-7xl gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:px-10 lg:py-16">
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 22 }}
           animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          transition={{ duration: 0.52, ease: "easeOut" }}
           className="space-y-8"
         >
           <p className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.055] px-4 py-2 text-sm font-medium text-white/70">
@@ -117,13 +149,13 @@ export function WelcomePage() {
               {t("hero.secondaryCta")}
             </a>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {heroBenefits.map((benefit, index) => {
               const Icon = benefitIcons[index] ?? Check;
               return (
-                <div key={benefit} className="rounded-[22px] border border-white/[0.08] bg-white/[0.045] p-4">
-                  <Icon className="mb-3 h-5 w-5 text-[#f4c95d]" aria-hidden="true" />
-                  <p className="text-sm font-semibold text-white/82">{benefit}</p>
+                <div key={benefit} className="min-w-0 rounded-[18px] border border-white/[0.08] bg-white/[0.045] p-3 sm:rounded-[22px] sm:p-4">
+                  <Icon className="mb-2 h-4 w-4 text-[#f4c95d] sm:mb-3 sm:h-5 sm:w-5" aria-hidden="true" />
+                  <p className="break-words text-[0.68rem] font-semibold leading-4 text-white/82 sm:text-sm">{benefit}</p>
                 </div>
               );
             })}
@@ -134,21 +166,23 @@ export function WelcomePage() {
           initial={reduceMotion ? false : { opacity: 0, scale: 0.985, y: 18 }}
           animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.08 }}
-          className="relative mx-auto w-full max-w-[620px]"
+          className="relative mx-auto w-full max-w-[660px]"
         >
-          <div className="absolute inset-8 rounded-[44px] bg-[#f4c95d]/18 blur-3xl" aria-hidden="true" />
-          <ProductImage
+          <div className="absolute inset-10 rounded-[44px] bg-[#f4c95d]/18 blur-3xl" aria-hidden="true" />
+          <ProductShot
             src={dashboardDesktop}
             mobileSrc={dashboardMobile}
             alt={t("images.dashboardAlt")}
             loading="eager"
+            label={t("images.dashboardLabel")}
             className="relative"
+            imageClassName="aspect-[1.28] object-cover object-top"
           />
         </motion.div>
       </section>
 
       <LandingSection id="features" reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
-        <div className="grid gap-10 lg:grid-cols-[0.75fr_1fr] lg:items-center">
+        <div className="grid gap-10 lg:grid-cols-[0.78fr_1fr] lg:items-center">
           <SectionIntro eyebrow={t("problem.eyebrow")} title={t("problem.title")} body={t("problem.body")} />
           <div className="space-y-4">
             {problemQuestions.map((question) => (
@@ -164,28 +198,43 @@ export function WelcomePage() {
       </LandingSection>
 
       <LandingSection id="how-it-works" reduceMotion={reduceMotion}>
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
           <div className="space-y-8">
-            <SectionIntro eyebrow={t("how.eyebrow")} title={t("how.title")} body={t("how.body")} />
-            <div className="space-y-4">
-              {steps.map((step, index) => (
-                <div key={step.title} className="grid grid-cols-[auto_1fr] gap-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold text-black">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/58">{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SectionIntro eyebrow={t("setup.eyebrow")} title={t("setup.title")} body={t("setup.body")} />
+            <StepList items={setupSteps} />
           </div>
-          <ProductImage src={entryFormImage} alt={t("images.entryAlt")} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {workTypes.map((item, index) => {
+              const Icon = workTypeIcons[index] ?? BriefcaseBusiness;
+              return (
+                <article key={item.title} className="rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-5">
+                  <Icon className="mb-5 h-6 w-6 text-[#f4c95d]" aria-hidden="true" />
+                  <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-white/58">{item.description}</p>
+                  <p className="mt-4 rounded-2xl bg-black/22 px-4 py-3 text-sm text-white/64">{item.examples}</p>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </LandingSection>
 
       <LandingSection reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="space-y-8">
+            <SectionIntro eyebrow={t("record.eyebrow")} title={t("record.title")} body={t("record.body")} />
+            <StepList items={recordSteps} />
+          </div>
+          <ProductShot
+            src={entryFormImage}
+            alt={t("images.entryAlt")}
+            label={t("images.entryLabel")}
+            imageClassName="aspect-[1.05] object-cover object-top"
+          />
+        </div>
+      </LandingSection>
+
+      <LandingSection reduceMotion={reduceMotion}>
         <div className="space-y-10">
           <div className="grid gap-6 lg:grid-cols-[0.78fr_1fr] lg:items-end">
             <SectionIntro eyebrow={t("analytics.eyebrow")} title={t("analytics.title")} body={t("analytics.body")} />
@@ -198,48 +247,41 @@ export function WelcomePage() {
               ))}
             </div>
           </div>
-          <ProductImage src={statisticsOverviewImage} alt={t("images.statisticsAlt")} className="mx-auto max-w-[620px]" />
+          <ProductShot
+            src={statisticsOverviewImage}
+            alt={t("images.statisticsAlt")}
+            label={t("images.statisticsLabel")}
+            className="mx-auto max-w-[720px]"
+            imageClassName="aspect-[1.55] object-cover object-top"
+          />
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {analyticsImages.map((image) => (
-              <ProductImage
+              <ProductShot
                 key={image.key}
                 src={image.src}
                 alt={t(`images.${image.key}Alt`)}
                 className="h-full"
-                imageClassName="h-full object-cover object-top"
+                imageClassName="aspect-[1.05] object-cover object-top"
               />
             ))}
           </div>
         </div>
       </LandingSection>
 
-      <LandingSection reduceMotion={reduceMotion}>
-        <div className="space-y-8">
-          <SectionIntro eyebrow={t("workTypes.eyebrow")} title={t("workTypes.title")} body={t("workTypes.body")} />
-          <div className="grid gap-5 lg:grid-cols-3">
-            {workTypes.map((item, index) => {
-              const Icon = workTypeIcons[index] ?? BriefcaseBusiness;
-              return (
-                <article key={item.title} className="rounded-[30px] border border-white/[0.08] bg-white/[0.045] p-6">
-                  <Icon className="mb-6 h-6 w-6 text-[#f4c95d]" aria-hidden="true" />
-                  <h3 className="text-xl font-semibold text-white">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/58">{item.description}</p>
-                  <p className="mt-5 rounded-2xl bg-black/22 px-4 py-3 text-sm text-white/64">{item.examples}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </LandingSection>
-
       <LandingSection reduceMotion={reduceMotion} className="border-y border-white/[0.06] bg-white/[0.025]">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-          <ProductImage src={calendarImage} alt={t("images.calendarAlt")} />
+          <ProductShot
+            src={calendarImage}
+            alt={t("images.calendarAlt")}
+            label={t("images.calendarLabel")}
+            imageClassName="aspect-[1.28] object-cover object-top"
+          />
           <div className="space-y-7">
             <SectionIntro eyebrow={t("calendar.eyebrow")} title={t("calendar.title")} body={t("calendar.body")} />
             <div className="grid gap-3 sm:grid-cols-2">
               {calendarStats.map((stat) => (
                 <div key={stat} className="rounded-[24px] border border-white/[0.08] bg-black/26 p-4">
+                  <CalendarDays className="mb-4 h-5 w-5 text-[#f4c95d]" aria-hidden="true" />
                   <p className="text-sm font-semibold text-white/76">{stat}</p>
                 </div>
               ))}
@@ -275,6 +317,15 @@ export function WelcomePage() {
   );
 }
 
+function isStandaloneDisplayMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const iosNavigator = window.navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia?.("(display-mode: standalone)").matches === true || iosNavigator.standalone === true;
+}
+
 function LandingSection({
   id,
   children,
@@ -291,8 +342,8 @@ function LandingSection({
       id={id}
       initial={reduceMotion ? false : { opacity: 0, y: 28 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-120px" }}
-      transition={{ duration: 0.55, ease: "easeOut" }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.52, ease: "easeOut" }}
       className={className}
     >
       <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 lg:px-10 lg:py-24">{children}</div>
@@ -310,23 +361,43 @@ function SectionIntro({ eyebrow, title, body }: { eyebrow: string; title: string
   );
 }
 
-function ProductImage({
+function StepList({ items }: { items: TextItem[] }) {
+  return (
+    <div className="space-y-4">
+      {items.map((step, index) => (
+        <div key={step.title} className="grid grid-cols-[auto_1fr] gap-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold text-black">
+            {index + 1}
+          </span>
+          <div>
+            <h3 className="text-lg font-semibold text-white">{step.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-white/58">{step.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProductShot({
   src,
   mobileSrc,
   alt,
   loading = "lazy",
   className = "",
-  imageClassName = ""
-}: {
-  src: string;
-  mobileSrc?: string;
-  alt: string;
-  loading?: "eager" | "lazy";
-  className?: string;
-  imageClassName?: string;
-}) {
+  imageClassName = "",
+  label
+}: ProductShotProps) {
   return (
-    <figure className={`overflow-hidden rounded-[34px] border border-white/[0.1] bg-white/[0.045] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.42)] ${className}`}>
+    <figure
+      className={`overflow-hidden rounded-[34px] border border-white/[0.1] bg-white/[0.045] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.42)] ${className}`}
+    >
+      {label ? (
+        <figcaption className="flex items-center justify-between px-4 pb-2 pt-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/46">
+          <span>{label}</span>
+          <span className="h-2 w-2 rounded-full bg-[#f4c95d]" aria-hidden="true" />
+        </figcaption>
+      ) : null}
       <picture>
         {mobileSrc ? <source media="(max-width: 640px)" srcSet={mobileSrc} /> : null}
         <img

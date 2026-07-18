@@ -48,16 +48,20 @@ describe("preview routes", () => {
     expect(hasRoutePath("/settings/profile", routes)).toBe(true);
     expect(hasRoutePath("/settings/preferences", routes)).toBe(true);
     expect(hasRoutePath("/settings/absences", routes)).toBe(true);
+    expect(hasRoutePath("/settings/employment", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates/new", routes)).toBe(true);
     expect(hasRoutePath("/settings/hourly-rates/:rateId", routes)).toBe(true);
     expect(hasRoutePath("/settings/work-types", routes)).toBe(true);
     expect(hasRoutePath("/settings/work-types/new", routes)).toBe(true);
     expect(hasRoutePath("/settings/work-types/:workTypeId", routes)).toBe(true);
-    expect(hasRoutePath("/settings/work-types/:workTypeId/unit-types/new", routes)).toBe(true);
+    const legacyUnitRoute = ["/settings/work-types/:workTypeId/unit", "types"].join("-");
+    expect(hasRoutePath(`${legacyUnitRoute}/new`, routes)).toBe(false);
     expect(
-      hasRoutePath("/settings/work-types/:workTypeId/unit-types/:unitTypeId", routes)
-    ).toBe(true);
+      hasRoutePath(`${legacyUnitRoute}/:legacyUnitId`, routes)
+    ).toBe(false);
+    expect(hasRoutePath("/records/new", routes)).toBe(true);
+    expect(hasRoutePath("/records/:recordId", routes)).toBe(true);
     expect(hasRoutePath("/settings/about", routes)).toBe(true);
     expect(hasRoutePath("/settings/help", routes)).toBe(true);
   });

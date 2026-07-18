@@ -6,12 +6,13 @@ import {
   getPreviousWeekDate,
   resolveWeekSwipeDirection
 } from "./week-selector.utils";
-import { listAbsencesInRange, listWorkEntriesInRange } from "../../api/endpoints";
+import { listAbsenceTypes, listAbsencesInRange, listWorkRecordsInRange } from "../../api/endpoints";
 
 vi.mock("../../api/endpoints", () => ({
   getCalendarActivityRange: vi.fn(async () => ({ firstActivityDate: "2026-07-13" })),
+  listAbsenceTypes: vi.fn(async () => []),
   listAbsencesInRange: vi.fn(async () => []),
-  listWorkEntriesInRange: vi.fn(async () => [])
+  listWorkRecordsInRange: vi.fn(async () => [])
 }));
 
 function renderSelector(value = new Date("2026-07-15T00:00:00Z")) {
@@ -111,11 +112,27 @@ describe("WeekSelector", () => {
 
   it("marks tracked empty days in red and real absences with dots", async () => {
     vi.useRealTimers();
-    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(listAbsenceTypes).mockResolvedValue([
+      {
+        id: "absence-sick-type",
+        name: "Sick",
+        code: "SICK_LEAVE",
+        paid: true,
+        paidMinutesPerDay: 480,
+        color: "#e11d48",
+        active: true,
+        displayOrder: 1
+      }
+    ]);
     vi.mocked(listAbsencesInRange).mockResolvedValue([
       {
         id: "absence-1",
+        absenceTypeId: "absence-sick-type",
         absenceType: "SICK_LEAVE",
+        absenceTypeName: "Sick",
+        paid: true,
+        paidMinutesPerDay: 480,
         startDate: "2026-07-14",
         endDate: "2026-07-14",
         notes: null
@@ -127,9 +144,38 @@ describe("WeekSelector", () => {
     const sickDay = await screen.findByRole("button", { name: /TUE 14/i });
     const emptyDay = screen.getByRole("button", { name: /MON 13/i });
     await waitFor(() => {
-      expect(sickDay.querySelector('span[class*="bg-red-500"]')).toBeInTheDocument();
+      expect(sickDay.querySelector('span[style*="background-color"]')).toHaveStyle({ backgroundColor: "#e11d48" });
       expect(sickDay.querySelector('[class*="text-red-300"]')).not.toBeInTheDocument();
       expect(emptyDay.querySelector('[class*="text-red-300"]')).toBeInTheDocument();
+    });
+  });
+
+  it("treats work records as tracked activity", async () => {
+    vi.useRealTimers();
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([
+      {
+        id: "record-1",
+        workDate: "2026-07-13",
+        addressId: null,
+        address: null,
+        teamSize: null,
+        notes: null,
+        calculatedMinutes: "480.000000000000000",
+        workedHours: "8.000000000000000",
+        grossAmount: "160.000000000000000",
+        currency: "EUR",
+        workLines: [],
+        createdAt: "2026-07-13T08:00:00Z",
+        updatedAt: "2026-07-13T08:00:00Z"
+      }
+    ]);
+
+    renderSelector(new Date("2026-07-15T00:00:00Z"));
+
+    const recordDay = await screen.findByRole("button", { name: /MON 13/i });
+    await waitFor(() => {
+      expect(recordDay.querySelector('[class*="text-red-300"]')).not.toBeInTheDocument();
+      expect(recordDay.querySelector('span[class*="bg-white"]')).toBeInTheDocument();
     });
   });
 

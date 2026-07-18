@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { getCalendarWeekdays, formatAriaDate, type CalendarDayCell } from "../../features/calendar/calendar-utils";
-import type { AbsenceType } from "../../types/absence";
-
+import type { AbsenceTypeSetting } from "../../types/absence";
 type DayMeta = {
   entriesCount: number;
-  marker: AbsenceType | null;
+  marker: { label: string; color: string } | null;
   noActivityInTrackedRange: boolean;
 };
 
@@ -17,6 +15,7 @@ type Props = {
   days: CalendarDayCell[];
   selectedDate: Date | null;
   today: Date;
+  absenceTypes: AbsenceTypeSetting[];
   getDayMeta: (isoDate: string) => DayMeta;
   onSelect: (date: Date) => void;
   onSwipeChange: (direction: -1 | 1) => void;
@@ -32,12 +31,12 @@ export function CalendarMonthGrid({
   days,
   selectedDate,
   today,
+  absenceTypes,
   getDayMeta,
   onSelect,
   onSwipeChange,
   onResolveSwipe
 }: Props) {
-  const { t } = useTranslation("calendar");
   const rowCount = days.length / 7;
   const gridClassName =
     rowCount === 4
@@ -138,12 +137,10 @@ export function CalendarMonthGrid({
                 ariaSegments.push("today");
               }
               if (meta.entriesCount > 0) {
-                ariaSegments.push(
-                  `${meta.entriesCount} work entr${meta.entriesCount === 1 ? "y" : "ies"}`
-                );
+                ariaSegments.push(`${meta.entriesCount} work record${meta.entriesCount === 1 ? "" : "s"}`);
               }
               if (meta.marker) {
-                ariaSegments.push(markerAriaLabel(meta.marker, t));
+                ariaSegments.push(meta.marker.label);
               }
 
               return (
@@ -182,10 +179,11 @@ export function CalendarMonthGrid({
                   <div className="flex min-h-[4px] items-center gap-1" aria-hidden="true">
                     {meta.marker ? (
                       <span
-                        className={cn(
-                          "h-2 w-2 rounded-full",
-                          markerClassName(meta.marker, day.inActiveMonth)
-                        )}
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor: meta.marker.color,
+                          opacity: day.inActiveMonth ? 1 : 0.45
+                        }}
                       />
                     ) : null}
                   </div>
@@ -196,40 +194,26 @@ export function CalendarMonthGrid({
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-center gap-4 pt-1 text-[10px] font-medium tracking-[0.14em] text-white/34">
-        <LegendDot className="absence-dot-free border border-white/24" label={t("legend.dayOff")} />
-        <LegendDot className="bg-red-500/90" label={t("legend.sick")} />
-        <LegendDot className="bg-emerald-500/90" label={t("legend.vacation")} />
-      </div>
+      {absenceTypes.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 text-[10px] font-medium tracking-[0.14em] text-white/34">
+          {absenceTypes.map((absenceType) => (
+            <LegendDot
+              key={absenceType.id}
+              color={absenceType.color}
+              label={absenceType.name}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
 
-function LegendDot({ className, label }: { className: string; label: string }) {
+function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn("h-2 w-2 rounded-full", className)} aria-hidden="true" />
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
       <span>{label}</span>
     </span>
   );
-}
-
-function markerClassName(marker: DayMeta["marker"], inactive: boolean) {
-  if (marker === "SICK_LEAVE") {
-    return inactive ? "bg-red-500/45" : "bg-red-500/90";
-  }
-  if (marker === "VACATION") {
-    return inactive ? "bg-emerald-500/45" : "bg-emerald-500/90";
-  }
-  return inactive ? "absence-dot-free border border-white/42" : "absence-dot-free border border-white/24";
-}
-
-function markerAriaLabel(marker: DayMeta["marker"], t: ReturnType<typeof useTranslation<"calendar">>["t"]) {
-  if (marker === "SICK_LEAVE") {
-    return t("marker.sick");
-  }
-  if (marker === "VACATION") {
-    return t("marker.vacation");
-  }
-  return t("marker.dayOff");
 }

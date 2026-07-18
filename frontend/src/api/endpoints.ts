@@ -2,21 +2,15 @@ import type { ApiMessage, ApiResponse, PageResponse } from "../types/api";
 import type { CurrentUser, AuthTokens, AuthUser } from "../types/auth";
 import type {
   HourlyRatePeriod,
-  UnitType,
   UserPreferences,
   UserProfile,
   WorkType
 } from "../types/configuration";
 import type { DashboardResponse } from "../types/dashboard";
-import type { Absence, AbsenceType } from "../types/absence";
-import type {
-  ExcelImportBatchDetail,
-  ExcelImportBatchSummary,
-  ExcelImportConfirmResult,
-  ExcelImportPreview
-} from "../types/imports";
-import type { WorkEntry, WorkEntryRequest } from "../types/work-entry";
+import type { Absence, AbsenceType, AbsenceTypeSetting } from "../types/absence";
+import type { WorkRecord, WorkRecordRequest } from "../types/work-record";
 import type { OnboardingStatus } from "../types/onboarding";
+import type { Address, AddressPayload } from "../types/address";
 import { http } from "./http";
 
 export type Credentials = {
@@ -27,6 +21,11 @@ export type Credentials = {
 export type ResetPasswordPayload = {
   email: string;
   code: string;
+  newPassword: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
   newPassword: string;
 };
 
@@ -47,9 +46,11 @@ export type UpdateProfilePayload = {
   street?: string | null;
   houseNumber?: string | null;
   apartment?: string | null;
+  addressId?: string | null;
   avatarUrl?: string | null;
   employmentStartDate: string | null;
   employmentEndDate?: string | null;
+  employmentType?: UserProfile["employmentType"];
 };
 
 export type UpdatePreferencesPayload = {
@@ -77,8 +78,16 @@ export type UpdateHourlyRatePayload = CreateHourlyRatePayload;
 
 export type CreateWorkTypePayload = {
   name: string;
+  parentId?: string | null;
   calculationMethod: WorkType["calculationMethod"];
   compensationMethod?: WorkType["compensationMethod"] | null;
+  unitLabel?: string | null;
+  unitSymbol?: string | null;
+  unitsPerHour?: number | null;
+  ratePerUnit?: number | null;
+  currency?: string | null;
+  teamworkEnabled?: boolean;
+  compositeEnabled?: boolean;
   color?: string | null;
   icon?: string | null;
   defaultBreakMinutes?: number | null;
@@ -88,18 +97,6 @@ export type CreateWorkTypePayload = {
 export type UpdateWorkTypePayload = CreateWorkTypePayload & {
   active: boolean;
 };
-
-export type CreateUnitTypePayload = {
-  name: string;
-  unitsPerHour?: number | null;
-  symbol?: string | null;
-  ratePerUnit?: number | null;
-  currency?: string | null;
-  displayOrder?: number | null;
-  active: boolean;
-};
-
-export type UpdateUnitTypePayload = CreateUnitTypePayload;
 
 export async function register(payload: Credentials) {
   const response = await http.post<ApiResponse<AuthUser>>(
@@ -133,6 +130,14 @@ export async function forgotPassword(email: string) {
 export async function resetPassword(payload: ResetPasswordPayload) {
   const response = await http.post<ApiResponse<ApiMessage>>(
     "/api/auth/reset-password",
+    payload
+  );
+  return response.data.data;
+}
+
+export async function changePassword(payload: ChangePasswordPayload) {
+  const response = await http.post<ApiResponse<ApiMessage>>(
+    "/api/auth/change-password",
     payload
   );
   return response.data.data;
@@ -196,6 +201,25 @@ export async function updatePreferences(payload: UpdatePreferencesPayload) {
     payload
   );
   return response.data.data;
+}
+
+export async function listAddresses() {
+  const response = await http.get<ApiResponse<Address[]>>("/api/addresses");
+  return response.data.data;
+}
+
+export async function createAddress(payload: AddressPayload) {
+  const response = await http.post<ApiResponse<Address>>("/api/addresses", payload);
+  return response.data.data;
+}
+
+export async function updateAddress(id: string, payload: AddressPayload) {
+  const response = await http.put<ApiResponse<Address>>(`/api/addresses/${id}`, payload);
+  return response.data.data;
+}
+
+export async function deleteAddress(id: string) {
+  await http.delete(`/api/addresses/${id}`);
 }
 
 export async function getOnboardingStatus() {
@@ -266,182 +290,41 @@ export async function deleteWorkType(id: string) {
   await http.delete(`/api/work-types/${id}`);
 }
 
-export async function listUnitTypes(workTypeId: string) {
-  const response = await http.get<ApiResponse<UnitType[]>>(
-    `/api/work-types/${workTypeId}/unit-types`
-  );
-  return response.data.data;
-}
-
-export async function createUnitType(
-  workTypeId: string,
-  payload: CreateUnitTypePayload
-) {
-  const response = await http.post<ApiResponse<UnitType>>(
-    `/api/work-types/${workTypeId}/unit-types`,
-    payload
-  );
-  return response.data.data;
-}
-
-export async function getUnitType(workTypeId: string, unitTypeId: string) {
-  const response = await http.get<ApiResponse<UnitType>>(
-    `/api/work-types/${workTypeId}/unit-types/${unitTypeId}`
-  );
-  return response.data.data;
-}
-
-export async function updateUnitType(
-  workTypeId: string,
-  unitTypeId: string,
-  payload: UpdateUnitTypePayload
-) {
-  const response = await http.put<ApiResponse<UnitType>>(
-    `/api/work-types/${workTypeId}/unit-types/${unitTypeId}`,
-    payload
-  );
-  return response.data.data;
-}
-
-export async function deleteUnitType(workTypeId: string, unitTypeId: string) {
-  await http.delete(`/api/work-types/${workTypeId}/unit-types/${unitTypeId}`);
-}
-
 export async function getDashboard() {
   const response = await http.get<ApiResponse<DashboardResponse>>("/api/dashboard");
   return response.data.data;
 }
 
-export async function getWorkEntries(
-  params?: {
-    year?: number;
-    month?: number;
-    workTypeId?: string;
-    page?: number;
-    size?: number;
-  }
-) {
-  const response =
-    await http.get<ApiResponse<PageResponse<WorkEntry>>>("/api/work-entries", {
-      params
-    });
+export async function createWorkRecord(payload: WorkRecordRequest) {
+  const response = await http.post<ApiResponse<WorkRecord>>("/api/work-records", payload);
   return response.data.data;
 }
 
-async function fetchAllPages<T>(
-  path: string,
-  params: Record<string, string | number | undefined>
-) {
-  const size = 100;
-  const firstResponse = await http.get<ApiResponse<PageResponse<T>>>(path, {
-    params: { ...params, page: 0, size }
-  });
-  const firstPage = firstResponse.data.data;
-
-  if (firstPage.totalPages <= 1) {
-    return firstPage.content;
-  }
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      http.get<ApiResponse<PageResponse<T>>>(path, {
-        params: { ...params, page: index + 1, size }
-      })
-    )
-  );
-
-  return [
-    ...firstPage.content,
-    ...remainingPages.flatMap((response) => response.data.data.content)
-  ];
+export async function updateWorkRecord(id: string, payload: WorkRecordRequest) {
+  const response = await http.put<ApiResponse<WorkRecord>>(`/api/work-records/${id}`, payload);
+  return response.data.data;
 }
 
-export function listWorkEntriesInRange(params: {
-  year?: number;
-  month?: number;
-  workTypeId?: string;
-}) {
-  return fetchAllPages<WorkEntry>("/api/work-entries", params);
+export async function getWorkRecord(id: string) {
+  const response = await http.get<ApiResponse<WorkRecord>>(`/api/work-records/${id}`);
+  return response.data.data;
 }
 
-export async function listWorkEntriesForDay(date: string) {
-  const response = await http.get<ApiResponse<WorkEntry[]>>("/api/work-entries/day", {
+export async function deleteWorkRecord(id: string) {
+  await http.delete(`/api/work-records/${id}`);
+}
+
+export async function listWorkRecordsForDay(date: string) {
+  const response = await http.get<ApiResponse<WorkRecord[]>>("/api/work-records/day", {
     params: { date }
   });
   return response.data.data;
 }
 
-export async function listRecentWorkEntries(limit = 5) {
-  const response = await http.get<ApiResponse<WorkEntry[]>>("/api/work-entries/recent", {
-    params: { limit }
+export async function listWorkRecordsInRange(params: { from: string; to: string }) {
+  const response = await http.get<ApiResponse<WorkRecord[]>>("/api/work-records/range", {
+    params
   });
-  return response.data.data;
-}
-
-export async function getWorkEntry(id: string) {
-  const response = await http.get<ApiResponse<WorkEntry>>(`/api/work-entries/${id}`);
-  return response.data.data;
-}
-
-export async function createWorkEntry(payload: WorkEntryRequest) {
-  const response = await http.post<ApiResponse<WorkEntry>>("/api/work-entries", payload);
-  return response.data.data;
-}
-
-export async function updateWorkEntry(id: string, payload: WorkEntryRequest) {
-  const response = await http.put<ApiResponse<WorkEntry>>(
-    `/api/work-entries/${id}`,
-    payload
-  );
-  return response.data.data;
-}
-
-export async function deleteWorkEntry(id: string) {
-  await http.delete(`/api/work-entries/${id}`);
-}
-
-export async function previewScheduleWorkbook(file: File, fallbackYear?: number) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await http.post<ApiResponse<ExcelImportPreview>>(
-    "/api/imports/excel/schedule/preview",
-    formData,
-    {
-      params: fallbackYear ? { fallbackYear } : undefined,
-      headers: {
-        "Content-Type": "multipart/form-data"
-      }
-    }
-  );
-  return response.data.data;
-}
-
-export async function confirmScheduleWorkbook(previewToken: string) {
-  const response = await http.post<ApiResponse<ExcelImportConfirmResult>>(
-    "/api/imports/excel/schedule/confirm",
-    { previewToken }
-  );
-  return response.data.data;
-}
-
-export async function listScheduleImports() {
-  const response = await http.get<ApiResponse<ExcelImportBatchSummary[]>>(
-    "/api/imports/excel/schedule"
-  );
-  return response.data.data;
-}
-
-export async function getScheduleImport(batchId: string) {
-  const response = await http.get<ApiResponse<ExcelImportBatchDetail>>(
-    `/api/imports/excel/schedule/${batchId}`
-  );
-  return response.data.data;
-}
-
-export async function undoScheduleImport(batchId: string) {
-  const response = await http.post<ApiResponse<ExcelImportBatchDetail>>(
-    `/api/imports/excel/schedule/${batchId}/undo`
-  );
   return response.data.data;
 }
 
@@ -451,6 +334,7 @@ export async function getAbsences(
     month?: number;
     from?: string;
     to?: string;
+    absenceTypeId?: string;
     absenceType?: AbsenceType;
     page?: number;
     size?: number;
@@ -462,8 +346,26 @@ export async function getAbsences(
   return response.data.data;
 }
 
+async function fetchAllPages<T>(url: string, params: Record<string, unknown> = {}) {
+  const firstResponse = await http.get<ApiResponse<PageResponse<T>>>(url, {
+    params: { ...params, page: 0, size: 100 }
+  });
+  const firstPage = firstResponse.data.data;
+  const content = [...firstPage.content];
+
+  for (let page = 1; page < firstPage.totalPages; page += 1) {
+    const response = await http.get<ApiResponse<PageResponse<T>>>(url, {
+      params: { ...params, page, size: firstPage.size }
+    });
+    content.push(...response.data.data.content);
+  }
+
+  return content;
+}
+
 export type CreateAbsencePayload = {
-  absenceType: AbsenceType;
+  absenceTypeId?: string | null;
+  absenceType?: AbsenceType;
   startDate: string;
   endDate: string;
   notes?: string | null;
@@ -474,12 +376,48 @@ export async function createAbsence(payload: CreateAbsencePayload) {
   return response.data.data;
 }
 
+export async function deleteAbsence(id: string) {
+  await http.delete(`/api/absences/${id}`);
+}
+
 export function listAbsencesInRange(params: {
   year?: number;
   month?: number;
   from?: string;
   to?: string;
+  absenceTypeId?: string;
   absenceType?: AbsenceType;
 }) {
   return fetchAllPages<Absence>("/api/absences", params);
+}
+
+export type AbsenceTypePayload = {
+  name: string;
+  code?: AbsenceType | null;
+  paid: boolean;
+  paidMinutesPerDay: number;
+  color?: string | null;
+  active?: boolean;
+  displayOrder?: number;
+};
+
+export async function listAbsenceTypes(activeOnly = true) {
+  const response = await http.get<ApiResponse<AbsenceTypeSetting[]>>("/api/absence-types", {
+    params: { activeOnly }
+  });
+  return response.data.data;
+}
+
+export async function createAbsenceType(payload: AbsenceTypePayload) {
+  const response = await http.post<ApiResponse<AbsenceTypeSetting>>("/api/absence-types", payload);
+  return response.data.data;
+}
+
+export async function updateAbsenceType(id: string, payload: AbsenceTypePayload) {
+  const response = await http.put<ApiResponse<AbsenceTypeSetting>>(`/api/absence-types/${id}`, payload);
+  return response.data.data;
+}
+
+export async function deleteAbsenceType(id: string) {
+  await http.delete(`/api/absence-types/${id}`);
 }

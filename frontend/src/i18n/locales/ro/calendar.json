@@ -1,4 +1,13 @@
 {
+  "monthlyCharts": {
+    "flow": "Flow",
+    "rhythm": "Ritm",
+    "dailyAverage": "Media zilnică",
+    "fromLastMonth": "față de luna trecută"
+  },
+  "jobDays_one": "{{count}} zi",
+  "jobDays_few": "{{count}} zile",
+  "jobDays_other": "{{count}} de zile",
   "title": "Calendar",
   "monthlySummaryLabel": "Rezumat lunar",
   "unavailable": "Calendarul nu este disponibil.",
@@ -29,6 +38,13 @@
     "days": "zile"
   },
   "emptyDay": "Nicio activitate.",
+  "job": "Job",
+  "jobLines_one": "{{count}} linie de lucru",
+  "jobLines_few": "{{count}} linii de lucru",
+  "jobLines_other": "{{count}} linii de lucru",
+  "jobMixed": "{{duration}} plus plata directa per unitate",
+  "jobDirectOnly": "Job platit direct per unitate",
+  "mixedCurrencies": "Mixt",
   "equivalentWorked": "Timp echivalent lucrat {{duration}}",
   "directUnitPay": "Plata directa per unitate",
   "addEntryForDay": "Adaugă o intrare pentru această zi"

@@ -4,7 +4,10 @@ import { getCurrentUser, login, logout, refreshSession, register } from "../../a
 import { queryKeys } from "../../api/query-keys";
 import {
   clearTokens,
+  getStoredAccessToken,
   hasStoredSession,
+  markSessionActive,
+  setStoredAccessToken,
   storeSession,
   subscribeToAuthStorage
 } from "../../api/auth-storage";
@@ -18,9 +21,11 @@ type Props = {
   children: React.ReactNode;
 };
 
+let sessionRestorePromise: Promise<void> | null = null;
+
 export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [isHydrating, setIsHydrating] = useState(() => hasStoredSession());
+  const [isHydrating, setIsHydrating] = useState(true);
   const queryClient = useQueryClient();
 
   const refreshCurrentUser = useCallback(async () => {
@@ -33,6 +38,38 @@ export function AuthProvider({ children }: Props) {
     setUser(nextUser);
     return nextUser;
   }, [queryClient]);
+
+  const ensureSessionReady = useCallback(async () => {
+    if (!hasStoredSession()) {
+      return;
+    }
+    if (!getStoredAccessToken()) {
+      sessionRestorePromise ??= refreshSession()
+        .then((result) => {
+          setStoredAccessToken(result.accessToken);
+        })
+        .finally(() => {
+          sessionRestorePromise = null;
+        });
+      await sessionRestorePromise;
+    }
+  }, []);
+
+  const restoreSessionFromCookie = useCallback(async () => {
+    if (getStoredAccessToken()) {
+      return;
+    }
+
+    sessionRestorePromise ??= refreshSession()
+      .then((result) => {
+        setStoredAccessToken(result.accessToken);
+        markSessionActive();
+      })
+      .finally(() => {
+        sessionRestorePromise = null;
+      });
+    await sessionRestorePromise;
+  }, []);
 
   async function loginWithPassword(email: string, password: string) {
     const result = await login({ email, password });
@@ -77,9 +114,8 @@ export function AuthProvider({ children }: Props) {
 
     async function hydrate() {
       try {
-        if (hasStoredSession()) {
-          await refreshCurrentUser();
-        }
+        await restoreSessionFromCookie();
+        await refreshCurrentUser();
       } catch {
         clearTokens();
         setUser(null);
@@ -101,7 +137,8 @@ export function AuthProvider({ children }: Props) {
       }
 
       setIsHydrating(true);
-      void refreshCurrentUser()
+      void ensureSessionReady()
+        .then(refreshCurrentUser)
         .catch(() => {
           clearTokens();
           queryClient.clear();
@@ -117,7 +154,7 @@ export function AuthProvider({ children }: Props) {
       unsubscribe();
       setAuthFailureHandler(null);
     };
-  }, [queryClient, refreshCurrentUser]);
+  }, [ensureSessionReady, queryClient, refreshCurrentUser, restoreSessionFromCookie]);
 
   return (
     <AuthContext.Provider

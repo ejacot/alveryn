@@ -3,7 +3,7 @@ package com.alveryn.api.salary.service;
 import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
-import com.alveryn.api.workentry.entity.WorkEntry;
+import com.alveryn.api.workrecord.calculation.WorkCalculation;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -24,7 +24,7 @@ public class SalaryCalculationService {
     return new SalarySnapshot(
         period.getHourlyRate(),
         period.getCurrency(),
-        WorkEntry.calculateGross(calculatedMinutes, period.getHourlyRate()));
+        WorkCalculation.calculateGross(calculatedMinutes, period.getHourlyRate()));
   }
 
   @Transactional(readOnly = true)

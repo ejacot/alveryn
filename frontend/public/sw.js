@@ -1,7 +1,5 @@
 /* global self, caches, fetch */
 
-const CACHE_VERSION = "alveryn-shell-v1";
-
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
@@ -9,7 +7,7 @@ self.addEventListener("install", () => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key)))
+      Promise.all(keys.map((key) => caches.delete(key)))
     )
   );
   self.clients.claim();

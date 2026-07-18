@@ -1,4 +1,12 @@
 {
+  "monthlyCharts": {
+    "flow": "Flow",
+    "rhythm": "Rhythmus",
+    "dailyAverage": "Tagesdurchschnitt",
+    "fromLastMonth": "zum Vormonat"
+  },
+  "jobDays_one": "{{count}} Tag",
+  "jobDays_other": "{{count}} Tage",
   "title": "Kalender",
   "monthlySummaryLabel": "Monatsübersicht",
   "unavailable": "Kalender ist nicht verfügbar.",
@@ -29,6 +37,12 @@
     "days": "Tage"
   },
   "emptyDay": "Keine Aktivitäten.",
+  "job": "Job",
+  "jobLines_one": "{{count}} Arbeitszeile",
+  "jobLines_other": "{{count}} Arbeitszeilen",
+  "jobMixed": "{{duration}} plus direkte Zahlung pro Einheit",
+  "jobDirectOnly": "Direkt pro Einheit bezahlter Job",
+  "mixedCurrencies": "Gemischt",
   "equivalentWorked": "Entsprechende Arbeitszeit {{duration}}",
   "directUnitPay": "Direkte Zahlung pro Einheit",
   "addEntryForDay": "Eintrag für diesen Tag hinzufügen"

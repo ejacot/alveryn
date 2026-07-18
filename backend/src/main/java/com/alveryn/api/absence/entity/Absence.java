@@ -1,7 +1,6 @@
 package com.alveryn.api.absence.entity;
 
 import com.alveryn.api.common.persistence.BaseEntity;
-import com.alveryn.api.imports.entity.ExcelImportBatch;
 import com.alveryn.api.user.entity.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,8 +15,6 @@ import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -32,6 +29,19 @@ public class Absence extends BaseEntity {
   @Column(name = "absence_type", nullable = false, length = 30)
   private AbsenceType absenceType;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "absence_type_id")
+  private AbsenceTypeSetting absenceTypeSetting;
+
+  @Column(name = "absence_type_name_snapshot", nullable = false, length = 80)
+  private String absenceTypeNameSnapshot;
+
+  @Column(name = "paid_snapshot", nullable = false)
+  private boolean paidSnapshot;
+
+  @Column(name = "paid_minutes_per_day_snapshot", nullable = false)
+  private int paidMinutesPerDaySnapshot;
+
   @Column(name = "start_date", nullable = false)
   private LocalDate startDate;
 
@@ -41,21 +51,23 @@ public class Absence extends BaseEntity {
   @Column(length = 500)
   private String notes;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "import_batch_id")
-  private ExcelImportBatch importBatch;
-
-  @Column(name = "import_source_key", length = 255)
-  private String importSourceKey;
-
-  @JdbcTypeCode(SqlTypes.CHAR)
-  @Column(name = "import_fingerprint", length = 64)
-  private String importFingerprint;
-
   public Absence(
       UserAccount user, AbsenceType absenceType, LocalDate startDate, LocalDate endDate) {
     this.user = Objects.requireNonNull(user, "user is required");
     this.absenceType = Objects.requireNonNull(absenceType, "absenceType is required");
+    this.absenceTypeNameSnapshot = defaultName(absenceType);
+    this.paidSnapshot = false;
+    this.paidMinutesPerDaySnapshot = 0;
+    if (startDate == null || endDate == null || endDate.isBefore(startDate))
+      throw new IllegalArgumentException("invalid absence range");
+    this.startDate = startDate;
+    this.endDate = endDate;
+  }
+
+  public Absence(
+      UserAccount user, AbsenceTypeSetting absenceTypeSetting, LocalDate startDate, LocalDate endDate) {
+    this.user = Objects.requireNonNull(user, "user is required");
+    applyAbsenceType(absenceTypeSetting);
     if (startDate == null || endDate == null || endDate.isBefore(startDate))
       throw new IllegalArgumentException("invalid absence range");
     this.startDate = startDate;
@@ -64,6 +76,10 @@ public class Absence extends BaseEntity {
 
   public void update(AbsenceType absenceType, LocalDate startDate, LocalDate endDate, String notes) {
     this.absenceType = Objects.requireNonNull(absenceType, "absenceType is required");
+    this.absenceTypeSetting = null;
+    this.absenceTypeNameSnapshot = defaultName(absenceType);
+    this.paidSnapshot = false;
+    this.paidMinutesPerDaySnapshot = 0;
     if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
       throw new IllegalArgumentException("invalid absence range");
     }
@@ -72,30 +88,38 @@ public class Absence extends BaseEntity {
     updateNotes(notes);
   }
 
+  public void update(
+      AbsenceTypeSetting absenceTypeSetting, LocalDate startDate, LocalDate endDate, String notes) {
+    applyAbsenceType(absenceTypeSetting);
+    if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+      throw new IllegalArgumentException("invalid absence range");
+    }
+    this.startDate = startDate;
+    this.endDate = endDate;
+    updateNotes(notes);
+  }
+
+  private void applyAbsenceType(AbsenceTypeSetting value) {
+    AbsenceTypeSetting type = Objects.requireNonNull(value, "absenceType is required");
+    absenceTypeSetting = type;
+    absenceType = type.getCode() == null ? AbsenceType.DAY_OFF : type.getCode();
+    absenceTypeNameSnapshot = type.getName();
+    paidSnapshot = type.isPaid();
+    paidMinutesPerDaySnapshot = type.getPaidMinutesPerDay();
+  }
+
   public void updateNotes(String value) {
     if (value != null && value.length() > 500)
       throw new IllegalArgumentException("notes exceeds 500 characters");
     notes = value;
   }
 
-  public void markImported(ExcelImportBatch importBatch, String importSourceKey, String importFingerprint) {
-    this.importBatch = Objects.requireNonNull(importBatch, "importBatch is required");
-    this.importSourceKey = requireImportText(importSourceKey, "importSourceKey is required", 255);
-    this.importFingerprint = requireImportText(importFingerprint, "importFingerprint is required", 64);
-  }
-
-  public boolean isImported() {
-    return importBatch != null;
-  }
-
-  private static String requireImportText(String value, String message, int maxLength) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(message);
-    }
-    String trimmed = value.trim();
-    if (trimmed.length() > maxLength) {
-      throw new IllegalArgumentException(message);
-    }
-    return trimmed;
+  private static String defaultName(AbsenceType absenceType) {
+    return switch (absenceType) {
+      case DAY_OFF -> "Free";
+      case VACATION -> "Vacation";
+      case SICK_LEAVE -> "Sick";
+      case PUBLIC_HOLIDAY -> "Holiday";
+    };
   }
 }

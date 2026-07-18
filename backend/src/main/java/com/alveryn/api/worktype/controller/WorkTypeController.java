@@ -94,7 +94,7 @@ public class WorkTypeController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @Operation(
       summary = "Delete a work type",
-      description = "Soft-deletes a work type by deactivating it to preserve historical work entry snapshots.",
+      description = "Deletes unused work types and deactivates used work types to preserve historical snapshots.",
       security = @SecurityRequirement(name = "bearerAuth"))
   public void delete(@PathVariable UUID id) {
     workTypeService.delete(id);

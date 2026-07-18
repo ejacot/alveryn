@@ -35,7 +35,10 @@ describe("WelcomePage", () => {
     expect(screen.getAllByRole("link", { name: /start tracking/i })[0]).toHaveAttribute("href", "/register");
     expect(screen.getByRole("link", { name: /see how it works/i })).toHaveAttribute("href", "#how-it-works");
     expect(screen.getByText("No spreadsheets")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /dashboard showing tracked entries/i })).toBeInTheDocument();
+    expect(screen.getByText("Direct per unit")).toBeInTheDocument();
+    expect(screen.getByText("One day, one clear record")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /dashboard component showing work records/i })).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-scroll")).toHaveClass("overflow-y-auto");
   });
 
   it("redirects authenticated users to the app home", () => {
@@ -52,5 +55,22 @@ describe("WelcomePage", () => {
     );
 
     expect(screen.getByText("App home")).toBeInTheDocument();
+  });
+
+  it("opens the app route when launched from an installed home-screen app", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path={APP_HOME_PATH} element={<p>Installed app home</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Installed app home")).toBeInTheDocument();
+    window.matchMedia = originalMatchMedia;
   });
 });

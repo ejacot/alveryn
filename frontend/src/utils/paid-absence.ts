@@ -1,6 +1,5 @@
-import type { Absence, AbsenceType } from "../types/absence";
+import type { Absence } from "../types/absence";
 import type { HourlyRatePeriod, UserPreferences } from "../types/configuration";
-import type { WorkEntry } from "../types/work-entry";
 import { eachDayOfInterval, formatLocalIsoDate, parseLocalIsoDate } from "./date";
 
 export type PaidAbsenceDay = {
@@ -10,41 +9,37 @@ export type PaidAbsenceDay = {
   currency: string;
 };
 
-export function isPaidAbsenceType(absenceType: AbsenceType, preferences: UserPreferences | null | undefined) {
-  if (absenceType === "SICK_LEAVE") {
-    return preferences?.paidSickLeave ?? true;
+export function isPaidAbsence(absence: Absence, preferences: UserPreferences | null | undefined) {
+  if (typeof absence.paid === "boolean") {
+    return absence.paid;
   }
-  if (absenceType === "VACATION") {
-    return preferences?.paidVacation ?? true;
-  }
-  return false;
+  return Boolean(preferences);
 }
 
 export function calculatePaidAbsenceDays({
   absences,
-  entries,
+  activityDates = [],
   hourlyRates,
   preferences,
   from,
   to
 }: {
   absences: Absence[];
-  entries: WorkEntry[];
+  activityDates?: string[];
   hourlyRates: HourlyRatePeriod[];
   preferences: UserPreferences | null | undefined;
   from: string;
   to: string;
 }) {
-  const paidMinutes = preferences?.preferredDailyMinutes ?? 480;
-  if (paidMinutes <= 0) {
-    return [];
-  }
-
-  const entryDates = new Set(entries.map((entry) => entry.workDate));
+  const entryDates = new Set(activityDates);
   const result: PaidAbsenceDay[] = [];
 
   absences.forEach((absence) => {
-    if (!isPaidAbsenceType(absence.absenceType, preferences)) {
+    if (!isPaidAbsence(absence, preferences)) {
+      return;
+    }
+    const paidMinutes = absence.paidMinutesPerDay ?? preferences?.preferredDailyMinutes ?? 480;
+    if (paidMinutes <= 0) {
       return;
     }
 

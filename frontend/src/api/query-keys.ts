@@ -1,18 +1,9 @@
-type WorkEntriesParams = {
-  year?: number;
-  month?: number;
-  workTypeId?: string;
-  page?: number;
-  size?: number;
-};
-
-type WorkEntriesRangeParams = Omit<WorkEntriesParams, "page" | "size">;
-
 type AbsencesParams = {
   year?: number;
   month?: number;
   from?: string;
   to?: string;
+  absenceTypeId?: string;
   absenceType?: string;
   page?: number;
   size?: number;
@@ -42,6 +33,9 @@ export const queryKeys = {
   currentUser: () => ["current-user"] as const,
   profile: () => ["profile"] as const,
   preferences: () => ["preferences"] as const,
+  addresses: {
+    all: () => ["addresses"] as const
+  },
   onboardingStatus: () => ["onboarding-status"] as const,
   dashboard: () => ["dashboard"] as const,
   calendar: {
@@ -55,29 +49,20 @@ export const queryKeys = {
     all: () => ["work-types"] as const,
     detail: (id: string) => ["work-types", "detail", id] as const
   },
-  unitTypes: {
-    all: () => ["unit-types"] as const,
-    list: (workTypeId: string) => ["unit-types", "list", workTypeId] as const,
-    detail: (workTypeId: string, unitTypeId: string) =>
-      ["unit-types", "detail", workTypeId, unitTypeId] as const
-  },
-  workEntries: {
-    all: () => ["work-entries"] as const,
-    list: (params: WorkEntriesParams) => ["work-entries", "list", params] as const,
-    range: (params: WorkEntriesRangeParams) => ["work-entries", "range", params] as const,
-    day: (date: string) => ["work-entries", "day", date] as const,
-    recent: (limit: number) => ["work-entries", "recent", limit] as const,
-    detail: (id: string) => ["work-entries", "detail", id] as const
+  workRecords: {
+    all: () => ["work-records"] as const,
+    day: (date: string) => ["work-records", "day", date] as const,
+    range: (params: { from: string; to: string }) => ["work-records", "range", params] as const,
+    detail: (id: string) => ["work-records", "detail", id] as const
   },
   absences: {
     all: () => ["absences"] as const,
     list: (params: AbsencesParams) => ["absences", "list", params] as const,
     range: (params: AbsencesRangeParams) => ["absences", "range", params] as const
   },
-  imports: {
-    all: () => ["imports"] as const,
-    history: () => ["imports", "history"] as const,
-    detail: (batchId: string) => ["imports", "detail", batchId] as const
+  absenceTypes: {
+    all: () => ["absence-types"] as const,
+    list: (activeOnly: boolean) => ["absence-types", "list", activeOnly] as const
   },
   statistics: {
     all: () => ["statistics"] as const,

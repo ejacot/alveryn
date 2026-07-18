@@ -24,65 +24,92 @@ vi.mock("../api/endpoints", () => ({
   createAbsence: vi.fn(),
   getAbsences: vi.fn(),
   getPreferences: vi.fn(),
+  listAbsenceTypes: vi.fn(),
   listHourlyRates: vi.fn(),
-  listWorkEntriesForDay: vi.fn(),
-  listWorkEntriesInRange: vi.fn()
+  listWorkRecordsInRange: vi.fn()
 }));
 
 import {
   createAbsence,
   getAbsences,
   getPreferences,
+  listAbsenceTypes,
   listHourlyRates,
-  listWorkEntriesForDay,
-  listWorkEntriesInRange
+  listWorkRecordsInRange
 } from "../api/endpoints";
 
-const timeEntry = {
-  id: "entry-1",
-  workTypeId: "wt-time",
-  workTypeName: "Regular Shift",
-  calculationMethod: "TIME_BASED" as const,
+const timeRecord = {
+  id: "record-1",
   workDate: "2026-07-13",
-  hourlyRateSnapshot: "20",
-  currencySnapshot: "EUR",
   calculatedMinutes: "450",
   workedHours: "7.5",
   grossAmount: "150",
+  currency: "EUR",
+  addressId: null,
+  address: null,
+  teamSize: null,
   notes: null,
-  timeEntry: {
-    startTime: "08:00",
-    endTime: "16:00",
-    breakMinutes: 30,
-    totalIntervalMinutes: 480,
-    workedMinutes: 450
-  },
-  unitItems: [],
+  workLines: [
+    {
+      id: "line-1",
+      workTypeId: "wt-time",
+      displayOrder: 0,
+      workTypeName: "Regular Shift",
+      configurationName: "Regular Shift",
+      calculationMode: "TIME_HOURLY" as const,
+      startTime: "08:00",
+      endTime: "16:00",
+      durationMinutes: null,
+      breakMinutes: 30,
+      calculatedMinutes: "450",
+      workedHours: "7.5",
+      hourlyRateSnapshot: "20",
+      ratePerUnitSnapshot: null,
+      currencySnapshot: "EUR",
+      grossAmount: "150",
+      extraPayPercentage: 0,
+      notes: null
+    }
+  ],
   createdAt: "2026-07-13T09:00:00Z",
   updatedAt: "2026-07-13T09:00:00Z"
 };
 
-const unitEntry = {
-  id: "entry-2",
-  workTypeId: "wt-unit",
-  workTypeName: "Orders",
-  calculationMethod: "UNIT_BASED" as const,
+const unitRecord = {
+  id: "record-2",
   workDate: "2026-07-12",
-  hourlyRateSnapshot: "20",
-  currencySnapshot: "EUR",
   calculatedMinutes: "120",
   workedHours: "2.0",
   grossAmount: "40",
+  currency: "EUR",
+  addressId: null,
+  address: null,
+  teamSize: null,
   notes: null,
-  timeEntry: null,
-  unitItems: [
+  workLines: [
     {
-      id: "unit-entry-1",
-      unitTypeId: "unit-1",
-      unitName: "Orders",
-      quantity: "60",
-      unitsPerHourSnapshot: "30",
-      calculatedMinutes: "120"
+      id: "line-2",
+      workTypeId: "wt-unit",
+      displayOrder: 0,
+      workTypeName: "Orders",
+      configurationName: "Orders",
+      calculationMode: "UNITS_PER_HOUR" as const,
+      unitLabel: "Order",
+      unitSymbol: null,
+      quantity: "4",
+      unitsPerHourSnapshot: "2",
+      startTime: null,
+      endTime: null,
+      durationMinutes: null,
+      breakMinutes: null,
+      calculatedMinutes: "120",
+      workedHours: "2.0",
+      hourlyRateSnapshot: "20",
+      ratePerUnitSnapshot: null,
+      currencySnapshot: "EUR",
+      grossAmount: "40",
+      extraPayPercentage: 0,
+      notes: null
     }
   ],
   createdAt: "2026-07-12T09:00:00Z",
@@ -124,7 +151,11 @@ describe("DashboardPage", () => {
     navigateMock.mockReset();
     vi.mocked(createAbsence).mockResolvedValue({
       id: "absence-1",
+      absenceTypeId: "absence-vacation-type",
       absenceType: "VACATION",
+      absenceTypeName: "Vacation",
+      paid: true,
+      paidMinutesPerDay: 480,
       startDate: "2026-07-13",
       endDate: "2026-07-13",
       notes: null
@@ -154,8 +185,19 @@ describe("DashboardPage", () => {
         validTo: null
       }
     ]);
-    vi.mocked(listWorkEntriesForDay).mockResolvedValue([timeEntry]);
-    vi.mocked(listWorkEntriesInRange).mockResolvedValue([timeEntry, unitEntry]);
+    vi.mocked(listAbsenceTypes).mockResolvedValue([
+      {
+        id: "absence-vacation-type",
+        name: "Vacation",
+        code: "VACATION",
+        paid: true,
+        paidMinutesPerDay: 480,
+        color: "#22c55e",
+        active: true,
+        displayOrder: 2
+      }
+    ]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([timeRecord, unitRecord]);
   });
 
   it("renders the selected day without recent entries and opens existing activity", async () => {
@@ -164,26 +206,22 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
     expect(screen.queryByText("Orders")).not.toBeInTheDocument();
-    expect(screen.getByText("08:00 – 16:00")).toBeInTheDocument();
+    expect(screen.queryByText("1 work line")).not.toBeInTheDocument();
     expect(screen.getAllByText("Monday, July 13")).toHaveLength(1);
     expect(screen.queryByText("Recent entries")).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(listWorkEntriesForDay).toHaveBeenCalledWith("2026-07-13");
-      expect(listWorkEntriesInRange).toHaveBeenCalledWith({
-        year: 2026,
-        month: 7
-      });
+      expect(listWorkRecordsInRange).toHaveBeenCalled();
     });
 
     expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /^regular shift/i }));
-    expect(navigateMock).toHaveBeenCalledWith("/entries/entry-1");
+    await user.click(screen.getByRole("button", { name: /regular shift/i }));
+    expect(navigateMock).toHaveBeenCalledWith("/records/record-1?returnDate=2026-07-13");
   });
 
   it("creates an absence for an empty selected day", async () => {
-    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
     renderPage();
     const user = userEvent.setup();
 
@@ -192,7 +230,7 @@ describe("DashboardPage", () => {
     await user.click(screen.getByRole("button", { name: "Vacation" }));
 
     expect(createAbsence).toHaveBeenCalledWith({
-      absenceType: "VACATION",
+      absenceTypeId: "absence-vacation-type",
       startDate: "2026-07-13",
       endDate: "2026-07-13",
       notes: null
@@ -200,12 +238,16 @@ describe("DashboardPage", () => {
   });
 
   it("renders existing absence as selected-day activity", async () => {
-    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
     vi.mocked(getAbsences).mockResolvedValue({
       content: [
         {
           id: "absence-1",
+          absenceTypeId: "absence-sick-type",
           absenceType: "SICK_LEAVE",
+          absenceTypeName: "Sick",
+          paid: true,
+          paidMinutesPerDay: 480,
           startDate: "2026-07-13",
           endDate: "2026-07-13",
           notes: null
@@ -227,21 +269,25 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Sick")).toBeInTheDocument();
     expect(screen.getByText("Day off")).toBeInTheDocument();
     expect(screen.getByText("Equivalent worked time: 8h 00m")).toBeInTheDocument();
+    expect(screen.getByText("8h 00m paid")).toBeInTheDocument();
     expect(screen.queryByText("No work planned")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
   });
 
   it("marks weekly absence days in the rhythm chart", async () => {
-    vi.mocked(listWorkEntriesForDay).mockResolvedValue([]);
-    vi.mocked(listWorkEntriesInRange).mockResolvedValue([]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
     vi.mocked(getAbsences).mockImplementation(async (params = {}) => {
-      if (params.from === "2026-07-13" && params.to === "2026-07-19") {
+      if (params.from === "2026-07-06" && params.to === "2026-07-19") {
         return {
           ...emptyAbsencePage(),
           content: [
             {
               id: "absence-weekly",
+              absenceTypeId: "absence-sick-type",
               absenceType: "SICK_LEAVE",
+              absenceTypeName: "Sick",
+              paid: true,
+              paidMinutesPerDay: 480,
               startDate: "2026-07-15",
               endDate: "2026-07-15",
               notes: null
@@ -258,15 +304,67 @@ describe("DashboardPage", () => {
 
     renderPage();
 
-    expect(await screen.findByLabelText("Wed, Sick")).toBeInTheDocument();
+    expect(await screen.findAllByLabelText("Wed, Sick")).toHaveLength(2);
     expect(screen.queryByText("Sick")).not.toBeInTheDocument();
   });
 
-  it("keeps over-target rhythm days as their real worked total", async () => {
-    vi.mocked(listWorkEntriesInRange).mockResolvedValue([
+  it("excludes absence days when allocating a multi-day record", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([
       {
-        ...timeEntry,
-        calculatedMinutes: "720"
+        ...timeRecord,
+        workEndDate: "2026-07-17",
+        calculatedMinutes: "2400",
+        grossAmount: "1000",
+        workLines: timeRecord.workLines.map((line) => ({
+          ...line,
+          calculatedMinutes: "2400",
+          workedHours: "40",
+          grossAmount: "1000"
+        }))
+      }
+    ]);
+    vi.mocked(getAbsences).mockImplementation(async (params = {}) => {
+      if (params.from === "2026-07-06" && params.to === "2026-07-19") {
+        return {
+          ...emptyAbsencePage(),
+          content: [
+            {
+              id: "absence-weekly",
+              absenceTypeId: "absence-vacation-type",
+              absenceType: "VACATION",
+              absenceTypeName: "Vacation",
+              paid: true,
+              paidMinutesPerDay: 480,
+              startDate: "2026-07-15",
+              endDate: "2026-07-15",
+              notes: null
+            }
+          ],
+          totalElements: 1,
+          totalPages: 1,
+          numberOfElements: 1
+        };
+      }
+      return emptyAbsencePage();
+    });
+
+    renderPage();
+
+    expect(await screen.findAllByLabelText("Wed, Vacation")).toHaveLength(2);
+    expect(screen.getByText("10 h")).toBeInTheDocument();
+    expect(screen.getAllByText("€250.00").length).toBeGreaterThan(0);
+  });
+
+  it("keeps over-target rhythm days as their real worked total", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([
+      {
+        ...timeRecord,
+        calculatedMinutes: "720",
+        workLines: timeRecord.workLines?.map((line) => ({
+          ...line,
+          calculatedMinutes: "720",
+          workedHours: "12.00"
+        }))
       }
     ]);
 
@@ -275,47 +373,13 @@ describe("DashboardPage", () => {
     expect(await screen.findByLabelText("Mon, 12h 00m")).toBeInTheDocument();
   });
 
-  it("renders unit-based activity as compact initial and quantity badges", async () => {
+  it("renders legacy unit-based activity without unit item details", async () => {
     routeState.selectedDate = new Date("2026-07-12T00:00:00");
-    vi.mocked(listWorkEntriesForDay).mockResolvedValue([
-      {
-        ...unitEntry,
-        unitItems: [
-          {
-            id: "unit-entry-normal",
-            unitTypeId: "unit-normal",
-            unitName: "Normal",
-            quantity: "10",
-            unitsPerHourSnapshot: "2.4",
-            calculatedMinutes: "250"
-          },
-          {
-            id: "unit-entry-junior",
-            unitTypeId: "unit-junior",
-            unitName: "Junior",
-            quantity: "2",
-            unitsPerHourSnapshot: "1.8",
-            calculatedMinutes: "67"
-          },
-          {
-            id: "unit-entry-president",
-            unitTypeId: "unit-president",
-            unitName: "President",
-            quantity: "2",
-            unitsPerHourSnapshot: "1.2",
-            calculatedMinutes: "100"
-          }
-        ]
-      }
-    ]);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([unitRecord]);
 
     renderPage();
 
     const activityCard = await screen.findByRole("button", { name: /orders/i });
-    expect(screen.getByLabelText("Normal 10")).toHaveTextContent("N10");
-    expect(screen.getByLabelText("Junior 2")).toHaveTextContent("J2");
-    expect(screen.getByLabelText("President 2")).toHaveTextContent("P2");
-    expect(within(activityCard).getByText(/equivalent/i)).toBeInTheDocument();
     expect(within(activityCard).getByText(/2h 00m/i)).toBeInTheDocument();
   });
 });

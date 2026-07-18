@@ -1,36 +1,40 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import type { WorkEntry } from "../../types/work-entry";
+import type { WorkRecord, WorkRecordLine } from "../../types/work-record";
 import type { Absence } from "../../types/absence";
-import { UnitBreakdownBadges } from "../work-entry/unit-breakdown-badges";
+import type { SelectedDayActivity } from "../../types/dashboard";
+import { SelectedDayActivityCard } from "../dashboard/selected-day-activity-card";
 import { daysBetweenInclusive, parseLocalIsoDate } from "../../utils/date";
-import { formatCurrency, formatMinutesAsDuration, formatTimeRange } from "../../utils/format";
+import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 
 type Props = {
   title: string;
-  entries: WorkEntry[];
+  records?: WorkRecord[];
   absence: Absence | null;
   paidAbsenceMinutes?: number;
+  absenceColor?: string;
   onEntrySelect: (entryId: string) => void;
 };
 
 export function CalendarSelectedDayPanel({
   title,
-  entries,
+  records = [],
   absence,
   paidAbsenceMinutes = 0,
+  absenceColor,
   onEntrySelect
 }: Props) {
   const { t } = useTranslation("calendar");
-  const hasContent = entries.length > 0 || absence;
+  const hasContent = records.length > 0 || absence;
   const titleEyebrow = title.replace(",", "").toUpperCase();
+  const activities = buildCalendarActivities(records, t);
 
   return (
     <section className="space-y-4" aria-label="Selected day details">
       <p className="hairline-text">{titleEyebrow}</p>
 
       <AnimatePresence mode="popLayout" initial={false}>
-        {entries.length ? (
+        {activities.length ? (
           <motion.div
             key={`entries-${title}`}
             initial={{ opacity: 0, y: 10 }}
@@ -39,55 +43,12 @@ export function CalendarSelectedDayPanel({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-3"
           >
-            {entries.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => onEntrySelect(entry.id)}
-                className="dashboard-glass-card w-full px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold tracking-[-0.03em] text-white">
-                      {entry.workTypeName}
-                    </p>
-                    {formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ? (
-                      <p className="mt-1 text-sm text-white/52">
-                        {formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime)}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <p className="text-sm font-semibold text-white/90">
-                      {formatCurrency(entry.grossAmount, entry.currencySnapshot)}
-                    </p>
-                    {(entry.extraPayPercentage ?? 0) > 0 ? (
-                      <p className="text-xs font-semibold text-amber-200">+{entry.extraPayPercentage}%</p>
-                    ) : null}
-                  </div>
-                </div>
-                {entry.unitItems.length ? (
-                  <UnitBreakdownBadges
-                    items={entry.unitItems.map((item) => ({
-                      id: item.id,
-                      label: item.unitName,
-                      quantity: item.unitSymbol
-                        ? `${Number(item.quantity).toLocaleString()} ${item.unitSymbol}`
-                        : Number(item.quantity).toLocaleString(),
-                      displayOrder: item.displayOrder
-                    }))}
-                  />
-                ) : null}
-                <p className="mt-3 text-sm text-white/40">
-                  {(entry.compensationMethod ?? "HOURLY") === "PER_UNIT"
-                    ? t("directUnitPay")
-                    : entry.calculationMethod === "UNIT_BASED"
-                    ? t("equivalentWorked", {
-                        duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-                      })
-                    : formatMinutesAsDuration(Number(entry.calculatedMinutes))}
-                </p>
-              </button>
+            {activities.map((activity) => (
+              <SelectedDayActivityCard
+                key={activity.id}
+                activity={activity}
+                onSelect={onEntrySelect}
+              />
             ))}
           </motion.div>
         ) : null}
@@ -117,11 +78,15 @@ export function CalendarSelectedDayPanel({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold tracking-[-0.03em] text-white">
-                  {absenceTitle(absence.absenceType, t)}
+                  {absence.absenceTypeName || absenceTitle(absence.absenceType, t)}
                 </p>
                 <p className="mt-1 text-sm text-white/52">{t("absence.dayOff")}</p>
               </div>
-              <span className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceMarkerClassName(absence.absenceType)}`} aria-hidden="true" />
+              <span
+                className={`mt-1 h-2.5 w-2.5 rounded-full ${absenceColor ? "" : absenceMarkerClassName(absence.absenceType)}`}
+                style={absenceColor ? { backgroundColor: absenceColor } : undefined}
+                aria-hidden="true"
+              />
             </div>
             <p className="mt-3 text-sm text-white/40">
               {paidAbsenceMinutes > 0
@@ -145,6 +110,91 @@ function countAbsenceDays(absence: Absence) {
     parseLocalIsoDate(absence.startDate),
     parseLocalIsoDate(absence.endDate)
   );
+}
+
+function buildCalendarActivities(
+  records: WorkRecord[],
+  t: ReturnType<typeof useTranslation<"calendar">>["t"]
+): SelectedDayActivity[] {
+  return records
+    .filter((record) => record.workLines?.length)
+    .sort((left, right) => recordStartValue(left).localeCompare(recordStartValue(right)))
+    .map((record) => toPhaseTwoRecordActivity(record, t));
+}
+
+function recordStartValue(record: WorkRecord) {
+  const startTime = record.workLines?.find((line) => line.startTime)?.startTime ?? "23:59";
+  return `${record.workDate}T${startTime}`;
+}
+
+function toPhaseTwoRecordActivity(record: WorkRecord, t: ReturnType<typeof useTranslation<"calendar">>["t"]) {
+  const workLines = record.workLines ?? [];
+  const timeLines = workLines.filter(
+    (line) => line.calculationMode === "TIME_HOURLY" || line.calculationMode === "UNITS_PER_HOUR"
+  );
+  const minutes = timeLines.reduce((total, line) => total + Number(line.calculatedMinutes), 0);
+  const currencies = new Set(workLines.map((line) => line.currencySnapshot));
+  const durationDays = daysBetweenInclusive(
+    parseLocalIsoDate(record.workDate),
+    parseLocalIsoDate(record.workEndDate ?? record.workDate)
+  );
+
+  return {
+    id: `record:${record.id}`,
+    title: "",
+    kind: "UNIT_BASED" as const,
+    subtitle: record.workEndDate ? t("jobDays", { count: durationDays }) : "",
+    address: record.address?.formatted ?? null,
+    periodLabel: record.workEndDate ? formatRecordPeriod(record) : null,
+    amount: currencies.size === 1 && record.currency
+      ? formatCurrency(record.grossAmount, record.currency)
+      : t("mixedCurrencies"),
+    extraPayLabel: null,
+    duration: timeLines.length ? formatMinutesAsDuration(minutes) : "",
+    unitBreakdown: workLines.flatMap(toPhaseTwoLineBreakdown)
+  };
+}
+
+function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
+  if (line.calculationMode === "TIME_HOURLY") {
+    const enteredTime = line.durationMinutes != null
+      ? formatMinutesAsDuration(line.durationMinutes)
+      : line.startTime && line.endTime
+        ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
+        : "";
+    return [{
+      id: line.id,
+      label: line.workTypeName,
+      quantity: enteredTime,
+      displayOrder: line.displayOrder
+    }];
+  }
+  if (line.calculationMode === "FIXED_AMOUNT") {
+    return [
+      {
+        id: line.id,
+        label: line.workTypeName,
+        quantity: formatCurrency(line.fixedAmountSnapshot ?? "0", line.currencySnapshot),
+        displayOrder: line.displayOrder
+      }
+    ];
+  }
+  const unit = line.unitSymbol ?? line.unitLabel ?? "";
+  return [
+    {
+      id: line.id,
+      label: line.workTypeName,
+      quantity: unit ? `${Number(line.quantity ?? 0).toLocaleString()} ${unit}` : Number(line.quantity ?? 0).toLocaleString(),
+      displayOrder: line.displayOrder
+    }
+  ];
+}
+
+function formatRecordPeriod(record: WorkRecord) {
+  const formatter = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+  return `${formatter.format(parseLocalIsoDate(record.workDate))}–${formatter.format(
+    parseLocalIsoDate(record.workEndDate ?? record.workDate)
+  )}`;
 }
 
 function absenceTitle(absenceType: Absence["absenceType"], t: ReturnType<typeof useTranslation<"calendar">>["t"]) {

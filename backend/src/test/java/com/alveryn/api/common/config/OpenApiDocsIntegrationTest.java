@@ -37,6 +37,6 @@ class OpenApiDocsIntegrationTest {
         .andExpect(content().string(org.hamcrest.Matchers.containsString("ApiResponseHourlyRatePeriodResponse")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("ApiResponsePageResponseAbsenceResponse")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("OnboardingStatusApiResponse")))
-        .andExpect(content().string(org.hamcrest.Matchers.containsString("WorkEntryPageApiResponse")));
+        .andExpect(content().string(org.hamcrest.Matchers.containsString("WorkRecordResponse")));
   }
 }

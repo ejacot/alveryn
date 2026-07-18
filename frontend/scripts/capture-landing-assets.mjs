@@ -185,30 +185,60 @@ async function seedDemoData() {
     displayOrder: 5
   }, "Create admin work type");
 
-  const deliveryOrder = await apiPost(api, `/api/work-types/${deliveries.id}/unit-types`, {
+  const clientShiftConfig = await apiPost(api, `/api/work-types/${clientShifts.id}/configurations`, {
+    name: "Client shift",
+    calculationMode: "TIME_HOURLY",
+    defaultBreakMinutes: 30,
+    active: true
+  }, "Create client shift formula");
+  const nightSupportConfig = await apiPost(api, `/api/work-types/${nightSupport.id}/configurations`, {
+    name: "Night support",
+    calculationMode: "TIME_HOURLY",
+    defaultBreakMinutes: 45,
+    active: true
+  }, "Create night support formula");
+  const adminConfig = await apiPost(api, `/api/work-types/${admin.id}/configurations`, {
+    name: "Admin tasks",
+    calculationMode: "TIME_HOURLY",
+    defaultBreakMinutes: 15,
+    active: true
+  }, "Create admin formula");
+  const deliveryOrder = await apiPost(api, `/api/work-types/${deliveries.id}/configurations`, {
     name: "Completed orders",
+    calculationMode: "UNITS_PER_HOUR",
+    unitLabel: "Order",
+    unitSymbol: "orders",
     unitsPerHour: 5,
     displayOrder: 1,
     active: true
-  }, "Create order unit type");
-  const packedBox = await apiPost(api, `/api/work-types/${deliveries.id}/unit-types`, {
+  }, "Create order formula");
+  const packedBox = await apiPost(api, `/api/work-types/${deliveries.id}/configurations`, {
     name: "Packed boxes",
+    calculationMode: "UNITS_PER_HOUR",
+    unitLabel: "Box",
+    unitSymbol: "boxes",
     unitsPerHour: 8,
     displayOrder: 2,
     active: true
-  }, "Create box unit type");
-  const cleanedRoom = await apiPost(api, `/api/work-types/${housekeeping.id}/unit-types`, {
+  }, "Create box formula");
+  const cleanedRoom = await apiPost(api, `/api/work-types/${housekeeping.id}/configurations`, {
     name: "Cleaned rooms",
+    calculationMode: "UNITS_PER_HOUR",
+    unitLabel: "Room",
+    unitSymbol: "rooms",
     unitsPerHour: 2,
     displayOrder: 1,
     active: true
-  }, "Create room unit type");
-  const inspections = await apiPost(api, `/api/work-types/${housekeeping.id}/unit-types`, {
+  }, "Create room formula");
+  const inspections = await apiPost(api, `/api/work-types/${housekeeping.id}/configurations`, {
     name: "Room inspections",
+    calculationMode: "UNITS_PER_HOUR",
+    unitLabel: "Inspection",
+    unitSymbol: "checks",
     unitsPerHour: 3,
     displayOrder: 2,
     active: true
-  }, "Create inspection unit type");
+  }, "Create inspection formula");
 
   const absences = [
     ["PUBLIC_HOLIDAY", "2026-05-01", "2026-05-01", "Local public holiday"],
@@ -238,71 +268,86 @@ async function seedDemoData() {
         continue;
       }
       if (["2026-05-09", "2026-06-13", "2026-07-04"].includes(workDate)) {
-        await apiPost(api, "/api/work-entries", {
-          workTypeId: nightSupport.id,
+        await apiPost(api, "/api/work-records", {
           workDate,
-          startTime: "22:00",
-          endTime: "06:00",
-          unpaidBreakMinutes: 45,
-          extraPayPercentage: 25,
+          lines: [{
+            workTypeId: nightSupport.id,
+            workTypeConfigurationId: nightSupportConfig.id,
+            startTime: "22:00",
+            endTime: "06:00",
+            unpaidBreakMinutes: 45,
+            extraPayPercentage: 25
+          }],
           notes: "Demo overnight shift"
         }, `Create overnight ${workDate}`);
         continue;
       }
       if (weekday === 6) {
-        await apiPost(api, "/api/work-entries", {
-          workTypeId: deliveries.id,
+        await apiPost(api, "/api/work-records", {
           workDate,
-          unitItems: [
-            { unitTypeId: deliveryOrder.id, quantity: 12 + (day % 6) },
-            { unitTypeId: packedBox.id, quantity: 18 + (day % 8) }
+          lines: [
+            { workTypeId: deliveries.id, workTypeConfigurationId: deliveryOrder.id, quantity: 12 + (day % 6) },
+            { workTypeId: deliveries.id, workTypeConfigurationId: packedBox.id, quantity: 18 + (day % 8) }
           ],
           notes: "Demo weekend unit work"
         }, `Create weekend units ${workDate}`);
         continue;
       }
       if (weekday === 2 || weekday === 4) {
-        await apiPost(api, "/api/work-entries", {
-          workTypeId: deliveries.id,
+        await apiPost(api, "/api/work-records", {
           workDate,
-          unitItems: [
-            { unitTypeId: deliveryOrder.id, quantity: 18 + (day % 7) },
-            { unitTypeId: packedBox.id, quantity: 20 + (day % 10) }
+          lines: [
+            {
+              workTypeId: deliveries.id,
+              workTypeConfigurationId: deliveryOrder.id,
+              quantity: 18 + (day % 7),
+              extraPayPercentage: weekday === 4 ? 10 : 0
+            },
+            {
+              workTypeId: deliveries.id,
+              workTypeConfigurationId: packedBox.id,
+              quantity: 20 + (day % 10),
+              extraPayPercentage: weekday === 4 ? 10 : 0
+            }
           ],
-          extraPayPercentage: weekday === 4 ? 10 : 0,
           notes: "Demo unit-based work"
         }, `Create delivery units ${workDate}`);
         if (weekday === 4) {
-          await apiPost(api, "/api/work-entries", {
-            workTypeId: admin.id,
+          await apiPost(api, "/api/work-records", {
             workDate,
-            startTime: "17:15",
-            endTime: "19:00",
-            unpaidBreakMinutes: 0,
+            lines: [{
+              workTypeId: admin.id,
+              workTypeConfigurationId: adminConfig.id,
+              startTime: "17:15",
+              endTime: "19:00",
+              unpaidBreakMinutes: 0
+            }],
             notes: "Demo evening admin wrap-up"
           }, `Create admin ${workDate}`);
         }
         continue;
       }
       const isShort = weekday === 3 && day % 2 === 0;
-      await apiPost(api, "/api/work-entries", {
-        workTypeId: clientShifts.id,
+      await apiPost(api, "/api/work-records", {
         workDate,
-        startTime: isShort ? "09:00" : "08:00",
-        endTime: isShort ? "14:30" : weekday === 5 ? "18:00" : "16:30",
-        unpaidBreakMinutes: isShort ? 15 : 30,
-        extraPayPercentage: weekday === 5 ? 15 : 0,
+        lines: [{
+          workTypeId: clientShifts.id,
+          workTypeConfigurationId: clientShiftConfig.id,
+          startTime: isShort ? "09:00" : "08:00",
+          endTime: isShort ? "14:30" : weekday === 5 ? "18:00" : "16:30",
+          unpaidBreakMinutes: isShort ? 15 : 30,
+          extraPayPercentage: weekday === 5 ? 15 : 0
+        }],
         notes: "Demo time-based shift"
       }, `Create shift ${workDate}`);
     }
   }
 
-  await apiPost(api, "/api/work-entries", {
-    workTypeId: housekeeping.id,
+  await apiPost(api, "/api/work-records", {
     workDate: screenshotDate,
-    unitItems: [
-      { unitTypeId: cleanedRoom.id, quantity: 7 },
-      { unitTypeId: inspections.id, quantity: 4 }
+    lines: [
+      { workTypeId: housekeeping.id, workTypeConfigurationId: cleanedRoom.id, quantity: 7 },
+      { workTypeId: housekeeping.id, workTypeConfigurationId: inspections.id, quantity: 4 }
     ],
     notes: "Demo same-day mixed work"
   }, "Create screenshot day housekeeping");
@@ -359,8 +404,8 @@ async function captureAssets(user) {
   await page.goto(`${baseURL}/calendar`, { waitUntil: "networkidle" });
   await screenshotLocator(page, "main.screen-shell", "calendar-desktop");
 
-  await page.goto(`${baseURL}/entries/new?date=${screenshotDate}`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: /Client shifts/i }).click();
+  await page.goto(`${baseURL}/records/new?date=${screenshotDate}`, { waitUntil: "networkidle" });
+  await page.getByLabel("Activity").selectOption({ label: "Client shifts" });
   await page.getByRole("textbox", { name: "Start" }).fill("08:30");
   await page.getByRole("textbox", { name: "End" }).fill("17:15");
   await page.getByRole("spinbutton", { name: "Break (minutes)" }).fill("30");

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,7 @@ import {
   updateHourlyRate
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
+import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
@@ -25,7 +27,10 @@ import { todayLocalIsoDate } from "../utils/date";
 function createSchema(t: (key: string) => string) {
   return z
   .object({
-    hourlyRate: z.coerce.number().min(0, t("hourlyRateEditor.validation.hourlyRate")),
+    hourlyRate: z.preprocess(
+      (value) => typeof value === "string" ? value.replace(",", ".") : value,
+      z.coerce.number().min(0, t("hourlyRateEditor.validation.hourlyRate"))
+    ),
     currency: z.string().length(3, t("hourlyRateEditor.validation.currency")),
     validFrom: z.string().min(1, t("hourlyRateEditor.validation.validFrom")),
     validTo: z.string().optional()
@@ -47,6 +52,8 @@ export function HourlyRateEditorPage() {
   const isEditing = Boolean(rateId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [suppressUnsavedGuard, setSuppressUnsavedGuard] = useState(false);
+  const [hourlyRateClearedOnFocus, setHourlyRateClearedOnFocus] = useState(false);
   const safeBack = useSafeBackNavigation({ fallback: "/settings/hourly-rates" });
 
   const rateQuery = useQuery({
@@ -58,7 +65,7 @@ export function HourlyRateEditorPage() {
   const form = useForm<FormInput, undefined, FormValues>({
     resolver: zodResolver(createSchema(t)),
     defaultValues: {
-      hourlyRate: 0,
+      hourlyRate: "0",
       currency: "EUR",
       validFrom: todayLocalIsoDate(),
       validTo: ""
@@ -68,7 +75,7 @@ export function HourlyRateEditorPage() {
   useEffect(() => {
     if (!rateQuery.data) return;
     form.reset({
-      hourlyRate: Number(rateQuery.data.hourlyRate),
+      hourlyRate: rateQuery.data.hourlyRate,
       currency: rateQuery.data.currency,
       validFrom: rateQuery.data.validFrom,
       validTo: rateQuery.data.validTo ?? ""
@@ -79,10 +86,10 @@ export function HourlyRateEditorPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
-    navigate("/settings/hourly-rates", { replace: true });
+    window.setTimeout(() => navigate("/settings/hourly-rates", { replace: true }), 520);
   }
 
   const saveMutation = useMutation({
@@ -91,6 +98,8 @@ export function HourlyRateEditorPage() {
         ? updateHourlyRate(rateId!, toRatePayload(values))
         : createHourlyRate(toRatePayload(values)),
     onSuccess: async () => {
+      setSuppressUnsavedGuard(true);
+      form.reset(form.getValues());
       setSuccessMessage(isEditing ? t("hourlyRateEditor.updated") : t("hourlyRateEditor.created"));
       await afterSuccess();
     },
@@ -105,6 +114,7 @@ export function HourlyRateEditorPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteHourlyRate(rateId!),
     onSuccess: async () => {
+      setSuppressUnsavedGuard(true);
       setShowConfirm(false);
       await afterSuccess();
     }
@@ -112,6 +122,7 @@ export function HourlyRateEditorPage() {
 
   const { confirmOrRun, dialog } = useUnsavedChangesGuard({
     isDirty:
+      !suppressUnsavedGuard &&
       form.formState.isDirty &&
       !saveMutation.isPending &&
       !deleteMutation.isPending
@@ -126,6 +137,7 @@ export function HourlyRateEditorPage() {
   }
 
   const title = isEditing ? t("hourlyRateEditor.editTitle") : t("hourlyRateEditor.addTitle");
+  const hourlyRateField = form.register("hourlyRate");
 
   return (
     <div
@@ -160,42 +172,54 @@ export function HourlyRateEditorPage() {
           </button>
         </div>
 
+        <div className="mb-5">
+          <SettingsContextCard context="hourlyRateEditor" />
+        </div>
+
         <div className="space-y-3">
-          <Input
-            type="number"
-            step="0.01"
-            min={0}
-            inputMode="decimal"
-            label={t("hourlyRateEditor.fields.hourlyRate")}
-            error={form.formState.errors.hourlyRate?.message}
-            {...form.register("hourlyRate")}
-          />
-          <Select label={t("hourlyRateEditor.fields.currency")} error={form.formState.errors.currency?.message} {...form.register("currency")}>
-            {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </Select>
-          <Input
-            type="date"
-            wrapperClassName="mx-auto w-full max-w-[15rem]"
-            label={t("hourlyRateEditor.fields.validFrom")}
-            error={form.formState.errors.validFrom?.message}
-            {...form.register("validFrom")}
-          />
-          <Input
-            type="date"
-            wrapperClassName="mx-auto w-full max-w-[15rem]"
-            label={t("hourlyRateEditor.fields.validTo")}
-            error={form.formState.errors.validTo?.message}
-            {...form.register("validTo")}
-          />
+          <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
+            <Input
+              type="text"
+              inputMode="decimal"
+              label={t("hourlyRateEditor.fields.hourlyRate")}
+              error={form.formState.errors.hourlyRate?.message}
+              {...hourlyRateField}
+              onFocus={() => {
+                if (hourlyRateClearedOnFocus) {
+                  return;
+                }
+
+                setHourlyRateClearedOnFocus(true);
+                form.setValue("hourlyRate", "", { shouldDirty: true, shouldTouch: true });
+              }}
+            />
+            <Select label={t("hourlyRateEditor.fields.currency")} error={form.formState.errors.currency?.message} {...form.register("currency")}>
+              {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              type="date"
+              className="!mx-0 !max-w-none"
+              label={t("hourlyRateEditor.fields.validFrom")}
+              error={form.formState.errors.validFrom?.message}
+              {...form.register("validFrom")}
+            />
+            <Input
+              type="date"
+              className="!mx-0 !max-w-none"
+              label={t("hourlyRateEditor.fields.validTo")}
+              error={form.formState.errors.validTo?.message}
+              {...form.register("validTo")}
+            />
+          </div>
         </div>
 
         {saveMutation.error ? <p className="mt-4 text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
-        {successMessage ? <p className="mt-4 text-sm font-medium text-emerald-200">{successMessage}</p> : null}
-
         <div className="mt-6 flex items-center gap-3">
           {isEditing ? (
             <button
@@ -227,6 +251,14 @@ export function HourlyRateEditorPage() {
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
       {dialog}
+      {successMessage ? (
+        <div className="glass-panel fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
+            <Check className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

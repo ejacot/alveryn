@@ -28,7 +28,8 @@ export const hourlyRateStepSchema = z.object({
     },
     z.number().min(0, "Rate must be zero or positive")
   ),
-  currency: z.string().trim().length(3, "Use a 3-letter currency").transform((value) => value.toUpperCase())
+  currency: z.string().trim().length(3, "Use a 3-letter currency").transform((value) => value.toUpperCase()),
+  validFrom: z.string().trim().optional().or(z.literal(""))
 });
 
 export type HourlyRateStepValues = z.infer<typeof hourlyRateStepSchema>;
@@ -43,11 +44,3 @@ export const workTypeStepSchema = z.object({
 });
 
 export type WorkTypeStepValues = z.infer<typeof workTypeStepSchema>;
-
-export const unitTypeStepSchema = z.object({
-  name: z.string().trim().min(1, "Unit type name is required").max(100),
-  unitsPerHour: z.coerce.number().positive("Units per hour must be greater than zero"),
-  displayOrder: z.coerce.number().int().min(0)
-});
-
-export type UnitTypeStepValues = z.infer<typeof unitTypeStepSchema>;

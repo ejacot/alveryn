@@ -243,4 +243,13 @@ public class AuthController {
     refreshTokenCookieService.clearRefreshToken(response);
     return ApiResponse.of(result);
   }
+
+  @PostMapping("/change-password")
+  @Operation(
+      summary = "Change password",
+      description = "Verifies the authenticated user's current password and replaces it with a new password.")
+  public ApiResponse<GenericSuccessResponse> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request) {
+    return ApiResponse.of(authService.changePassword(request));
+  }
 }

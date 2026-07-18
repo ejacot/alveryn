@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alveryn Database ERD</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --panel: rgba(255, 255, 255, 0.055);
+      --panel-strong: rgba(255, 255, 255, 0.085);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.55);
+      --soft: rgba(255, 255, 255, 0.34);
+      --accent: #f97316;
+      --green: #34d399;
+      --blue: #60a5fa;
+      --red: #f87171;
+      --violet: #a78bfa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 1280px;
+      background:
+        radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 28rem),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8, 8, 8, 0.86);
+      backdrop-filter: blur(22px);
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin-top: 0.3rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.35rem 0.65rem;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    main {
+      padding: 1.5rem;
+    }
+
+    .notice {
+      max-width: 1040px;
+      margin-bottom: 1.25rem;
+      border: 1px solid rgba(249, 115, 22, 0.22);
+      border-radius: 18px;
+      background: rgba(249, 115, 22, 0.08);
+      padding: 1rem 1.1rem;
+      color: rgba(255, 255, 255, 0.78);
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(270px, 1fr));
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .domain {
+      display: grid;
+      gap: 0.85rem;
+      min-width: 0;
+    }
+
+    .domain-title {
+      color: var(--soft);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .table {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    .table h3 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.98rem;
+      letter-spacing: -0.02em;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 0.18rem 0.48rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0.75rem 0.95rem 0.9rem;
+      list-style: none;
+    }
+
+    li {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.7rem;
+      padding: 0.28rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.78rem;
+    }
+
+    li:last-child {
+      border-bottom: 0;
+    }
+
+    code {
+      color: rgba(255, 255, 255, 0.9);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.76rem;
+    }
+
+    .type {
+      color: var(--soft);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.7rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .pk code::after {
+      content: " PK";
+      color: var(--accent);
+      font-size: 0.66rem;
+      font-weight: 800;
+    }
+
+    .fk code::after {
+      content: " FK";
+      color: var(--blue);
+      font-size: 0.66rem;
+      font-weight: 800;
+    }
+
+    .snapshot code::after {
+      content: " snapshot";
+      color: var(--green);
+      font-size: 0.66rem;
+      font-weight: 800;
+    }
+
+    .legacy code::after {
+      content: " legacy";
+      color: var(--red);
+      font-size: 0.66rem;
+      font-weight: 800;
+    }
+
+    .relations {
+      margin-top: 1.25rem;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+    }
+
+    .relation-panel {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 1rem;
+    }
+
+    .relation-panel h2 {
+      margin-bottom: 0.7rem;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .relation-list {
+      display: grid;
+      gap: 0.45rem;
+      padding: 0;
+    }
+
+    .relation-list li {
+      display: block;
+      border: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 0.62rem 0.72rem;
+      line-height: 1.45;
+    }
+
+    .arrow {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .removed {
+      color: rgba(248, 113, 113, 0.88);
+    }
+
+    .current {
+      color: rgba(52, 211, 153, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Alveryn Database ERD</h1>
+      <p class="subtitle">Generated from current Flyway migrations and JPA entities. Schema version: V36.</p>
+    </div>
+    <div class="legend">
+      <span class="pill">PK primary key</span>
+      <span class="pill">FK foreign key</span>
+      <span class="pill">snapshot historical value</span>
+      <span class="pill">legacy compatibility</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      Current architecture: <strong>WorkRecord</strong> groups one day/job, <strong>WorkRecordLine</strong> stores performed activities, and <strong>WorkType</strong> is now both formula and optional parent category. <span class="removed">`unit_types`, `unit_entry_items`, `work_type_configurations`, `work_entries`, Excel import tables and `time_spans` are removed from the current schema.</span>
+    </div>
+
+    <section class="layout" aria-label="Database tables">
+      <div class="domain">
+        <p class="domain-title">Identity</p>
+        <article class="table">
+          <h3>user_accounts <span class="tag">root</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li><code>email</code><span class="type">varchar(255)</span></li>
+            <li><code>password_hash</code><span class="type">varchar(255)</span></li>
+            <li><code>email_verified</code><span class="type">boolean</span></li>
+            <li><code>status</code><span class="type">ACTIVE | LOCKED | DELETED</span></li>
+            <li><code>security_code_hash</code><span class="type">varchar(255)</span></li>
+            <li><code>security_code_expires_at</code><span class="type">timestamptz</span></li>
+            <li><code>failed_login_attempts</code><span class="type">integer</span></li>
+            <li><code>locked_until</code><span class="type">timestamptz</span></li>
+            <li><code>last_login_at</code><span class="type">timestamptz</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>user_profiles <span class="tag">1:1</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>address_id</code><span class="type">uuid</span></li>
+            <li><code>first_name</code><span class="type">varchar(80)</span></li>
+            <li><code>last_name</code><span class="type">varchar(80)</span></li>
+            <li><code>display_name</code><span class="type">varchar(100)</span></li>
+            <li><code>phone</code><span class="type">varchar(30)</span></li>
+            <li><code>country_code</code><span class="type">varchar(2)</span></li>
+            <li><code>city</code><span class="type">varchar(100)</span></li>
+            <li><code>employment_start_date</code><span class="type">date</span></li>
+            <li><code>employment_end_date</code><span class="type">date</span></li>
+            <li><code>employment_type</code><span class="type">FULL_TIME | PART_TIME | MINI_JOB | ...</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>user_preferences <span class="tag">1:1</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li><code>language</code><span class="type">varchar(10)</span></li>
+            <li><code>timezone</code><span class="type">varchar(60)</span></li>
+            <li><code>currency</code><span class="type">varchar(3)</span></li>
+            <li><code>first_day_of_week</code><span class="type">MONDAY | SUNDAY</span></li>
+            <li><code>date_format</code><span class="type">varchar(30)</span></li>
+            <li><code>time_format</code><span class="type">H12 | H24</span></li>
+            <li><code>theme</code><span class="type">LIGHT | DARK | SYSTEM</span></li>
+            <li><code>default_break_minutes</code><span class="type">integer</span></li>
+            <li><code>preferred_daily_minutes</code><span class="type">integer</span></li>
+            <li class="legacy"><code>paid_sick_leave</code><span class="type">boolean</span></li>
+            <li class="legacy"><code>paid_vacation</code><span class="type">boolean</span></li>
+            <li><code>onboarding_completed</code><span class="type">boolean</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>addresses <span class="tag current">locations</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li><code>street</code><span class="type">varchar(150)</span></li>
+            <li><code>street_2</code><span class="type">varchar(150)</span></li>
+            <li><code>postal_code</code><span class="type">varchar(20)</span></li>
+            <li><code>city</code><span class="type">varchar(100)</span></li>
+            <li><code>region</code><span class="type">varchar(100)</span></li>
+            <li><code>country</code><span class="type">varchar(2)</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>user_oauth_identities <span class="tag">auth</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li><code>provider</code><span class="type">GOOGLE</span></li>
+            <li><code>provider_subject</code><span class="type">varchar</span></li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="domain">
+        <p class="domain-title">Work Setup</p>
+        <article class="table">
+          <h3>work_types <span class="tag">formula + category</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>parent_work_type_id</code><span class="type">uuid self</span></li>
+            <li><code>name</code><span class="type">varchar(100)</span></li>
+            <li><code>normalized_name</code><span class="type">varchar(100)</span></li>
+            <li><code>calculation_method</code><span class="type">TIME_BASED | UNIT_BASED | UNITS_PER_HOUR_BASED | FIXED_PRICE_BASED</span></li>
+            <li><code>compensation_method</code><span class="type">HOURLY | PER_UNIT</span></li>
+            <li><code>unit_label</code><span class="type">varchar(100)</span></li>
+            <li><code>unit_symbol</code><span class="type">varchar(20)</span></li>
+            <li><code>units_per_hour</code><span class="type">numeric(12,4)</span></li>
+            <li><code>rate_per_unit</code><span class="type">numeric(12,4)</span></li>
+            <li><code>currency</code><span class="type">varchar(3)</span></li>
+            <li><code>teamwork_enabled</code><span class="type">boolean</span></li>
+            <li><code>composite_enabled</code><span class="type">boolean</span></li>
+            <li><code>color</code><span class="type">varchar(7)</span></li>
+            <li><code>default_break_minutes</code><span class="type">integer</span></li>
+            <li><code>active</code><span class="type">boolean</span></li>
+            <li><code>display_order</code><span class="type">integer</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>hourly_rate_periods <span class="tag">rates</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li><code>hourly_rate</code><span class="type">numeric(10,2)</span></li>
+            <li><code>currency</code><span class="type">varchar(3)</span></li>
+            <li><code>valid_from</code><span class="type">date</span></li>
+            <li><code>valid_to</code><span class="type">date</span></li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="domain">
+        <p class="domain-title">Work Tracking</p>
+        <article class="table">
+          <h3>work_records <span class="tag current">current job/day</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>address_id</code><span class="type">uuid</span></li>
+            <li><code>work_date</code><span class="type">date</span></li>
+            <li><code>team_size</code><span class="type">integer</span></li>
+            <li><code>notes</code><span class="type">varchar(500)</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>work_record_lines <span class="tag current">current activity line</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>work_record_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>work_type_id</code><span class="type">uuid</span></li>
+            <li><code>display_order</code><span class="type">integer</span></li>
+            <li class="snapshot"><code>work_type_name_snapshot</code><span class="type">varchar(100)</span></li>
+            <li class="snapshot"><code>configuration_name_snapshot</code><span class="type">varchar(120)</span></li>
+            <li class="snapshot"><code>calculation_mode_snapshot</code><span class="type">TIME_HOURLY | UNITS_PER_HOUR | UNITS_PER_UNIT | FIXED_AMOUNT</span></li>
+            <li class="snapshot"><code>unit_label_snapshot</code><span class="type">varchar(100)</span></li>
+            <li class="snapshot"><code>unit_symbol_snapshot</code><span class="type">varchar(20)</span></li>
+            <li><code>quantity</code><span class="type">numeric(18,4)</span></li>
+            <li class="snapshot"><code>fixed_amount_snapshot</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>units_per_hour_snapshot</code><span class="type">numeric(12,4)</span></li>
+            <li><code>start_time</code><span class="type">time</span></li>
+            <li><code>end_time</code><span class="type">time</span></li>
+            <li><code>break_minutes</code><span class="type">integer</span></li>
+            <li><code>duration_minutes</code><span class="type">integer</span></li>
+            <li><code>calculated_minutes</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>hourly_rate_snapshot</code><span class="type">numeric(10,2)</span></li>
+            <li class="snapshot"><code>rate_per_unit_snapshot</code><span class="type">numeric(12,4)</span></li>
+            <li class="snapshot"><code>currency_snapshot</code><span class="type">varchar(3)</span></li>
+            <li><code>gross_amount</code><span class="type">numeric(30,15)</span></li>
+            <li><code>extra_pay_percentage</code><span class="type">integer</span></li>
+            <li><code>notes</code><span class="type">varchar(500)</span></li>
+          </ul>
+        </article>
+
+        </div>
+
+      <div class="domain">
+        <p class="domain-title">Absences + Security</p>
+        <article class="table">
+          <h3>absence_types <span class="tag current">configurable</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li><code>name</code><span class="type">varchar(80)</span></li>
+            <li><code>normalized_name</code><span class="type">varchar(80)</span></li>
+            <li><code>code</code><span class="type">DAY_OFF | VACATION | SICK_LEAVE | PUBLIC_HOLIDAY</span></li>
+            <li><code>paid</code><span class="type">boolean</span></li>
+            <li><code>paid_minutes_per_day</code><span class="type">integer</span></li>
+            <li><code>color</code><span class="type">varchar(7)</span></li>
+            <li><code>active</code><span class="type">boolean</span></li>
+            <li><code>display_order</code><span class="type">integer</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>absences <span class="tag">history</span></h3>
+          <ul>
+            <li class="pk"><code>id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>absence_type_id</code><span class="type">uuid</span></li>
+            <li class="legacy"><code>absence_type</code><span class="type">varchar(30)</span></li>
+            <li class="snapshot"><code>absence_type_name_snapshot</code><span class="type">varchar(80)</span></li>
+            <li class="snapshot"><code>paid_snapshot</code><span class="type">boolean</span></li>
+            <li class="snapshot"><code>paid_minutes_per_day_snapshot</code><span class="type">integer</span></li>
+            <li><code>start_date</code><span class="type">date</span></li>
+            <li><code>end_date</code><span class="type">date</span></li>
+            <li><code>notes</code><span class="type">varchar(500)</span></li>
+          </ul>
+        </article>
+
+        <article class="table">
+          <h3>refresh_tokens / password_reset_tokens <span class="tag">security</span></h3>
+          <ul>
+            <li class="fk"><code>refresh_tokens.user_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>refresh_tokens.replaced_by_token_id</code><span class="type">uuid self</span></li>
+            <li><code>refresh_tokens.token_hash</code><span class="type">unique</span></li>
+            <li class="fk"><code>password_reset_tokens.user_id</code><span class="type">uuid</span></li>
+            <li><code>password_reset_tokens.code_hash</code><span class="type">varchar</span></li>
+            <li><code>password_reset_tokens.expires_at</code><span class="type">timestamptz</span></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="relations" aria-label="Relationships">
+      <div class="relation-panel">
+        <h2>Main relationships</h2>
+        <ul class="relation-list">
+          <li><code>user_accounts</code> <span class="arrow">1 → 1</span> <code>user_profiles</code></li>
+          <li><code>user_accounts</code> <span class="arrow">1 → 1</span> <code>user_preferences</code></li>
+          <li><code>user_accounts</code> <span class="arrow">1 → many</span> <code>addresses</code>, <code>work_types</code>, <code>work_records</code>, <code>absence_types</code>, <code>absences</code>, <code>hourly_rate_periods</code></li>
+          <li><code>addresses</code> <span class="arrow">1 → many</span> <code>work_records</code>; optional <code>user_profiles.address_id</code></li>
+          <li><code>work_types.parent_work_type_id</code> <span class="arrow">self parent → children</span> <code>work_types.id</code></li>
+          <li><code>work_records</code> <span class="arrow">1 → many</span> <code>work_record_lines</code></li>
+          <li><code>work_record_lines.work_type_id</code> <span class="arrow">many → 1</span> <code>work_types.id</code></li>
+          <li><code>absences.absence_type_id</code> <span class="arrow">many → 1</span> <code>absence_types.id</code></li>
+          </ul>
+      </div>
+
+      <div class="relation-panel">
+        <h2>Important current notes</h2>
+        <ul class="relation-list">
+          <li><span class="current">Current work flow:</span> create a <code>work_record</code>, add multiple <code>work_record_lines</code>, each line points to a <code>work_type</code>.</li>
+          <li><span class="current">Advanced work types:</span> a parent <code>work_type</code> has <code>composite_enabled = true</code> and child work types through <code>parent_work_type_id</code>.</li>
+          <li><span class="current">Simple work types:</span> no parent and no children; formula lives directly on <code>work_types</code>.</li>
+          <li><span class="current">Absences:</span> paid/unpaid and paid hours are configured in <code>absence_types</code>, then snapshotted into <code>absences</code>.</li>
+          <li><span class="current">Periods:</span> dates and times now live directly on owning tables; there is no central <code>time_spans</code> table.</li>
+          <li><span class="removed">Dropped by V34/V36:</span> <code>work_entries</code>, <code>time_entry_details</code>, <code>excel_import_batches</code>, <code>unit_types</code>, <code>unit_entry_items</code>, <code>work_type_configurations</code>, and <code>time_spans</code>.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,11 +1,13 @@
 import packageJson from "../../package.json";
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
+import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsSection } from "../components/settings/settings-section";
 
 export function AboutAlverynPage() {
   return (
     <div className="space-y-8 pb-10">
       <SettingsPageHeader title="About Alveryn" />
+      <SettingsContextCard context="about" />
       <SettingsSection title="Product">
         <div className="space-y-3 text-sm leading-6 text-white/58">
           <p className="text-white">Alveryn</p>

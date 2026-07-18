@@ -21,6 +21,10 @@ function formatHours(minutes: string, locale: string) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(numberValue(minutes) / 60);
 }
 
+function hasGrossAmount(overview: StatisticsOverview) {
+  return overview.grossByCurrency.some((amount) => numberValue(amount.amount) > 0);
+}
+
 export function StatisticsPrimarySummary({ overview }: Props) {
   const { i18n, t } = useTranslation("common");
   const comparison = overview.comparison.percentage == null ? null : numberValue(overview.comparison.percentage);
@@ -66,6 +70,7 @@ export function StatisticsPrimarySummary({ overview }: Props) {
 
 export function StatisticsSummaryCards({ overview }: Props) {
   const { i18n, t } = useTranslation("common");
+  const hasGrossWithoutWorkedTime = hasGrossAmount(overview) && numberValue(overview.workedMinutes) === 0;
   const cards = [
     { label: t("statistics.cards.hours"), value: formatHours(overview.workedMinutes, i18n.language) },
     { label: t("statistics.cards.workedDays"), value: overview.workedDays.toString() },
@@ -74,13 +79,20 @@ export function StatisticsSummaryCards({ overview }: Props) {
   ];
 
   return (
-    <section aria-label={t("statistics.cards.label")} className="grid grid-cols-2 gap-3">
-      {cards.map((card) => (
-        <article key={card.label} className="surface-muted p-4">
-          <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-white/38">{card.label}</h2>
-          <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">{card.value}</p>
-        </article>
-      ))}
+    <section aria-label={t("statistics.cards.label")} className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        {cards.map((card) => (
+          <article key={card.label} className="surface-muted p-4">
+            <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-white/38">{card.label}</h2>
+            <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">{card.value}</p>
+          </article>
+        ))}
+      </div>
+      {hasGrossWithoutWorkedTime ? (
+        <p className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm leading-6 text-white/58">
+          {t("statistics.cards.directUnitPayNote")}
+        </p>
+      ) : null}
     </section>
   );
 }

@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { listWorkEntriesForDay } from "../../../api/endpoints";
+import { listWorkRecordsForDay } from "../../../api/endpoints";
 import { queryKeys } from "../../../api/query-keys";
 import { formatCurrency, formatMinutesAsDuration } from "../../../utils/format";
-import type { WorkEntry } from "../../../types/work-entry";
+import type { WorkRecord } from "../../../types/work-record";
 import { formatLocalDate } from "../filters/statistics-date-utils";
 import type { StatisticsHeatmap, StatisticsHeatmapDay, StatisticsHeatmapMetric } from "../types/statistics";
 
@@ -30,11 +30,23 @@ function intensity(day: StatisticsHeatmapDay, maximum: string) {
   return Math.min(1, Number(day.value) / max);
 }
 
-function entryLabel(entry: WorkEntry) {
-  if (entry.calculationMethod === "UNIT_BASED") {
-    return entry.unitItems.map((item) => `${item.unitName} ${item.quantity}`).join(" · ");
+function recordTitle(record: WorkRecord, fallback: string) {
+  const firstLine = record.workLines?.[0];
+  if (!firstLine) {
+    return record.address ? [record.address.street, record.address.city].filter(Boolean).join(", ") : fallback;
   }
-  return entry.timeEntry ? `${entry.timeEntry.startTime.slice(0, 5)} – ${entry.timeEntry.endTime.slice(0, 5)}` : "";
+  if ((record.workLines?.length ?? 0) === 1) {
+    return firstLine.workTypeName;
+  }
+  return `${firstLine.workTypeName} +${(record.workLines?.length ?? 1) - 1}`;
+}
+
+function recordLabel(record: WorkRecord, lineLabel: string) {
+  const duration = formatMinutesAsDuration(Number(record.calculatedMinutes));
+  if (record.currency) {
+    return `${duration} · ${formatCurrency(record.grossAmount, record.currency)} · ${lineLabel}`;
+  }
+  return `${duration} · ${lineLabel}`;
 }
 
 export function StatisticsHeatmap({
@@ -50,10 +62,12 @@ export function StatisticsHeatmap({
   onSelectDay
 }: Props) {
   const { t, i18n } = useTranslation("common");
+  const { t: tDashboard } = useTranslation("dashboard");
+  const { t: tEntries } = useTranslation("records");
   const navigate = useNavigate();
-  const dayEntries = useQuery({
-    queryKey: selectedDay ? queryKeys.workEntries.day(selectedDay) : ["work-entries", "day", "none"],
-    queryFn: () => listWorkEntriesForDay(selectedDay ?? ""),
+  const dayRecords = useQuery({
+    queryKey: selectedDay ? queryKeys.workRecords.day(selectedDay) : ["work-records", "day", "none"],
+    queryFn: () => listWorkRecordsForDay(selectedDay ?? ""),
     enabled: Boolean(selectedDay)
   });
 
@@ -173,15 +187,17 @@ export function StatisticsHeatmap({
             ))}
           </div>
           <div className="mt-4 space-y-2">
-            {(dayEntries.data ?? []).map((entry) => (
+            {(dayRecords.data ?? []).map((record) => (
               <button
-                key={entry.id}
+                key={record.id}
                 type="button"
-                onClick={() => navigate(`/entries/${entry.id}/edit`, { state: { from: "/statistics" } })}
+                onClick={() => navigate(`/records/${record.id}`, { state: { from: "/statistics" } })}
                 className="w-full rounded-2xl bg-black/20 px-4 py-3 text-left transition active:scale-[0.99]"
               >
-                <p className="font-medium text-white">{entry.workTypeName}</p>
-                <p className="mt-1 text-sm text-white/50">{entryLabel(entry)}</p>
+                <p className="font-medium text-white">{recordTitle(record, tEntries("job.title"))}</p>
+                <p className="mt-1 text-sm text-white/50">
+                  {recordLabel(record, tDashboard("selectedDay.jobLines", { count: record.workLines?.length ?? 0 }))}
+                </p>
               </button>
             ))}
           </div>
@@ -196,7 +212,7 @@ export function StatisticsHeatmap({
             </button>
             <button
               type="button"
-              onClick={() => navigate(`/entries/new?date=${selected.date}`, { state: { from: "/statistics" } })}
+              onClick={() => navigate(`/records/new?date=${selected.date}`, { state: { from: "/statistics" } })}
               className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
             >
               <Plus size={16} />

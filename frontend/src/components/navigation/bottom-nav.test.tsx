@@ -30,7 +30,7 @@ describe("BottomNav", () => {
 
     expect(screen.getByLabelText("Add entry")).toHaveAttribute(
       "href",
-      "/entries/new?date=2026-07-19"
+      "/records/new?date=2026-07-19"
     );
   });
 });

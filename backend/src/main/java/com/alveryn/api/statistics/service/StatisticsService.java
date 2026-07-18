@@ -39,18 +39,17 @@ import com.alveryn.api.statistics.dto.StatisticsPeriodRequest;
 import com.alveryn.api.statistics.dto.StatisticsPeriodTotalsResponse;
 import com.alveryn.api.statistics.dto.StatisticsProductivityPointResponse;
 import com.alveryn.api.statistics.dto.StatisticsProductivityResponse;
-import com.alveryn.api.statistics.dto.StatisticsProductivityUnitTypeResponse;
+import com.alveryn.api.statistics.dto.StatisticsProductivityWorkFormulaResponse;
 import com.alveryn.api.statistics.dto.StatisticsTimeSeriesPointResponse;
 import com.alveryn.api.statistics.dto.StatisticsTimeSeriesResponse;
 import com.alveryn.api.statistics.dto.StatisticsWorkTypeResponse;
 import com.alveryn.api.statistics.model.StatisticsErrorCode;
-import com.alveryn.api.statistics.repository.StatisticsRepository;
-import com.alveryn.api.workentry.entity.UnitEntryItem;
-import com.alveryn.api.workentry.entity.TimeEntryDetails;
-import com.alveryn.api.workentry.entity.WorkEntry;
-import com.alveryn.api.workentry.repository.TimeEntryDetailsRepository;
-import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
+import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
+import com.alveryn.api.workrecord.line.entity.WorkRecordLine;
+import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
+import com.alveryn.api.worktype.entity.WorkType;
+import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -83,9 +82,8 @@ public class StatisticsService {
   private static final int MAX_RANGE_DAYS = 3660;
   private static final int MAX_HEATMAP_DAYS = 366;
 
-  private final StatisticsRepository statisticsRepository;
-  private final TimeEntryDetailsRepository timeEntryDetailsRepository;
-  private final UnitEntryItemRepository unitEntryItemRepository;
+  private final WorkRecordLineRepository workRecordLineRepository;
+  private final WorkTypeRepository workTypeRepository;
   private final AbsenceRepository absenceRepository;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
@@ -93,9 +91,9 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public StatisticsOverviewResponse overview(StatisticsFilters filters) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> currentEntries = findEntries(userId, filters);
+    List<StatEntry> currentEntries = findEntries(userId, filters);
     Period previousPeriod = previousPeriod(filters.from(), filters.to());
-    List<WorkEntry> previousEntries =
+    List<StatEntry> previousEntries =
         findEntries(userId, filters, previousPeriod.from(), previousPeriod.to());
 
     long entries = currentEntries.size();
@@ -113,11 +111,11 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public StatisticsTimeSeriesResponse timeSeries(StatisticsFilters filters, StatisticsMetric metric) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> entries = findEntries(userId, filters);
+    List<StatEntry> entries = findEntries(userId, filters);
     StatisticsGranularity granularity = resolveGranularity(filters.from(), filters.to());
     Map<BucketCurrencyKey, BigDecimal> grouped = new LinkedHashMap<>();
     Map<BucketCurrencyKey, Set<LocalDate>> workedDays = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+    for (StatEntry entry : entries) {
       Bucket bucket = bucketFor(entry.getWorkDate(), granularity, filters.to());
       String currency = metric == StatisticsMetric.GROSS ? entry.getCurrencySnapshot() : null;
       BucketCurrencyKey key = new BucketCurrencyKey(bucket.start(), bucket.end(), currency);
@@ -153,7 +151,7 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public List<StatisticsWorkTypeResponse> workTypes(StatisticsFilters filters) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> entries = findEntries(userId, filters);
+    List<StatEntry> entries = findEntries(userId, filters);
     return workTypeBreakdown(entries);
   }
 
@@ -167,8 +165,8 @@ public class StatisticsService {
     StatisticsFilters filtersB =
         new StatisticsFilters(
             request.periodB().from(), request.periodB().to(), request.workTypeIds(), request.calculationMethods());
-    List<WorkEntry> entriesA = findEntries(userId, filtersA);
-    List<WorkEntry> entriesB = findEntries(userId, filtersB);
+    List<StatEntry> entriesA = findEntries(userId, filtersA);
+    List<StatEntry> entriesB = findEntries(userId, filtersB);
     StatisticsPeriodTotalsResponse totalsA = totals(filtersA.from(), filtersA.to(), entriesA);
     StatisticsPeriodTotalsResponse totalsB = totals(filtersB.from(), filtersB.to(), entriesB);
     return new StatisticsAdvancedComparisonResponse(
@@ -192,7 +190,7 @@ public class StatisticsService {
           "unsupported heatmap metric", StatisticsErrorCode.STATISTICS_UNSUPPORTED_HEATMAP_METRIC.name());
     }
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> entries = findEntries(userId, filters);
+    List<StatEntry> entries = findEntries(userId, filters);
     List<String> currencies = currenciesFor(entries);
     String normalizedCurrency = normalizeCurrency(currency);
     if (metric == StatisticsMetric.GROSS) {
@@ -209,14 +207,14 @@ public class StatisticsService {
         normalizedCurrency = currencies.getFirst();
       }
     }
-    Map<LocalDate, List<WorkEntry>> entriesByDate = entriesByDate(entries);
+    Map<LocalDate, List<StatEntry>> entriesByDate = entriesByDate(entries);
     Set<LocalDate> absenceDates = absenceDates(userId, filters.from(), filters.to());
     String selectedCurrency = normalizedCurrency;
     List<StatisticsHeatmapDayResponse> heatmapDays = new ArrayList<>();
     BigDecimal max = BigDecimal.ZERO.setScale(SCALE);
     for (LocalDate date = filters.from(); !date.isAfter(filters.to()); date = date.plusDays(1)) {
-      List<WorkEntry> dayEntries = entriesByDate.getOrDefault(date, List.of());
-      List<WorkEntry> valueEntries =
+      List<StatEntry> dayEntries = entriesByDate.getOrDefault(date, List.of());
+      List<StatEntry> valueEntries =
           metric == StatisticsMetric.GROSS && selectedCurrency != null
               ? dayEntries.stream().filter(entry -> entry.getCurrencySnapshot().equals(selectedCurrency)).toList()
               : dayEntries;
@@ -254,7 +252,7 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public StatisticsDrilldownResponse drilldown(StatisticsFilters filters) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> entries = findEntries(userId, filters);
+    List<StatEntry> entries = findEntries(userId, filters);
     return new StatisticsDrilldownResponse(
         filters.from(), filters.to(), totals(filters.from(), filters.to(), entries), workTypeBreakdown(entries));
   }
@@ -267,7 +265,7 @@ public class StatisticsService {
     LocalDate today = LocalDate.now(clock);
     LocalDate asOf = today.isBefore(filters.from()) ? filters.from().minusDays(1) : today.isAfter(filters.to()) ? filters.to() : today;
     LocalDate queryTo = asOf.isBefore(filters.from()) ? filters.from() : asOf;
-    List<WorkEntry> entries = findEntries(userId, filters, filters.from(), queryTo);
+    List<StatEntry> entries = findEntries(userId, filters, filters.from(), queryTo);
     String selectedCurrency = normalizeCurrency(currency);
     List<String> currencies = currenciesFor(entries);
     if (selectedCurrency != null) {
@@ -309,20 +307,20 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public StatisticsProductivityResponse productivity(
       StatisticsFilters filters,
-      Collection<UUID> unitTypeIds,
+      Collection<UUID> workFormulaIds,
       ProductivityMetric metric,
       ProductivityGrouping grouping) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     StatisticsFilters unitFilters =
         new StatisticsFilters(filters.from(), filters.to(), filters.workTypeIds(), List.of(CalculationMethod.UNIT_BASED));
-    List<WorkEntry> entries = findEntries(userId, unitFilters);
-    List<UnitEntryItem> items = unitItems(entries, unitTypeIds);
+    List<StatEntry> entries = findEntries(userId, unitFilters);
+    List<StatWorkLine> items = workLineItems(userId, unitFilters, entries, workFormulaIds);
     ProductivityMetric resolvedMetric = metric == null ? ProductivityMetric.TOTAL_UNITS : metric;
     ProductivityGrouping resolvedGrouping = grouping == null ? ProductivityGrouping.TOTAL : grouping;
     validateProductivityGrouping(resolvedGrouping);
     StatisticsGranularity granularity = productivityGranularity(filters.from(), filters.to(), resolvedGrouping);
     ProductivityTotals totals = productivityTotals(items);
-    List<StatisticsProductivityUnitTypeResponse> unitTypes = productivityUnitTypes(items, totals.totalUnits());
+    List<StatisticsProductivityWorkFormulaResponse> workFormulas = productivityWorkFormulas(items, totals.totalUnits());
     List<StatisticsProductivityPointResponse> points =
         productivityPoints(filters.from(), filters.to(), granularity, resolvedGrouping, entries, items, resolvedMetric);
     return new StatisticsProductivityResponse(
@@ -336,7 +334,7 @@ public class StatisticsService {
         !items.isEmpty(),
         false,
         0,
-        unitTypes,
+        workFormulas,
         resolvedGrouping,
         granularity,
         resolvedMetric,
@@ -346,16 +344,16 @@ public class StatisticsService {
   @Transactional(readOnly = true)
   public StatisticsHighlightsResponse highlights(StatisticsFilters filters) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> entries = findEntries(userId, filters);
+    List<StatEntry> entries = findEntries(userId, filters);
     return new StatisticsHighlightsResponse(highlightItems(entries));
   }
 
   @Transactional(readOnly = true)
   public StatisticsInsightsResponse insights(StatisticsFilters filters) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    List<WorkEntry> currentEntries = findEntries(userId, filters);
+    List<StatEntry> currentEntries = findEntries(userId, filters);
     Period previous = previousPeriod(filters.from(), filters.to());
-    List<WorkEntry> previousEntries = findEntries(userId, filters, previous.from(), previous.to());
+    List<StatEntry> previousEntries = findEntries(userId, filters, previous.from(), previous.to());
     List<StatisticsInsightResponse> insights = new ArrayList<>();
     if (distinctWorkedDays(currentEntries) >= 3 && distinctWorkedDays(previousEntries) >= 3) {
       addChangeInsight(insights, InsightType.HOURS_CHANGE, null, sumMinutes(currentEntries), sumMinutes(previousEntries), BigDecimal.valueOf(60));
@@ -390,9 +388,9 @@ public class StatisticsService {
       ForecastMode mode,
       LocalDate today,
       LocalDate asOf,
-      List<WorkEntry> entries,
+      List<StatEntry> entries,
       String currency) {
-    List<WorkEntry> currencyEntries =
+    List<StatEntry> currencyEntries =
         entries.stream().filter(entry -> entry.getCurrencySnapshot().equals(currency)).toList();
     BigDecimal actual = grossByCurrency(currencyEntries).stream()
         .filter(amount -> amount.currency().equals(currency))
@@ -438,7 +436,7 @@ public class StatisticsService {
     }
     LocalDate recentWindowStart = asOf.minusDays(13).isBefore(filters.from()) ? filters.from() : asOf.minusDays(13);
     LocalDate recentWindowEnd = asOf;
-    List<WorkEntry> recentEntries = entriesInRange(currencyEntries, recentWindowStart, recentWindowEnd);
+    List<StatEntry> recentEntries = entriesInRange(currencyEntries, recentWindowStart, recentWindowEnd);
     List<LocalDate> recentEligibleDates = eligibleDates(userId, recentWindowStart, recentWindowEnd, currencyEntries, mode);
     int recentWorkedDays = distinctWorkedDays(recentEntries);
     BigDecimal recentWorkFrequency =
@@ -531,7 +529,7 @@ public class StatisticsService {
         reason);
   }
 
-  private List<LocalDate> eligibleDates(UUID userId, LocalDate from, LocalDate to, List<WorkEntry> entries, ForecastMode mode) {
+  private List<LocalDate> eligibleDates(UUID userId, LocalDate from, LocalDate to, List<StatEntry> entries, ForecastMode mode) {
     if (to.isBefore(from)) {
       return List.of();
     }
@@ -550,12 +548,12 @@ public class StatisticsService {
     return dates;
   }
 
-  private BigDecimal dailyGrossStdDev(List<WorkEntry> entries, String currency, List<LocalDate> eligibleDates) {
+  private BigDecimal dailyGrossStdDev(List<StatEntry> entries, String currency, List<LocalDate> eligibleDates) {
     Map<LocalDate, BigDecimal> daily = new LinkedHashMap<>();
     for (LocalDate date : eligibleDates) {
       daily.put(date, BigDecimal.ZERO.setScale(SCALE));
     }
-    for (WorkEntry entry : entries) {
+    for (StatEntry entry : entries) {
       if (entry.getCurrencySnapshot().equals(currency) && daily.containsKey(entry.getWorkDate())) {
         daily.merge(entry.getWorkDate(), entry.getGrossAmount(), BigDecimal::add);
       }
@@ -583,47 +581,73 @@ public class StatisticsService {
     return StatisticsConfidence.MEDIUM;
   }
 
-  private List<UnitEntryItem> unitItems(List<WorkEntry> entries, Collection<UUID> unitTypeIds) {
-    if (entries.isEmpty()) {
-      return List.of();
-    }
-    List<UUID> entryIds = entries.stream().map(WorkEntry::getId).toList();
-    List<UUID> selectedUnitTypes = normalize(unitTypeIds);
-    return unitEntryItemRepository.findAllByWorkEntryIdIn(entryIds).stream()
-        .filter(item -> selectedUnitTypes.isEmpty() || selectedUnitTypes.contains(item.getUnitType().getId()))
-        .toList();
+  private List<StatWorkLine> workLineItems(
+      UUID userId, StatisticsFilters filters, List<StatEntry> entries, Collection<UUID> workFormulaIds) {
+    List<UUID> selectedWorkFormulas = normalize(workFormulaIds);
+    List<StatWorkLine> result = new ArrayList<>();
+    List<UUID> workTypeIds = expandedWorkTypeIds(userId, filters.workTypeIds());
+    List<WorkRecordLine> lines =
+        workRecordLineRepository.findFilteredForStatistics(
+            userId,
+            filters.from(),
+            filters.to(),
+            workTypeIds,
+            workTypeIds.isEmpty(),
+            true,
+            false,
+            true,
+            false,
+            List.of(WorkLineCalculationMode.UNITS_PER_HOUR, WorkLineCalculationMode.UNITS_PER_UNIT));
+    lines.stream()
+        .filter(line -> line.getQuantity() != null)
+        .filter(line -> selectedWorkFormulas.isEmpty() || selectedWorkFormulas.contains(line.getWorkType().getId()))
+        .map(this::statWorkLine)
+        .forEach(result::add);
+    return result;
   }
 
-  private ProductivityTotals productivityTotals(List<UnitEntryItem> items) {
-    BigDecimal totalUnits = items.stream().map(UnitEntryItem::getQuantity).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
-    BigDecimal equivalentMinutes = items.stream().map(UnitEntryItem::getCalculatedMinutes).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
+  private StatWorkLine statWorkLine(WorkRecordLine line) {
+    return new StatWorkLine(
+        line.getId(),
+        line.getWorkType().getId(),
+        line.getUnitLabelSnapshot() == null ? line.getConfigurationNameSnapshot() : line.getUnitLabelSnapshot(),
+        line.getWorkTypeNameSnapshot(),
+        line.getQuantity(),
+        line.getCalculationModeSnapshot() == WorkLineCalculationMode.UNITS_PER_UNIT
+            ? BigDecimal.ZERO.setScale(SCALE)
+            : line.getCalculatedMinutes());
+  }
+
+  private ProductivityTotals productivityTotals(List<StatWorkLine> items) {
+    BigDecimal totalUnits = items.stream().map(StatWorkLine::quantity).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
+    BigDecimal equivalentMinutes = items.stream().map(StatWorkLine::equivalentMinutes).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
     BigDecimal configuredUnitsPerHour = equivalentMinutes.signum() == 0
         ? BigDecimal.ZERO.setScale(SCALE)
         : totalUnits.multiply(BigDecimal.valueOf(60), MATH_CONTEXT).divide(equivalentMinutes, MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
     return new ProductivityTotals(totalUnits, equivalentMinutes, configuredUnitsPerHour);
   }
 
-  private List<StatisticsProductivityUnitTypeResponse> productivityUnitTypes(List<UnitEntryItem> items, BigDecimal totalUnits) {
-    Map<UUID, List<UnitEntryItem>> grouped = new LinkedHashMap<>();
-    for (UnitEntryItem item : items) {
-      grouped.computeIfAbsent(item.getUnitType().getId(), ignored -> new ArrayList<>()).add(item);
+  private List<StatisticsProductivityWorkFormulaResponse> productivityWorkFormulas(List<StatWorkLine> items, BigDecimal totalUnits) {
+    Map<UUID, List<StatWorkLine>> grouped = new LinkedHashMap<>();
+    for (StatWorkLine item : items) {
+      grouped.computeIfAbsent(item.workFormulaId(), ignored -> new ArrayList<>()).add(item);
     }
     return grouped.values().stream()
-        .map(group -> productivityUnitType(group, totalUnits))
-        .sorted(Comparator.comparing(StatisticsProductivityUnitTypeResponse::totalQuantity).reversed())
+        .map(group -> productivityWorkFormula(group, totalUnits))
+        .sorted(Comparator.comparing(StatisticsProductivityWorkFormulaResponse::totalQuantity).reversed())
         .toList();
   }
 
-  private StatisticsProductivityUnitTypeResponse productivityUnitType(List<UnitEntryItem> items, BigDecimal allUnits) {
-    UnitEntryItem first = items.getFirst();
+  private StatisticsProductivityWorkFormulaResponse productivityWorkFormula(List<StatWorkLine> items, BigDecimal allUnits) {
+    StatWorkLine first = items.getFirst();
     ProductivityTotals totals = productivityTotals(items);
     BigDecimal percentage = allUnits.signum() == 0
         ? BigDecimal.ZERO.setScale(2)
         : totals.totalUnits().multiply(BigDecimal.valueOf(100), MATH_CONTEXT).divide(allUnits, MATH_CONTEXT).setScale(2, RoundingMode.HALF_UP);
-    return new StatisticsProductivityUnitTypeResponse(
-        first.getUnitType().getId(),
-        first.getUnitNameSnapshot(),
-        first.getWorkEntry().getWorkTypeNameSnapshot(),
+    return new StatisticsProductivityWorkFormulaResponse(
+        first.workFormulaId(),
+        first.unitName(),
+        first.workTypeName(),
         totals.totalUnits(),
         totals.equivalentMinutes(),
         null,
@@ -631,7 +655,7 @@ public class StatisticsService {
         null,
         null,
         false,
-        (int) items.stream().map(item -> item.getWorkEntry().getId()).distinct().count(),
+        (int) items.stream().map(StatWorkLine::entryId).distinct().count(),
         percentage);
   }
 
@@ -640,11 +664,11 @@ public class StatisticsService {
       LocalDate to,
       StatisticsGranularity granularity,
       ProductivityGrouping grouping,
-      List<WorkEntry> entries,
-      List<UnitEntryItem> items,
+      List<StatEntry> entries,
+      List<StatWorkLine> items,
       ProductivityMetric metric) {
-    Map<UUID, WorkEntry> entriesById = new HashMap<>();
-    for (WorkEntry entry : entries) {
+    Map<UUID, StatEntry> entriesById = new HashMap<>();
+    for (StatEntry entry : entries) {
       entriesById.put(entry.getId(), entry);
     }
     List<StatisticsProductivityPointResponse> points = new ArrayList<>();
@@ -660,9 +684,9 @@ public class StatisticsService {
       return points;
     }
     for (Bucket bucket : completeBuckets(from, to, granularity)) {
-      List<UnitEntryItem> bucketItems = items.stream()
+      List<StatWorkLine> bucketItems = items.stream()
           .filter(item -> {
-            WorkEntry entry = entriesById.get(item.getWorkEntry().getId());
+            StatEntry entry = entriesById.get(item.entryId());
             return entry != null && !entry.getWorkDate().isBefore(bucket.start()) && !entry.getWorkDate().isAfter(bucket.end());
           })
           .toList();
@@ -678,13 +702,13 @@ public class StatisticsService {
     return points;
   }
 
-  private List<StatisticsHighlightResponse> highlightItems(List<WorkEntry> entries) {
+  private List<StatisticsHighlightResponse> highlightItems(List<StatEntry> entries) {
     if (entries.isEmpty()) {
       return List.of();
     }
     List<StatisticsHighlightResponse> highlights = new ArrayList<>();
     Map<String, Map<LocalDate, BigDecimal>> grossByCurrencyAndDate = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+    for (StatEntry entry : entries) {
       grossByCurrencyAndDate
           .computeIfAbsent(entry.getCurrencySnapshot(), ignored -> new LinkedHashMap<>())
           .merge(entry.getWorkDate(), entry.getGrossAmount(), BigDecimal::add);
@@ -715,7 +739,7 @@ public class StatisticsService {
         .max(Comparator.comparing(entry -> sumMinutes(entry.getValue())))
         .ifPresent(entry -> highlights.add(new StatisticsHighlightResponse(HighlightType.BEST_HOURS_DAY, true, null, null, entry.getKey(), entry.getKey(), sumMinutes(entry.getValue()), null, grossByCurrency(entry.getValue()))));
     entries.stream()
-        .max(Comparator.comparing(WorkEntry::getCalculatedMinutes))
+        .max(Comparator.comparing(StatEntry::getCalculatedMinutes))
         .ifPresent(entry -> highlights.add(new StatisticsHighlightResponse(HighlightType.LONGEST_SHIFT, true, entry.getWorkTypeNameSnapshot(), null, entry.getWorkDate(), entry.getWorkDate(), entry.getCalculatedMinutes(), null, List.of())));
     BigDecimal averageShift = entries.isEmpty() ? BigDecimal.ZERO.setScale(SCALE) : sumMinutes(entries).divide(BigDecimal.valueOf(entries.size()), MATH_CONTEXT).setScale(SCALE, RoundingMode.HALF_UP);
     highlights.add(new StatisticsHighlightResponse(HighlightType.AVERAGE_SHIFT, true, null, null, null, null, averageShift, null, List.of()));
@@ -730,19 +754,19 @@ public class StatisticsService {
     return highlights;
   }
 
-  private BigDecimal sumGross(List<WorkEntry> entries) {
-    return entries.stream().map(WorkEntry::getGrossAmount).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
+  private BigDecimal sumGross(List<StatEntry> entries) {
+    return entries.stream().map(StatEntry::getGrossAmount).reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add).setScale(SCALE, RoundingMode.HALF_UP);
   }
 
-  private java.util.Optional<StatisticsHighlightResponse> busiestWeekday(List<WorkEntry> entries) {
-    Map<DayOfWeek, List<WorkEntry>> byWeekday = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+  private java.util.Optional<StatisticsHighlightResponse> busiestWeekday(List<StatEntry> entries) {
+    Map<DayOfWeek, List<StatEntry>> byWeekday = new LinkedHashMap<>();
+    for (StatEntry entry : entries) {
       byWeekday.computeIfAbsent(entry.getWorkDate().getDayOfWeek(), ignored -> new ArrayList<>()).add(entry);
     }
     return byWeekday.entrySet().stream()
         .max(
             Comparator
-                .<Map.Entry<DayOfWeek, List<WorkEntry>>, BigDecimal>comparing(entry -> sumMinutes(entry.getValue()))
+                .<Map.Entry<DayOfWeek, List<StatEntry>>, BigDecimal>comparing(entry -> sumMinutes(entry.getValue()))
                 .thenComparing(entry -> entry.getKey().getValue(), Comparator.reverseOrder()))
         .map(
             entry ->
@@ -758,22 +782,12 @@ public class StatisticsService {
                     grossByCurrency(entry.getValue())));
   }
 
-  private long overnightShiftCount(List<WorkEntry> entries) {
-    List<UUID> entryIds =
-        entries.stream()
-            .filter(entry -> entry.getCalculationMethodSnapshot() == CalculationMethod.TIME_BASED)
-            .map(WorkEntry::getId)
-            .toList();
-    if (entryIds.isEmpty()) {
-      return 0;
-    }
-    return timeEntryDetailsRepository.findAllByWorkEntryIdIn(entryIds).stream()
-        .filter(detail -> !detail.getEndTime().isAfter(detail.getStartTime()))
-        .count();
+  private long overnightShiftCount(List<StatEntry> entries) {
+    return entries.stream().filter(StatEntry::isOvernight).count();
   }
 
-  private Streaks streaks(List<WorkEntry> entries) {
-    List<LocalDate> dates = entries.stream().map(WorkEntry::getWorkDate).distinct().sorted().toList();
+  private Streaks streaks(List<StatEntry> entries) {
+    List<LocalDate> dates = entries.stream().map(StatEntry::getWorkDate).distinct().sorted().toList();
     if (dates.isEmpty()) {
       return new Streaks(0, null, null, 0, null, null);
     }
@@ -833,22 +847,22 @@ public class StatisticsService {
     insights.add(new StatisticsInsightResponse(type, comparisonDirection(current, previous), percentage, currentValue, previousValue, currency, null, percentage.signum() >= 0 ? InsightSeverity.POSITIVE : InsightSeverity.ATTENTION, StatisticsConfidence.MEDIUM));
   }
 
-  private void addWorkedDaysInsight(List<StatisticsInsightResponse> insights, List<WorkEntry> current, List<WorkEntry> previous) {
+  private void addWorkedDaysInsight(List<StatisticsInsightResponse> insights, List<StatEntry> current, List<StatEntry> previous) {
     BigDecimal currentDays = BigDecimal.valueOf(distinctWorkedDays(current)).setScale(SCALE);
     BigDecimal previousDays = BigDecimal.valueOf(distinctWorkedDays(previous)).setScale(SCALE);
     addChangeInsight(insights, InsightType.WORKED_DAYS_CHANGE, null, currentDays, previousDays, BigDecimal.ONE);
   }
 
-  private void addBestWeekdayInsight(List<StatisticsInsightResponse> insights, List<WorkEntry> entries) {
-    Map<DayOfWeek, List<WorkEntry>> byWeekday = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+  private void addBestWeekdayInsight(List<StatisticsInsightResponse> insights, List<StatEntry> entries) {
+    Map<DayOfWeek, List<StatEntry>> byWeekday = new LinkedHashMap<>();
+    for (StatEntry entry : entries) {
       byWeekday.computeIfAbsent(entry.getWorkDate().getDayOfWeek(), ignored -> new ArrayList<>()).add(entry);
     }
     byWeekday.entrySet().stream()
         .filter(entry -> distinctWorkedDays(entry.getValue()) >= 2)
         .max(
             Comparator
-                .<Map.Entry<DayOfWeek, List<WorkEntry>>, BigDecimal>comparing(
+                .<Map.Entry<DayOfWeek, List<StatEntry>>, BigDecimal>comparing(
                     entry -> sumMinutes(entry.getValue()).divide(BigDecimal.valueOf(distinctWorkedDays(entry.getValue())), MATH_CONTEXT))
                 .thenComparing(entry -> entry.getKey().getValue(), Comparator.reverseOrder()))
         .ifPresent(
@@ -869,7 +883,7 @@ public class StatisticsService {
                         distinctWorkedDays(entry.getValue()) >= 4 ? StatisticsConfidence.HIGH : StatisticsConfidence.MEDIUM)));
   }
 
-  private void addMostUsedWorkTypeInsight(List<StatisticsInsightResponse> insights, List<WorkEntry> entries) {
+  private void addMostUsedWorkTypeInsight(List<StatisticsInsightResponse> insights, List<StatEntry> entries) {
     if (entries.size() < 3) {
       return;
     }
@@ -904,11 +918,11 @@ public class StatisticsService {
     return confidence + severity + priority + magnitude;
   }
 
-  private List<WorkEntry> findEntries(UUID userId, StatisticsFilters filters) {
+  private List<StatEntry> findEntries(UUID userId, StatisticsFilters filters) {
     return findEntries(userId, filters, filters.from(), filters.to());
   }
 
-  private List<WorkEntry> entriesInRange(List<WorkEntry> entries, LocalDate from, LocalDate to) {
+  private List<StatEntry> entriesInRange(List<StatEntry> entries, LocalDate from, LocalDate to) {
     if (to.isBefore(from)) {
       return List.of();
     }
@@ -935,18 +949,58 @@ public class StatisticsService {
     }
   }
 
-  private List<WorkEntry> findEntries(UUID userId, StatisticsFilters filters, LocalDate from, LocalDate to) {
+  private List<StatEntry> findEntries(UUID userId, StatisticsFilters filters, LocalDate from, LocalDate to) {
     validateRange(from, to);
-    List<UUID> workTypeIds = normalize(filters.workTypeIds());
+    List<UUID> workTypeIds = expandedWorkTypeIds(userId, filters.workTypeIds());
     List<CalculationMethod> methods = normalize(filters.calculationMethods());
-    return statisticsRepository.findFiltered(
-        userId,
-        from,
-        to,
-        workTypeIds,
-        workTypeIds.isEmpty(),
-        methods,
-        methods.isEmpty());
+    List<WorkRecordLine> recordLines =
+        workRecordLineRepository.findFilteredForStatistics(
+            userId,
+            from,
+            to,
+            workTypeIds,
+            workTypeIds.isEmpty(),
+            methods.isEmpty(),
+            methods.contains(CalculationMethod.TIME_BASED),
+            methods.contains(CalculationMethod.UNIT_BASED),
+            methods.contains(CalculationMethod.FIXED_PRICE_BASED),
+            List.of(WorkLineCalculationMode.UNITS_PER_HOUR, WorkLineCalculationMode.UNITS_PER_UNIT));
+    List<StatEntry> result = new ArrayList<>();
+    for (WorkRecordLine line : recordLines) {
+      result.add(statEntry(line));
+    }
+    return result.stream()
+        .sorted(Comparator.comparing(StatEntry::getWorkDate).thenComparing(StatEntry::getCreatedOrder))
+        .toList();
+  }
+
+  private StatEntry statEntry(WorkRecordLine line) {
+    WorkLineCalculationMode mode = line.getCalculationModeSnapshot();
+    CalculationMethod calculationMethod =
+        switch (mode) {
+          case TIME_HOURLY -> CalculationMethod.TIME_BASED;
+          case FIXED_AMOUNT -> CalculationMethod.FIXED_PRICE_BASED;
+          case UNITS_PER_HOUR, UNITS_PER_UNIT -> CalculationMethod.UNIT_BASED;
+        };
+    BigDecimal workedMinutes =
+        mode == WorkLineCalculationMode.UNITS_PER_UNIT || mode == WorkLineCalculationMode.FIXED_AMOUNT
+            ? BigDecimal.ZERO.setScale(SCALE)
+            : line.getCalculatedMinutes();
+    boolean overnight =
+        line.getStartTime() != null && line.getEndTime() != null && !line.getEndTime().isAfter(line.getStartTime());
+    return new StatEntry(
+        line.getId(),
+        line.getWorkRecord().getId(),
+        line.getWorkType(),
+        line.getWorkType().getId(),
+        line.getWorkTypeNameSnapshot(),
+        calculationMethod,
+        line.getWorkRecord().getWorkDate(),
+        workedMinutes,
+        line.getCurrencySnapshot(),
+        line.getGrossAmount(),
+        overnight,
+        line.getId().toString());
   }
 
   private void validateRange(LocalDate from, LocalDate to) {
@@ -972,14 +1026,32 @@ public class StatisticsService {
     return values.stream().distinct().toList();
   }
 
-  private BigDecimal sumMinutes(List<WorkEntry> entries) {
+  private List<UUID> expandedWorkTypeIds(UUID userId, Collection<UUID> values) {
+    List<UUID> selected = normalize(values);
+    if (selected.isEmpty()) {
+      return List.of();
+    }
+    LinkedHashSet<UUID> result = new LinkedHashSet<>(selected);
+    List<UUID> parents = selected;
+    while (!parents.isEmpty()) {
+      List<UUID> children =
+          workTypeRepository.findAllByUserIdAndParentIdIn(userId, parents).stream()
+              .map(WorkType::getId)
+              .filter(result::add)
+              .toList();
+      parents = children;
+    }
+    return List.copyOf(result);
+  }
+
+  private BigDecimal sumMinutes(List<StatEntry> entries) {
     return entries.stream()
-        .map(WorkEntry::getCalculatedMinutes)
+        .map(StatEntry::getCalculatedMinutes)
         .reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add)
         .setScale(SCALE, RoundingMode.HALF_UP);
   }
 
-  private StatisticsPeriodTotalsResponse totals(LocalDate from, LocalDate to, List<WorkEntry> entries) {
+  private StatisticsPeriodTotalsResponse totals(LocalDate from, LocalDate to, List<StatEntry> entries) {
     int workedDays = distinctWorkedDays(entries);
     BigDecimal workedMinutes = sumMinutes(entries);
     BigDecimal averageMinutesPerWorkedDay =
@@ -992,13 +1064,13 @@ public class StatisticsService {
         from, to, workedMinutes, workedDays, entries.size(), grossByCurrency(entries), averageMinutesPerWorkedDay);
   }
 
-  private int distinctWorkedDays(List<WorkEntry> entries) {
-    return (int) entries.stream().map(WorkEntry::getWorkDate).distinct().count();
+  private int distinctWorkedDays(List<StatEntry> entries) {
+    return (int) entries.stream().map(StatEntry::getWorkDate).distinct().count();
   }
 
-  private List<MoneyAmountResponse> grossByCurrency(List<WorkEntry> entries) {
+  private List<MoneyAmountResponse> grossByCurrency(List<StatEntry> entries) {
     Map<String, BigDecimal> totals = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+    for (StatEntry entry : entries) {
       totals.merge(entry.getCurrencySnapshot(), entry.getGrossAmount(), BigDecimal::add);
     }
     return totals.entrySet().stream()
@@ -1006,11 +1078,11 @@ public class StatisticsService {
         .toList();
   }
 
-  private List<String> currenciesFor(List<WorkEntry> entries) {
-    return entries.stream().map(WorkEntry::getCurrencySnapshot).distinct().sorted().toList();
+  private List<String> currenciesFor(List<StatEntry> entries) {
+    return entries.stream().map(StatEntry::getCurrencySnapshot).distinct().sorted().toList();
   }
 
-  private StatisticsComparisonResponse comparison(List<WorkEntry> currentEntries, List<WorkEntry> previousEntries) {
+  private StatisticsComparisonResponse comparison(List<StatEntry> currentEntries, List<StatEntry> previousEntries) {
     List<MoneyAmountResponse> currentGross = grossByCurrency(currentEntries);
     List<MoneyAmountResponse> previousGross = grossByCurrency(previousEntries);
     if (currentGross.isEmpty() && previousGross.isEmpty()) {
@@ -1037,8 +1109,8 @@ public class StatisticsService {
   }
 
   private List<StatisticsComparisonDifferenceResponse> comparisonDifferences(
-      List<WorkEntry> entriesA,
-      List<WorkEntry> entriesB,
+      List<StatEntry> entriesA,
+      List<StatEntry> entriesB,
       StatisticsPeriodTotalsResponse totalsA,
       StatisticsPeriodTotalsResponse totalsB,
       StatisticsMetric metric) {
@@ -1083,8 +1155,8 @@ public class StatisticsService {
   private StatisticsComparisonSeriesResponse comparisonSeries(
       StatisticsFilters filtersA,
       StatisticsFilters filtersB,
-      List<WorkEntry> entriesA,
-      List<WorkEntry> entriesB,
+      List<StatEntry> entriesA,
+      List<StatEntry> entriesB,
       StatisticsMetric metric) {
     StatisticsGranularity granularity = comparisonGranularity(filtersA, filtersB);
     StatisticsComparisonAlignment alignment = comparisonAlignment(filtersA, filtersB, granularity);
@@ -1164,8 +1236,8 @@ public class StatisticsService {
     return String.valueOf(index + 1);
   }
 
-  private List<WorkEntry> entriesInBucket(
-      List<WorkEntry> entries, Bucket bucket, String currency, StatisticsMetric metric) {
+  private List<StatEntry> entriesInBucket(
+      List<StatEntry> entries, Bucket bucket, String currency, StatisticsMetric metric) {
     return entries.stream()
         .filter(entry -> !entry.getWorkDate().isBefore(bucket.start()) && !entry.getWorkDate().isAfter(bucket.end()))
         .filter(entry -> metric != StatisticsMetric.GROSS || entry.getCurrencySnapshot().equals(currency))
@@ -1180,7 +1252,7 @@ public class StatisticsService {
     return result;
   }
 
-  private BigDecimal aggregateMetric(List<WorkEntry> entries, StatisticsMetric metric) {
+  private BigDecimal aggregateMetric(List<StatEntry> entries, StatisticsMetric metric) {
     if (metric == StatisticsMetric.WORKED_DAYS) {
       return BigDecimal.valueOf(distinctWorkedDays(entries)).setScale(SCALE);
     }
@@ -1193,16 +1265,16 @@ public class StatisticsService {
         .setScale(SCALE, RoundingMode.HALF_UP);
   }
 
-  private List<String> comparisonCurrencies(List<WorkEntry> entriesA, List<WorkEntry> entriesB) {
+  private List<String> comparisonCurrencies(List<StatEntry> entriesA, List<StatEntry> entriesB) {
     Set<String> currencies = new LinkedHashSet<>();
     currencies.addAll(currenciesFor(entriesA));
     currencies.addAll(currenciesFor(entriesB));
     return currencies.stream().sorted().toList();
   }
 
-  private Map<LocalDate, List<WorkEntry>> entriesByDate(List<WorkEntry> entries) {
-    Map<LocalDate, List<WorkEntry>> result = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+  private Map<LocalDate, List<StatEntry>> entriesByDate(List<StatEntry> entries) {
+    Map<LocalDate, List<StatEntry>> result = new LinkedHashMap<>();
+    for (StatEntry entry : entries) {
       result.computeIfAbsent(entry.getWorkDate(), ignored -> new ArrayList<>()).add(entry);
     }
     return result;
@@ -1221,10 +1293,10 @@ public class StatisticsService {
     return result;
   }
 
-  private List<StatisticsWorkTypeResponse> workTypeBreakdown(List<WorkEntry> entries) {
+  private List<StatisticsWorkTypeResponse> workTypeBreakdown(List<StatEntry> entries) {
     BigDecimal totalMinutes = sumMinutes(entries);
     Map<UUID, WorkTypeAggregate> grouped = new LinkedHashMap<>();
-    for (WorkEntry entry : entries) {
+    for (StatEntry entry : entries) {
       WorkTypeAggregate aggregate =
           grouped.computeIfAbsent(
               entry.getWorkType().getId(),
@@ -1323,7 +1395,7 @@ public class StatisticsService {
     return new Bucket(start, naturalEnd.isAfter(rangeTo) ? rangeTo : naturalEnd);
   }
 
-  private BigDecimal metricValue(WorkEntry entry, StatisticsMetric metric) {
+  private BigDecimal metricValue(StatEntry entry, StatisticsMetric metric) {
     return switch (metric) {
       case GROSS -> entry.getGrossAmount();
       case WORKED_MINUTES -> entry.getCalculatedMinutes();
@@ -1356,11 +1428,73 @@ public class StatisticsService {
       LocalDate longestStart,
       LocalDate longestEnd) {}
 
+  private record StatEntry(
+      UUID id,
+      UUID workRecordId,
+      WorkType workType,
+      UUID workTypeId,
+      String workTypeNameSnapshot,
+      CalculationMethod calculationMethodSnapshot,
+      LocalDate workDate,
+      BigDecimal calculatedMinutes,
+      String currencySnapshot,
+      BigDecimal grossAmount,
+      boolean overnight,
+      String createdOrder) {
+    UUID getId() {
+      return id;
+    }
+
+    WorkType getWorkType() {
+      return workType;
+    }
+
+    String getWorkTypeNameSnapshot() {
+      return workTypeNameSnapshot;
+    }
+
+    CalculationMethod getCalculationMethodSnapshot() {
+      return calculationMethodSnapshot;
+    }
+
+    LocalDate getWorkDate() {
+      return workDate;
+    }
+
+    BigDecimal getCalculatedMinutes() {
+      return calculatedMinutes;
+    }
+
+    String getCurrencySnapshot() {
+      return currencySnapshot;
+    }
+
+    BigDecimal getGrossAmount() {
+      return grossAmount;
+    }
+
+    boolean isOvernight() {
+      return overnight;
+    }
+
+    String getCreatedOrder() {
+      return createdOrder;
+    }
+  }
+
+  private record StatWorkLine(
+      UUID entryId,
+      UUID workFormulaId,
+      String unitName,
+      String workTypeName,
+      BigDecimal quantity,
+      BigDecimal equivalentMinutes) {}
+
   private static final class WorkTypeAggregate {
     private final UUID workTypeId;
     private final String name;
     private final CalculationMethod calculationMethod;
-    private final List<WorkEntry> entries = new ArrayList<>();
+    private final List<StatEntry> entries = new ArrayList<>();
 
     private WorkTypeAggregate(UUID workTypeId, String name, CalculationMethod calculationMethod) {
       this.workTypeId = workTypeId;
@@ -1368,13 +1502,13 @@ public class StatisticsService {
       this.calculationMethod = calculationMethod;
     }
 
-    private void add(WorkEntry entry) {
+    private void add(StatEntry entry) {
       entries.add(entry);
     }
 
     private BigDecimal minutes() {
       return entries.stream()
-          .map(WorkEntry::getCalculatedMinutes)
+          .map(StatEntry::getCalculatedMinutes)
           .reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add)
           .setScale(SCALE, RoundingMode.HALF_UP);
     }
@@ -1388,7 +1522,7 @@ public class StatisticsService {
                   .divide(totalMinutes, MATH_CONTEXT)
                   .setScale(2, RoundingMode.HALF_UP);
       Map<String, BigDecimal> grossTotals = new LinkedHashMap<>();
-      for (WorkEntry entry : entries) {
+      for (StatEntry entry : entries) {
         grossTotals.merge(entry.getCurrencySnapshot(), entry.getGrossAmount(), BigDecimal::add);
       }
       List<MoneyAmountResponse> grossByCurrency =

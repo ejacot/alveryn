@@ -2,6 +2,7 @@ package com.alveryn.api.worktype.entity;
 
 import com.alveryn.api.common.persistence.BaseEntity;
 import com.alveryn.api.user.entity.UserAccount;
+import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.Locale;
 import java.util.Objects;
@@ -21,16 +22,15 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(
-    name = "work_types",
-    uniqueConstraints =
-        @UniqueConstraint(
-            name = "uk_work_types_user_name",
-            columnNames = {"user_id", "normalized_name"}))
+@Table(name = "work_types")
 public class WorkType extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "parent_work_type_id")
+  private WorkType parent;
 
   @Column(nullable = false, length = 100)
   private String name;
@@ -55,6 +55,27 @@ public class WorkType extends BaseEntity {
   @Column(name = "default_break_minutes")
   private Integer defaultBreakMinutes;
 
+  @Column(name = "unit_label", length = 100)
+  private String unitLabel;
+
+  @Column(name = "unit_symbol", length = 20)
+  private String unitSymbol;
+
+  @Column(name = "units_per_hour", precision = 12, scale = 4)
+  private BigDecimal unitsPerHour;
+
+  @Column(name = "rate_per_unit", precision = 12, scale = 4)
+  private BigDecimal ratePerUnit;
+
+  @Column(length = 3)
+  private String currency;
+
+  @Column(name = "teamwork_enabled", nullable = false)
+  private boolean teamworkEnabled;
+
+  @Column(name = "composite_enabled", nullable = false)
+  private boolean compositeEnabled;
+
   @Column(nullable = false)
   private boolean active = true;
 
@@ -75,6 +96,16 @@ public class WorkType extends BaseEntity {
         Objects.requireNonNull(calculationMethod, "calculationMethod is required");
     changeCompensationMethod(compensationMethod);
     rename(name);
+  }
+
+  public void changeParent(WorkType value) {
+    if (value != null && !value.getUser().getId().equals(user.getId())) {
+      throw new IllegalArgumentException("parent work type must belong to the same user");
+    }
+    if (value != null && getId() != null && getId().equals(value.getId())) {
+      throw new IllegalArgumentException("work type cannot be its own parent");
+    }
+    parent = value;
   }
 
   public void rename(String value) {
@@ -106,7 +137,7 @@ public class WorkType extends BaseEntity {
 
   public void changeCalculationMethod(CalculationMethod value) {
     calculationMethod = Objects.requireNonNull(value, "calculationMethod is required");
-    if (calculationMethod == CalculationMethod.TIME_BASED
+    if (calculationMethod != CalculationMethod.UNIT_BASED
         && compensationMethod == CompensationMethod.PER_UNIT) {
       compensationMethod = CompensationMethod.HOURLY;
     }
@@ -114,10 +145,92 @@ public class WorkType extends BaseEntity {
 
   public void changeCompensationMethod(CompensationMethod value) {
     CompensationMethod next = Objects.requireNonNull(value, "compensationMethod is required");
-    if (calculationMethod == CalculationMethod.TIME_BASED && next == CompensationMethod.PER_UNIT) {
-      throw new IllegalArgumentException("TIME_BASED work types must use HOURLY compensation");
+    if (calculationMethod != CalculationMethod.UNIT_BASED && next == CompensationMethod.PER_UNIT) {
+      throw new IllegalArgumentException("Only UNIT_BASED work types can use PER_UNIT compensation");
     }
     compensationMethod = next;
+  }
+
+  public void configureUnit(String label, String symbol) {
+    String normalizedLabel = label == null ? null : label.trim();
+    String normalizedSymbol = symbol == null ? null : symbol.trim();
+    unitLabel = normalizedLabel == null || normalizedLabel.isBlank() ? null : normalizedLabel;
+    unitSymbol = normalizedSymbol == null || normalizedSymbol.isBlank() ? null : normalizedSymbol;
+  }
+
+  public void configureFormula(BigDecimal unitsPerHour, BigDecimal ratePerUnit, String currency) {
+    if (unitsPerHour != null && unitsPerHour.signum() <= 0) {
+      throw new IllegalArgumentException("unitsPerHour must be positive");
+    }
+    if (ratePerUnit != null && ratePerUnit.signum() <= 0) {
+      throw new IllegalArgumentException("ratePerUnit must be positive");
+    }
+    this.unitsPerHour = unitsPerHour;
+    this.ratePerUnit = ratePerUnit;
+    this.currency = normalizeCurrency(currency);
+    validateFormula();
+  }
+
+  public void changeTeamworkEnabled(boolean value) {
+    teamworkEnabled = value;
+  }
+
+  public void changeCompositeEnabled(boolean value) {
+    compositeEnabled = value;
+  }
+
+  public WorkLineCalculationMode calculationMode() {
+    return switch (calculationMethod) {
+      case TIME_BASED -> WorkLineCalculationMode.TIME_HOURLY;
+      case UNIT_BASED -> WorkLineCalculationMode.UNITS_PER_UNIT;
+      case UNITS_PER_HOUR_BASED -> WorkLineCalculationMode.UNITS_PER_HOUR;
+      case FIXED_PRICE_BASED -> WorkLineCalculationMode.FIXED_AMOUNT;
+    };
+  }
+
+  private void validateFormula() {
+    if (compositeEnabled
+        && unitLabel == null
+        && unitSymbol == null
+        && unitsPerHour == null
+        && ratePerUnit == null
+        && currency == null) {
+      compensationMethod =
+          calculationMethod == CalculationMethod.UNIT_BASED ? CompensationMethod.PER_UNIT : CompensationMethod.HOURLY;
+      return;
+    }
+    if (calculationMethod == CalculationMethod.TIME_BASED || calculationMethod == CalculationMethod.FIXED_PRICE_BASED) {
+      if (unitsPerHour != null || ratePerUnit != null || currency != null || unitLabel != null || unitSymbol != null) {
+        throw new IllegalArgumentException(calculationMethod + " work types cannot define unit formula fields");
+      }
+      compensationMethod = CompensationMethod.HOURLY;
+      return;
+    }
+    if (unitLabel == null || unitLabel.isBlank()) {
+      throw new IllegalArgumentException("unitLabel is required");
+    }
+    if (calculationMethod == CalculationMethod.UNITS_PER_HOUR_BASED) {
+      if (unitsPerHour == null || ratePerUnit != null || currency != null) {
+        throw new IllegalArgumentException("UNITS_PER_HOUR_BASED requires unitsPerHour only");
+      }
+      compensationMethod = CompensationMethod.HOURLY;
+      return;
+    }
+    if (ratePerUnit == null || currency == null) {
+      throw new IllegalArgumentException("UNIT_BASED requires ratePerUnit and currency");
+    }
+    compensationMethod = CompensationMethod.PER_UNIT;
+  }
+
+  private static String normalizeCurrency(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    String trimmed = value.trim();
+    if (!trimmed.matches("[A-Za-z]{3}")) {
+      throw new IllegalArgumentException("currency must have three letters");
+    }
+    return trimmed.toUpperCase(Locale.ROOT);
   }
 
   public void activate() {

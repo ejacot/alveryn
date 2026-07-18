@@ -51,7 +51,13 @@ function parseFilters(searchParams: URLSearchParams): StatisticsFilters {
     workTypeIds: searchParams.getAll("workTypeIds").filter(Boolean).sort(),
     calculationMethods: searchParams
       .getAll("calculationMethods")
-      .filter((value): value is "TIME_BASED" | "UNIT_BASED" => value === "TIME_BASED" || value === "UNIT_BASED")
+      .filter(
+        (value): value is "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" =>
+          value === "TIME_BASED"
+          || value === "UNIT_BASED"
+          || value === "UNITS_PER_HOUR_BASED"
+          || value === "FIXED_PRICE_BASED"
+      )
       .sort()
   };
   if (from && to && to >= from) {

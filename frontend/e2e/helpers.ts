@@ -98,7 +98,7 @@ export async function loginThroughUi(page: Page, user: E2eUser) {
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL("/app");
+  await page.waitForURL(/\/app$/);
 }
 
 export async function createHourlyRate(accessToken: string) {
@@ -140,7 +140,12 @@ export async function createUnitBasedWorkType(accessToken: string, name: string)
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
   });
   const response = await api.post("/api/work-types", {
-    data: { name, calculationMethod: "UNIT_BASED" }
+    data: {
+      name,
+      calculationMethod: "UNIT_BASED",
+      compensationMethod: "PER_UNIT",
+      compositeEnabled: true
+    }
   });
   const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create unit work type");
   await api.dispose();
@@ -151,24 +156,136 @@ export async function createUnitBasedWorkType(accessToken: string, name: string)
   return body.data.id;
 }
 
-export async function createUnitType(
+export async function createPerUnitWorkType(accessToken: string, name: string) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-types", {
+    data: {
+      name,
+      calculationMethod: "UNIT_BASED",
+      compensationMethod: "PER_UNIT",
+      compositeEnabled: true,
+      teamworkEnabled: true
+    }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create per-unit work type");
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create per-unit work type did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createPerUnitWorkTypeChild(
   accessToken: string,
-  workTypeId: string,
+  parentId: string,
   name: string,
-  unitsPerHour: number
+  payload: {
+    unitLabel: string;
+    unitSymbol?: string;
+    ratePerUnit: number;
+    currency: string;
+  }
 ) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
   });
-  const response = await api.post(`/api/work-types/${workTypeId}/unit-types`, {
-    data: { name, unitsPerHour, active: true }
+  const response = await api.post("/api/work-types", {
+    data: {
+      parentId,
+      name,
+      calculationMethod: "UNIT_BASED",
+      compensationMethod: "PER_UNIT",
+      unitLabel: payload.unitLabel,
+      unitSymbol: payload.unitSymbol ?? null,
+      ratePerUnit: payload.ratePerUnit,
+      currency: payload.currency,
+      teamworkEnabled: true,
+      defaultBreakMinutes: null
+    }
   });
-  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create unit type");
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(
+    response,
+    "Create per-unit work type child"
+  );
   await api.dispose();
 
   if (!body.data?.id) {
-    throw new Error(`Create unit type did not return an id: ${JSON.stringify(body)}`);
+    throw new Error(`Create per-unit work type child did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createUnitsPerHourWorkTypeChild(
+  accessToken: string,
+  parentId: string,
+  name: string,
+  payload: {
+    unitLabel: string;
+    unitSymbol?: string;
+    unitsPerHour: number;
+  }
+) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-types", {
+    data: {
+      parentId,
+      name,
+      calculationMethod: "UNITS_PER_HOUR_BASED",
+      compensationMethod: "HOURLY",
+      unitLabel: payload.unitLabel,
+      unitSymbol: payload.unitSymbol ?? null,
+      unitsPerHour: payload.unitsPerHour,
+      ratePerUnit: null,
+      currency: null,
+      defaultBreakMinutes: null,
+      active: true
+    }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(
+    response,
+    "Create units-per-hour work type child"
+  );
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create units-per-hour work type child did not return an id: ${JSON.stringify(body)}`);
+  }
+  return body.data.id;
+}
+
+export async function createTimeHourlyWorkTypeChild(
+  accessToken: string,
+  parentId: string,
+  name = "Hours"
+) {
+  const api = await request.newContext({
+    baseURL: apiURL,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  });
+  const response = await api.post("/api/work-types", {
+    data: {
+      parentId,
+      name,
+      calculationMethod: "TIME_BASED",
+      defaultBreakMinutes: 0
+    }
+  });
+  const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(
+    response,
+    "Create time-hourly work type child"
+  );
+  await api.dispose();
+
+  if (!body.data?.id) {
+    throw new Error(`Create time-hourly work type child did not return an id: ${JSON.stringify(body)}`);
   }
   return body.data.id;
 }
@@ -180,41 +297,40 @@ export async function createTimeEntry(
   startTime = "09:00:00",
   endTime = "17:00:00"
 ) {
-  const api = await request.newContext({
-    baseURL: apiURL,
-    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
+  await createWorkRecordWithLine(accessToken, workTypeId, workDate, {
+    startTime,
+    endTime,
+    unpaidBreakMinutes: 0
   });
-  const response = await api.post("/api/work-entries", {
-    data: {
-      workTypeId,
-      workDate,
-      startTime,
-      endTime,
-      unpaidBreakMinutes: 0
-    }
-  });
-  await requireSuccessfulResponse(response, "Create time entry");
-  await api.dispose();
 }
 
-export async function createUnitEntry(
+export async function createWorkRecordWithLine(
   accessToken: string,
   workTypeId: string,
-  unitTypeId: string,
   workDate = "2026-07-04",
-  quantity = 4
+  payload:
+    | { quantity: number }
+    | { startTime: string; endTime: string; unpaidBreakMinutes?: number; extraPayPercentage?: number } = { quantity: 4 }
 ) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
   });
-  const response = await api.post("/api/work-entries", {
+  const response = await api.post("/api/work-records", {
     data: {
-      workTypeId,
       workDate,
-      unitItems: [{ unitTypeId, quantity }]
+      lines: [
+        {
+          workTypeId,
+          quantity: "quantity" in payload ? payload.quantity : null,
+          startTime: "startTime" in payload ? payload.startTime : null,
+          endTime: "endTime" in payload ? payload.endTime : null,
+          unpaidBreakMinutes: "unpaidBreakMinutes" in payload ? payload.unpaidBreakMinutes ?? 0 : null,
+          extraPayPercentage: "extraPayPercentage" in payload ? payload.extraPayPercentage ?? 0 : 0
+        }
+      ]
     }
   });
-  await requireSuccessfulResponse(response, "Create unit entry");
+  await requireSuccessfulResponse(response, "Create work record");
   await api.dispose();
 }

@@ -7,7 +7,7 @@ import { StatisticsPage } from "./statistics-page";
 
 vi.mock("../../../api/endpoints", () => ({
   listWorkTypes: vi.fn(),
-  listWorkEntriesForDay: vi.fn()
+  listWorkRecordsForDay: vi.fn()
 }));
 
 vi.mock("../api/statistics-api", () => ({
@@ -23,7 +23,7 @@ vi.mock("../api/statistics-api", () => ({
   getStatisticsInsights: vi.fn()
 }));
 
-import { listWorkTypes } from "../../../api/endpoints";
+import { listWorkRecordsForDay, listWorkTypes } from "../../../api/endpoints";
 import {
   getStatisticsComparison,
   getStatisticsDrilldown,
@@ -81,6 +81,7 @@ describe("StatisticsPage", () => {
         active: true
       }
     ]);
+    vi.mocked(listWorkRecordsForDay).mockResolvedValue([]);
     vi.mocked(getStatisticsOverview).mockResolvedValue(overview);
     vi.mocked(getStatisticsTimeSeries).mockResolvedValue({
       granularity: "DAILY",
@@ -213,9 +214,9 @@ describe("StatisticsPage", () => {
       available: true,
       partial: false,
       incompleteItems: 0,
-      unitTypes: [
+      workFormulas: [
         {
-          unitTypeId: "unit-normal",
+          workFormulaId: "formula-normal",
           name: "Normal rooms",
           workTypeName: "Rooms",
           totalQuantity: "326",
@@ -290,6 +291,32 @@ describe("StatisticsPage", () => {
     expect(screen.getByText("Normal rooms")).toBeInTheDocument();
     expect(screen.getByText("Personal performance")).toBeInTheDocument();
     expect(screen.getByText("Current streak")).toBeInTheDocument();
+  });
+
+  it("explains direct per-unit gross when no worked hours are recorded", async () => {
+    vi.mocked(getStatisticsOverview).mockResolvedValueOnce({
+      ...overview,
+      grossByCurrency: [{ currency: "EUR", amount: "15000" }],
+      workedMinutes: "0",
+      workedDays: 1,
+      entries: 1,
+      averageMinutesPerDay: "0",
+      comparison: {
+        available: false,
+        percentage: null,
+        direction: "NEW",
+        grossByCurrency: []
+      }
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("€15,000")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Direct per-unit earnings are included in gross totals. No worked hours were added because this work was not tracked by time."
+      )
+    ).toBeInTheDocument();
   });
 
   it("refetches statistics when filters change", async () => {
@@ -407,5 +434,59 @@ describe("StatisticsPage", () => {
         "EUR"
       );
     });
+  });
+
+  it("shows work records in the selected heatmap day drilldown", async () => {
+    vi.mocked(listWorkRecordsForDay).mockResolvedValueOnce([
+      {
+        id: "record-1",
+        workDate: "2026-07-01",
+        addressId: null,
+        address: null,
+        teamSize: null,
+        notes: null,
+        calculatedMinutes: "480",
+        workedHours: "8",
+        grossAmount: "400",
+        currency: "EUR",
+        createdAt: "2026-07-01T12:00:00Z",
+        updatedAt: "2026-07-01T12:00:00Z",
+        workLines: [
+          {
+            id: "line-1",
+            workTypeId: "work-type-check",
+            displayOrder: 0,
+            workTypeName: "Floor install",
+            configurationName: "Floor install",
+            calculationMode: "UNITS_PER_UNIT",
+            unitLabel: "Square meter",
+            unitSymbol: "m²",
+            quantity: "8",
+            unitsPerHourSnapshot: null,
+            startTime: null,
+            endTime: null,
+            durationMinutes: null,
+            breakMinutes: null,
+            calculatedMinutes: "0",
+            workedHours: "0",
+            hourlyRateSnapshot: null,
+            ratePerUnitSnapshot: "50",
+            currencySnapshot: "EUR",
+            grossAmount: "400",
+            extraPayPercentage: 0,
+            notes: null
+          }
+        ]
+      }
+    ]);
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("gridcell", { name: /July 1, 2026/i }));
+
+    expect(await screen.findByText("Floor install")).toBeInTheDocument();
+    expect(screen.getByText(/€400/)).toBeInTheDocument();
+    expect(listWorkRecordsForDay).toHaveBeenCalledWith("2026-07-01");
   });
 });

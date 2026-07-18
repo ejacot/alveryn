@@ -5,8 +5,8 @@ import {
   createTimeBasedWorkType,
   createTimeEntry,
   createUnitBasedWorkType,
-  createUnitEntry,
-  createUnitType,
+  createUnitsPerHourWorkTypeChild,
+  createWorkRecordWithLine,
   loginThroughUi
 } from "./helpers";
 
@@ -18,8 +18,16 @@ test("statistics page loads real backend data and refetches on filter change", a
   await createTimeEntry(user.accessToken, workTypeId, "2026-07-02");
   await createTimeEntry(user.accessToken, workTypeId, "2026-07-03");
   const unitWorkTypeId = await createUnitBasedWorkType(user.accessToken, "Rooms");
-  const unitTypeId = await createUnitType(user.accessToken, unitWorkTypeId, "Normal rooms", 2);
-  await createUnitEntry(user.accessToken, unitWorkTypeId, unitTypeId, "2026-07-04", 4);
+  const childWorkTypeId = await createUnitsPerHourWorkTypeChild(
+    user.accessToken,
+    unitWorkTypeId,
+    "Normal rooms",
+    {
+      unitLabel: "Room",
+      unitsPerHour: 2
+    }
+  );
+  await createWorkRecordWithLine(user.accessToken, childWorkTypeId, "2026-07-04", { quantity: 4 });
 
   await loginThroughUi(page, user);
 

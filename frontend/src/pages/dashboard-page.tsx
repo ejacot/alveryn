@@ -1,14 +1,15 @@
 import { useMemo } from "react";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   createAbsence,
+  deleteAbsence,
   getAbsences,
   getPreferences,
+  listAbsenceTypes,
   listHourlyRates,
-  listWorkEntriesForDay,
-  listWorkEntriesInRange
+  listWorkRecordsInRange
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -16,14 +17,13 @@ import { i18n } from "../i18n";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
-import type { DashboardSummaryMetrics, WeeklyRhythmDay } from "../types/dashboard";
-import type { Absence, AbsenceType } from "../types/absence";
-import type { WorkEntry } from "../types/work-entry";
-import { addDays, addWeeks, formatLocalIsoDate, isSameDay, startOfWeek } from "../utils/date";
+import type { DashboardSummaryMetrics, SelectedDayActivity, WeeklyRhythmDay } from "../types/dashboard";
+import type { Absence, AbsenceTypeSetting } from "../types/absence";
+import type { WorkRecord, WorkRecordLine } from "../types/work-record";
+import { addDays, addWeeks, formatLocalIsoDate, isSameDay, parseLocalIsoDate, safeLocalIsoDate, startOfWeek } from "../utils/date";
 import {
   formatCurrency,
-  formatMinutesAsDuration,
-  formatTimeRange
+  formatMinutesAsDuration
 } from "../utils/format";
 import { calculatePaidAbsenceDays } from "../utils/paid-absence";
 
@@ -36,11 +36,6 @@ type DashboardPageProps = {
   selectedDate?: Date;
 };
 
-type MonthRequest = {
-  year: number;
-  month: number;
-};
-
 export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageProps = {}) {
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
@@ -50,7 +45,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
     [outletContext?.selectedDate, selectedDateProp]
   );
-  const selectedDateKey = formatLocalIsoDate(selectedDate);
+  const selectedDateKey = safeLocalIsoDate(selectedDate);
 
   const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
   const weekDays = useMemo(
@@ -59,32 +54,12 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   );
   const weekStartKey = formatLocalIsoDate(weekDays[0]);
   const weekEndKey = formatLocalIsoDate(weekDays[6]);
+  const previousWeekStartKey = shiftIsoDate(weekStartKey, -7);
+  const previousWeekEndKey = shiftIsoDate(weekEndKey, -7);
 
-  const monthRequests = useMemo<MonthRequest[]>(() => {
-    const unique = new Map<string, MonthRequest>();
-
-    [selectedDate, weekStart, weekDays[6]].forEach((date) => {
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      unique.set(`${year}-${month}`, { year, month });
-    });
-
-    return Array.from(unique.values());
-  }, [selectedDate, weekDays, weekStart]);
-
-  const monthQueries = useQueries({
-    queries: monthRequests.map(({ year, month }) => ({
-      queryKey: queryKeys.workEntries.range({ year, month }),
-      queryFn: () => listWorkEntriesInRange({ year, month })
-    }))
-  });
-  const selectedDayQuery = useQuery({
-    queryKey: queryKeys.workEntries.day(selectedDateKey),
-    queryFn: () => listWorkEntriesForDay(selectedDateKey)
-  });
-  const selectedAbsenceQuery = useQuery({
-    queryKey: queryKeys.absences.list({ from: selectedDateKey, to: selectedDateKey }),
-    queryFn: () => getAbsences({ from: selectedDateKey, to: selectedDateKey, size: 1 })
+  const rhythmRecordsQuery = useQuery({
+    queryKey: queryKeys.workRecords.range({ from: previousWeekStartKey, to: weekEndKey }),
+    queryFn: () => listWorkRecordsInRange({ from: previousWeekStartKey, to: weekEndKey })
   });
   const preferencesQuery = useQuery({
     queryKey: queryKeys.preferences(),
@@ -94,75 +69,86 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
+  const absenceTypesQuery = useQuery({
+    queryKey: queryKeys.absenceTypes.list(true),
+    queryFn: () => listAbsenceTypes(true)
+  });
   const weeklyAbsencesQuery = useQuery({
-    queryKey: queryKeys.absences.list({ from: weekStartKey, to: weekEndKey }),
-    queryFn: () => getAbsences({ from: weekStartKey, to: weekEndKey })
+    queryKey: queryKeys.absences.list({ from: previousWeekStartKey, to: weekEndKey }),
+    queryFn: () => getAbsences({ from: previousWeekStartKey, to: weekEndKey })
   });
   const absenceMutation = useMutation({
-    mutationFn: (absenceType: AbsenceType) =>
+    mutationFn: ({ absenceTypeId, date }: { absenceTypeId: string; date: string }) =>
       createAbsence({
-        absenceType,
-        startDate: selectedDateKey,
-        endDate: selectedDateKey,
+        absenceTypeId,
+        startDate: date,
+        endDate: date,
         notes: null
       }),
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.absences.list({ from: selectedDateKey, to: selectedDateKey }) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
+      outletContext?.setSelectedDate?.(parseLocalIsoDate(variables.date));
+    }
+  });
+  const deleteAbsenceMutation = useMutation({
+    mutationFn: ({ id }: { id: string; date: string }) => deleteAbsence(id),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
+      ]);
+      outletContext?.setSelectedDate?.(parseLocalIsoDate(variables.date));
     }
   });
 
   const isLoading =
-    monthQueries.some((query) => query.isLoading) ||
-    selectedDayQuery.isLoading ||
-    selectedAbsenceQuery.isLoading ||
+    rhythmRecordsQuery.isLoading ||
     preferencesQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
+    absenceTypesQuery.isLoading ||
     weeklyAbsencesQuery.isLoading;
   const errorQuery =
-    monthQueries.find((query) => query.error) ??
-    (selectedDayQuery.error ? selectedDayQuery : null) ??
-    (selectedAbsenceQuery.error ? selectedAbsenceQuery : null) ??
+    (rhythmRecordsQuery.error ? rhythmRecordsQuery : null) ??
     (preferencesQuery.error ? preferencesQuery : null) ??
     (hourlyRatesQuery.error ? hourlyRatesQuery : null) ??
+    (absenceTypesQuery.error ? absenceTypesQuery : null) ??
     (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null);
 
-  const allEntries = useMemo<WorkEntry[]>(() => {
-    const merged = new Map<string, WorkEntry>();
-
-    monthQueries.forEach((query) => {
-      query.data?.forEach((entry) => {
-        merged.set(entry.id, entry);
-      });
-    });
-
-    return Array.from(merged.values()).sort((left, right) => {
-      const leftValue = `${left.workDate}T${left.timeEntry?.startTime ?? "23:59"}`;
-      const rightValue = `${right.workDate}T${right.timeEntry?.startTime ?? "23:59"}`;
-      return rightValue.localeCompare(leftValue);
-    });
-  }, [monthQueries]);
-
-  const selectedDayEntries = useMemo(() => selectedDayQuery.data ?? [], [selectedDayQuery.data]);
-  const selectedAbsence = selectedAbsenceQuery.data?.content[0] ?? null;
+  const rhythmRecords = useMemo(() => rhythmRecordsQuery.data ?? [], [rhythmRecordsQuery.data]);
+  const weeklyRecords = useMemo(
+    () => rhythmRecords.filter((record) => recordOverlapsRange(record, weekStartKey, weekEndKey)),
+    [rhythmRecords, weekEndKey, weekStartKey]
+  );
+  const previousWeeklyRecords = useMemo(
+    () => rhythmRecords.filter((record) => recordOverlapsRange(record, previousWeekStartKey, previousWeekEndKey)),
+    [previousWeekEndKey, previousWeekStartKey, rhythmRecords]
+  );
+  const selectedDayRecords = useMemo(
+    () => weeklyRecords.filter((record) => recordCoversDate(record, selectedDateKey)),
+    [selectedDateKey, weeklyRecords]
+  );
   const preferences = preferencesQuery.data ?? null;
   const hourlyRates = useMemo(() => hourlyRatesQuery.data ?? [], [hourlyRatesQuery.data]);
-  const weeklyAbsences = useMemo(
+  const rhythmAbsences = useMemo(
     () => weeklyAbsencesQuery.data?.content ?? [],
     [weeklyAbsencesQuery.data]
   );
-
-  const weeklyEntries = useMemo(
-    () =>
-      allEntries.filter((entry) => {
-        const workDate = new Date(`${entry.workDate}T00:00:00`);
-        return weekDays.some((day) => isSameDay(day, workDate));
-      }),
-    [allEntries, weekDays]
+  const weeklyAbsences = useMemo(
+    () => rhythmAbsences.filter((absence) => absenceOverlapsRange(absence, weekStartKey, weekEndKey)),
+    [rhythmAbsences, weekEndKey, weekStartKey]
+  );
+  const previousWeeklyAbsences = useMemo(
+    () => rhythmAbsences.filter((absence) => absenceOverlapsRange(absence, previousWeekStartKey, previousWeekEndKey)),
+    [previousWeekEndKey, previousWeekStartKey, rhythmAbsences]
+  );
+  const selectedAbsence = useMemo(
+    () => weeklyAbsences.find((absence) => absenceCoversDate(absence, selectedDate)) ?? null,
+    [selectedDate, weeklyAbsences]
   );
 
   const selectedDayLabel = useMemo(
@@ -173,109 +159,158 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () =>
       calculatePaidAbsenceDays({
         absences: selectedAbsence ? [selectedAbsence] : [],
-        entries: selectedDayEntries,
+        activityDates: selectedDayRecords.map((record) => record.workDate),
         hourlyRates,
         preferences,
         from: selectedDateKey,
         to: selectedDateKey
       }),
-    [hourlyRates, preferences, selectedAbsence, selectedDateKey, selectedDayEntries]
+    [hourlyRates, preferences, selectedAbsence, selectedDateKey, selectedDayRecords]
   );
   const weeklyPaidAbsences = useMemo(
     () =>
       calculatePaidAbsenceDays({
         absences: weeklyAbsences,
-        entries: weeklyEntries,
+        activityDates: weeklyRecords.map((record) => record.workDate),
         hourlyRates,
         preferences,
         from: weekStartKey,
         to: weekEndKey
       }),
-    [hourlyRates, preferences, weekEndKey, weekStartKey, weeklyAbsences, weeklyEntries]
+    [hourlyRates, preferences, weekEndKey, weekStartKey, weeklyAbsences, weeklyRecords]
   );
 
   const summary = useMemo<DashboardSummaryMetrics>(() => {
-    const todayMinutes = sumMinutes(selectedDayEntries) + sumPaidAbsenceMinutes(selectedDayPaidAbsences);
-    const todayGross = sumGross(selectedDayEntries) + sumPaidAbsenceGross(selectedDayPaidAbsences);
-    const weeklyMinutes = sumMinutes(weeklyEntries) + sumPaidAbsenceMinutes(weeklyPaidAbsences);
-    const selectedEntriesLabel = t("dashboard:summary.entryCount", {
-      count: selectedDayEntries.length
-    });
-    const weeklyEntriesLabel = t("dashboard:summary.weekEntryCount", {
-      count: weeklyEntries.length
-    });
+    const todayMinutes = sumAllocatedRecordMinutes(selectedDayRecords, selectedDateKey, weeklyAbsences);
+    const absenceMinutes = selectedAbsence
+      ? preferences?.preferredDailyMinutes ?? selectedAbsence.paidMinutesPerDay
+      : 0;
+    const todayGross =
+      sumAllocatedRecordGross(selectedDayRecords, selectedDateKey, weeklyAbsences) +
+      sumPaidAbsenceGross(selectedDayPaidAbsences);
+    const todayExtraPaid = calculateExtraPaidInRange(
+      selectedDayRecords,
+      selectedDateKey,
+      selectedDateKey,
+      weeklyAbsences
+    );
+    const todayPaidMinutes = sumPaidAbsenceMinutes(selectedDayPaidAbsences) + todayExtraPaid.minutes;
+    const todayPaidGross = sumPaidAbsenceGross(selectedDayPaidAbsences) + todayExtraPaid.grossAmount;
+    const weeklyMinutes = sumAllocatedRecordMinutesInRange(
+      weeklyRecords,
+      weekStartKey,
+      weekEndKey,
+      weeklyAbsences
+    );
+    const weeklyGross =
+      sumAllocatedRecordGrossInRange(weeklyRecords, weekStartKey, weekEndKey, weeklyAbsences) +
+      sumPaidAbsenceGross(weeklyPaidAbsences);
 
     return {
-      primaryMetric: {
-        label: selectedDayLabel,
-        value: formatMinutesAsDuration(todayMinutes),
-        hint: selectedDayEntries.length
-          ? selectedEntriesLabel
-          : t("dashboard:summary.noEntries")
-      },
+      primaryMetric: selectedAbsence
+        ? {
+            label: selectedDayLabel,
+            value: formatMinutesAsDuration(absenceMinutes),
+            hint: selectedAbsence.paid && selectedAbsence.paidMinutesPerDay > 0
+              ? t("dashboard:summary.paidAbsenceHours", {
+                  duration: formatMinutesAsDuration(selectedAbsence.paidMinutesPerDay)
+                })
+              : ""
+          }
+        : todayMinutes > 0
+          ? {
+              label: selectedDayLabel,
+              value: formatMinutesAsDuration(todayMinutes),
+              hint: ""
+            }
+          : null,
       secondaryMetrics: [
         {
           label: t("dashboard:summary.gross"),
-          value: formatGrossTotal(selectedDayEntries, todayGross, t("dashboard:summary.mixedCurrencies"), selectedDayPaidAbsences),
-          hint: selectedDayEntries.length || selectedDayPaidAbsences.length
-            ? t("dashboard:summary.selectedDay")
-            : t("dashboard:summary.noEntries")
+          value: formatCombinedGross(
+            selectedDayRecords,
+            todayGross,
+            t("dashboard:summary.mixedCurrencies"),
+            selectedDayPaidAbsences
+          ),
+          hint: ""
         },
-        {
+        ...(weeklyMinutes > 0 ? [{
           label: t("dashboard:summary.week"),
           value: formatMinutesAsDuration(weeklyMinutes),
-          hint: weeklyEntriesLabel
-        }
-      ]
+          hint: "",
+          placement: "week" as const
+        }] : []),
+        ...(todayPaidMinutes > 0 ? [{
+          label: t("dashboard:summary.paid"),
+          value: formatMinutesAsDuration(todayPaidMinutes),
+          hint: formatCombinedGross(
+            selectedDayRecords.filter(hasExtraPay),
+            todayPaidGross,
+            t("dashboard:summary.mixedCurrencies"),
+            selectedDayPaidAbsences
+          ),
+          placement: "financial" as const
+        }] : [])
+      ],
+      tertiaryMetric: {
+        label: t("dashboard:summary.flow"),
+        value: formatCombinedGross(
+          weeklyRecords,
+          weeklyGross,
+          t("dashboard:summary.mixedCurrencies"),
+          weeklyPaidAbsences
+        ),
+        hint: ""
+      }
     };
-  }, [selectedDayEntries, selectedDayLabel, selectedDayPaidAbsences, t, weeklyEntries, weeklyPaidAbsences]);
+  }, [
+    selectedDayLabel,
+    selectedDayPaidAbsences,
+    selectedDayRecords,
+    selectedDateKey,
+    selectedAbsence,
+    preferences,
+    t,
+    weekEndKey,
+    weekStartKey,
+    weeklyPaidAbsences,
+    weeklyAbsences,
+    weeklyRecords
+  ]);
 
   const weeklyDays = useMemo(
-    () => buildWeeklyRhythmDays(weekDays, weeklyEntries, weeklyAbsences, selectedDate, t),
-    [selectedDate, t, weekDays, weeklyAbsences, weeklyEntries]
+    () => buildWeeklyRhythmDays(
+      weekDays,
+      weeklyRecords,
+      weeklyAbsences,
+      absenceTypesQuery.data ?? [],
+      selectedDate,
+      t
+    ),
+    [absenceTypesQuery.data, selectedDate, t, weekDays, weeklyAbsences, weeklyRecords]
   );
   const selectedDayOverview = useMemo(
     () => ({
       label: selectedDayLabel,
-      entriesCount: selectedDayEntries.length + (selectedAbsence ? 1 : 0),
-      totalDuration: formatMinutesAsDuration(sumMinutes(selectedDayEntries) + sumPaidAbsenceMinutes(selectedDayPaidAbsences)),
-      totalGross: formatGrossTotal(
-        selectedDayEntries,
-        sumGross(selectedDayEntries) + sumPaidAbsenceGross(selectedDayPaidAbsences),
+      entriesCount: selectedDayRecords.length + (selectedAbsence ? 1 : 0),
+      totalDuration: formatMinutesAsDuration(
+        sumAllocatedRecordMinutes(selectedDayRecords, selectedDateKey, weeklyAbsences) +
+        sumPaidAbsenceMinutes(selectedDayPaidAbsences)
+      ),
+      totalGross: formatCombinedGross(
+        selectedDayRecords,
+        sumAllocatedRecordGross(selectedDayRecords, selectedDateKey, weeklyAbsences) +
+          sumPaidAbsenceGross(selectedDayPaidAbsences),
         t("dashboard:summary.mixedCurrencies"),
         selectedDayPaidAbsences
       ),
       activities: [
-        ...selectedDayEntries.map((entry) => ({
-          id: entry.id,
-          title: entry.workTypeName,
-          kind: entry.calculationMethod,
-          subtitle:
-            formatTimeRange(entry.timeEntry?.startTime, entry.timeEntry?.endTime) ??
-            "",
-          duration:
-            (entry.compensationMethod ?? "HOURLY") === "PER_UNIT"
-              ? t("dashboard:selectedDay.directUnitPay")
-              : entry.calculationMethod === "UNIT_BASED"
-              ? t("dashboard:selectedDay.equivalentTime", {
-                  duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-                })
-              : t("dashboard:selectedDay.workedTime", {
-                  duration: formatMinutesAsDuration(Number(entry.calculatedMinutes))
-                }),
-          amount: formatCurrency(entry.grossAmount, entry.currencySnapshot),
-          extraPayLabel: (entry.extraPayPercentage ?? 0) > 0 ? `+${entry.extraPayPercentage}%` : null,
-          unitBreakdown: entry.unitItems.map((item) => ({
-            id: item.id,
-            label: item.unitName,
-            quantity: item.unitSymbol ? `${formatQuantity(item.quantity)} ${item.unitSymbol}` : formatQuantity(item.quantity),
-            displayOrder: item.displayOrder
-          }))
-        })),
+        ...buildSelectedDayActivities(selectedDayRecords, t),
         ...(selectedAbsence ? [toAbsenceActivity(selectedAbsence, selectedDayPaidAbsences[0]?.minutes ?? 0, t)] : [])
       ]
     }),
-    [selectedAbsence, selectedDayEntries, selectedDayLabel, selectedDayPaidAbsences, t]
+    [selectedAbsence, selectedDateKey, selectedDayLabel, selectedDayPaidAbsences, selectedDayRecords, t, weeklyAbsences]
   );
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -286,13 +321,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       <DashboardErrorState
         message={getApiError(errorQuery.error).message}
         onRetry={() => {
-          monthQueries.forEach((query) => {
-            void query.refetch();
-          });
-          void selectedDayQuery.refetch();
-          void selectedAbsenceQuery.refetch();
+          void rhythmRecordsQuery.refetch();
           void preferencesQuery.refetch();
           void hourlyRatesQuery.refetch();
+          void absenceTypesQuery.refetch();
           void weeklyAbsencesQuery.refetch();
         }}
       />
@@ -300,32 +332,141 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   }
 
   return (
+    <div className="mx-auto w-full pb-10">
       <DashboardOverview
         summary={summary}
         selectedDay={selectedDayOverview}
         weeklyDays={weeklyDays}
-        onQuickAdd={() => navigate(`/entries/new?date=${selectedDateKey}`)}
+        previousWeekMinutes={sumAllocatedRecordMinutesInRange(
+          previousWeeklyRecords,
+          previousWeekStartKey,
+          previousWeekEndKey,
+          previousWeeklyAbsences
+        )}
+        previousWeekGross={sumAllocatedRecordGrossInRange(
+          previousWeeklyRecords,
+          previousWeekStartKey,
+          previousWeekEndKey,
+          previousWeeklyAbsences
+        )}
+        flowCurrency={weeklyRecords[0]?.currency ?? preferences?.currency ?? "EUR"}
+        absenceTypes={absenceTypesQuery.data ?? []}
+        onQuickAdd={() => navigate(`/records/new?date=${selectedDateKey}`)}
         onDaySwipe={(direction) => outletContext?.setSelectedDate?.(addDays(selectedDate, direction))}
+        onRhythmDaySelect={(date) => outletContext?.setSelectedDate?.(parseLocalIsoDate(date))}
         onWeekSwipe={(direction) => outletContext?.setSelectedDate?.(addWeeks(selectedDate, direction))}
-        onCreateAbsence={(absenceType) => absenceMutation.mutate(absenceType)}
-        absencePending={absenceMutation.isPending || Boolean(selectedAbsence)}
-        absenceError={absenceMutation.error ? getApiError(absenceMutation.error).message : null}
-        onEntrySelect={(entryId) => navigate(`/entries/${entryId}`)}
+        onCreateAbsence={(absenceTypeId) => absenceMutation.mutate({ absenceTypeId, date: selectedDateKey })}
+        onDeleteAbsence={(activityId) => deleteAbsenceMutation.mutate({
+          id: activityId.slice("absence-".length),
+          date: selectedDateKey
+        })}
+        absencePending={absenceMutation.isPending || deleteAbsenceMutation.isPending || Boolean(selectedAbsence)}
+        absenceError={absenceMutation.error
+          ? getApiError(absenceMutation.error).message
+          : deleteAbsenceMutation.error
+            ? getApiError(deleteAbsenceMutation.error).message
+            : null}
+        onEntrySelect={(entryId) =>
+          navigate(`/records/${entryId.slice("record:".length)}?returnDate=${selectedDateKey}`)
+        }
       />
+    </div>
   );
 }
 
-function sumMinutes(entries: WorkEntry[]) {
-  return entries.reduce((total, entry) => total + Number(entry.calculatedMinutes), 0);
+function recordTimeMinutes(record: WorkRecord) {
+  return (record.workLines ?? [])
+    .filter((line) => line.calculationMode === "TIME_HOURLY" || line.calculationMode === "UNITS_PER_HOUR")
+    .reduce((total, line) => total + Number(line.calculatedMinutes), 0);
 }
 
-function sumGross(entries: WorkEntry[]) {
-  return entries.reduce((total, entry) => total + Number(entry.grossAmount), 0);
+function shiftIsoDate(value: string, days: number) {
+  return formatLocalIsoDate(addDays(parseLocalIsoDate(value), days));
 }
 
-function formatGrossTotal(entries: WorkEntry[], total: number, mixedCurrencyLabel: string, paidAbsences: Array<{ currency: string }> = []) {
+function recordDurationDays(record: WorkRecord) {
+  const start = parseLocalIsoDate(record.workDate);
+  const end = parseLocalIsoDate(record.workEndDate ?? record.workDate);
+  return Math.max(Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1, 1);
+}
+
+function sumAllocatedRecordMinutes(records: WorkRecord[], date: string, absences: Absence[]) {
+  if (hasAbsenceOnDate(absences, date)) return 0;
+  return records.reduce((total, record) => {
+    const eligibleDays = recordEligibleDays(record, absences);
+    return total + (eligibleDays.includes(date) ? recordTimeMinutes(record) / eligibleDays.length : 0);
+  }, 0);
+}
+
+function sumAllocatedRecordMinutesInRange(
+  records: WorkRecord[],
+  fromDate: string,
+  toDate: string,
+  absences: Absence[]
+) {
+  return records.reduce((total, record) => {
+    const eligibleDays = recordEligibleDays(record, absences);
+    if (eligibleDays.length === 0) return total;
+    const overlapDays = eligibleDays.filter((date) => date >= fromDate && date <= toDate).length;
+    return total + (recordTimeMinutes(record) / eligibleDays.length) * overlapDays;
+  }, 0);
+}
+
+function sumAllocatedRecordGross(records: WorkRecord[], date: string, absences: Absence[]) {
+  if (hasAbsenceOnDate(absences, date)) return 0;
+  return records.reduce((total, record) => {
+    const eligibleDays = recordEligibleDays(record, absences);
+    return total + (eligibleDays.includes(date) ? Number(record.grossAmount) / eligibleDays.length : 0);
+  }, 0);
+}
+
+function sumAllocatedRecordGrossInRange(
+  records: WorkRecord[],
+  fromDate: string,
+  toDate: string,
+  absences: Absence[]
+) {
+  return records.reduce((total, record) => {
+    const eligibleDays = recordEligibleDays(record, absences);
+    if (eligibleDays.length === 0) return total;
+    const overlapDays = eligibleDays.filter((date) => date >= fromDate && date <= toDate).length;
+    return total + (Number(record.grossAmount) / eligibleDays.length) * overlapDays;
+  }, 0);
+}
+
+function recordEligibleDays(record: WorkRecord, absences: Absence[]) {
+  const endDate = record.workEndDate ?? record.workDate;
+  const days: string[] = [];
+  for (let date = record.workDate; date <= endDate; date = shiftIsoDate(date, 1)) {
+    if (!hasAbsenceOnDate(absences, date)) days.push(date);
+  }
+  return days;
+}
+
+function hasAbsenceOnDate(absences: Absence[], date: string) {
+  return absences.some((absence) => absence.startDate <= date && absence.endDate >= date);
+}
+
+function recordCoversDate(record: WorkRecord, date: string) {
+  return record.workDate <= date && (record.workEndDate ?? record.workDate) >= date;
+}
+
+function recordOverlapsRange(record: WorkRecord, fromDate: string, toDate: string) {
+  return record.workDate <= toDate && (record.workEndDate ?? record.workDate) >= fromDate;
+}
+
+function absenceOverlapsRange(absence: Absence, fromDate: string, toDate: string) {
+  return absence.startDate <= toDate && absence.endDate >= fromDate;
+}
+
+function formatCombinedGross(
+  records: WorkRecord[],
+  total: number,
+  mixedCurrencyLabel: string,
+  paidAbsences: Array<{ currency: string }> = []
+) {
   const currencies = new Set([
-    ...entries.map((entry) => entry.currencySnapshot),
+    ...records.map((record) => record.currency).filter(Boolean),
     ...paidAbsences.map((absence) => absence.currency)
   ]);
 
@@ -333,8 +474,12 @@ function formatGrossTotal(entries: WorkEntry[], total: number, mixedCurrencyLabe
     return mixedCurrencyLabel;
   }
 
-  return formatCurrency(String(total), entries[0]?.currencySnapshot ?? paidAbsences[0]?.currency ?? "EUR");
+  return formatCurrency(
+    String(total),
+    records[0]?.currency ?? paidAbsences[0]?.currency ?? "EUR"
+  );
 }
+
 
 function sumPaidAbsenceMinutes(absences: Array<{ minutes: number }>) {
   return absences.reduce((total, absence) => total + absence.minutes, 0);
@@ -344,11 +489,113 @@ function sumPaidAbsenceGross(absences: Array<{ grossAmount: number }>) {
   return absences.reduce((total, absence) => total + absence.grossAmount, 0);
 }
 
+function hasExtraPay(record: WorkRecord) {
+  return record.workLines?.some((line) => (line.extraPayPercentage ?? 0) > 0) ?? false;
+}
+
+function calculateExtraPaidInRange(
+  records: WorkRecord[],
+  fromDate: string,
+  toDate: string,
+  absences: Absence[]
+) {
+  return records.reduce((total, record) => {
+    const eligibleDays = recordEligibleDays(record, absences);
+    if (eligibleDays.length === 0) return total;
+    const overlapDays = eligibleDays.filter((date) => date >= fromDate && date <= toDate).length;
+    const allocation = overlapDays / eligibleDays.length;
+
+    record.workLines?.forEach((line) => {
+      const percentage = line.extraPayPercentage ?? 0;
+      if (percentage <= 0) return;
+      total.minutes += Number(line.calculatedMinutes) * (percentage / 100) * allocation;
+      total.grossAmount += Number(line.grossAmount) * (percentage / (100 + percentage)) * allocation;
+    });
+    return total;
+  }, { minutes: 0, grossAmount: 0 });
+}
+
+function buildSelectedDayActivities(
+  records: WorkRecord[],
+  t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]
+): SelectedDayActivity[] {
+  return records
+    .filter((record) => record.workLines?.length)
+    .map((record) => toPhaseTwoWorkRecordActivity(record, t));
+}
+
+function toPhaseTwoWorkRecordActivity(
+  record: WorkRecord,
+  t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]
+) {
+  const workLines = record.workLines ?? [];
+  const timeLines = workLines
+    .filter((line) => line.calculationMode === "TIME_HOURLY" || line.calculationMode === "UNITS_PER_HOUR");
+  const minutes = timeLines
+    .reduce((total, line) => total + Number(line.calculatedMinutes), 0);
+  const mixedCurrencyLabel = t("dashboard:summary.mixedCurrencies");
+  const currencies = new Set(workLines.map((line) => line.currencySnapshot));
+
+  return {
+    id: `record:${record.id}`,
+    title: "",
+    kind: "UNIT_BASED" as const,
+    subtitle: record.workEndDate
+      ? t("dashboard:selectedDay.jobDays", { count: recordDurationDays(record) })
+      : "",
+    address: record.address?.formatted ?? null,
+    periodLabel: record.workEndDate ? formatRecordPeriod(record) : null,
+    duration: timeLines.length ? formatMinutesAsDuration(minutes) : "",
+    amount:
+      currencies.size === 1 && record.currency
+        ? formatCurrency(record.grossAmount, record.currency)
+        : mixedCurrencyLabel,
+    extraPayLabel: null,
+    unitBreakdown: workLines.flatMap((line) => toPhaseTwoLineBreakdown(line))
+  };
+}
+
+function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
+  if (line.calculationMode === "TIME_HOURLY") {
+    const enteredTime = line.durationMinutes != null
+      ? formatMinutesAsDuration(line.durationMinutes)
+      : line.startTime && line.endTime
+        ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
+        : "";
+    return [{
+      id: line.id,
+      label: line.workTypeName,
+      quantity: enteredTime,
+      displayOrder: line.displayOrder
+    }];
+  }
+  if (line.calculationMode === "FIXED_AMOUNT") {
+    return [{
+      id: line.id,
+      label: line.workTypeName,
+      quantity: formatCurrency(line.fixedAmountSnapshot ?? "0", line.currencySnapshot),
+      displayOrder: line.displayOrder
+    }];
+  }
+  const unit = line.unitSymbol ?? line.unitLabel ?? "";
+  const quantity = unit
+    ? `${formatQuantity(line.quantity ?? "0")} ${unit}`
+    : formatQuantity(line.quantity ?? "0");
+  return [
+    {
+      id: line.id,
+      label: line.workTypeName,
+      quantity,
+      displayOrder: line.displayOrder
+    }
+  ];
+}
+
 function toAbsenceActivity(absence: Absence, paidMinutes: number, t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]) {
   const marker = absenceMarker(absence.absenceType);
   return {
     id: `absence-${absence.id}`,
-    title: t(`dashboard:absence.${marker}`),
+    title: absence.absenceTypeName || t(`dashboard:absence.${marker}`),
     kind: "ABSENCE" as const,
     subtitle: t("dashboard:absence.dayOff"),
     duration: paidMinutes > 0
@@ -362,7 +609,7 @@ function toAbsenceActivity(absence: Absence, paidMinutes: number, t: ReturnType<
   };
 }
 
-function absenceMarker(absenceType: AbsenceType) {
+function absenceMarker(absenceType: Absence["absenceType"]) {
   if (absenceType === "SICK_LEAVE") {
     return "sick" as const;
   }
@@ -376,23 +623,45 @@ const DAILY_TARGET_MINUTES = 8 * 60;
 
 function buildWeeklyRhythmDays(
   days: Date[],
-  entries: WorkEntry[],
+  records: WorkRecord[],
   absences: Absence[],
+  absenceTypes: AbsenceTypeSetting[],
   selectedDate: Date,
   t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]
 ): WeeklyRhythmDay[] {
-  const minutesPerDay = days.map((day) =>
-    sumMinutes(
-      entries.filter((entry) => isSameDay(new Date(`${entry.workDate}T00:00:00`), day))
-    )
-  );
+  const minutesPerDay = days.map((day) => {
+    const date = formatLocalIsoDate(day);
+    if (hasAbsenceOnDate(absences, date)) return 0;
+    const coveringRecords = records.filter((record) => recordCoversDate(record, formatLocalIsoDate(day)));
+    return coveringRecords.reduce(
+      (total, record) => {
+        const eligibleDays = recordEligibleDays(record, absences);
+        return total + (eligibleDays.length > 0 ? recordTimeMinutes(record) / eligibleDays.length : 0);
+      },
+      0
+    );
+  });
+  const grossPerDay = days.map((day) => {
+    const date = formatLocalIsoDate(day);
+    if (hasAbsenceOnDate(absences, date)) return 0;
+    return records
+      .filter((record) => recordCoversDate(record, date))
+      .reduce((total, record) => {
+        const eligibleDays = recordEligibleDays(record, absences);
+        return total + (eligibleDays.length > 0 ? Number(record.grossAmount) / eligibleDays.length : 0);
+      }, 0);
+  });
+  const maximumDailyMinutes = Math.max(...minutesPerDay, 0);
   return days.map((day, index) => {
     const absence = absences.find((item) => absenceCoversDate(item, day));
     const absenceType = absence ? absenceMarker(absence.absenceType) : null;
+    const absenceColor = absence
+      ? absenceTypes.find((type) => type.id === absence.absenceTypeId)?.color ?? "#737373"
+      : "#737373";
     const minutes = minutesPerDay[index] ?? 0;
     const hasEntries = minutes > 0;
     const difference = minutes - DAILY_TARGET_MINUTES;
-    const status = absence && !hasEntries
+    const status = absence
       ? "absence"
       : !hasEntries
       ? "idle"
@@ -408,18 +677,28 @@ function buildWeeklyRhythmDays(
         weekday: "short"
       }).format(day),
       value: formatMinutesAsDuration(minutes),
+      minutes,
+      amount: grossPerDay[index] ?? 0,
       markerLabel: hasEntries && difference !== 0 ? formatTargetDifferenceMarker(difference) : null,
       status,
       absence: absenceType
         ? {
             type: absenceType,
-            label: t(`dashboard:absence.${absenceType}`)
+            label: absence?.absenceTypeName ?? t(`dashboard:absence.${absenceType}`),
+            color: absenceColor
           }
         : null,
-      percentage: Math.min(Math.round((minutes / DAILY_TARGET_MINUTES) * 100), 150),
+      percentage: maximumDailyMinutes > 0
+        ? Math.round((minutes / maximumDailyMinutes) * 100)
+        : 0,
       selected: isSameDay(day, selectedDate)
     };
   });
+}
+
+function formatRecordPeriod(record: WorkRecord) {
+  const formatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, { day: "numeric", month: "short" });
+  return `${formatter.format(parseLocalIsoDate(record.workDate))}–${formatter.format(parseLocalIsoDate(record.workEndDate ?? record.workDate))}`;
 }
 
 function absenceCoversDate(absence: Absence, date: Date) {

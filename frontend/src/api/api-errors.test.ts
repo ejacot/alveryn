@@ -37,7 +37,7 @@ describe("getApiError", () => {
           timestamp: "2026-01-01T00:00:00Z",
           status: 400,
           message: "Validation failed",
-          path: "/api/imports/preview",
+          path: "/api/work-records",
           errors: ["No hourly rate is configured for 2026-01-01"]
         }
       }
@@ -56,7 +56,7 @@ describe("getApiError", () => {
     expect(getApiError(error).message).toContain("could not reach the backend");
   });
 
-  it("localizes work entry time overlap conflicts with the conflicting interval", async () => {
+  it("localizes work record time overlap conflicts with the conflicting interval", async () => {
     const error = {
       isAxiosError: true,
       response: {
@@ -64,9 +64,9 @@ describe("getApiError", () => {
         data: {
           timestamp: "2026-01-01T00:00:00Z",
           status: 409,
-          message: "This work entry overlaps an existing activity from 09:00 to 17:00.",
-          code: "WORK_ENTRY_TIME_OVERLAP",
-          path: "/api/work-entries",
+          message: "This work record overlaps an existing activity from 09:00 to 17:00.",
+          code: "WORK_RECORD_TIME_OVERLAP",
+          path: "/api/work-records",
           errors: []
         }
       }

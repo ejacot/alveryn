@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { WorkTypesPage } from "./work-types-page";
@@ -18,13 +18,10 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/endpoints", () => ({
-  createWorkType: vi.fn(),
-  deleteWorkType: vi.fn(),
-  listWorkTypes: vi.fn(),
-  updateWorkType: vi.fn()
+  listWorkTypes: vi.fn()
 }));
 
-import { createWorkType, deleteWorkType, listWorkTypes, updateWorkType } from "../api/endpoints";
+import { listWorkTypes } from "../api/endpoints";
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -52,6 +49,7 @@ describe("WorkTypesPage", () => {
         id: "work-type-time",
         name: "CHECK",
         calculationMethod: "TIME_BASED",
+        compensationMethod: "HOURLY",
         color: "#FFFFFF",
         icon: null,
         defaultBreakMinutes: 30,
@@ -62,6 +60,7 @@ describe("WorkTypesPage", () => {
         id: "work-type-unit",
         name: "ROOMS",
         calculationMethod: "UNIT_BASED",
+        compensationMethod: "HOURLY",
         color: "#FFFFFF",
         icon: null,
         defaultBreakMinutes: null,
@@ -69,116 +68,94 @@ describe("WorkTypesPage", () => {
         active: true
       }
     ]);
-    vi.mocked(updateWorkType).mockResolvedValue({
-      id: "work-type-time",
-      name: "SHIFT",
-      calculationMethod: "TIME_BASED",
-      color: "#FFFFFF",
-      icon: null,
-      defaultBreakMinutes: 30,
-      displayOrder: 0,
-      active: true
-    });
-    vi.mocked(createWorkType).mockResolvedValue({
-      id: "work-type-new",
-      name: "ROOMS",
-      calculationMethod: "UNIT_BASED",
-      color: "#FFFFFF",
-      icon: null,
-      defaultBreakMinutes: null,
-      displayOrder: 2,
-      active: true
-    });
-    vi.mocked(deleteWorkType).mockResolvedValue(undefined);
   });
 
-  it("creates a work type in the same centered dialog and opens unit setup for units", async () => {
+  it("renders work setup as the central configuration surface", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Work setup" })).toBeInTheDocument();
+    expect(screen.queryByText(/Configure the activities/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Hours")).not.toBeInTheDocument();
+    expect(screen.queryByText("Units to hours")).not.toBeInTheDocument();
+    expect(screen.queryByText("Per unit")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /check/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /rooms/i })).toBeInTheDocument();
+  });
+
+  it("opens the dedicated add work type flow", async () => {
     renderPage();
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole("button", { name: "Add work type" }));
-    const dialog = screen.getByRole("dialog", { name: "Add work type" });
-    await user.type(within(dialog).getByLabelText("Name"), "rooms");
-    await user.click(within(dialog).getByRole("button", { name: "Units" }));
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Choose calculation");
 
-    await waitFor(() => {
-	      expect(createWorkType).toHaveBeenCalledWith({
-	        name: "ROOMS",
-	        calculationMethod: "UNIT_BASED",
-	        color: "#A3E635",
-	        icon: null,
-	        defaultBreakMinutes: null
-	      });
-      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-new");
+    await user.click(screen.getByRole("button", { name: /time based/i }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/new?mode=TIME_HOURLY", {
+      state: {
+        setupMode: "TIME_HOURLY",
+        calculationMethod: "TIME_BASED",
+        compensationMethod: "HOURLY"
+      }
     });
   });
 
-  it("creates a unit work type with direct per-unit payment from settings", async () => {
+  it("opens an existing work type on its dedicated setup page", async () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Add work type" }));
-    const dialog = screen.getByRole("dialog", { name: "Add work type" });
-    await user.type(within(dialog).getByLabelText("Name"), "montaj pardoseala");
-    await user.click(within(dialog).getByRole("button", { name: "Units" }));
-    await user.click(within(dialog).getByRole("button", { name: /paid directly per unit/i }));
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await user.click(await screen.findByRole("button", { name: /rooms/i }));
 
     await waitFor(() => {
-      expect(createWorkType).toHaveBeenCalledWith({
-        name: "MONTAJ PARDOSEALA",
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit");
+    });
+  });
+
+  it("shows child work types only after expanding their parent card", async () => {
+    vi.mocked(listWorkTypes).mockResolvedValue([
+      {
+        id: "parent-floor",
+        name: "FLOOR HEATING",
         calculationMethod: "UNIT_BASED",
         compensationMethod: "PER_UNIT",
-        color: "#A3E635",
+        color: "#FFFFFF",
         icon: null,
-        defaultBreakMinutes: null
-      });
-      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-new");
-    });
-  });
-
-  it("edits a time-based work type in a centered dialog", async () => {
-    renderPage();
-    const user = userEvent.setup();
-
-    expect(await screen.findByText("Time based")).toHaveClass("hairline-text");
-    expect(screen.getByText("Unit based")).toHaveClass("hairline-text");
-    await user.click(await screen.findByRole("button", { name: /check/i }));
-
-    const dialog = screen.getByRole("dialog", { name: "CHECK" });
-    await user.clear(within(dialog).getByLabelText("Name"));
-    await user.type(within(dialog).getByLabelText("Name"), "shift");
-    expect(within(dialog).getByDisplayValue("SHIFT")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Units" }));
-    await user.click(within(dialog).getByRole("button", { name: "Choose color #34D399" }));
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(updateWorkType).toHaveBeenCalledWith("work-type-time", {
-        name: "SHIFT",
+        defaultBreakMinutes: null,
+        displayOrder: 0,
+        active: true,
+        compositeEnabled: true
+      },
+      {
+        id: "child-normal",
+        parentId: "parent-floor",
+        name: "Normal m2",
         calculationMethod: "UNIT_BASED",
-        color: "#34D399",
+        compensationMethod: "PER_UNIT",
+        unitLabel: "m2",
+        unitSymbol: "m²",
+        ratePerUnit: "50.0000",
+        currency: "EUR",
+        color: "#FFFFFF",
         icon: null,
         defaultBreakMinutes: null,
         displayOrder: 0,
         active: true
-      });
-    });
-  });
-
-  it("deactivates a time-based work type from the dialog and keeps unit-based details as a page", async () => {
+      }
+    ]);
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: /check/i }));
-    await user.click(within(screen.getByRole("dialog", { name: "CHECK" })).getByRole("button", { name: "Deactivate work type" }));
+    const parentCard = await screen.findByRole("button", { name: /^FLOOR HEATING/i });
+    expect(parentCard).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /normal m2/i })).not.toBeInTheDocument();
+
+    await user.click(parentCard);
+
+    expect(await screen.findByRole("button", { name: /normal m2/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /normal m2/i }));
 
     await waitFor(() => {
-      expect(deleteWorkType).toHaveBeenCalledWith("work-type-time");
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/child-normal");
     });
-
-    await user.click(screen.getByRole("button", { name: /rooms/i }));
-    expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-unit");
   });
 });

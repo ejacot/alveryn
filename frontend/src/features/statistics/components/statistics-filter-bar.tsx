@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/ui/select";
 import type { WorkType } from "../../../types/configuration";
-import type { CalculationMethod } from "../../../types/work-entry";
+import type { CalculationMethod } from "../../../types/work-calculation";
 import {
   formatStatisticsDate,
   updateStatisticsCalculationMethod,
@@ -94,6 +94,7 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
           <option value="">{t("statistics.filters.all")}</option>
           <option value="TIME_BASED">{t("statistics.methods.time")}</option>
           <option value="UNIT_BASED">{t("statistics.methods.unit")}</option>
+          <option value="FIXED_PRICE_BASED">{t("statistics.methods.fixed")}</option>
         </Select>
       </div>
       {filters.period === "custom" ? (

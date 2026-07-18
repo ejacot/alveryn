@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 
-@Schema(description = "Work type definition used for work entry classification")
+@Schema(description = "Work type definition used for work record line classification")
 public record WorkTypeDto(
     UUID id,
     UUID userId,

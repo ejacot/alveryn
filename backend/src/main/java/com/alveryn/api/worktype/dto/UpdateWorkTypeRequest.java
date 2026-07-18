@@ -3,16 +3,26 @@ package com.alveryn.api.worktype.dto;
 import com.alveryn.api.worktype.entity.CalculationMethod;
 import com.alveryn.api.worktype.entity.CompensationMethod;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 public record UpdateWorkTypeRequest(
     @NotBlank @Size(max = 100) String name,
+    UUID parentId,
     @NotNull CalculationMethod calculationMethod,
     CompensationMethod compensationMethod,
+    @Size(max = 100) String unitLabel,
+    @Size(max = 20) String unitSymbol,
+    @Positive BigDecimal unitsPerHour,
+    @Positive BigDecimal ratePerUnit,
+    @Size(min = 3, max = 3) String currency,
+    Boolean teamworkEnabled,
+    Boolean compositeEnabled,
     @Pattern(regexp = "#[0-9A-Fa-f]{6}") String color,
     @Size(max = 100) String icon,
     @PositiveOrZero Integer defaultBreakMinutes,
     @PositiveOrZero Integer displayOrder,
-    boolean active) {
+    Boolean active) {
   public UpdateWorkTypeRequest(
       String name,
       CalculationMethod calculationMethod,
@@ -21,6 +31,22 @@ public record UpdateWorkTypeRequest(
       Integer defaultBreakMinutes,
       Integer displayOrder,
       boolean active) {
-    this(name, calculationMethod, CompensationMethod.HOURLY, color, icon, defaultBreakMinutes, displayOrder, active);
+    this(
+        name,
+        null,
+        calculationMethod,
+        CompensationMethod.HOURLY,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        color,
+        icon,
+        defaultBreakMinutes,
+        displayOrder,
+        active);
   }
 }

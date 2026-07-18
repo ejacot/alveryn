@@ -25,7 +25,7 @@ export function StatisticsEmptyState() {
     <section className="section-card py-8 text-center">
       <h2 className="text-xl font-semibold tracking-[-0.04em] text-white">{t("statistics.empty.title")}</h2>
       <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-white/52">{t("statistics.empty.description")}</p>
-      <Button className="mt-5" onClick={() => navigate("/entries/new")}>
+      <Button className="mt-5" onClick={() => navigate("/records/new")}>
         {t("statistics.empty.action")}
       </Button>
     </section>

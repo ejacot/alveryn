@@ -1,4 +1,4 @@
-import type { CalculationMethod } from "../../../types/work-entry";
+import type { CalculationMethod } from "../../../types/work-calculation";
 import type { StatisticsFilters, StatisticsMetric, StatisticsPeriod } from "../types/statistics";
 import {
   addDays,

@@ -7,7 +7,7 @@ import authEn from "./locales/en/auth.json";
 import onboardingEn from "./locales/en/onboarding.json";
 import dashboardEn from "./locales/en/dashboard.json";
 import calendarEn from "./locales/en/calendar.json";
-import entriesEn from "./locales/en/entries.json";
+import recordsEn from "./locales/en/records.json";
 import settingsEn from "./locales/en/settings.json";
 import errorsEn from "./locales/en/errors.json";
 import welcomeEn from "./locales/en/welcome.json";
@@ -17,7 +17,7 @@ import authDe from "./locales/de/auth.json";
 import onboardingDe from "./locales/de/onboarding.json";
 import dashboardDe from "./locales/de/dashboard.json";
 import calendarDe from "./locales/de/calendar.json";
-import entriesDe from "./locales/de/entries.json";
+import recordsDe from "./locales/de/records.json";
 import settingsDe from "./locales/de/settings.json";
 import errorsDe from "./locales/de/errors.json";
 import welcomeDe from "./locales/de/welcome.json";
@@ -27,7 +27,7 @@ import authRo from "./locales/ro/auth.json";
 import onboardingRo from "./locales/ro/onboarding.json";
 import dashboardRo from "./locales/ro/dashboard.json";
 import calendarRo from "./locales/ro/calendar.json";
-import entriesRo from "./locales/ro/entries.json";
+import recordsRo from "./locales/ro/records.json";
 import settingsRo from "./locales/ro/settings.json";
 import errorsRo from "./locales/ro/errors.json";
 import welcomeRo from "./locales/ro/welcome.json";
@@ -39,7 +39,7 @@ const resources = {
     onboarding: onboardingEn,
     dashboard: dashboardEn,
     calendar: calendarEn,
-    entries: entriesEn,
+    records: recordsEn,
     settings: settingsEn,
     errors: errorsEn,
     welcome: welcomeEn
@@ -50,7 +50,7 @@ const resources = {
     onboarding: onboardingDe,
     dashboard: dashboardDe,
     calendar: calendarDe,
-    entries: entriesDe,
+    records: recordsDe,
     settings: settingsDe,
     errors: errorsDe,
     welcome: welcomeDe
@@ -61,7 +61,7 @@ const resources = {
     onboarding: onboardingRo,
     dashboard: dashboardRo,
     calendar: calendarRo,
-    entries: entriesRo,
+    records: recordsRo,
     settings: settingsRo,
     errors: errorsRo,
     welcome: welcomeRo
@@ -86,7 +86,7 @@ void i18n.use(initReactI18next).init({
   lng: detectBrowserLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "auth", "onboarding", "dashboard", "calendar", "entries", "settings", "errors", "welcome"],
+  ns: ["common", "auth", "onboarding", "dashboard", "calendar", "records", "settings", "errors", "welcome"],
   interpolation: {
     escapeValue: false
   },

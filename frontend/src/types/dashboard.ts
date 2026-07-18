@@ -2,6 +2,7 @@ export type SummaryMetric = {
   label: string;
   value: string;
   hint: string;
+  placement?: "week" | "financial";
 };
 
 export type DashboardSummaryMetrics = {
@@ -30,8 +31,10 @@ export type RecentEntry = {
 export type SelectedDayActivity = {
   id: string;
   title: string;
-  kind: "TIME_BASED" | "UNIT_BASED" | "ABSENCE";
+  kind: "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" | "ABSENCE";
   subtitle: string;
+  address?: string | null;
+  periodLabel?: string | null;
   duration: string;
   amount: string;
   extraPayLabel?: string | null;
@@ -56,28 +59,15 @@ export type WeeklyRhythmDay = {
   key: string;
   label: string;
   value: string;
+  minutes: number;
+  amount: number;
   markerLabel: string | null;
   status: "under" | "met" | "over" | "idle" | "absence";
   absence?: {
     type: "free" | "sick" | "vacation";
     label: string;
+    color: string;
   } | null;
   percentage: number;
   selected: boolean;
-};
-
-export type WorkEntrySummary = {
-  id: string;
-  workTypeId: string;
-  workTypeName: string;
-  calculationMethod: "TIME_BASED" | "UNIT_BASED";
-  workDate: string;
-  hourlyRateSnapshot: string;
-  currencySnapshot: string;
-  calculatedMinutes: string;
-  workedHours: string;
-  grossAmount: string;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
 };

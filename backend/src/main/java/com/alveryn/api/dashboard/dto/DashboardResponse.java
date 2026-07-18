@@ -13,6 +13,6 @@ public record DashboardResponse(
         BigDecimal workedMinutes,
     @Schema(description = "Total gross amount stored with exact precision", example = "2537.500000000000000")
         BigDecimal grossAmount,
-    @Schema(description = "Number of work entries in the current month", example = "18") long entriesCount,
+    @Schema(description = "Number of work records in the current month", example = "18") long entriesCount,
     @Schema(description = "Number of absence days overlapping the current month", example = "2")
         long absenceDays) {}

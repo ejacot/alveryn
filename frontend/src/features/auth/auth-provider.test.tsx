@@ -46,6 +46,8 @@ function renderProvider() {
 describe("AuthProvider", () => {
   beforeEach(() => {
     localStorage.clear();
+    setStoredAccessToken(null);
+    vi.mocked(refreshSession).mockRejectedValue(new Error("No refresh cookie"));
     vi.mocked(getCurrentUser).mockResolvedValue({
       account: {
         id: "1",
@@ -104,6 +106,29 @@ describe("AuthProvider", () => {
 
     expect(await screen.findByText("alveryn@example.com")).toBeInTheDocument();
     expect(getStoredAccessToken()).toBe("oauth-access-token");
+    expect(hasStoredSession()).toBe(true);
+  });
+
+  it("restores the session after a browser restart by refreshing the access token", async () => {
+    setStoredAccessToken(null);
+    vi.mocked(refreshSession).mockResolvedValue({
+      accessToken: "restored-access-token",
+      tokenType: "Bearer",
+      accessTokenExpiresIn: 900,
+      user: {
+        id: "1",
+        email: "alveryn@example.com",
+        emailVerified: true,
+        status: "ACTIVE",
+        lastLoginAt: null
+      }
+    });
+
+    renderProvider();
+
+    expect(await screen.findByText("alveryn@example.com")).toBeInTheDocument();
+    expect(refreshSession).toHaveBeenCalled();
+    expect(getStoredAccessToken()).toBe("restored-access-token");
     expect(hasStoredSession()).toBe(true);
   });
 

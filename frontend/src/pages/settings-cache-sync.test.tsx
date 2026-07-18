@@ -6,7 +6,7 @@ import { SettingsProfilePage } from "./settings-profile-page";
 import { SettingsPreferencesPage } from "./settings-preferences-page";
 import { SettingsAbsencePage } from "./settings-absence-page";
 import { queryKeys } from "../api/query-keys";
-import type { UpdatePreferencesPayload } from "../api/endpoints";
+import { changePassword, updateAbsenceType, type UpdatePreferencesPayload } from "../api/endpoints";
 
 const refreshCurrentUserMock = vi.fn();
 
@@ -33,9 +33,12 @@ vi.mock("../features/auth/use-auth", () => ({
         street: null,
         houseNumber: null,
         apartment: null,
+        addressId: null,
+        address: null,
         avatarUrl: null,
         employmentStartDate: null,
-        employmentEndDate: null
+        employmentEndDate: null,
+        employmentType: "FULL_TIME"
       },
       preferences: {
         id: "pref-1",
@@ -70,9 +73,12 @@ vi.mock("../api/endpoints", () => ({
     street: null,
     houseNumber: null,
     apartment: null,
+    addressId: null,
+    address: null,
     avatarUrl: null,
     employmentStartDate: null,
-    employmentEndDate: null
+    employmentEndDate: null,
+    employmentType: "FULL_TIME"
   })),
   updateProfile: vi.fn(async () => ({
     id: "profile-1",
@@ -87,9 +93,19 @@ vi.mock("../api/endpoints", () => ({
     street: null,
     houseNumber: null,
     apartment: null,
+    addressId: null,
+    address: null,
     avatarUrl: null,
     employmentStartDate: null,
-    employmentEndDate: null
+    employmentEndDate: null,
+    employmentType: "FULL_TIME"
+  })),
+  changePassword: vi.fn(async () => ({ message: "Password changed successfully" })),
+  listAddresses: vi.fn(async () => []),
+  createAddress: vi.fn(async (payload) => ({
+    id: "address-1",
+    ...payload,
+    formatted: `${payload.street}, ${payload.city}, ${payload.country}`
   })),
   getPreferences: vi.fn(async () => ({
     id: "pref-1",
@@ -109,7 +125,28 @@ vi.mock("../api/endpoints", () => ({
     id: "pref-1",
     ...payload,
     onboardingCompleted: true
-  }))
+  })),
+  listAbsenceTypes: vi.fn(async () => [
+    {
+      id: "absence-sick-type",
+      name: "Sick",
+      code: "SICK_LEAVE",
+      paid: true,
+      paidMinutesPerDay: 480,
+      color: "#ef4444",
+      active: true,
+      displayOrder: 3
+    }
+  ]),
+  createAbsenceType: vi.fn(async (payload) => ({
+    id: "absence-new-type",
+    ...payload
+  })),
+  updateAbsenceType: vi.fn(async (id, payload) => ({
+    id,
+    ...payload
+  })),
+  deleteAbsenceType: vi.fn(async () => undefined)
 }));
 
 function renderWithClient(node: React.ReactNode) {
@@ -143,8 +180,10 @@ describe("settings cache sync", () => {
     const { queryClient } = renderWithClient(<SettingsProfilePage />);
     const setQueryDataSpy = vi.spyOn(queryClient, "setQueryData");
 
-    await user.clear(screen.getByLabelText("First name"));
-    await user.type(screen.getByLabelText("First name"), "Maria");
+    await user.click(await screen.findByRole("button", { name: /Personal Information/i }));
+    const firstNameInput = await screen.findByLabelText("First name");
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, "Maria");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
@@ -172,25 +211,43 @@ describe("settings cache sync", () => {
     });
   });
 
-  it("updates absence preferences from the dedicated work settings page", async () => {
+  it("changes the password from sign-in and security", async () => {
     const user = userEvent.setup();
-    const { queryClient } = renderWithClient(<SettingsAbsencePage />);
-    const setQueryDataSpy = vi.spyOn(queryClient, "setQueryData");
+    renderWithClient(<SettingsProfilePage />);
 
-    await user.clear(screen.getByRole("spinbutton", { name: /normal day hours|ore într-o zi normală/i }));
-    await user.type(screen.getByRole("spinbutton", { name: /normal day hours|ore într-o zi normală/i }), "6");
-    await user.clear(screen.getByRole("spinbutton", { name: /minutes|minute/i }));
-    await user.type(screen.getByRole("spinbutton", { name: /minutes|minute/i }), "30");
-    await user.click(screen.getByLabelText(/sick days are paid|zilele medicale sunt plătite/i));
+    await user.click(await screen.findByRole("button", { name: /sign-in & security|autentificare și securitate/i }));
+    await user.click(screen.getByRole("button", { name: /change password|schimbă parola/i }));
+    await user.type(screen.getByLabelText(/current password|parola actuală/i), "old-secret-pass");
+    await user.type(screen.getByLabelText(/^new password$|^parola nouă$/i), "new-secret-pass");
+    await user.type(screen.getByLabelText(/repeat new password|repetă parola nouă/i), "new-secret-pass");
     await user.click(screen.getByRole("button", { name: /save changes|salvează modificările/i }));
 
     await waitFor(() => {
-      expect(setQueryDataSpy).toHaveBeenCalledWith(
-        queryKeys.preferences(),
+      expect(changePassword).toHaveBeenCalledWith(
+        { currentPassword: "old-secret-pass", newPassword: "new-secret-pass" },
+        expect.anything()
+      );
+    });
+  });
+
+  it("updates an absence type from the dedicated work settings page", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SettingsAbsencePage />);
+
+    await user.click(await screen.findByRole("button", { name: /sick/i }));
+    await user.clear(screen.getByLabelText(/name|nume/i));
+    await user.type(screen.getByLabelText(/name|nume/i), "Medical");
+    await user.clear(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }));
+    await user.type(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }), "6");
+    await user.click(screen.getByRole("button", { name: /save changes|salvează modificările/i }));
+
+    await waitFor(() => {
+      expect(updateAbsenceType).toHaveBeenCalledWith(
+        "absence-sick-type",
         expect.objectContaining({
-          preferredDailyMinutes: 390,
-          paidSickLeave: false,
-          paidVacation: true
+          name: "Medical",
+          paid: true,
+          paidMinutesPerDay: 360
         })
       );
     });

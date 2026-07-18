@@ -50,7 +50,7 @@ public class AbsenceController {
   @ResponseStatus(HttpStatus.CREATED)
   @Operation(
       summary = "Create an absence",
-      description = "Creates an absence for the authenticated user and rejects overlaps with absences or work entries.",
+      description = "Creates an absence for the authenticated user and rejects overlaps with absences or work records.",
       security = @SecurityRequirement(name = "bearerAuth"))
   @ApiResponses({
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -67,7 +67,7 @@ public class AbsenceController {
         content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "409",
-        description = "Conflict with existing absences or work entries",
+        description = "Conflict with existing absences or work records",
         content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public ApiResponse<AbsenceResponse> create(@Valid @RequestBody AbsenceRequest request) {
@@ -85,6 +85,7 @@ public class AbsenceController {
       @Parameter(example = "7") @RequestParam(required = false) @Min(1) @Max(12) Integer month,
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
+      @RequestParam(required = false) UUID absenceTypeId,
       @RequestParam(required = false) AbsenceType absenceType,
       @RequestParam(required = false, defaultValue = "0") @Min(0) Integer page,
       @RequestParam(required = false, defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) Integer size,
@@ -95,7 +96,7 @@ public class AbsenceController {
           })
           Pageable pageable) {
     return ApiResponse.of(
-        PageResponse.from(absenceService.list(year, month, from, to, absenceType, pageable)));
+        PageResponse.from(absenceService.list(year, month, from, to, absenceTypeId, absenceType, pageable)));
   }
 
   @GetMapping("/{id}")
@@ -110,7 +111,7 @@ public class AbsenceController {
   @PutMapping("/{id}")
   @Operation(
       summary = "Update an absence",
-      description = "Updates one absence owned by the authenticated user while enforcing range and work entry conflict rules.",
+      description = "Updates one absence owned by the authenticated user while enforcing range and work record conflict rules.",
       security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<AbsenceResponse> update(
       @PathVariable UUID id, @Valid @RequestBody AbsenceRequest request) {

@@ -16,14 +16,12 @@ import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
-import com.alveryn.api.workentry.repository.TimeEntryDetailsRepository;
-import com.alveryn.api.workentry.repository.UnitEntryItemRepository;
-import com.alveryn.api.workentry.repository.WorkEntryRepository;
+import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
+import com.alveryn.api.workrecord.repository.WorkRecordRepository;
+import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import com.alveryn.api.worktype.entity.CalculationMethod;
 import com.alveryn.api.worktype.entity.CompensationMethod;
-import com.alveryn.api.worktype.entity.UnitType;
 import com.alveryn.api.worktype.entity.WorkType;
-import com.alveryn.api.worktype.repository.UnitTypeRepository;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -49,11 +47,9 @@ class StatisticsIntegrationTest {
   @Autowired JwtService jwtService;
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
-  @Autowired UnitTypeRepository unitTypes;
   @Autowired HourlyRatePeriodRepository hourlyRates;
-  @Autowired WorkEntryRepository workEntries;
-  @Autowired TimeEntryDetailsRepository timeEntryDetails;
-  @Autowired UnitEntryItemRepository unitEntryItems;
+  @Autowired WorkRecordRepository workRecords;
+  @Autowired WorkRecordLineRepository workRecordLines;
   @Autowired AbsenceRepository absences;
 
   private MockMvc mockMvc;
@@ -61,11 +57,9 @@ class StatisticsIntegrationTest {
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-    unitEntryItems.deleteAll();
-    timeEntryDetails.deleteAll();
-    workEntries.deleteAll();
+    workRecordLines.deleteAll();
+    workRecords.deleteAll();
     absences.deleteAll();
-    unitTypes.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
     users.deleteAll();
@@ -104,7 +98,8 @@ class StatisticsIntegrationTest {
     UserAccount user = createVerifiedUser("statistics-filter@example.com");
     WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
     WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
-    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
+    WorkType normalRoom =
+        createUnitConfiguration(rooms, "Normal room", WorkLineCalculationMode.UNITS_PER_HOUR, "Normal room", null, "2.0000", null, null);
     createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
     createTimeEntry(user, check, LocalDate.of(2026, 7, 3), "08:00:00", "10:00:00");
     createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
@@ -138,7 +133,7 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data[0].calculationMethod").value("TIME_BASED"))
         .andExpect(jsonPath("$.data[0].entries").value(2))
         .andExpect(jsonPath("$.data[0].percentageBasis").value("MINUTES"))
-        .andExpect(jsonPath("$.data[1].name").value("Rooms"))
+        .andExpect(jsonPath("$.data[1].name").value("Normal room"))
         .andExpect(jsonPath("$.data[1].percentage").value(40.00));
 
     mockMvc
@@ -462,11 +457,8 @@ class StatisticsIntegrationTest {
     WorkType workType = createWorkType(user, "Montaj pardoseala", CalculationMethod.UNIT_BASED);
     workType.changeCompensationMethod(CompensationMethod.PER_UNIT);
     workTypes.saveAndFlush(workType);
-    UnitType squareMeter = new UnitType(workType, "Metru patrat", null);
-    squareMeter.changeSymbol("m2");
-    squareMeter.changeRatePerUnit(new BigDecimal("50.0000"));
-    squareMeter.changeCurrency("EUR");
-    unitTypes.saveAndFlush(squareMeter);
+    WorkType squareMeter =
+        createUnitConfiguration(workType, "Metru patrat", WorkLineCalculationMode.UNITS_PER_UNIT, "Metru patrat", "m2", null, "50.0000", "EUR");
 
     createUnitEntry(user, workType, squareMeter, LocalDate.of(2026, 7, 10), "300");
 
@@ -490,6 +482,86 @@ class StatisticsIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.forecasts[0].currency").value("EUR"))
         .andExpect(jsonPath("$.data.forecasts[0].workedDays").value(1));
+  }
+
+  @Test
+  void phaseTwoWorkRecordLinesAreIncludedInStatisticsWithoutLegacyEntries() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-record-lines@example.com");
+    WorkType montage = createWorkType(user, "Montaj pardoseala", CalculationMethod.UNIT_BASED);
+    montage.changeCompensationMethod(CompensationMethod.PER_UNIT);
+    workTypes.saveAndFlush(montage);
+    WorkType squareMeters =
+        new WorkType(montage.getUser(), "2 Lagen", CalculationMethod.UNIT_BASED, CompensationMethod.PER_UNIT);
+    squareMeters.changeParent(montage);
+    squareMeters.configureUnit("Metru patrat", "m2");
+    squareMeters.configureFormula(null, new BigDecimal("50.0000"), "EUR");
+    workTypes.saveAndFlush(squareMeters);
+
+    mockMvc
+        .perform(
+            post("/api/work-records")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workDate":"2026-07-10",
+                      "lines":[
+                        {
+                          "workTypeId":"%s",
+                          "quantity":300
+                        }
+                      ]
+                    }
+                    """
+                        .formatted(squareMeters.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.workLines[0].grossAmount").value(15000.000000000000000));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.entries").value(1))
+        .andExpect(jsonPath("$.data.workedDays").value(1))
+        .andExpect(jsonPath("$.data.workedMinutes").value(0.0))
+        .andExpect(content().string(containsString("\"amount\":15000.000000000000000")));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-10")
+                .param("to", "2026-07-10")
+                .param("metric", "GROSS"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.points[0].currency").value("EUR"))
+        .andExpect(jsonPath("$.data.points[0].value").value(15000.000000000000000));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-10")
+                .param("to", "2026-07-10")
+                .param("metric", "WORKED_MINUTES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.points[0].value").value(0.0));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/productivity")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.available").value(true))
+        .andExpect(jsonPath("$.data.totalUnits").value(300.0000))
+        .andExpect(jsonPath("$.data.equivalentMinutes").value(0.0))
+        .andExpect(jsonPath("$.data.workFormulas[0].name").value("Metru patrat"));
   }
 
   @Test
@@ -521,8 +593,10 @@ class StatisticsIntegrationTest {
   void productivityUsesUnitSnapshotsAndDoesNotInventActualProductivity() throws Exception {
     UserAccount user = createVerifiedUser("statistics-productivity@example.com");
     WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
-    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
-    UnitType suite = createUnitType(rooms, "Suite", "1.0000");
+    WorkType normalRoom =
+        createUnitConfiguration(rooms, "Normal room", WorkLineCalculationMode.UNITS_PER_HOUR, "Normal room", null, "2.0000", null, null);
+    WorkType suite =
+        createUnitConfiguration(rooms, "Suite", WorkLineCalculationMode.UNITS_PER_HOUR, "Suite", null, "1.0000", null, null);
     createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
     createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
     createUnitEntry(user, rooms, suite, LocalDate.of(2026, 7, 4), "2");
@@ -537,8 +611,8 @@ class StatisticsIntegrationTest {
         .andExpect(jsonPath("$.data.available").value(true))
         .andExpect(jsonPath("$.data.actualProductivityAvailable").value(false))
         .andExpect(jsonPath("$.data.actualUnitsPerHour").doesNotExist())
-        .andExpect(jsonPath("$.data.unitTypes.length()").value(2))
-        .andExpect(jsonPath("$.data.unitTypes[0].name").value("Normal room"))
+        .andExpect(jsonPath("$.data.workFormulas.length()").value(2))
+        .andExpect(jsonPath("$.data.workFormulas[0].name").value("Normal room"))
         .andExpect(jsonPath("$.data.grouping").value("TOTAL"))
         .andExpect(jsonPath("$.data.points.length()").value(1));
   }
@@ -547,13 +621,14 @@ class StatisticsIntegrationTest {
   void productivityPreservesHistoricalUnitSnapshotsAfterRenameAndRateChange() throws Exception {
     UserAccount user = createVerifiedUser("statistics-productivity-history@example.com");
     WorkType rooms = createWorkType(user, "Rooms", CalculationMethod.UNIT_BASED);
-    UnitType normalRoom = createUnitType(rooms, "Normal room", "2.0000");
+    WorkType normalRoom =
+        createUnitConfiguration(rooms, "Normal room", WorkLineCalculationMode.UNITS_PER_HOUR, "Normal room", null, "2.0000", null, null);
     createRate(user, "30.00", "EUR", LocalDate.of(2026, 1, 1), null);
     createUnitEntry(user, rooms, normalRoom, LocalDate.of(2026, 7, 3), "4");
     normalRoom.rename("Renamed room");
-    normalRoom.changeUnitsPerHour(new BigDecimal("4.0000"));
+    normalRoom.configureFormula(new BigDecimal("4.0000"), null, null);
     normalRoom.deactivate();
-    unitTypes.saveAndFlush(normalRoom);
+    workTypes.saveAndFlush(normalRoom);
 
     mockMvc
         .perform(
@@ -562,9 +637,9 @@ class StatisticsIntegrationTest {
                 .param("from", "2026-07-01")
                 .param("to", "2026-07-31"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.unitTypes[0].name").value("Normal room"))
-        .andExpect(jsonPath("$.data.unitTypes[0].configuredUnitsPerHour").value(2.00))
-        .andExpect(jsonPath("$.data.unitTypes[0].equivalentMinutes").value(120.00));
+        .andExpect(jsonPath("$.data.workFormulas[0].name").value("Normal room"))
+        .andExpect(jsonPath("$.data.workFormulas[0].configuredUnitsPerHour").value(2.00))
+        .andExpect(jsonPath("$.data.workFormulas[0].equivalentMinutes").value(120.00));
   }
 
   @Test
@@ -648,38 +723,47 @@ class StatisticsIntegrationTest {
       throws Exception {
     mockMvc
         .perform(
-            post("/api/work-entries")
+            post("/api/work-records")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
-                      "workTypeId":"%s",
                       "workDate":"%s",
-                      "startTime":"%s",
-                      "endTime":"%s"
+                      "lines":[
+                        {
+                          "workTypeId":"%s",
+                          "startTime":"%s",
+                          "endTime":"%s"
+                        }
+                      ]
                     }
                     """
-                        .formatted(workType.getId(), workDate, startTime, endTime)))
+                        .formatted(workDate, workType.getId(), startTime, endTime)))
         .andExpect(status().isCreated());
   }
 
-  private void createUnitEntry(UserAccount user, WorkType workType, UnitType unitType, LocalDate workDate, String quantity)
+  private void createUnitEntry(
+      UserAccount user, WorkType workType, WorkType configuration, LocalDate workDate, String quantity)
       throws Exception {
     mockMvc
         .perform(
-            post("/api/work-entries")
+            post("/api/work-records")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
-                      "workTypeId":"%s",
                       "workDate":"%s",
-                      "unitItems":[{"unitTypeId":"%s","quantity":%s}]
+                      "lines":[
+                        {
+                          "workTypeId":"%s",
+                          "quantity":%s
+                        }
+                      ]
                     }
                     """
-                        .formatted(workType.getId(), workDate, unitType.getId(), quantity)))
+                        .formatted(workDate, configuration.getId(), quantity)))
         .andExpect(status().isCreated());
   }
 
@@ -690,11 +774,45 @@ class StatisticsIntegrationTest {
   }
 
   private WorkType createWorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
-    return workTypes.saveAndFlush(new WorkType(user, name, calculationMethod));
+    WorkType workType = new WorkType(user, name, calculationMethod);
+    if (calculationMethod != CalculationMethod.TIME_BASED) {
+      workType.changeCompositeEnabled(true);
+    }
+    return workTypes.saveAndFlush(workType);
   }
 
-  private UnitType createUnitType(WorkType workType, String name, String unitsPerHour) {
-    return unitTypes.saveAndFlush(new UnitType(workType, name, new BigDecimal(unitsPerHour)));
+  private WorkType createUnitConfiguration(
+      WorkType workType,
+      String name,
+      WorkLineCalculationMode mode,
+      String unitLabel,
+      String unitSymbol,
+      String unitsPerHour,
+      String ratePerUnit,
+      String currency) {
+    WorkType configuration =
+        new WorkType(workType.getUser(), name, calculationMethod(mode), compensationMethod(mode));
+    configuration.changeParent(workType);
+    configuration.changeTeamworkEnabled(workType.isTeamworkEnabled());
+    configuration.configureUnit(unitLabel, unitSymbol);
+    configuration.configureFormula(
+        unitsPerHour == null ? null : new BigDecimal(unitsPerHour),
+        ratePerUnit == null ? null : new BigDecimal(ratePerUnit),
+        currency);
+    return workTypes.saveAndFlush(configuration);
+  }
+
+  private CalculationMethod calculationMethod(WorkLineCalculationMode mode) {
+    return switch (mode) {
+      case TIME_HOURLY -> CalculationMethod.TIME_BASED;
+      case UNITS_PER_HOUR -> CalculationMethod.UNITS_PER_HOUR_BASED;
+      case UNITS_PER_UNIT -> CalculationMethod.UNIT_BASED;
+      case FIXED_AMOUNT -> CalculationMethod.FIXED_PRICE_BASED;
+    };
+  }
+
+  private CompensationMethod compensationMethod(WorkLineCalculationMode mode) {
+    return mode == WorkLineCalculationMode.UNITS_PER_UNIT ? CompensationMethod.PER_UNIT : CompensationMethod.HOURLY;
   }
 
   private HourlyRatePeriod createRate(

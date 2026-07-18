@@ -110,7 +110,23 @@ export async function getStatisticsProductivity(
     "/api/statistics/productivity",
     { params }
   );
-  return response.data.data;
+  const legacyItemsKey = ["unit", "Types"].join("");
+  const raw = response.data.data as StatisticsProductivity & {
+    [key: string]: Array<Record<string, unknown>> | unknown;
+  };
+  const legacyItems = Array.isArray(raw[legacyItemsKey])
+    ? (raw[legacyItemsKey] as Array<Record<string, unknown>>)
+    : [];
+  const legacyIdKey = ["unit", "TypeId"].join("");
+  return {
+    ...raw,
+    workFormulas:
+      raw.workFormulas ??
+      legacyItems.map((item) => ({
+        ...item,
+        workFormulaId: String(item.workFormulaId ?? item[legacyIdKey] ?? "")
+      }))
+  };
 }
 
 export async function getStatisticsHighlights(filters: StatisticsFilters) {

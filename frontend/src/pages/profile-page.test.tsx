@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import * as React from "react";
 import { ProfilePage } from "./profile-page";
 
-const logoutMock = vi.fn();
+const { logoutMock, updatePreferencesMock } = vi.hoisted(() => ({
+  logoutMock: vi.fn(),
+  updatePreferencesMock: vi.fn()
+}));
 
 vi.mock("../features/auth/use-auth", () => ({
   useAuth: () => ({
@@ -38,6 +42,7 @@ vi.mock("../features/auth/use-auth", () => ({
         language: "en",
         timezone: "Europe/Berlin",
         currency: "EUR",
+        firstDayOfWeek: "MONDAY",
         dateFormat: "DD.MM.YYYY",
         timeFormat: "H24",
         theme: "SYSTEM",
@@ -75,6 +80,7 @@ vi.mock("../api/endpoints", () => ({
     language: "en",
     timezone: "Europe/Berlin",
     currency: "EUR",
+    firstDayOfWeek: "MONDAY",
     dateFormat: "DD.MM.YYYY",
     timeFormat: "H24",
     theme: "SYSTEM",
@@ -93,6 +99,7 @@ vi.mock("../api/endpoints", () => ({
       validTo: null
     }
   ]),
+  updatePreferences: updatePreferencesMock,
   listWorkTypes: vi.fn(async () => [
     {
       id: "work-type-1",
@@ -140,5 +147,24 @@ describe("ProfilePage", () => {
     expect(screen.getByText("Timezone")).toBeInTheDocument();
     expect(screen.getByText("Europe/Berlin")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
+  });
+
+  it("updates preferences directly from the settings menu", async () => {
+    const user = userEvent.setup();
+    updatePreferencesMock.mockImplementationOnce(async (payload) => ({
+      id: "pref-1",
+      onboardingCompleted: true,
+      ...payload
+    }));
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText("Currency"), "RON");
+
+    await waitFor(() => {
+      expect(updatePreferencesMock).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: "RON", language: "en" }),
+        expect.anything()
+      );
+    });
   });
 });

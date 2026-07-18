@@ -1,8 +1,19 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/alveryn}
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/alveryn?currentSchema=alveryn_test}
     username: ${DB_USERNAME:alveryn}
     password: ${DB_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: alveryn_test
+  flyway:
+    default-schema: alveryn_test
+    schemas: alveryn_test
+    create-schemas: true
 
 server:
   port: 0

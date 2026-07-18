@@ -13,6 +13,7 @@ type SettingsRowProps = {
   value?: string | null;
   destructive?: boolean;
   onClick?: () => void;
+  showChevron?: boolean;
 };
 
 export function SettingsGroup({ title, children }: SettingsGroupProps) {
@@ -31,7 +32,8 @@ export function SettingsRow({
   label,
   value,
   destructive = false,
-  onClick
+  onClick,
+  showChevron
 }: SettingsRowProps) {
   const classes =
     "flex min-h-16 w-full items-center justify-between gap-4 px-6 py-4 text-left transition hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset";
@@ -48,7 +50,7 @@ export function SettingsRow({
       </span>
       <span className="flex items-center gap-3">
         {value ? <span className="text-sm text-white/48">{value}</span> : null}
-        {to ? <ChevronRight className="h-4 w-4 text-white/24" aria-hidden="true" /> : null}
+        {to || showChevron ? <ChevronRight className="h-4 w-4 text-white/24" aria-hidden="true" /> : null}
       </span>
     </>
   );

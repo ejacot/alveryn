@@ -10,9 +10,9 @@ import { ProtectedRoute } from "./protected-route";
 import { RouteErrorPage } from "../components/ui/route-error-page";
 import { APP_HOME_PATH } from "./app-paths";
 
-const WorkEntryEditorPage = lazy(() =>
-  import("../pages/work-entry-editor-page").then((module) => ({
-    default: module.WorkEntryEditorPage
+const WorkRecordEditorPage = lazy(() =>
+  import("../pages/work-record-editor-page").then((module) => ({
+    default: module.WorkRecordEditorPage
   }))
 );
 const HomePage = lazy(() =>
@@ -55,6 +55,11 @@ const SettingsAbsencePage = lazy(() =>
     default: module.SettingsAbsencePage
   }))
 );
+const SettingsEmploymentPage = lazy(() =>
+  import("../pages/settings-employment-page").then((module) => ({
+    default: module.SettingsEmploymentPage
+  }))
+);
 const HourlyRatesPage = lazy(() =>
   import("../pages/hourly-rates-page").then((module) => ({
     default: module.HourlyRatesPage
@@ -75,11 +80,6 @@ const WorkTypeEditorPage = lazy(() =>
     default: module.WorkTypeEditorPage
   }))
 );
-const UnitTypeEditorPage = lazy(() =>
-  import("../pages/unit-type-editor-page").then((module) => ({
-    default: module.UnitTypeEditorPage
-  }))
-);
 const AboutAlverynPage = lazy(() =>
   import("../pages/about-alveryn-page").then((module) => ({
     default: module.AboutAlverynPage
@@ -88,16 +88,6 @@ const AboutAlverynPage = lazy(() =>
 const HelpSupportPage = lazy(() =>
   import("../pages/help-support-page").then((module) => ({
     default: module.HelpSupportPage
-  }))
-);
-const SettingsImportPage = lazy(() =>
-  import("../pages/settings-import-page").then((module) => ({
-    default: module.SettingsImportPage
-  }))
-);
-const SettingsImportDetailPage = lazy(() =>
-  import("../pages/settings-import-detail-page").then((module) => ({
-    default: module.SettingsImportDetailPage
   }))
 );
 const LoginPage = lazy(() =>
@@ -185,29 +175,20 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
           children: [
             { path: APP_HOME_PATH, element: withSuspense(<HomePage />) },
             { path: "/calendar", element: withSuspense(<CalendarPage />) },
-            { path: "/entries/new", element: withSuspense(<WorkEntryEditorPage />) },
-            { path: "/entries/:entryId", element: withSuspense(<WorkEntryEditorPage />) },
+            { path: "/records/new", element: withSuspense(<WorkRecordEditorPage />) },
+            { path: "/records/:recordId", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
+            { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
             { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
             { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },
             { path: "/settings/hourly-rates/:rateId", element: withSuspense(<HourlyRateEditorPage />) },
             { path: "/settings/work-types", element: withSuspense(<WorkTypesPage />) },
             { path: "/settings/work-types/new", element: withSuspense(<WorkTypeEditorPage />) },
             { path: "/settings/work-types/:workTypeId", element: withSuspense(<WorkTypeEditorPage />) },
-            {
-              path: "/settings/work-types/:workTypeId/unit-types/new",
-              element: withSuspense(<UnitTypeEditorPage />)
-            },
-            {
-              path: "/settings/work-types/:workTypeId/unit-types/:unitTypeId",
-              element: withSuspense(<UnitTypeEditorPage />)
-            },
-            { path: "/settings/import", element: withSuspense(<SettingsImportPage />) },
-            { path: "/settings/import/:batchId", element: withSuspense(<SettingsImportDetailPage />) },
             { path: "/settings/about", element: withSuspense(<AboutAlverynPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
           ]

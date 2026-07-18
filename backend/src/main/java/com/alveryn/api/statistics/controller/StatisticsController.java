@@ -137,19 +137,19 @@ public class StatisticsController {
   @Operation(
       summary = "Return unit-based productivity analytics",
       description =
-          "Productivity uses UnitEntryItem historical snapshots. effectiveConfiguredUnitsPerHour is weighted as totalUnits * 60 / equivalentMinutes. Actual productivity remains unavailable unless real UNIT_BASED start/end time exists. Supported grouping values are TOTAL, DAILY, WEEKLY and MONTHLY; unsupported grouping values return STATISTICS_PRODUCTIVITY_INCOMPATIBLE_UNITS instead of being silently changed.",
+          "Productivity uses work formula snapshots and historical unit work snapshots. effectiveConfiguredUnitsPerHour is weighted as totalUnits * 60 / equivalentMinutes. Actual productivity remains unavailable unless real UNIT_BASED start/end time exists. Supported grouping values are TOTAL, DAILY, WEEKLY and MONTHLY; unsupported grouping values return STATISTICS_PRODUCTIVITY_INCOMPATIBLE_UNITS instead of being silently changed.",
       security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<StatisticsProductivityResponse> productivity(
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) List<UUID> workTypeIds,
-      @RequestParam(required = false) List<UUID> unitTypeIds,
+      @RequestParam(required = false) List<UUID> workFormulaIds,
       @RequestParam(required = false) List<CalculationMethod> calculationMethods,
       @RequestParam(defaultValue = "TOTAL_UNITS") ProductivityMetric metric,
       @RequestParam(defaultValue = "TOTAL") ProductivityGrouping grouping) {
     return ApiResponse.of(
         statisticsService.productivity(
-            new StatisticsFilters(from, to, workTypeIds, calculationMethods), unitTypeIds, metric, grouping));
+            new StatisticsFilters(from, to, workTypeIds, calculationMethods), workFormulaIds, metric, grouping));
   }
 
   @GetMapping("/highlights")

@@ -14,7 +14,7 @@ public record StatisticsProductivityResponse(
     boolean available,
     boolean partial,
     int incompleteItems,
-    List<StatisticsProductivityUnitTypeResponse> unitTypes,
+    List<StatisticsProductivityWorkFormulaResponse> workFormulas,
     ProductivityGrouping grouping,
     StatisticsGranularity granularity,
     ProductivityMetric metric,

@@ -28,7 +28,7 @@ import {
 } from "../features/onboarding/onboarding-schemas";
 import { useAuth } from "../features/auth/use-auth";
 import { APP_HOME_PATH } from "../routes/app-paths";
-import { todayLocalIsoDate } from "../utils/date";
+import { firstDayOfCurrentMonthLocalIsoDate } from "../utils/date";
 
 const STEP_PROFILE = 1;
 const STEP_HOURLY_RATE = 2;
@@ -71,7 +71,8 @@ export function OnboardingPage() {
     resolver: zodResolver(hourlyRateStepSchema),
     defaultValues: {
       hourlyRate: "",
-      currency: "EUR"
+      currency: "EUR",
+      validFrom: ""
     }
   });
   useEffect(() => {
@@ -312,7 +313,7 @@ export function OnboardingPage() {
               await hourlyRateMutation.mutateAsync({
                 hourlyRate: values.hourlyRate,
                 currency: values.currency,
-                validFrom: todayLocalIsoDate()
+                validFrom: resolveHourlyRateValidFrom(values.validFrom)
               });
               if (values.currency !== user?.preferences?.currency) {
                 await currencyPreferenceMutation.mutateAsync({
@@ -362,6 +363,15 @@ export function OnboardingPage() {
                 ))}
               </Select>
             </div>
+            <Input
+              label="Start date (optional)"
+              type="date"
+              error={hourlyRateForm.formState.errors.validFrom?.message}
+              {...hourlyRateForm.register("validFrom")}
+            />
+            <p className="-mt-3 text-xs leading-5 text-white/42">
+              If you leave it empty, Alveryn starts this rate on the first day of the current month.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <Button
                 className="w-full"
@@ -433,4 +443,9 @@ export function deriveCurrentStep({
     return STEP_HOURLY_RATE;
   }
   return STEP_HOURLY_RATE;
+}
+
+export function resolveHourlyRateValidFrom(value?: string, fallbackDate = new Date()) {
+  const trimmed = value?.trim();
+  return trimmed || firstDayOfCurrentMonthLocalIsoDate(fallbackDate);
 }

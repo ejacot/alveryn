@@ -1,27 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Clock3, Coins } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, Clock3, Coins, Ruler } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import {
-  createUnitType,
   createWorkType,
-  deleteUnitType,
   deleteWorkType,
   getWorkType,
-  listUnitTypes,
-  updateUnitType,
+  listWorkTypes,
   updateWorkType
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
-import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsSection } from "../components/settings/settings-section";
 import { Button } from "../components/ui/button";
@@ -29,17 +25,10 @@ import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
-import type { UnitType } from "../types/configuration";
-import { formatCurrency } from "../utils/format";
+import type { WorkType, WorkTypeFormula, WorkTypeFormulaMode } from "../types/configuration";
+import type { CalculationMethod, CompensationMethod } from "../types/work-calculation";
 
-const WORK_TYPE_COLORS = [
-  "#A3E635",
-  "#34D399",
-  "#60A5FA",
-  "#FBBF24",
-  "#FB7185"
-] as const;
-const DEFAULT_WORK_TYPE_COLOR = WORK_TYPE_COLORS[0];
+const DEFAULT_WORK_TYPE_COLOR = "#A3E635";
 
 function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
@@ -47,58 +36,130 @@ function createWorkTypeSchema(t: (key: string) => string) {
 	      .trim()
 	      .transform((value) => value.toLocaleUpperCase())
 	      .pipe(z.string().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong"))),
-		    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED"]),
+		    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED", "UNITS_PER_HOUR_BASED", "FIXED_PRICE_BASED"]),
 		    compensationMethod: z.enum(["HOURLY", "PER_UNIT"]).default("HOURLY"),
-		    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().default(DEFAULT_WORK_TYPE_COLOR),
+        unitLabel: z.string().trim().max(100).optional().or(z.literal("")),
+        unitSymbol: z.string().trim().max(20).optional().or(z.literal("")),
+        unitsPerHour: optionalDecimalSchema(t("workTypeFormulas.validation.unitsPerHour")),
+        ratePerUnit: optionalDecimalSchema(t("workTypeFormulas.validation.ratePerUnit")),
+        currency: z.string().trim().length(3, t("workTypeFormulas.validation.currency")).optional().or(z.literal("")),
+        teamworkEnabled: z.boolean().optional().default(false),
+        compositeEnabled: z.boolean().optional().default(false),
+		    color: z.preprocess(
+          (value) => value == null || value === "" ? DEFAULT_WORK_TYPE_COLOR : value,
+          z.string().regex(/^#[0-9A-Fa-f]{6}$/)
+        ),
 	    defaultBreakMinutes: z.coerce.number().int().min(0).optional(),
 	    active: z.boolean().optional().default(true)
+  }).superRefine((value, context) => {
+    if (value.compositeEnabled) {
+      return;
+    }
+    if (value.calculationMethod === "TIME_BASED" || value.calculationMethod === "FIXED_PRICE_BASED") {
+      return;
+    }
+    if (!value.unitLabel?.trim()) {
+      context.addIssue({ code: "custom", path: ["unitLabel"], message: t("workTypeFormulas.validation.unitLabel") });
+    }
+    if (value.calculationMethod === "UNITS_PER_HOUR_BASED" && !Number.isFinite(value.unitsPerHour)) {
+      context.addIssue({ code: "custom", path: ["unitsPerHour"], message: t("workTypeFormulas.validation.unitsPerHour") });
+    }
+    if (value.calculationMethod === "UNIT_BASED") {
+      if (!Number.isFinite(value.ratePerUnit)) {
+        context.addIssue({ code: "custom", path: ["ratePerUnit"], message: t("workTypeFormulas.validation.ratePerUnit") });
+      }
+      if (!value.currency?.trim()) {
+        context.addIssue({ code: "custom", path: ["currency"], message: t("workTypeFormulas.validation.currency") });
+      }
+    }
   });
 }
 
 function parseDecimalInput(value: unknown) {
   if (typeof value === "string") {
     const normalized = value.trim().replace(",", ".");
-    return normalized === "" ? Number.NaN : Number(normalized);
+    return normalized === "" ? undefined : Number(normalized);
   }
   return value;
 }
 
-function createUnitDialogSchema(t: (key: string) => string) {
-  return z.object({
-	    name: z.string().trim().min(1, t("unitTypes.validation.nameRequired")).max(100, t("unitTypes.validation.nameTooLong")),
-    unitsPerHour: z.preprocess(
-      parseDecimalInput,
-      z.number({ error: t("unitTypes.validation.unitsPerHour") }).gt(0, t("unitTypes.validation.unitsPerHour")).optional().or(z.nan())
-    ),
-    symbol: z.string().trim().max(20).optional().or(z.literal("")),
-    ratePerUnit: z.preprocess(
-      parseDecimalInput,
-      z.number({ error: t("unitTypes.validation.ratePerUnit") }).gt(0, t("unitTypes.validation.ratePerUnit")).optional().or(z.nan())
-    ),
-    currency: z.string().trim().length(3, t("unitTypes.validation.currency")).optional().or(z.literal(""))
-	  });
+function optionalDecimalSchema(message: string) {
+  return z.preprocess(
+    parseDecimalInput,
+    z.number({ error: message }).gt(0, message).optional()
+  );
 }
 
 type Schema = ReturnType<typeof createWorkTypeSchema>;
 type FormValues = z.infer<Schema>;
 type FormInput = z.input<Schema>;
-type UnitDialogSchema = ReturnType<typeof createUnitDialogSchema>;
-type UnitDialogValues = z.infer<UnitDialogSchema>;
-type UnitDialogInput = z.input<UnitDialogSchema>;
+
+function createConfigurationDialogSchema(t: (key: string) => string) {
+  return z.object({
+    name: z.string().trim().min(1, t("workTypeFormulas.validation.nameRequired")).max(120, t("workTypeFormulas.validation.nameTooLong")),
+    calculationMode: z.enum(["TIME_HOURLY", "UNITS_PER_HOUR", "UNITS_PER_UNIT", "FIXED_AMOUNT"]),
+    unitLabel: z.string().trim().max(100).optional().or(z.literal("")),
+    unitSymbol: z.string().trim().max(20).optional().or(z.literal("")),
+    unitsPerHour: optionalDecimalSchema(t("workTypeFormulas.validation.unitsPerHour")),
+    ratePerUnit: optionalDecimalSchema(t("workTypeFormulas.validation.ratePerUnit")),
+    currency: z.string().trim().length(3, t("workTypeFormulas.validation.currency")).optional().or(z.literal("")),
+    defaultBreakMinutes: z.coerce.number().int().min(0).optional()
+  });
+}
+
+type ConfigurationDialogSchema = ReturnType<typeof createConfigurationDialogSchema>;
+type ConfigurationDialogValues = z.infer<ConfigurationDialogSchema>;
+type ConfigurationDialogInput = z.input<ConfigurationDialogSchema>;
+type DraftChildWorkType = {
+  id: string;
+  name: string;
+  unitLabel: string;
+  unitSymbol: string;
+  unitsPerHour: string;
+  ratePerUnit: string;
+  currency: string;
+  defaultBreakMinutes: string;
+};
 
 export function WorkTypeEditorPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation(["settings", "common", "entries", "errors"]);
+  const location = useLocation();
+  const { t } = useTranslation(["settings", "common", "records", "errors"]);
   const queryClient = useQueryClient();
   const { workTypeId } = useParams();
   const isEditing = Boolean(workTypeId);
+  const setupModeFromSearch = !isEditing
+    ? parseSetupMode(new URLSearchParams(location.search).get("mode"))
+    : null;
+  const setupState = !isEditing
+    ? (location.state as {
+      setupMode?: WorkTypeFormulaMode;
+      calculationMethod?: CalculationMethod;
+      compensationMethod?: CompensationMethod;
+    } | null)
+    : null;
+  const initialSetupMode = !isEditing
+    ? (setupModeFromSearch ?? setupState?.setupMode ?? null)
+    : null;
+  const initialSetupOption = initialSetupMode
+    ? setupModeOptions(t).find((option) => option.mode === initialSetupMode) ?? null
+    : null;
+  const initialCalculationMethod = initialSetupOption?.calculationMethod ?? setupState?.calculationMethod ?? "TIME_BASED";
+  const initialCompensationMethod = initialSetupOption?.compensationMethod ?? setupState?.compensationMethod ?? "HOURLY";
   const [showConfirm, setShowConfirm] = useState(false);
-  const [unitDialogOpen, setUnitDialogOpen] = useState(false);
-  const [selectedUnitType, setSelectedUnitType] = useState<UnitType | null>(null);
+  const [selectedSetupMode, setSelectedSetupMode] = useState<WorkTypeFormulaMode | null>(initialSetupOption?.mode ?? null);
+  const [configurationDialogOpen, setConfigurationDialogOpen] = useState(false);
+  const [selectedConfiguration, setSelectedConfiguration] = useState<WorkTypeFormula | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [suppressUnsavedGuard, setSuppressUnsavedGuard] = useState(false);
+  const [draftChildren, setDraftChildren] = useState<DraftChildWorkType[]>([]);
+  const navigationTimeoutRef = useRef<number | null>(null);
   const safeBack = useSafeBackNavigation({ fallback: "/settings/work-types" });
   const schema = useMemo(() => createWorkTypeSchema((key) => t(`settings:${key}`)), [t]);
-  const unitDialogSchema = useMemo(() => createUnitDialogSchema((key) => t(`settings:${key}`)), [t]);
+  const configurationDialogSchema = useMemo(
+    () => createConfigurationDialogSchema((key) => t(`settings:${key}`)),
+    [t]
+  );
 
   const workTypeQuery = useQuery({
     queryKey: workTypeId ? queryKeys.workTypes.detail(workTypeId) : queryKeys.workTypes.all(),
@@ -106,31 +167,65 @@ export function WorkTypeEditorPage() {
     enabled: isEditing
   });
 
-  const unitTypesQuery = useQuery({
-    queryKey: workTypeId ? queryKeys.unitTypes.list(workTypeId) : queryKeys.workTypes.all(),
-    queryFn: () => listUnitTypes(workTypeId!),
-    enabled: Boolean(workTypeId && workTypeQuery.data?.calculationMethod === "UNIT_BASED")
+  const childWorkTypesQuery = useQuery({
+    queryKey: queryKeys.workTypes.all(),
+    queryFn: listWorkTypes,
+    enabled: Boolean(workTypeId)
   });
 
   const form = useForm<FormInput, undefined, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
 	      name: "",
-		      calculationMethod: "TIME_BASED",
-		      compensationMethod: "HOURLY",
+		      calculationMethod: initialCalculationMethod,
+		      compensationMethod: initialCompensationMethod,
+          unitLabel: "",
+          unitSymbol: "",
+          unitsPerHour: "",
+          ratePerUnit: "",
+          currency: "EUR",
+          teamworkEnabled: false,
+          compositeEnabled: false,
 		      color: DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: 30,
 	      active: true
     }
   });
-  const unitForm = useForm<UnitDialogInput, undefined, UnitDialogValues>({
-    resolver: zodResolver(unitDialogSchema),
+
+  useEffect(() => {
+    if (isEditing || !initialSetupMode) {
+      return;
+    }
+
+    form.setValue("calculationMethod", initialCalculationMethod, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true
+    });
+    form.setValue("compensationMethod", initialCompensationMethod, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true
+    });
+    setSelectedSetupMode(initialSetupMode);
+  }, [form, initialCalculationMethod, initialCompensationMethod, initialSetupMode, isEditing]);
+
+  useEffect(() => () => {
+    if (navigationTimeoutRef.current !== null) {
+      window.clearTimeout(navigationTimeoutRef.current);
+    }
+  }, []);
+  const configurationForm = useForm<ConfigurationDialogInput, undefined, ConfigurationDialogValues>({
+    resolver: zodResolver(configurationDialogSchema),
     defaultValues: {
-	      name: "",
-	      unitsPerHour: "",
-	      symbol: "",
-	      ratePerUnit: "",
-	      currency: "EUR"
+      name: "",
+      calculationMode: "TIME_HOURLY",
+      unitLabel: "",
+      unitSymbol: "",
+      unitsPerHour: "",
+      ratePerUnit: "",
+      currency: "EUR",
+      defaultBreakMinutes: 30
     }
   });
 
@@ -140,61 +235,84 @@ export function WorkTypeEditorPage() {
 		      name: workTypeQuery.data.name,
 		      calculationMethod: workTypeQuery.data.calculationMethod,
 		      compensationMethod: workTypeQuery.data.compensationMethod ?? "HOURLY",
-	      color: workTypeQuery.data.color,
+          unitLabel: workTypeQuery.data.unitLabel ?? "",
+          unitSymbol: workTypeQuery.data.unitSymbol ?? "",
+          unitsPerHour: workTypeQuery.data.unitsPerHour ?? "",
+          ratePerUnit: workTypeQuery.data.ratePerUnit ?? "",
+          currency: workTypeQuery.data.currency ?? "EUR",
+          teamworkEnabled: workTypeQuery.data.teamworkEnabled ?? false,
+          compositeEnabled: workTypeQuery.data.compositeEnabled ?? false,
+	      color: workTypeQuery.data.color ?? DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: workTypeQuery.data.defaultBreakMinutes ?? 30,
 	      active: workTypeQuery.data.active
     });
   }, [form, workTypeQuery.data]);
 
-  async function afterSuccess(targetId?: string, calculationMethod?: FormValues["calculationMethod"]) {
+  async function afterSuccess(targetId?: string, shouldStayInEditor?: boolean) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
-    if (targetId && (isEditing || calculationMethod === "UNIT_BASED")) {
-      navigate(`/settings/work-types/${targetId}`, { replace: true });
-      return;
+
+    if (navigationTimeoutRef.current !== null) {
+      window.clearTimeout(navigationTimeoutRef.current);
     }
-    navigate("/settings/work-types", { replace: true });
+    navigationTimeoutRef.current = window.setTimeout(() => {
+      if (targetId && (isEditing || shouldStayInEditor)) {
+        navigate(`/settings/work-types/${targetId}`, { replace: true });
+        return;
+      }
+      navigate("/settings/work-types", { replace: true });
+    }, 520);
   }
 
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      const normalizedValues: FormValues = !isEditing && initialSetupOption
+        ? {
+          ...values,
+          calculationMethod: initialSetupOption.calculationMethod,
+          compensationMethod: initialSetupOption.compensationMethod
+        }
+        : values;
+      const payload = buildWorkTypePayload(normalizedValues, {
+        color: normalizedValues.color ?? DEFAULT_WORK_TYPE_COLOR,
+        displayOrder: workTypeQuery.data?.displayOrder ?? undefined,
+        active: workTypeQuery.data?.active ?? true
+      });
       if (isEditing) {
 	        return updateWorkType(workTypeId!, {
-		          name: values.name,
-		          calculationMethod: values.calculationMethod,
-		          ...(values.calculationMethod === "UNIT_BASED" && values.compensationMethod === "PER_UNIT"
-		            ? { compensationMethod: values.compensationMethod }
-		            : {}),
-		          color: values.color,
-	          icon: null,
-	          defaultBreakMinutes:
-	            values.calculationMethod === "TIME_BASED"
-	              ? values.defaultBreakMinutes ?? 0
-	              : null,
-          displayOrder: workTypeQuery.data?.displayOrder ?? 0,
-          active: workTypeQuery.data?.active ?? true
-        });
+            ...payload,
+            parentId: workTypeQuery.data?.parentId ?? null
+          });
       }
 
-	      return createWorkType({
-		        name: values.name,
-		        calculationMethod: values.calculationMethod,
-		        ...(values.calculationMethod === "UNIT_BASED" && values.compensationMethod === "PER_UNIT"
-		          ? { compensationMethod: values.compensationMethod }
-		          : {}),
-		        color: values.color,
-	        icon: null,
-	        defaultBreakMinutes: values.calculationMethod === "TIME_BASED" ? values.defaultBreakMinutes ?? 0 : null
-	      });
+      const workType = await createWorkType(payload);
+      if (normalizedValues.compositeEnabled) {
+        const childMode = workTypeSetupMode(normalizedValues.calculationMethod) ?? "TIME_HOURLY";
+        await Promise.all(
+          draftChildren
+            .filter(hasDraftChildContent)
+            .map((child, index) =>
+              createWorkType(buildDraftChildWorkTypePayload(child, childMode, {
+                parentId: workType.id,
+                color: normalizedValues.color,
+                teamworkEnabled: normalizedValues.teamworkEnabled ?? false,
+                displayOrder: index,
+                active: true
+              }))
+            )
+        );
+      }
+	      return workType;
     },
     onSuccess: async (workType) => {
+      setSuppressUnsavedGuard(true);
+      form.reset(form.getValues());
       setSuccessMessage(isEditing ? t("settings:workTypeEditor.updated") : t("settings:workTypeEditor.created"));
-      await afterSuccess(workType.id, workType.calculationMethod);
+      await afterSuccess(workType.id, workType.compositeEnabled);
     },
     onError: (error) => {
       const apiError = getApiError(error);
@@ -223,140 +341,140 @@ export function WorkTypeEditorPage() {
     }
   });
 
-  const createUnitMutation = useMutation({
-    mutationFn: (values: UnitDialogValues) =>
-      createUnitType(workTypeId!, buildUnitTypePayload(values, { active: true })),
+  const createConfigurationMutation = useMutation({
+    mutationFn: (values: ConfigurationDialogValues) =>
+      createWorkType(buildChildWorkTypePayload(values, {
+        parentId: workTypeId!,
+        color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
+        teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
+        active: true
+      })),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-	      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
-      setUnitDialogOpen(false);
+      resetConfigurationDialog();
     },
     onError: (error) => {
       const apiError = getApiError(error);
       Object.entries(apiError.fieldErrors).forEach(([field, message]) => {
-        unitForm.setError(field as keyof UnitDialogValues, { message });
+        configurationForm.setError(field as keyof ConfigurationDialogValues, { message });
       });
-      unitForm.setError("root", { message: apiError.message });
+      configurationForm.setError("root", { message: apiError.message });
     }
   });
 
-  const updateUnitMutation = useMutation({
-    mutationFn: ({ unitType, values }: { unitType: UnitType; values: UnitDialogValues }) =>
-      updateUnitType(
-        workTypeId!,
-        unitType.id,
-        buildUnitTypePayload(values, { displayOrder: unitType.displayOrder, active: unitType.active })
+  const updateConfigurationMutation = useMutation({
+    mutationFn: ({ configuration, values }: { configuration: WorkTypeFormula; values: ConfigurationDialogValues }) =>
+      updateWorkType(
+        configuration.id,
+        buildChildWorkTypePayload(values, {
+          parentId: workTypeId!,
+          color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
+          teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
+          active: configuration.active,
+          displayOrder: configuration.displayOrder
+        })
       ),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-	      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
-      setSelectedUnitType(null);
-      setUnitDialogOpen(false);
+      resetConfigurationDialog();
     },
     onError: (error) => {
       const apiError = getApiError(error);
       Object.entries(apiError.fieldErrors).forEach(([field, message]) => {
-        unitForm.setError(field as keyof UnitDialogValues, { message });
+        configurationForm.setError(field as keyof ConfigurationDialogValues, { message });
       });
-      unitForm.setError("root", { message: apiError.message });
+      configurationForm.setError("root", { message: apiError.message });
     }
   });
 
-  const deleteUnitMutation = useMutation({
-    mutationFn: (unitType: UnitType) => deleteUnitType(workTypeId!, unitType.id),
+  const deleteConfigurationMutation = useMutation({
+    mutationFn: (configuration: WorkTypeFormula) => deleteWorkType(configuration.id),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
       ]);
-      unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
-      setSelectedUnitType(null);
-      setUnitDialogOpen(false);
+      resetConfigurationDialog();
     },
     onError: (error) => {
-      unitForm.setError("root", { message: getApiError(error).message });
+      configurationForm.setError("root", { message: getApiError(error).message });
     }
   });
 
-  const reorderUnitMutation = useMutation({
-    mutationFn: async ({ current, target }: { current: UnitType; target: UnitType }) => {
-      await updateUnitType(
-        workTypeId!,
-        current.id,
-        buildExistingUnitTypePayload(current, { displayOrder: target.displayOrder })
-      );
-      await updateUnitType(
-        workTypeId!,
-        target.id,
-        buildExistingUnitTypePayload(target, { displayOrder: current.displayOrder })
-      );
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.list(workTypeId!) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.unitTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.workTypes.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
-      ]);
-    }
-  });
-
-  function openUnitDialog() {
-    unitForm.clearErrors();
-	    unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
-    setSelectedUnitType(null);
-    setUnitDialogOpen(true);
-  }
-
-  function openUnitEditDialog(unitType: UnitType) {
-    unitForm.clearErrors();
-    unitForm.reset({
-	      name: unitType.name,
-	      unitsPerHour: unitType.unitsPerHour ?? "",
-	      symbol: unitType.symbol ?? "",
-	      ratePerUnit: unitType.ratePerUnit ?? "",
-	      currency: unitType.currency ?? "EUR"
+  function resetConfigurationDialog() {
+    configurationForm.reset({
+      name: "",
+      calculationMode: selectedSetupMode ?? "TIME_HOURLY",
+      unitLabel: "",
+      unitSymbol: "",
+      unitsPerHour: "",
+      ratePerUnit: "",
+      currency: "EUR",
+      defaultBreakMinutes: 30
     });
-    setSelectedUnitType(unitType);
-    setUnitDialogOpen(true);
+    setSelectedConfiguration(null);
+    setConfigurationDialogOpen(false);
   }
 
-  function closeUnitDialog() {
-    if (createUnitMutation.isPending || updateUnitMutation.isPending || deleteUnitMutation.isPending || reorderUnitMutation.isPending) return;
-    setUnitDialogOpen(false);
-    setSelectedUnitType(null);
-	    unitForm.reset({ name: "", unitsPerHour: "", symbol: "", ratePerUnit: "", currency: "EUR" });
+  function openConfigurationDialog(mode?: WorkTypeFormulaMode) {
+    const nextMode = mode ?? selectedSetupMode ?? "TIME_HOURLY";
+    configurationForm.clearErrors();
+    configurationForm.reset({
+      name: "",
+      calculationMode: nextMode,
+      unitLabel: "",
+      unitSymbol: "",
+      unitsPerHour: "",
+      ratePerUnit: "",
+      currency: "EUR",
+      defaultBreakMinutes: 30
+    });
+    setSelectedConfiguration(null);
+    setConfigurationDialogOpen(true);
   }
 
-  function moveUnit(unitType: UnitType, direction: -1 | 1) {
-    const currentIndex = orderedUnitTypes.findIndex((unit) => unit.id === unitType.id);
-    const target = orderedUnitTypes[currentIndex + direction];
-    if (!target) return;
-    reorderUnitMutation.mutate({ current: unitType, target });
+  function openConfigurationEditDialog(configuration: WorkTypeFormula) {
+    configurationForm.clearErrors();
+    configurationForm.reset({
+      name: configuration.name,
+      calculationMode: configuration.calculationMode,
+      unitLabel: configuration.unitLabel ?? "",
+      unitSymbol: configuration.unitSymbol ?? "",
+      unitsPerHour: configuration.unitsPerHour ?? "",
+      ratePerUnit: configuration.ratePerUnit ?? "",
+      currency: configuration.currency ?? "EUR",
+      defaultBreakMinutes: configuration.defaultBreakMinutes ?? 30
+    });
+    setSelectedConfiguration(configuration);
+    setConfigurationDialogOpen(true);
+  }
+
+  function closeConfigurationDialog() {
+    if (
+      createConfigurationMutation.isPending ||
+      updateConfigurationMutation.isPending ||
+      deleteConfigurationMutation.isPending
+    ) {
+      return;
+    }
+    resetConfigurationDialog();
   }
 
   const { confirmOrRun, dialog } = useUnsavedChangesGuard({
     isDirty:
+      !suppressUnsavedGuard &&
       form.formState.isDirty &&
       !saveMutation.isPending &&
       !deleteMutation.isPending
@@ -373,37 +491,153 @@ export function WorkTypeEditorPage() {
   const headerTitle = isEditing
     ? workTypeQuery.data?.name ?? t("settings:workTypeEditor.editTitle")
     : t("settings:workTypeEditor.addTitle");
-  const selectedCalculationMethod = form.watch("calculationMethod");
-  const selectedCompensationMethod = form.watch("compensationMethod");
-  const orderedUnitTypes = [...(unitTypesQuery.data ?? [])].sort((left, right) => {
+  const watchedCalculationMethod = form.watch("calculationMethod");
+  const selectedCalculationMethod = !isEditing && initialSetupOption
+    ? initialSetupOption.calculationMethod
+    : watchedCalculationMethod;
+  const compositeEnabled = form.watch("compositeEnabled");
+  const parentOnly = Boolean(compositeEnabled);
+  const childDraftMode = selectedSetupMode ?? workTypeSetupMode(selectedCalculationMethod) ?? "TIME_HOURLY";
+  const editorSectionTitle = workTypeEditorSectionTitle(selectedCalculationMethod, t);
+  const deletionMode = workTypeQuery.data?.deletable ? "delete" : "deactivate";
+  const unitsPerHourField = form.register("unitsPerHour");
+  const ratePerUnitField = form.register("ratePerUnit");
+  const orderedConfigurations = [...(childWorkTypesQuery.data ?? [])]
+    .filter((workType) => workType.parentId === workTypeId)
+    .map(workTypeToConfiguration)
+    .sort((left, right) => {
     return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
   });
 
+  function normalizeFormForCurrentMode() {
+    const calculationMethod = selectedCalculationMethod;
+    form.setValue("calculationMethod", calculationMethod, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+    form.setValue("compensationMethod", calculationMethod === "UNIT_BASED" ? "PER_UNIT" : "HOURLY", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false
+    });
+    form.setValue("color", form.getValues("color") || DEFAULT_WORK_TYPE_COLOR, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false
+    });
+
+    if (calculationMethod === "TIME_BASED") {
+      form.setValue("unitLabel", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("unitSymbol", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("unitsPerHour", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("ratePerUnit", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("currency", "EUR", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("defaultBreakMinutes", form.getValues("defaultBreakMinutes") ?? 0, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false
+      });
+      return;
+    }
+
+    if (calculationMethod === "FIXED_PRICE_BASED") {
+      form.setValue("unitLabel", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("unitSymbol", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("unitsPerHour", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("ratePerUnit", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("currency", "EUR", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("defaultBreakMinutes", undefined, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      return;
+    }
+
+    if (calculationMethod === "UNITS_PER_HOUR_BASED") {
+      form.setValue("ratePerUnit", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("currency", "EUR", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      form.setValue("defaultBreakMinutes", undefined, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      return;
+    }
+
+    form.setValue("unitsPerHour", "", { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+    form.setValue("defaultBreakMinutes", undefined, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+  }
+
+  if (!isEditing && !selectedSetupMode) {
+    return (
+      <WorkTypeEditorShell
+          title={t("settings:workTypeEditor.chooseModeTitle")}
+          backLabel={t("common:actions.back")}
+          onBack={() => confirmOrRun(safeBack)}
+      >
+          <div className="grid grid-cols-2 gap-3">
+            {setupModeOptions(t).map((option) => (
+              <button
+                key={option.mode}
+                type="button"
+                className="min-h-[9.4rem] rounded-[26px] border border-white/[0.08] bg-white/[0.045] px-3.5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-white/24"
+                onClick={() => {
+                  setSelectedSetupMode(option.mode);
+                  form.setValue("calculationMethod", option.calculationMethod, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true
+                  });
+                  form.setValue("compensationMethod", option.compensationMethod, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true
+                  });
+                  form.setValue("name", option.suggestedName, {
+                    shouldDirty: true,
+                    shouldTouch: false,
+                    shouldValidate: false
+                  });
+                }}
+              >
+                <span className="flex h-full flex-col justify-between gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.07] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  {option.icon}
+                </span>
+                <span className="min-w-0 space-y-2">
+                  <span className="block text-[1rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white">
+                    {option.title}
+                  </span>
+                  <span className="block min-h-8 text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.11em] text-white/34">
+                    {option.formula}
+                  </span>
+                </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        {dialog}
+      </WorkTypeEditorShell>
+    );
+  }
+
   return (
-    <div className="space-y-8 pb-10">
-      <SettingsPageHeader
+    <WorkTypeEditorShell
         title={headerTitle}
-        fallbackHref="/settings/work-types"
+        backLabel={t("common:actions.back")}
         onBack={() => confirmOrRun(safeBack)}
-      />
+    >
       <form
         noValidate
         className="space-y-6"
-        onSubmit={form.handleSubmit(
-          async (values) => {
-            form.clearErrors("root");
-            try {
-              await saveMutation.mutateAsync(values);
-            } catch {
-              // Mutation state renders field and global API errors without leaving the form.
+        onSubmit={(event) => {
+          normalizeFormForCurrentMode();
+          void form.handleSubmit(
+            async (values) => {
+              form.clearErrors("root");
+              try {
+                await saveMutation.mutateAsync(values);
+              } catch {
+                // Mutation state renders field and global API errors without leaving the form.
+              }
+            },
+            () => {
+              form.setError("root", {
+                message: t("settings:workTypeEditor.validation.fixErrors")
+              });
             }
-          },
-          () => {
-            form.setError("root", {
-              message: t("settings:workTypeEditor.validation.fixErrors")
-            });
-          }
-        )}
+          )(event);
+        }}
       >
         {form.formState.errors.root?.message ? (
           <p
@@ -413,10 +647,60 @@ export function WorkTypeEditorPage() {
             {form.formState.errors.root.message}
           </p>
         ) : null}
-        <SettingsSection title={t("settings:workTypeEditor.coreSettings")}>
+        {selectedCalculationMethod === "TIME_BASED" ? (
+          <WorkTypeInfoCard
+            icon={<Clock3 className="h-6 w-6" aria-hidden="true" />}
+            title={t("settings:workTypeEditor.info.timeTitle")}
+            description={t("settings:workTypeEditor.info.timeDescription")}
+            details={[
+              {
+                label: t("settings:workTypeEditor.info.configureLabel"),
+                value: t("settings:workTypeEditor.info.timeConfigureValue")
+              },
+              {
+                label: t("settings:workTypeEditor.info.resultLabel"),
+                value: t("settings:workTypeEditor.info.timeResultValue")
+              }
+            ]}
+          />
+        ) : null}
+        {selectedCalculationMethod === "UNITS_PER_HOUR_BASED" ? (
+          <WorkTypeInfoCard
+            icon={<Ruler className="h-6 w-6" aria-hidden="true" />}
+            title={t("settings:workTypeEditor.info.unitsPerHourTitle")}
+            description={t("settings:workTypeEditor.info.unitsPerHourDescription")}
+            details={[
+              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.unitsPerHourConfigureValue") },
+              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.unitsPerHourResultValue") }
+            ]}
+          />
+        ) : null}
+        {selectedCalculationMethod === "UNIT_BASED" ? (
+          <WorkTypeInfoCard
+            icon={<Coins className="h-6 w-6" aria-hidden="true" />}
+            title={t("settings:workTypeEditor.info.perUnitTitle")}
+            description={t("settings:workTypeEditor.info.perUnitDescription")}
+            details={[
+              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.perUnitConfigureValue") },
+              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.perUnitResultValue") }
+            ]}
+          />
+        ) : null}
+        {selectedCalculationMethod === "FIXED_PRICE_BASED" ? (
+          <WorkTypeInfoCard
+            icon={<Coins className="h-6 w-6" aria-hidden="true" />}
+            title={t("settings:workTypeEditor.info.fixedTitle")}
+            description={t("settings:workTypeEditor.info.fixedDescription")}
+            details={[
+              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.fixedConfigureValue") },
+              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.fixedResultValue") }
+            ]}
+          />
+        ) : null}
+        <SettingsSection title={editorSectionTitle}>
           <div className="space-y-4">
 	            <Input
-	              label={t("settings:workTypeEditor.fields.name")}
+	              label={parentOnly ? t("settings:workTypeEditor.fields.categoryName") : t("settings:workTypeEditor.fields.name")}
               error={form.formState.errors.name?.message}
               {...form.register("name", {
                 onChange: (event) => {
@@ -428,113 +712,14 @@ export function WorkTypeEditorPage() {
                 }
 	              })}
 	            />
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-white/78">
-                {t("settings:workTypeEditor.fields.calculationMethod")}
-              </legend>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { value: "TIME_BASED" as const, label: t("entries:workTypePicker.timeBased") },
-                  { value: "UNIT_BASED" as const, label: t("entries:workTypePicker.unitBased") }
-                ].map((option) => {
-                  const selected = selectedCalculationMethod === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => {
-                        form.setValue("calculationMethod", option.value, {
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true
-                        });
-                        if (option.value === "TIME_BASED") {
-                          form.setValue("compensationMethod", "HOURLY", {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true
-                          });
-                        }
-                      }}
-                      className={[
-                        "min-h-12 rounded-full border px-4 text-sm font-semibold tracking-[-0.03em] transition",
-                        selected
-                          ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
-                          : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
-                      ].join(" ")}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {form.formState.errors.calculationMethod?.message ? (
-                <p className="text-xs text-red-300">
-                  {form.formState.errors.calculationMethod.message}
-                </p>
-              ) : null}
-            </fieldset>
-            {selectedCalculationMethod === "UNIT_BASED" ? (
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-white/78">
-                  {t("settings:workTypeEditor.fields.compensationMethod")}
-                </legend>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    {
-                      value: "HOURLY" as const,
-                      label: t("settings:workTypeEditor.compensation.hourly"),
-                      description: t("settings:workTypeEditor.compensation.hourlyDescription")
-                    },
-                    {
-                      value: "PER_UNIT" as const,
-                      label: t("settings:workTypeEditor.compensation.perUnit"),
-                      description: t("settings:workTypeEditor.compensation.perUnitDescription")
-                    }
-                  ].map((option) => {
-                    const selected = selectedCompensationMethod === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        aria-pressed={selected}
-                        className={[
-                          "rounded-[22px] border px-4 py-3 text-left transition",
-                          selected
-                            ? "border-white bg-white text-black shadow-[0_16px_36px_rgba(255,255,255,0.12)]"
-                            : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
-                        ].join(" ")}
-                        onClick={() => {
-                          form.setValue("compensationMethod", option.value, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true
-                          });
-                        }}
-                      >
-                        <span className="block text-sm font-semibold">{option.label}</span>
-                        <span className="mt-1 block text-xs opacity-70">{option.description}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ) : null}
-	            {isEditing ? (
-	              <ColorPicker
+              <Input
                 label={t("settings:workTypeEditor.fields.color")}
-                value={form.watch("color") ?? DEFAULT_WORK_TYPE_COLOR}
-                onChange={(value) => {
-                  form.setValue("color", value, {
-                    shouldDirty: true,
-                    shouldTouch: true,
-                    shouldValidate: true
-                  });
-                }}
-	              />
-	            ) : null}
-	            {selectedCalculationMethod === "TIME_BASED" ? (
+                type="color"
+                className="h-12 p-2"
+                error={form.formState.errors.color?.message}
+                {...form.register("color")}
+              />
+	            {!parentOnly && selectedCalculationMethod === "TIME_BASED" ? (
 	              <Input
 	                type="number"
 	                inputMode="numeric"
@@ -544,88 +729,168 @@ export function WorkTypeEditorPage() {
 	                {...form.register("defaultBreakMinutes")}
 	              />
 	            ) : null}
+              {!parentOnly && selectedCalculationMethod !== "TIME_BASED" && selectedCalculationMethod !== "FIXED_PRICE_BASED" ? (
+                <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+                  <Input
+                    label={t("settings:workTypeFormulas.fields.unitLabel")}
+                    error={form.formState.errors.unitLabel?.message}
+                    {...form.register("unitLabel")}
+                  />
+                  <Input
+                    label={t("settings:workTypeFormulas.fields.unitSymbol")}
+                    placeholder={t("settings:workTypeFormulas.symbolPlaceholder")}
+                    error={form.formState.errors.unitSymbol?.message}
+                    {...form.register("unitSymbol")}
+                  />
+                </div>
+              ) : null}
+              {!parentOnly && selectedCalculationMethod === "UNITS_PER_HOUR_BASED" ? (
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={t("settings:workTypeFormulas.unitsPerHourPlaceholder")}
+                  label={t("settings:workTypeFormulas.fields.unitsPerHour")}
+                  error={form.formState.errors.unitsPerHour?.message}
+                  {...unitsPerHourField}
+                  onChange={(event) => {
+                    const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
+                    if (event.currentTarget.value !== sanitized) {
+                      event.currentTarget.value = sanitized;
+                    }
+                    void unitsPerHourField.onChange(event);
+                  }}
+                />
+              ) : null}
+              {!parentOnly && selectedCalculationMethod === "UNIT_BASED" ? (
+                <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={t("settings:workTypeFormulas.ratePerUnitPlaceholder")}
+                    label={t("settings:workTypeFormulas.fields.ratePerUnit")}
+                    error={form.formState.errors.ratePerUnit?.message}
+                    {...ratePerUnitField}
+                    onChange={(event) => {
+                      const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
+                      if (event.currentTarget.value !== sanitized) {
+                        event.currentTarget.value = sanitized;
+                      }
+                      void ratePerUnitField.onChange(event);
+                    }}
+                  />
+                  <Input
+                    label={t("settings:workTypeFormulas.fields.currency")}
+                    maxLength={3}
+                    error={form.formState.errors.currency?.message}
+                    {...form.register("currency", {
+                      onChange: (event) => {
+                        const input = event.target as HTMLInputElement;
+                        input.value = input.value.toUpperCase();
+                      }
+                    })}
+                  />
+                </div>
+              ) : null}
+              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-white"
+                  {...form.register("teamworkEnabled")}
+                />
+                <span>
+                  <span className="block font-semibold text-white/78">
+                    {t("settings:workTypeEditor.fields.teamworkEnabled")}
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-white"
+                  aria-label={t("settings:workTypeEditor.fields.compositeEnabled")}
+                  checked={Boolean(compositeEnabled)}
+                  onChange={(event) => {
+                    form.setValue("compositeEnabled", event.currentTarget.checked, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true
+                    });
+                    if (event.currentTarget.checked && draftChildren.length === 0) {
+                      setDraftChildren([createDraftChildWorkType()]);
+                    }
+                  }}
+                />
+                <span>
+                  <span className="block font-semibold text-white/78">
+                    {t("settings:workTypeEditor.fields.compositeEnabled")}
+                  </span>
+                </span>
+              </label>
+              {!isEditing && parentOnly ? (
+                <DraftChildWorkTypes
+                  mode={childDraftMode}
+                  childrenDrafts={draftChildren.length ? draftChildren : [createDraftChildWorkType()]}
+                  onChange={setDraftChildren}
+                  labels={{
+                    add: t("settings:workSetup.addWorkType"),
+                    name: t("settings:workTypeEditor.fields.name"),
+                    unitLabel: t("settings:workTypeFormulas.fields.unitLabel"),
+                    unitSymbol: t("settings:workTypeFormulas.fields.unitSymbol"),
+                    unitsPerHour: t("settings:workTypeFormulas.fields.unitsPerHour"),
+                    ratePerUnit: t("settings:workTypeFormulas.fields.ratePerUnit"),
+                    currency: t("settings:workTypeFormulas.fields.currency"),
+                    defaultBreakMinutes: t("settings:workTypeFormulas.fields.defaultBreakMinutes"),
+                    symbolPlaceholder: t("settings:workTypeFormulas.symbolPlaceholder"),
+                    unitsPerHourPlaceholder: t("settings:workTypeFormulas.unitsPerHourPlaceholder"),
+                    ratePerUnitPlaceholder: t("settings:workTypeFormulas.ratePerUnitPlaceholder")
+                  }}
+                />
+              ) : null}
 	          </div>
         </SettingsSection>
 
-        {isEditing && workTypeQuery.data?.calculationMethod === "UNIT_BASED" ? (
-          <SettingsSection
-            title={t("settings:unitTypes.sectionTitle")}
-          >
+        {isEditing && compositeEnabled ? (
+          <SettingsSection title={t("settings:workTypeFormulas.sectionTitle")}>
             <div className="space-y-4">
-              {orderedUnitTypes.length ? (
+              <p className="text-sm leading-6 text-white/54">
+                {t("settings:workTypeFormulas.sectionDescription")}
+              </p>
+              {orderedConfigurations.length ? (
                 <div className="space-y-3">
-                  {orderedUnitTypes.map((unit, index) => (
-                    <div
-                      key={unit.id}
-                      className="dashboard-glass-card flex w-full items-center gap-3 px-5 py-5 transition hover:bg-white/[0.06]"
+                  {orderedConfigurations.map((configuration) => (
+                    <button
+                      key={configuration.id}
+                      type="button"
+                      onClick={() => openConfigurationEditDialog(configuration)}
+                      className="dashboard-glass-card w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
                     >
-                      <button
-                        type="button"
-                        aria-label={t("settings:unitTypes.editUnit", { name: unit.name })}
-                        onClick={() => openUnitEditDialog(unit)}
-                        className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0 space-y-1.5">
-                          <p className={`text-[1.05rem] font-semibold tracking-[-0.04em] ${unit.active ? "text-white" : "text-white/42"}`}>
-                            {unit.name}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className={`text-[1.05rem] font-semibold tracking-[-0.04em] ${configuration.active ? "text-white" : "text-white/42"}`}>
+                            {configuration.name}
                           </p>
-                          {(workTypeQuery.data?.compensationMethod ?? "HOURLY") === "PER_UNIT" ? (
-                            <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/46">
-                              <Coins className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
-                              <span>
-                                {formatCurrency(String(unit.ratePerUnit ?? 0), unit.currency ?? "EUR")}
-                                {unit.symbol ? `/${unit.symbol}` : ""}
-                              </span>
-                            </p>
-                          ) : (
-                            <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/46">
-                              <Clock3 className="h-3.5 w-3.5 text-white/28" aria-hidden="true" />
-                              <span>{unit.unitsPerHour}</span>
-                            </p>
-                          )}
+                          <p className="mt-1 text-sm text-white/46">
+                            {configurationSummary(configuration, t)}
+                          </p>
                         </div>
-                        {!unit.active ? (
-                          <span className="text-xs uppercase tracking-[0.16em] text-white/28">
-                            {t("settings:status.inactive")}
-                          </span>
-                        ) : null}
-                        </div>
-                      </button>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          aria-label={t("settings:unitTypes.moveUp", { name: unit.name })}
-                          disabled={index === 0 || reorderUnitMutation.isPending}
-                          onClick={() => moveUnit(unit, -1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.035] text-white/52 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-                        >
-                          <ArrowUp className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={t("settings:unitTypes.moveDown", { name: unit.name })}
-                          disabled={index === orderedUnitTypes.length - 1 || reorderUnitMutation.isPending}
-                          onClick={() => moveUnit(unit, 1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.035] text-white/52 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-                        >
-                          <ArrowDown className="h-4 w-4" aria-hidden="true" />
-                        </button>
+                        <span className="shrink-0 text-xs uppercase tracking-[0.16em] text-white/28">
+                          {configuration.active ? t("settings:status.active") : t("settings:status.inactive")}
+                        </span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
                 <SettingsEmptyState
-                  title={t("settings:unitTypes.emptyTitle")}
-                  description={t("settings:unitTypes.emptyDescription")}
-                  actionLabel={t("settings:unitTypes.addFirst")}
-                  onAction={openUnitDialog}
+                  title={t("settings:workTypeFormulas.emptyTitle")}
+                  description={t("settings:workTypeFormulas.emptyDescription")}
+                  actionLabel={t("settings:workSetup.addWorkType")}
+                  onAction={() => openConfigurationDialog()}
                 />
               )}
-              {orderedUnitTypes.length ? (
-                <Button type="button" variant="secondary" className="w-full" onClick={openUnitDialog}>
-                  {t("settings:unitTypes.add")}
+              {orderedConfigurations.length ? (
+                <Button type="button" variant="secondary" className="w-full" onClick={() => openConfigurationDialog()}>
+                  {t("settings:workSetup.addWorkType")}
                 </Button>
               ) : null}
             </div>
@@ -634,92 +899,289 @@ export function WorkTypeEditorPage() {
 
         <SettingsFormActions
           submitting={saveMutation.isPending}
-          successMessage={successMessage}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
-          deleteLabel={isEditing ? t("settings:workTypeEditor.deactivate") : undefined}
+          deleteLabel={isEditing ? t(`settings:workTypeEditor.${deletionMode}`) : undefined}
           deleteDisabled={deleteMutation.isPending}
         />
       </form>
 
       <SettingsConfirmDialog
         open={showConfirm}
-        title={t("settings:workTypeEditor.deactivateTitle")}
-        description={t("settings:workTypeEditor.deactivateDescription")}
-        confirmLabel={t("settings:workTypeEditor.deactivateConfirm")}
+        title={t(`settings:workTypeEditor.${deletionMode}Title`)}
+        description={t(`settings:workTypeEditor.${deletionMode}Description`)}
+        confirmLabel={t(`settings:workTypeEditor.${deletionMode}Confirm`)}
         pending={deleteMutation.isPending}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
-      <UnitTypeCreateDialog
-        open={unitDialogOpen}
-        mode={selectedUnitType ? "edit" : "create"}
-        pending={createUnitMutation.isPending || updateUnitMutation.isPending || deleteUnitMutation.isPending}
-        form={unitForm}
-        compensationMethod={workTypeQuery.data?.compensationMethod ?? selectedCompensationMethod ?? "HOURLY"}
-        onClose={closeUnitDialog}
+      <WorkTypeFormulaDialog
+        open={configurationDialogOpen}
+        mode={selectedConfiguration ? "edit" : "create"}
+        pending={
+          createConfigurationMutation.isPending ||
+          updateConfigurationMutation.isPending ||
+          deleteConfigurationMutation.isPending
+        }
+        form={configurationForm}
+        selectedSetupMode={selectedSetupMode ?? (workTypeQuery.data?.compositeEnabled ? null : workTypeSetupMode(workTypeQuery.data?.calculationMethod))}
+        onClose={closeConfigurationDialog}
         onSubmit={(values) =>
-          selectedUnitType
-            ? updateUnitMutation.mutateAsync({ unitType: selectedUnitType, values })
-            : createUnitMutation.mutateAsync(values)
+          selectedConfiguration
+            ? updateConfigurationMutation.mutateAsync({ configuration: selectedConfiguration, values })
+            : createConfigurationMutation.mutateAsync(values)
         }
         onDeactivate={
-          selectedUnitType
-            ? () => deleteUnitMutation.mutateAsync(selectedUnitType)
+          selectedConfiguration
+            ? () => deleteConfigurationMutation.mutateAsync(selectedConfiguration)
             : undefined
         }
       />
       {dialog}
+      {successMessage ? (
+        <div className="glass-panel fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
+            <Check className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
+        </div>
+      ) : null}
+    </WorkTypeEditorShell>
+  );
+}
+
+function WorkTypeEditorShell({
+  title,
+  backLabel,
+  onBack,
+  children
+}: {
+  title: string;
+  backLabel: string;
+  onBack: () => void;
+  children: React.ReactNode;
+}) {
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const updateCompactTitle = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const titleRect = largeTitleRef.current?.getBoundingClientRect();
+        const buttonRect = backButtonRef.current?.getBoundingClientRect();
+
+        if (!titleRect || !buttonRect) {
+          setCompactTitleVisible(false);
+          return;
+        }
+
+        setCompactTitleVisible(titleRect.top <= buttonRect.top);
+      });
+    };
+
+    updateCompactTitle();
+    window.addEventListener("scroll", updateCompactTitle, { passive: true });
+    window.addEventListener("resize", updateCompactTitle);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateCompactTitle);
+      window.removeEventListener("resize", updateCompactTitle);
+    };
+  }, []);
+
+  return (
+    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+        <button
+          ref={backButtonRef}
+          type="button"
+          onClick={onBack}
+          aria-label={backLabel}
+          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+        >
+          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
+          <span>{backLabel}</span>
+        </button>
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
+          }`}
+          aria-hidden="true"
+        >
+          {title}
+        </div>
+      </header>
+
+      <h1
+        ref={largeTitleRef}
+        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
+        }`}
+      >
+        {title}
+      </h1>
+      {children}
     </div>
   );
 }
 
-function ColorPicker({
-  label,
-  value,
-  onChange
+function WorkTypeInfoCard({
+  icon,
+  title,
+  description,
+  details
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  details: Array<{ label: string; value: string }>;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="hairline-text">{label}</p>
-      <div className="grid grid-cols-6 gap-2">
-        {WORK_TYPE_COLORS.map((option) => {
-          const selected = option.toLocaleUpperCase() === value.toLocaleUpperCase();
-          return (
-            <button
-              key={option}
-              type="button"
-              aria-label={`${label} ${option}`}
-              aria-pressed={selected}
-              onClick={() => onChange(option)}
-              className="flex h-10 items-center justify-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-white/24"
-              style={{
-                borderColor: selected ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.1)",
-                backgroundColor: "rgba(255,255,255,0.035)"
-              }}
-            >
-              <span
-                className="h-5 w-5 rounded-full"
-                style={{ backgroundColor: option }}
-                aria-hidden="true"
-              />
-            </button>
-          );
-        })}
+    <section className="dashboard-glass-card overflow-hidden rounded-[24px] px-4 py-4 sm:px-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white/[0.09] text-white/78">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-[1.05rem] font-semibold leading-tight tracking-normal text-white">{title}</h2>
+          <p className="mt-1 text-sm leading-5 tracking-normal text-white/56">{description}</p>
+        </div>
       </div>
+      <dl className="mt-4 divide-y divide-white/[0.07] border-t border-white/[0.07]">
+        {details.map((detail) => (
+          <div key={detail.label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 py-3 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+            <dt className="font-medium text-white/42">{detail.label}</dt>
+            <dd className="leading-5 text-white/76">{detail.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function DraftChildWorkTypes({
+  mode,
+  childrenDrafts,
+  labels,
+  onChange
+}: {
+  mode: WorkTypeFormulaMode;
+  childrenDrafts: DraftChildWorkType[];
+  labels: {
+    add: string;
+    name: string;
+    unitLabel: string;
+    unitSymbol: string;
+    unitsPerHour: string;
+    ratePerUnit: string;
+    currency: string;
+    defaultBreakMinutes: string;
+    symbolPlaceholder: string;
+    unitsPerHourPlaceholder: string;
+    ratePerUnitPlaceholder: string;
+  };
+  onChange: (rows: DraftChildWorkType[]) => void;
+}) {
+  function updateRow(id: string, patch: Partial<DraftChildWorkType>) {
+    onChange(childrenDrafts.map((row) => row.id === id ? { ...row, ...patch } : row));
+  }
+
+  return (
+    <div className="space-y-3">
+      {childrenDrafts.map((row) => (
+        <div key={row.id} className="rounded-[26px] border border-white/[0.08] bg-white/[0.035] p-4">
+          <div className="space-y-3">
+            {mode === "TIME_HOURLY" ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
+                <Input
+                  label={labels.name}
+                  value={row.name}
+                  onChange={(event) => updateRow(row.id, { name: event.currentTarget.value })}
+                />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  label={labels.defaultBreakMinutes}
+                  value={row.defaultBreakMinutes}
+                  onChange={(event) => updateRow(row.id, { defaultBreakMinutes: event.currentTarget.value })}
+                />
+              </div>
+            ) : (
+              <Input
+                label={labels.name}
+                value={row.name}
+                onChange={(event) => updateRow(row.id, { name: event.currentTarget.value })}
+              />
+            )}
+            {mode !== "TIME_HOURLY" && mode !== "FIXED_AMOUNT" ? (
+              <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+                <Input
+                  label={labels.unitLabel}
+                  value={row.unitLabel}
+                  onChange={(event) => updateRow(row.id, { unitLabel: event.currentTarget.value })}
+                />
+                <Input
+                  label={labels.unitSymbol}
+                  placeholder={labels.symbolPlaceholder}
+                  value={row.unitSymbol}
+                  onChange={(event) => updateRow(row.id, { unitSymbol: event.currentTarget.value })}
+                />
+              </div>
+            ) : null}
+            {mode === "UNITS_PER_HOUR" ? (
+              <Input
+                type="text"
+                inputMode="decimal"
+                label={labels.unitsPerHour}
+                placeholder={labels.unitsPerHourPlaceholder}
+                value={row.unitsPerHour}
+                onChange={(event) => updateRow(row.id, { unitsPerHour: sanitizeDecimalInput(event.currentTarget.value) })}
+              />
+            ) : null}
+            {mode === "UNITS_PER_UNIT" ? (
+              <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  label={labels.ratePerUnit}
+                  placeholder={labels.ratePerUnitPlaceholder}
+                  value={row.ratePerUnit}
+                  onChange={(event) => updateRow(row.id, { ratePerUnit: sanitizeDecimalInput(event.currentTarget.value) })}
+                />
+                <Input
+                  label={labels.currency}
+                  maxLength={3}
+                  value={row.currency}
+                  onChange={(event) => updateRow(row.id, { currency: event.currentTarget.value.toUpperCase() })}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        onClick={() => onChange([...childrenDrafts, createDraftChildWorkType()])}
+      >
+        {labels.add}
+      </Button>
     </div>
   );
 }
 
-function UnitTypeCreateDialog({
+function WorkTypeFormulaDialog({
   open,
   mode,
   pending,
   form,
-  compensationMethod,
+  selectedSetupMode,
   onClose,
   onSubmit,
   onDeactivate
@@ -727,13 +1189,14 @@ function UnitTypeCreateDialog({
   open: boolean;
   mode: "create" | "edit";
   pending: boolean;
-	  form: ReturnType<typeof useForm<UnitDialogInput, undefined, UnitDialogValues>>;
-	  compensationMethod: "HOURLY" | "PER_UNIT";
-	  onClose: () => void;
-  onSubmit: (values: UnitDialogValues) => Promise<unknown>;
+  form: ReturnType<typeof useForm<ConfigurationDialogInput, undefined, ConfigurationDialogValues>>;
+  selectedSetupMode: WorkTypeFormulaMode | null;
+  onClose: () => void;
+  onSubmit: (values: ConfigurationDialogValues) => Promise<unknown>;
   onDeactivate?: () => Promise<unknown>;
 }) {
   const { t } = useTranslation(["settings", "common"]);
+  const modeField = form.watch("calculationMode");
   const unitsPerHourField = form.register("unitsPerHour");
   const ratePerUnitField = form.register("ratePerUnit");
 
@@ -741,12 +1204,16 @@ function UnitTypeCreateDialog({
     return null;
   }
 
+  const availableModes = selectedSetupMode
+    ? [selectedSetupMode]
+    : ["TIME_HOURLY", "UNITS_PER_HOUR", "UNITS_PER_UNIT", "FIXED_AMOUNT"] as const;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="unit-type-dialog-title"
+      aria-labelledby="work-type-configuration-dialog-title"
     >
       <button
         type="button"
@@ -768,13 +1235,13 @@ function UnitTypeCreateDialog({
             }
           },
           () => {
-            form.setError("root", { message: t("settings:unitTypes.validation.fixErrors") });
+            form.setError("root", { message: t("settings:workTypeFormulas.validation.fixErrors") });
           }
         )}
       >
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 id="unit-type-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
-            {mode === "edit" ? t("settings:unitTypes.editTitle") : t("settings:unitTypes.addTitle")}
+          <h2 id="work-type-configuration-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
+            {mode === "edit" ? t("settings:workTypeFormulas.editTitle") : t("settings:workTypeFormulas.addTitle")}
           </h2>
           <button
             type="button"
@@ -796,24 +1263,80 @@ function UnitTypeCreateDialog({
             </p>
           ) : null}
           <Input
-            label={t("settings:unitTypes.fields.name")}
+            label={t("settings:workTypeFormulas.fields.name")}
             error={form.formState.errors.name?.message}
             {...form.register("name")}
           />
-          <Input
-            label={t("settings:unitTypes.fields.symbol")}
-            placeholder={t("settings:unitTypes.symbolPlaceholder")}
-            error={form.formState.errors.symbol?.message}
-            {...form.register("symbol")}
-          />
-          {compensationMethod === "PER_UNIT" ? (
+          {availableModes.length > 1 ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-white/78">
+                {t("settings:workTypeFormulas.fields.calculationMode")}
+              </legend>
+              <div className="grid gap-2">
+                {availableModes.map((option) => {
+                  const meta = configurationModeMeta(option, t);
+                  const selected = modeField === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={selected}
+                      disabled={mode === "edit"}
+                      onClick={() => form.setValue("calculationMode", option, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+                      className={[
+                        "rounded-[20px] border px-4 py-3 text-left text-sm transition disabled:opacity-60",
+                        selected
+                          ? "border-white bg-white text-black"
+                          : "border-white/[0.1] bg-white/[0.045] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                      ].join(" ")}
+                    >
+                      <span className="block font-semibold">{meta.label}</span>
+                      <span className="mt-1 block opacity-70">{meta.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : null}
+          {modeField !== "TIME_HOURLY" && modeField !== "FIXED_AMOUNT" ? (
+            <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
+              <Input
+                label={t("settings:workTypeFormulas.fields.unitLabel")}
+                error={form.formState.errors.unitLabel?.message}
+                {...form.register("unitLabel")}
+              />
+              <Input
+                label={t("settings:workTypeFormulas.fields.unitSymbol")}
+                placeholder={t("settings:workTypeFormulas.symbolPlaceholder")}
+                error={form.formState.errors.unitSymbol?.message}
+                {...form.register("unitSymbol")}
+              />
+            </div>
+          ) : null}
+          {modeField === "UNITS_PER_HOUR" ? (
+            <Input
+              type="text"
+              inputMode="decimal"
+              placeholder={t("settings:workTypeFormulas.unitsPerHourPlaceholder")}
+              label={t("settings:workTypeFormulas.fields.unitsPerHour")}
+              error={form.formState.errors.unitsPerHour?.message}
+              {...unitsPerHourField}
+              onChange={(event) => {
+                const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
+                if (event.currentTarget.value !== sanitized) {
+                  event.currentTarget.value = sanitized;
+                }
+                void unitsPerHourField.onChange(event);
+              }}
+            />
+          ) : null}
+          {modeField === "UNITS_PER_UNIT" ? (
             <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
               <Input
                 type="text"
                 inputMode="decimal"
-                placeholder={t("settings:unitTypes.ratePerUnitPlaceholder")}
-                label={t("settings:unitTypes.fields.ratePerUnit")}
-                autoComplete="off"
+                placeholder={t("settings:workTypeFormulas.ratePerUnitPlaceholder")}
+                label={t("settings:workTypeFormulas.fields.ratePerUnit")}
                 error={form.formState.errors.ratePerUnit?.message}
                 {...ratePerUnitField}
                 onChange={(event) => {
@@ -825,7 +1348,7 @@ function UnitTypeCreateDialog({
                 }}
               />
               <Input
-                label={t("settings:unitTypes.fields.currency")}
+                label={t("settings:workTypeFormulas.fields.currency")}
                 maxLength={3}
                 error={form.formState.errors.currency?.message}
                 {...form.register("currency", {
@@ -837,32 +1360,16 @@ function UnitTypeCreateDialog({
               />
             </div>
           ) : null}
-          <Input
-            type="text"
-            inputMode="decimal"
-            placeholder={t("settings:unitTypes.unitsPerHourPlaceholder")}
-            label={t("settings:unitTypes.fields.unitsPerHour")}
-            autoComplete="off"
-            error={form.formState.errors.unitsPerHour?.message}
-            {...unitsPerHourField}
-            onFocus={(event) => {
-              if (event.currentTarget.value === "NaN") {
-                event.currentTarget.value = "";
-                form.setValue("unitsPerHour", "", {
-                  shouldDirty: false,
-                  shouldTouch: false,
-                  shouldValidate: false
-                });
-              }
-            }}
-            onChange={(event) => {
-              const sanitized = event.currentTarget.value.replace(/[^\d.,]/g, "");
-              if (event.currentTarget.value !== sanitized) {
-                event.currentTarget.value = sanitized;
-              }
-              void unitsPerHourField.onChange(event);
-            }}
-          />
+          {modeField === "TIME_HOURLY" ? (
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              label={t("settings:workTypeFormulas.fields.defaultBreakMinutes")}
+              error={form.formState.errors.defaultBreakMinutes?.message}
+              {...form.register("defaultBreakMinutes")}
+            />
+          ) : null}
           <div className="grid gap-3">
             {onDeactivate ? (
               <Button
@@ -874,7 +1381,7 @@ function UnitTypeCreateDialog({
                   void onDeactivate();
                 }}
               >
-                {t("settings:unitTypes.deactivate")}
+                {t("settings:workTypeFormulas.deactivate")}
               </Button>
             ) : null}
             <Button type="submit" className="w-full" disabled={pending}>
@@ -899,53 +1406,287 @@ function normalizeOptionalNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function buildUnitTypePayload(
-  values: UnitDialogValues,
-  options: { displayOrder?: number | null; active: boolean }
-) {
-  const payload: {
-    name: string;
-    unitsPerHour?: number | null;
-    symbol?: string | null;
-    ratePerUnit?: number | null;
-    currency?: string | null;
-    displayOrder?: number | null;
-    active: boolean;
-  } = {
-    name: values.name.trim(),
-    active: options.active
-  };
-  const unitsPerHour = normalizeOptionalNumber(values.unitsPerHour);
-  if (unitsPerHour !== null) payload.unitsPerHour = unitsPerHour;
-  const symbol = values.symbol?.trim();
-  if (symbol) payload.symbol = symbol;
-  const ratePerUnit = normalizeOptionalNumber(values.ratePerUnit);
-  if (ratePerUnit !== null) payload.ratePerUnit = ratePerUnit;
-  const currency = values.currency?.trim();
-  if (currency && ratePerUnit !== null) payload.currency = currency;
-  if (options.displayOrder != null) payload.displayOrder = options.displayOrder;
-  return payload;
+function sanitizeDecimalInput(value: string) {
+  return value.replace(/[^\d.,]/g, "");
 }
 
-function buildExistingUnitTypePayload(unitType: UnitType, options: { displayOrder: number }) {
-  const payload: {
-    name: string;
-    unitsPerHour?: number | null;
-    symbol?: string | null;
-    ratePerUnit?: number | null;
-    currency?: string | null;
-    displayOrder: number;
-    active: boolean;
-  } = {
-    name: unitType.name,
-    displayOrder: options.displayOrder,
-    active: unitType.active
+function workTypeEditorSectionTitle(
+  calculationMethod: FormValues["calculationMethod"],
+  t: ReturnType<typeof useTranslation<["settings", "common", "records", "errors"]>>["t"]
+) {
+  if (calculationMethod === "TIME_BASED") {
+    return t("settings:workTypeEditor.modes.timeTitle");
+  }
+  if (calculationMethod === "UNITS_PER_HOUR_BASED") {
+    return t("settings:workTypeEditor.modes.unitsPerHourTitle");
+  }
+  if (calculationMethod === "UNIT_BASED") {
+    return t("settings:workTypeEditor.modes.perUnitTitle");
+  }
+  return t("settings:workTypeEditor.modes.fixedTitle");
+}
+
+function createDraftChildWorkType(): DraftChildWorkType {
+  return {
+    id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+    name: "",
+    unitLabel: "",
+    unitSymbol: "",
+    unitsPerHour: "",
+    ratePerUnit: "",
+    currency: "EUR",
+    defaultBreakMinutes: "30"
   };
-  const unitsPerHour = normalizeOptionalNumber(unitType.unitsPerHour);
-  if (unitsPerHour !== null) payload.unitsPerHour = unitsPerHour;
-  if (unitType.symbol) payload.symbol = unitType.symbol;
-  const ratePerUnit = normalizeOptionalNumber(unitType.ratePerUnit);
-  if (ratePerUnit !== null) payload.ratePerUnit = ratePerUnit;
-  if (unitType.currency && ratePerUnit !== null) payload.currency = unitType.currency;
-  return payload;
+}
+
+function hasDraftChildContent(child: DraftChildWorkType) {
+  return [
+    child.name,
+    child.unitLabel,
+    child.unitSymbol,
+    child.unitsPerHour,
+    child.ratePerUnit
+  ].some((value) => value.trim().length > 0);
+}
+
+function workTypeSetupMode(calculationMethod?: FormValues["calculationMethod"] | null): WorkTypeFormulaMode | null {
+  if (calculationMethod === "TIME_BASED") return "TIME_HOURLY";
+  if (calculationMethod === "UNITS_PER_HOUR_BASED") return "UNITS_PER_HOUR";
+  if (calculationMethod === "UNIT_BASED") return "UNITS_PER_UNIT";
+  if (calculationMethod === "FIXED_PRICE_BASED") return "FIXED_AMOUNT";
+  return null;
+}
+
+function parseSetupMode(value: string | null): WorkTypeFormulaMode | null {
+  if (
+    value === "TIME_HOURLY" ||
+    value === "UNITS_PER_HOUR" ||
+    value === "UNITS_PER_UNIT" ||
+    value === "FIXED_AMOUNT"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function buildDraftChildWorkTypePayload(
+  child: DraftChildWorkType,
+  mode: WorkTypeFormulaMode,
+  options: { parentId: string; color: string; teamworkEnabled: boolean; displayOrder: number; active: boolean }
+) {
+  return buildChildWorkTypePayload(
+    {
+      name: child.name,
+      calculationMode: mode,
+      unitLabel: child.unitLabel,
+      unitSymbol: child.unitSymbol,
+      unitsPerHour: child.unitsPerHour ? Number(child.unitsPerHour.replace(",", ".")) : undefined,
+      ratePerUnit: child.ratePerUnit ? Number(child.ratePerUnit.replace(",", ".")) : undefined,
+      currency: child.currency,
+      defaultBreakMinutes: child.defaultBreakMinutes ? Number(child.defaultBreakMinutes) : 0
+    },
+    options
+  );
+}
+
+function workTypeToConfiguration(workType: WorkType): WorkTypeFormula {
+  return {
+    id: workType.id,
+    workTypeId: workType.parentId ?? "",
+    name: workType.name,
+    calculationMode: workTypeSetupMode(workType.calculationMethod) ?? "TIME_HOURLY",
+    unitLabel: workType.unitLabel ?? null,
+    unitSymbol: workType.unitSymbol ?? null,
+    unitsPerHour: workType.unitsPerHour ?? null,
+    ratePerUnit: workType.ratePerUnit ?? null,
+    currency: workType.currency ?? null,
+    defaultBreakMinutes: workType.defaultBreakMinutes ?? null,
+    active: workType.active,
+    displayOrder: workType.displayOrder,
+    createdAt: "",
+    updatedAt: ""
+  };
+}
+
+function buildWorkTypePayload(
+  values: FormValues,
+  options: { color: string; displayOrder?: number; active: boolean }
+) {
+  const unitLabel = values.unitLabel?.trim();
+  const unitSymbol = values.unitSymbol?.trim();
+  const currency = values.currency?.trim();
+  const parentOnly = Boolean(values.compositeEnabled);
+  return {
+    name: values.name,
+    calculationMethod: values.calculationMethod,
+    compensationMethod: values.calculationMethod === "UNIT_BASED" ? "PER_UNIT" as const : "HOURLY" as const,
+    unitLabel:
+      parentOnly || values.calculationMethod === "TIME_BASED" || values.calculationMethod === "FIXED_PRICE_BASED"
+        ? null
+        : unitLabel || null,
+    unitSymbol:
+      parentOnly || values.calculationMethod === "TIME_BASED" || values.calculationMethod === "FIXED_PRICE_BASED"
+        ? null
+        : unitSymbol || null,
+    unitsPerHour:
+      !parentOnly && values.calculationMethod === "UNITS_PER_HOUR_BASED"
+        ? normalizeOptionalNumber(values.unitsPerHour)
+        : null,
+    ratePerUnit:
+      !parentOnly && values.calculationMethod === "UNIT_BASED"
+        ? normalizeOptionalNumber(values.ratePerUnit)
+        : null,
+    currency:
+      !parentOnly && values.calculationMethod === "UNIT_BASED" && currency
+        ? currency.toUpperCase()
+        : null,
+    teamworkEnabled: values.teamworkEnabled ?? false,
+    compositeEnabled: values.compositeEnabled ?? false,
+    color: options.color,
+    icon: null,
+    defaultBreakMinutes:
+      !parentOnly && values.calculationMethod === "TIME_BASED"
+        ? values.defaultBreakMinutes ?? 0
+        : null,
+    displayOrder: options.displayOrder ?? null,
+    active: options.active
+  };
+}
+
+function buildChildWorkTypePayload(
+  values: ConfigurationDialogValues,
+  options: { parentId: string; color: string; teamworkEnabled?: boolean; displayOrder?: number | null; active: boolean }
+) {
+  const calculationMethod =
+    values.calculationMode === "TIME_HOURLY"
+      ? "TIME_BASED"
+      : values.calculationMode === "UNITS_PER_HOUR"
+        ? "UNITS_PER_HOUR_BASED"
+        : values.calculationMode === "UNITS_PER_UNIT"
+          ? "UNIT_BASED"
+          : "FIXED_PRICE_BASED";
+  return {
+    ...buildWorkTypePayload(
+    {
+      name: values.name,
+      calculationMethod,
+      compensationMethod: calculationMethod === "UNIT_BASED" ? "PER_UNIT" : "HOURLY",
+      unitLabel: values.unitLabel ?? "",
+      unitSymbol: values.unitSymbol ?? "",
+      unitsPerHour: values.unitsPerHour,
+      ratePerUnit: values.ratePerUnit,
+      currency: values.currency ?? "EUR",
+      teamworkEnabled: options.teamworkEnabled ?? false,
+      compositeEnabled: false,
+      color: options.color,
+      defaultBreakMinutes: values.defaultBreakMinutes,
+      active: options.active
+    },
+    {
+      color: options.color,
+      displayOrder: options.displayOrder ?? undefined,
+      active: options.active
+    }
+    ),
+    parentId: options.parentId
+  };
+}
+
+function setupModeOptions(t: ReturnType<typeof useTranslation<["settings", "common", "records", "errors"]>>["t"]) {
+  return [
+    {
+      mode: "TIME_HOURLY" as const,
+      calculationMethod: "TIME_BASED" as const,
+      compensationMethod: "HOURLY" as const,
+      title: t("settings:workTypeEditor.modes.timeTitle"),
+      description: t("settings:workTypeEditor.modes.timeDescription"),
+      formula: t("settings:workTypeEditor.modes.timeFormula"),
+      suggestedName: t("settings:workTypeEditor.modes.timeSuggestedName"),
+      icon: <Clock3 className="h-5 w-5" aria-hidden="true" />
+    },
+    {
+      mode: "UNITS_PER_HOUR" as const,
+      calculationMethod: "UNITS_PER_HOUR_BASED" as const,
+      compensationMethod: "HOURLY" as const,
+      title: t("settings:workTypeEditor.modes.unitsPerHourTitle"),
+      description: t("settings:workTypeEditor.modes.unitsPerHourDescription"),
+      formula: t("settings:workTypeEditor.modes.unitsPerHourFormula"),
+      suggestedName: t("settings:workTypeEditor.modes.unitsPerHourSuggestedName"),
+      icon: <Ruler className="h-5 w-5" aria-hidden="true" />
+    },
+    {
+      mode: "UNITS_PER_UNIT" as const,
+      calculationMethod: "UNIT_BASED" as const,
+      compensationMethod: "PER_UNIT" as const,
+      title: t("settings:workTypeEditor.modes.perUnitTitle"),
+      description: t("settings:workTypeEditor.modes.perUnitDescription"),
+      formula: t("settings:workTypeEditor.modes.perUnitFormula"),
+      suggestedName: t("settings:workTypeEditor.modes.perUnitSuggestedName"),
+      icon: <Coins className="h-5 w-5" aria-hidden="true" />
+    },
+    {
+      mode: "FIXED_AMOUNT" as const,
+      calculationMethod: "FIXED_PRICE_BASED" as const,
+      compensationMethod: "HOURLY" as const,
+      title: t("settings:workTypeEditor.modes.fixedTitle"),
+      description: t("settings:workTypeEditor.modes.fixedDescription"),
+      formula: t("settings:workTypeEditor.modes.fixedFormula"),
+      suggestedName: t("settings:workTypeEditor.modes.fixedSuggestedName"),
+      icon: <Coins className="h-5 w-5" aria-hidden="true" />
+    }
+  ];
+}
+
+function configurationModeMeta(
+  mode: WorkTypeFormulaMode,
+  t: ReturnType<typeof useTranslation<["settings", "common"]>>["t"]
+) {
+  if (mode === "TIME_HOURLY") {
+    return {
+      label: t("settings:workTypeFormulas.modes.timeTitle"),
+      description: t("settings:workTypeFormulas.modes.timeDescription")
+    };
+  }
+  if (mode === "UNITS_PER_HOUR") {
+    return {
+      label: t("settings:workTypeFormulas.modes.unitsPerHourTitle"),
+      description: t("settings:workTypeFormulas.modes.unitsPerHourDescription")
+    };
+  }
+  if (mode === "FIXED_AMOUNT") {
+    return {
+      label: t("settings:workTypeFormulas.modes.fixedTitle"),
+      description: t("settings:workTypeFormulas.modes.fixedDescription")
+    };
+  }
+  return {
+    label: t("settings:workTypeFormulas.modes.perUnitTitle"),
+    description: t("settings:workTypeFormulas.modes.perUnitDescription")
+  };
+}
+
+function configurationSummary(
+  configuration: WorkTypeFormula,
+  t: ReturnType<typeof useTranslation<["settings", "common", "records", "errors"]>>["t"]
+) {
+  const unit = configuration.unitSymbol ?? configuration.unitLabel ?? configuration.name;
+  if (configuration.calculationMode === "TIME_HOURLY") {
+    return t("settings:workTypeFormulas.summary.time", {
+      breakMinutes: configuration.defaultBreakMinutes ?? 0
+    });
+  }
+  if (configuration.calculationMode === "UNITS_PER_HOUR") {
+    return t("settings:workTypeFormulas.summary.unitsPerHour", {
+      unit,
+      unitsPerHour: configuration.unitsPerHour ?? "-"
+    });
+  }
+  if (configuration.calculationMode === "FIXED_AMOUNT") {
+    return t("settings:workTypeFormulas.summary.fixed");
+  }
+  return t("settings:workTypeFormulas.summary.perUnit", {
+    unit,
+    rate: configuration.ratePerUnit ?? "-",
+    currency: configuration.currency ?? ""
+  });
 }

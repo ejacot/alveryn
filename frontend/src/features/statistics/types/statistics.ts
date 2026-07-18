@@ -1,4 +1,4 @@
-import type { CalculationMethod } from "../../../types/work-entry";
+import type { CalculationMethod } from "../../../types/work-calculation";
 
 export type StatisticsPeriod = "today" | "week" | "month" | "year" | "custom";
 export type StatisticsMetric =
@@ -185,8 +185,8 @@ export type StatisticsForecast = {
   forecasts: StatisticsForecastItem[];
 };
 
-export type StatisticsProductivityUnitType = {
-  unitTypeId: string;
+export type StatisticsProductivityWorkFormula = {
+  workFormulaId: string;
   name: string;
   workTypeName: string;
   totalQuantity: string;
@@ -219,7 +219,7 @@ export type StatisticsProductivity = {
   available: boolean;
   partial: boolean;
   incompleteItems: number;
-  unitTypes: StatisticsProductivityUnitType[];
+  workFormulas: StatisticsProductivityWorkFormula[];
   grouping: ProductivityGrouping;
   granularity: StatisticsGranularity;
   metric: ProductivityMetric;

@@ -284,8 +284,8 @@ export function StatisticsProductivitySection({
         <p className="mt-1 text-xs text-white/40">{t("statistics.productivity.actualUnavailable")}</p>
       </div>
       <div className="space-y-2">
-        {data.unitTypes.map((item) => (
-          <div key={item.unitTypeId} className="rounded-2xl bg-black/20 px-4 py-3">
+        {data.workFormulas.map((item) => (
+          <div key={item.workFormulaId} className="rounded-2xl bg-black/20 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="font-medium text-white">{item.name}</p>

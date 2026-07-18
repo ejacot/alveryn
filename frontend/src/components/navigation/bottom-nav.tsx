@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import {
   CalendarDays,
   ChartColumnIncreasing,
-  CircleUserRound,
   House,
-  Plus
+  Plus,
+  Settings
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
@@ -27,13 +27,13 @@ export function BottomNav({ addEntryDate }: BottomNavProps) {
   const { t } = useTranslation("common");
   const direction = useScrollDirection();
   const compact = direction === "down";
-  const addEntryPath = addEntryDate ? `/entries/new?date=${addEntryDate}` : "/entries/new";
+  const addEntryPath = addEntryDate ? `/records/new?date=${addEntryDate}` : "/records/new";
   const items: NavItem[] = [
     { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
     { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
     { to: addEntryPath, icon: Plus, label: t("nav.addEntry"), prominent: true },
     { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },
-    { to: "/profile", icon: CircleUserRound, label: t("nav.settings") }
+    { to: "/profile", icon: Settings, label: t("nav.settings") }
   ];
 
   return (

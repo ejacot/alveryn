@@ -34,14 +34,14 @@ public class HourlyRatePeriodService {
       throw new ConflictException("Hourly rate periods overlap");
     var user =
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
-    return mapper.toResponse(
-        repository.save(
-            new HourlyRatePeriod(
-                user,
-                request.hourlyRate(),
-                InputSanitizer.normalizeCurrency(request.currency()),
-                request.validFrom(),
-                request.validTo())));
+    HourlyRatePeriod period =
+        new HourlyRatePeriod(
+            user,
+            request.hourlyRate(),
+            InputSanitizer.normalizeCurrency(request.currency()),
+            request.validFrom(),
+            request.validTo());
+    return mapper.toResponse(repository.save(period));
   }
 
   @Transactional

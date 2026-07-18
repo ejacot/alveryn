@@ -1,5 +1,7 @@
 package com.alveryn.api.user.dto;
 
+import com.alveryn.api.address.dto.AddressResponse;
+import com.alveryn.api.user.entity.EmploymentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -18,6 +20,9 @@ public record UserProfileResponse(
     String street,
     String houseNumber,
     String apartment,
+    UUID addressId,
+    AddressResponse address,
     String avatarUrl,
     LocalDate employmentStartDate,
-    LocalDate employmentEndDate) {}
+    LocalDate employmentEndDate,
+    EmploymentType employmentType) {}

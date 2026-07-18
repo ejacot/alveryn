@@ -8,6 +8,7 @@ import com.alveryn.api.auth.exception.EmailNotVerifiedException;
 import com.alveryn.api.auth.exception.ExpiredCodeException;
 import com.alveryn.api.auth.exception.UnauthorizedException;
 import com.alveryn.api.auth.security.JwtService;
+import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.auth.util.AuthTokenGenerator;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.ValidationException;
@@ -42,6 +43,7 @@ public class AuthService {
   private final JwtService jwtService;
   private final RefreshTokenService refreshTokenService;
   private final PasswordResetService passwordResetService;
+  private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
 
   @Transactional
@@ -155,6 +157,21 @@ public class AuthService {
     passwordResetService.resetPassword(
         request.email(), request.code(), passwordEncoder.encode(request.newPassword()));
     return new GenericSuccessResponse("Password reset successfully");
+  }
+
+  @Transactional
+  public GenericSuccessResponse changePassword(ChangePasswordRequest request) {
+    UserAccount user = users.findById(authenticatedUserAccessor.requireUserId())
+        .orElseThrow(() -> new AuthenticationFailureException("Invalid current password"));
+    if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+      throw new AuthenticationFailureException("Invalid current password");
+    }
+    if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+      throw new ValidationException("New password must be different from the current password");
+    }
+    user.updatePasswordHash(passwordEncoder.encode(request.newPassword()));
+    users.save(user);
+    return new GenericSuccessResponse("Password changed successfully");
   }
 
   @Transactional

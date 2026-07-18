@@ -22,6 +22,8 @@ export function PreviewDashboardPage() {
     key: `preview-${index}`,
     label: previewWeeklyLabels[index] ?? String(index + 1),
     value: index === 2 ? "6h 30m" : "4h 00m",
+    minutes: index === 2 ? 390 : 240,
+    amount: index === 2 ? 180 : 120,
     markerLabel: previewWeeklyMarkers[index] ?? null,
     status: previewWeeklyStates[index] ?? "idle",
     percentage,

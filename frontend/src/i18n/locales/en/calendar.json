@@ -1,4 +1,12 @@
 {
+  "monthlyCharts": {
+    "flow": "Flow",
+    "rhythm": "Rhythm",
+    "dailyAverage": "Daily average",
+    "fromLastMonth": "from last month"
+  },
+  "jobDays_one": "{{count}} day",
+  "jobDays_other": "{{count}} days",
   "title": "Calendar",
   "monthlySummaryLabel": "Monthly summary",
   "unavailable": "Calendar is unavailable.",
@@ -29,6 +37,12 @@
     "days": "days"
   },
   "emptyDay": "No activity.",
+  "job": "Job",
+  "jobLines_one": "{{count}} work line",
+  "jobLines_other": "{{count}} work lines",
+  "jobMixed": "{{duration}} plus direct per-unit pay",
+  "jobDirectOnly": "Direct per-unit paid job",
+  "mixedCurrencies": "Mixed",
   "equivalentWorked": "Equivalent worked {{duration}}",
   "directUnitPay": "Direct per-unit payment",
   "addEntryForDay": "Add entry for this day"

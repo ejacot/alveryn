@@ -63,7 +63,8 @@
     },
     "methods": {
       "time": "Time-based work",
-      "unit": "Unit-based work"
+      "unit": "Unit-based work",
+      "fixed": "Fixed price work"
     },
     "metrics": {
       "gross": "Gross",
@@ -88,7 +89,8 @@
       "hours": "Hours",
       "workedDays": "Worked Days",
       "entries": "Entries",
-      "averagePerDay": "Average per Day"
+      "averagePerDay": "Average per Day",
+      "directUnitPayNote": "Direct per-unit earnings are included in gross totals. No worked hours were added because this work was not tracked by time."
     },
     "confidence": {
       "LOW": "Low confidence",

@@ -1,123 +1,67 @@
 {
   "loading": "Se încarcă Alveryn...",
-  "nav": {
-    "features": "Funcții",
-    "how": "Cum funcționează",
-    "login": "Intră în cont",
-    "register": "Începe urmărirea"
-  },
+  "nav": { "features": "Funcții", "how": "Cum funcționează", "login": "Intră în cont", "register": "Începe tracking-ul" },
   "hero": {
-    "eyebrow": "Claritate pentru munca reală, nu doar pontaj",
+    "eyebrow": "O singură evidență clară pentru orice tip de muncă",
     "title": "Știi câte ore ai lucrat. Înțelegi cât ai câștigat.",
-    "subtitle": "Alveryn transformă fiecare tură, task și unitate finalizată într-o imagine clară a timpului, venitului și progresului tău.",
-    "primaryCta": "Începe urmărirea",
-    "secondaryCta": "Vezi cum funcționează",
-    "benefits": [
-      "Fără tabele",
-      "Calcule automate",
-      "Construit pentru muncă reală"
-    ]
+    "subtitle": "Alveryn aduce la un loc orele, munca efectuată și veniturile, chiar dacă o zi conține mai multe activități diferite.",
+    "primaryCta": "Începe tracking-ul", "secondaryCta": "Vezi cum funcționează",
+    "benefits": ["Fără tabele", "Calcule automate", "Creat pentru muncă reală"]
   },
   "problem": {
-    "eyebrow": "Problema",
-    "title": "Ziua de muncă se termină. Întrebările rămân.",
-    "body": "Când munca se schimbă de la o zi la alta, notițele aproximative nu sunt suficiente. Alveryn păstrează răspunsurile utile la îndemână.",
-    "questions": [
-      "Câte ore am lucrat de fapt?",
-      "Cât am câștigat până acum?",
-      "Lucrez mai mult decât luna trecută?"
-    ],
-    "answer": "Alveryn păstrează răspunsurile pregătite — fără notițe, tabele sau calcule la final de lună."
+    "eyebrow": "Claritate după fiecare zi", "title": "Ziua de muncă se termină. Întrebările rămân.",
+    "body": "O zi poate include o tură, unități finalizate și o lucrare cu preț fix. Alveryn le păstrează împreună fără să le transforme într-un total inexact.",
+    "questions": ["Câte ore am lucrat de fapt?", "Ce lucrări am finalizat astăzi?", "Cât am câștigat până acum?"],
+    "answer": "Răspunsurile rămân într-un singur istoric, fără notițe împrăștiate sau calcule la final de lună."
   },
-  "how": {
-    "eyebrow": "Cum funcționează",
-    "title": "Notezi munca. Alveryn se ocupă de numere.",
-    "body": "Adaugi munca exact cum s-a întâmplat. Alveryn calculează timpul, venitul brut estimat, absențele plătite și progresul din datele introduse.",
+  "setup": {
+    "eyebrow": "Configurarea muncii", "title": "Configurezi o singură dată modul în care lucrezi.",
+    "body": "Creezi tipuri de muncă simple sau categorii avansate, apoi fiecare înregistrare folosește regulile potrivite jobului tău.",
     "steps": [
-      {
-        "title": "Selectezi tipul muncii",
-        "description": "Alegi o tură pe ore, lucru pe unități sau alt tip de muncă configurat."
-      },
-      {
-        "title": "Introduci orele sau unitățile",
-        "description": "Adaugi început, final, pauză, spor procentual sau unități finalizate."
-      },
-      {
-        "title": "Vezi rezultatul imediat",
-        "description": "Aplicația calculează timpul lucrat, venitul brut estimat și progresul față de ritmul tău."
-      }
-    ]
-  },
-  "analytics": {
-    "eyebrow": "Analiză",
-    "title": "Vezi mai mult decât totaluri. Vezi tiparul muncii tale.",
-    "body": "Statisticile transformă intrările zilnice în trenduri, comparații, forecast și highlights utile.",
-    "items": [
-      {
-        "title": "Trenduri",
-        "description": "Urmărești timpul lucrat, venitul brut, intrările și zilele lucrate pe perioada aleasă."
-      },
-      {
-        "title": "Comparații între perioade",
-        "description": "Compari luna curentă cu luna trecută sau alegi perioade personalizate."
-      },
-      {
-        "title": "Forecast și highlights",
-        "description": "Estimezi finalul perioadei active și vezi cele mai bune zile, ture lungi și serii."
-      },
-      {
-        "title": "Productivitate și heatmap",
-        "description": "Vezi volumul muncii pe unități, ritmul configurat și zilele cu activitate puternică."
-      }
+      { "title": "Alegi calculul", "description": "Urmărești timpul, plata directă pe unitate, unități transformate în ore echivalente sau o sumă fixă." },
+      { "title": "Adaugi doar datele relevante", "description": "Configurezi pauza, simbolul, tariful, ritmul, lucrul în echipă și copiii numai unde sunt necesare." },
+      { "title": "Refolosești configurarea zilnic", "description": "Tipurile configurate sunt gata când creezi o nouă înregistrare de muncă." }
     ]
   },
   "workTypes": {
-    "eyebrow": "Urmărire flexibilă",
-    "title": "Făcut pentru modul în care lucrezi cu adevărat.",
-    "body": "Alveryn suportă muncă pe ore, muncă pe unități și zile mixte, ca istoricul să reflecte realitatea.",
     "items": [
-      {
-        "title": "Muncă pe ore",
-        "description": "Urmărești ture, pauze, lucru peste miezul nopții și sporuri procentuale.",
-        "examples": "Exemple: ture normale, timp administrativ, suport de noapte."
-      },
-      {
-        "title": "Muncă pe unități",
-        "description": "Urmărești cantități care se transformă în timp de lucru echivalent.",
-        "examples": "Exemple: livrări, camere, comenzi, pachete sau task-uri finalizate."
-      },
-      {
-        "title": "Muncă mixtă",
-        "description": "Combini mai multe tipuri de muncă în aceeași zi și păstrezi totalul clar.",
-        "examples": "Exemple: o tură, apoi admin seara, plus unități finalizate."
-      }
+      { "title": "Bazat pe timp", "description": "Înregistrezi intervalul sau durata și calculezi venitul cu tariful orar valabil.", "examples": "Ture, curățenie, verificări sau administrare." },
+      { "title": "Unități pe oră", "description": "Transformi cantitatea efectuată în ore echivalente folosind ritmul configurat.", "examples": "Camere, livrări, colete sau comenzi." },
+      { "title": "Plată directă pe unitate", "description": "Calculezi venitul direct din cantitate înmulțită cu tariful pe unitate.", "examples": "Metri pătrați, piese, task-uri sau kilometri." },
+      { "title": "Preț fix", "description": "Înregistrezi o lucrare al cărei preț convenit este introdus când aceasta este finalizată.", "examples": "O reparație, un montaj sau un serviciu punctual." }
+    ]
+  },
+  "record": {
+    "eyebrow": "O zi, o înregistrare clară", "title": "Combini tot ce ai făcut fără să pierzi detaliile.",
+    "body": "Un Work Record grupează activitățile unui job sau ale unei zile. Fiecare Work Line păstrează propria introducere, propriul calcul și rezultatul istoric.",
+    "steps": [
+      { "title": "Creezi înregistrarea", "description": "Alegi data și adaugi contextul necesar pentru ziua respectivă." },
+      { "title": "Adaugi mai multe activități", "description": "Combini ore, metri pătrați, unități finalizate și lucrări cu preț fix în aceeași înregistrare." },
+      { "title": "Salvezi un istoric corect", "description": "Alveryn păstrează cantitatea, timpul și banii calculați, astfel încât schimbările viitoare să nu rescrie munca veche." }
+    ]
+  },
+  "analytics": {
+    "eyebrow": "De la înregistrări la claritate", "title": "Vezi mai mult decât totaluri. Vezi tiparul muncii tale.",
+    "body": "Pe măsură ce istoricul crește, Alveryn transformă înregistrările zilnice într-o imagine mai clară a timpului, veniturilor și volumului.",
+    "items": [
+      { "title": "Ritm săptămânal", "description": "Vezi fiecare zi raportată la cea mai puternică zi și la media săptămânii afișate." },
+      { "title": "Fluxul veniturilor", "description": "Urmărești venitul zilnic calculat, iar zilele fără activitate nu influențează media zilelor lucrate." },
+      { "title": "Privire de ansamblu", "description": "Verifici totalurile și comparațiile pentru perioada selectată." },
+      { "title": "Tiparul activității", "description": "Observi zilele mai intense și mai ușoare fără să citești fiecare înregistrare." }
     ]
   },
   "calendar": {
-    "eyebrow": "Calendar și absențe",
-    "title": "Toată luna ta de muncă, într-un singur loc.",
-    "body": "Calendarul arată zile lucrate, zile goale și absențe împreună cu totaluri lunare pentru ore, timp plătit și venit brut.",
-    "stats": [
-      "Zile lucrate",
-      "Ore lucrate",
-      "Concediu și medical",
-      "Venit brut estimat"
-    ]
+    "eyebrow": "Calendar și absențe", "title": "Toată luna ta de muncă, într-un singur loc.",
+    "body": "Vezi înregistrările și absențele configurabile împreună, iar fiecare zi își păstrează activitățile detaliate.",
+    "stats": ["Zile lucrate", "Ore reale și echivalente", "Concediu și medical", "Venit brut calculat"]
   },
-  "final": {
-    "title": "Munca ta merită mai mult decât o estimare aproximativă.",
-    "subtitle": "Începe azi să construiești un istoric clar al orelor, veniturilor și progresului tău.",
-    "primaryCta": "Creează cont",
-    "secondaryCta": "Intră în cont"
-  },
+  "final": { "title": "Munca ta merită mai mult decât o estimare aproximativă.", "subtitle": "Construiește de astăzi un istoric clar al orelor, muncii efectuate și veniturilor.", "primaryCta": "Creează cont", "secondaryCta": "Intră în cont" },
   "images": {
-    "dashboardAlt": "Dashboard Alveryn cu intrări urmărite, venit brut și ritm săptămânal.",
-    "entryAlt": "Formular Alveryn pentru adăugare intrare cu tip de muncă, ore, pauză și spor.",
-    "statisticsAlt": "Pagina de statistici Alveryn cu trend, insights, forecast, comparație, productivitate și heatmap.",
-    "comparisonAlt": "Secțiunea Alveryn de comparație între luna curentă și luna precedentă.",
-    "forecastAlt": "Card Alveryn de forecast pentru venitul estimat la finalul perioadei.",
-    "productivityAlt": "Card Alveryn de productivitate cu totaluri pe unități și timp echivalent.",
-    "heatmapAlt": "Heatmap Alveryn cu zile de lucru mai intense și mai ușoare.",
-    "calendarAlt": "Calendar Alveryn cu luna de lucru, activitate și marcaje pentru absențe."
+    "dashboardLabel": "Dashboard", "entryLabel": "Înregistrare de muncă", "statisticsLabel": "Privire de ansamblu", "calendarLabel": "Calendar",
+    "dashboardAlt": "Componentă dashboard Alveryn cu înregistrări și ritm săptămânal.",
+    "entryAlt": "Formular Alveryn pentru o înregistrare cu mai multe activități.", "statisticsAlt": "Privire de ansamblu Alveryn asupra timpului și veniturilor.",
+    "comparisonAlt": "Componentă Alveryn pentru comparația perioadelor.", "forecastAlt": "Componentă Alveryn pentru estimarea veniturilor.",
+    "productivityAlt": "Componentă Alveryn pentru productivitate.", "heatmapAlt": "Heatmap Alveryn al activității de muncă.",
+    "calendarAlt": "Componentă calendar Alveryn cu muncă și absențe."
   }
 }

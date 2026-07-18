@@ -7,4 +7,12 @@ import java.util.UUID;
 
 @Schema(description = "Absence response")
 public record AbsenceResponse(
-    UUID id, AbsenceType absenceType, LocalDate startDate, LocalDate endDate, String notes) {}
+    UUID id,
+    UUID absenceTypeId,
+    AbsenceType absenceType,
+    String absenceTypeName,
+    boolean paid,
+    int paidMinutesPerDay,
+    LocalDate startDate,
+    LocalDate endDate,
+    String notes) {}

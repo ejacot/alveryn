@@ -4,21 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import { APP_HOME_PATH } from "../routes/app-paths";
 import { AppLayout } from "./app-layout";
 
-vi.mock("../api/endpoints", () => ({
-  getWorkEntries: vi.fn().mockResolvedValue({
-    content: [],
-    page: 0,
-    size: 100,
-    totalElements: 0,
-    totalPages: 0,
-    first: true,
-    last: true,
-    hasNext: false,
-    hasPrevious: false,
-    numberOfElements: 0
-  })
-}));
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>(
     "react-router-dom"
