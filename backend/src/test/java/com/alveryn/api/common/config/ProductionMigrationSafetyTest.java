@@ -146,6 +146,88 @@ class ProductionMigrationSafetyTest {
     }
   }
 
+  @Test
+  void existingV28CompositeWorkTypeMigratesPastStricterCategoryConstraints() throws Exception {
+    String schema = "flyway_v28_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    Flyway v28 =
+        Flyway.configure()
+            .dataSource(url, username, password)
+            .schemas(schema)
+            .defaultSchema(schema)
+            .createSchemas(true)
+            .cleanDisabled(false)
+            .locations("classpath:db/migration")
+            .target("28")
+            .load();
+
+    try {
+      v28.migrate();
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            """
+            insert into user_accounts (id, email, password_hash, email_verified)
+            values ('00000000-0000-0000-0000-000000000401', 'v28-category@example.com', 'hash', true)
+            """);
+        statement.executeUpdate(
+            """
+            insert into work_types (
+              id, user_id, name, normalized_name, calculation_method, compensation_method,
+              unit_label, unit_symbol, rate_per_unit, currency, composite_enabled, active, display_order
+            ) values (
+              '00000000-0000-0000-0000-000000000402',
+              '00000000-0000-0000-0000-000000000401',
+              'Legacy category', 'legacy category', 'UNIT_BASED', 'PER_UNIT',
+              'Square metre', 'm2', 50, 'EUR', true, true, 0
+            )
+            """);
+      }
+
+      Flyway latest =
+          Flyway.configure()
+              .dataSource(url, username, password)
+              .schemas(schema)
+              .defaultSchema(schema)
+              .createSchemas(true)
+              .cleanDisabled(false)
+              .locations("classpath:db/migration")
+              .load();
+      latest.migrate();
+
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        try (var rs =
+            statement.executeQuery(
+                """
+                select composite_enabled, unit_label, unit_symbol, units_per_hour, rate_per_unit, currency
+                from work_types
+                where id = '00000000-0000-0000-0000-000000000402'
+                """)) {
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getBoolean("composite_enabled")).isTrue();
+          assertThat(rs.getString("unit_label")).isNull();
+          assertThat(rs.getString("unit_symbol")).isNull();
+          assertThat(rs.getBigDecimal("units_per_hour")).isNull();
+          assertThat(rs.getBigDecimal("rate_per_unit")).isNull();
+          assertThat(rs.getString("currency")).isNull();
+        }
+      }
+    } finally {
+      Flyway.configure()
+          .dataSource(url, username, password)
+          .schemas(schema)
+          .defaultSchema(schema)
+          .cleanDisabled(false)
+          .load()
+          .clean();
+    }
+  }
+
   private void insertLegacyWorkEntry(String url, String username, String password, String schema)
       throws Exception {
     try (var connection = DriverManager.getConnection(url, username, password);
