@@ -63,10 +63,7 @@ class AuthIntegrationTest {
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-    refreshTokens.deleteAll();
-    passwordResetTokens.deleteAll();
-    oauthIdentities.deleteAll();
-    users.deleteAll();
+    jdbcTemplate.execute("TRUNCATE TABLE user_accounts CASCADE");
     emailService.clear();
     TestGoogleOAuthClient.reset();
   }
