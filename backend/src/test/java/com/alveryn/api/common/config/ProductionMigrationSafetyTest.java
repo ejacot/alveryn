@@ -185,6 +185,25 @@ class ProductionMigrationSafetyTest {
               'Square metre', 'm2', 50, 'EUR', true, true, 0
             )
             """);
+        statement.executeUpdate(
+            """
+            insert into work_types (
+              id, user_id, name, normalized_name, calculation_method, compensation_method,
+              composite_enabled, active, display_order
+            ) values
+              (
+                '00000000-0000-0000-0000-000000000403',
+                '00000000-0000-0000-0000-000000000401',
+                'Incomplete hourly units', 'incomplete hourly units',
+                'UNITS_PER_HOUR_BASED', 'HOURLY', false, true, 1
+              ),
+              (
+                '00000000-0000-0000-0000-000000000404',
+                '00000000-0000-0000-0000-000000000401',
+                'Incomplete paid units', 'incomplete paid units',
+                'UNIT_BASED', 'PER_UNIT', false, true, 2
+              )
+            """);
       }
 
       Flyway latest =
@@ -215,6 +234,25 @@ class ProductionMigrationSafetyTest {
           assertThat(rs.getBigDecimal("units_per_hour")).isNull();
           assertThat(rs.getBigDecimal("rate_per_unit")).isNull();
           assertThat(rs.getString("currency")).isNull();
+        }
+        try (var rs =
+            statement.executeQuery(
+                """
+                select count(*)
+                from work_types
+                where id in (
+                  '00000000-0000-0000-0000-000000000403',
+                  '00000000-0000-0000-0000-000000000404'
+                )
+                  and composite_enabled
+                  and unit_label is null
+                  and unit_symbol is null
+                  and units_per_hour is null
+                  and rate_per_unit is null
+                  and currency is null
+                """)) {
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getInt(1)).isEqualTo(2);
         }
       }
     } finally {
