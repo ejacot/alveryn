@@ -43,6 +43,11 @@
   "statistics": {
     "eyebrow": "Statistici",
     "title": "Statistici",
+    "comingSoon": {
+      "label": "În curând",
+      "title": "Pregătim o imagine mai clară",
+      "description": "Construim statistici care transformă munca înregistrată în informații utile. Înregistrările existente vor fi pregătite când această secțiune va fi lansată."
+    },
     "primarySummary": "Venit brut",
     "comparedToPrevious": "față de perioada precedentă",
     "filters": {

@@ -43,6 +43,11 @@
   "statistics": {
     "eyebrow": "Statistics",
     "title": "Statistics",
+    "comingSoon": {
+      "label": "Coming soon",
+      "title": "Clearer insights are on the way",
+      "description": "We are preparing statistics that turn your recorded work into useful patterns. Your existing records will be ready when this section launches."
+    },
     "primarySummary": "Gross income",
     "comparedToPrevious": "compared to previous period",
     "filters": {

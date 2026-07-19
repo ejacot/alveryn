@@ -56,6 +56,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const weekEndKey = formatLocalIsoDate(weekDays[6]);
   const previousWeekStartKey = shiftIsoDate(weekStartKey, -7);
   const previousWeekEndKey = shiftIsoDate(weekEndKey, -7);
+  const previousWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => shiftIsoDate(previousWeekStartKey, index)),
+    [previousWeekStartKey]
+  );
 
   const rhythmRecordsQuery = useQuery({
     queryKey: queryKeys.workRecords.range({ from: previousWeekStartKey, to: weekEndKey }),
@@ -167,116 +171,94 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       }),
     [hourlyRates, preferences, selectedAbsence, selectedDateKey, selectedDayRecords]
   );
-  const weeklyPaidAbsences = useMemo(
-    () =>
-      calculatePaidAbsenceDays({
-        absences: weeklyAbsences,
-        activityDates: weeklyRecords.map((record) => record.workDate),
-        hourlyRates,
-        preferences,
-        from: weekStartKey,
-        to: weekEndKey
-      }),
-    [hourlyRates, preferences, weekEndKey, weekStartKey, weeklyAbsences, weeklyRecords]
-  );
-
   const summary = useMemo<DashboardSummaryMetrics>(() => {
     const todayMinutes = sumAllocatedRecordMinutes(selectedDayRecords, selectedDateKey, weeklyAbsences);
-    const absenceMinutes = selectedAbsence
-      ? preferences?.preferredDailyMinutes ?? selectedAbsence.paidMinutesPerDay
-      : 0;
-    const todayGross =
-      sumAllocatedRecordGross(selectedDayRecords, selectedDateKey, weeklyAbsences) +
-      sumPaidAbsenceGross(selectedDayPaidAbsences);
+    const todayWorkBaseGross = sumAllocatedRecordBaseGross(
+      selectedDayRecords,
+      selectedDateKey,
+      weeklyAbsences
+    );
+    const todayBaseGross = todayWorkBaseGross + sumPaidAbsenceGross(selectedDayPaidAbsences);
     const todayExtraPaid = calculateExtraPaidInRange(
       selectedDayRecords,
       selectedDateKey,
       selectedDateKey,
       weeklyAbsences
     );
-    const todayPaidMinutes = sumPaidAbsenceMinutes(selectedDayPaidAbsences) + todayExtraPaid.minutes;
-    const todayPaidGross = sumPaidAbsenceGross(selectedDayPaidAbsences) + todayExtraPaid.grossAmount;
-    const weeklyMinutes = sumAllocatedRecordMinutesInRange(
-      weeklyRecords,
-      weekStartKey,
-      weekEndKey,
-      weeklyAbsences
-    );
-    const weeklyGross =
-      sumAllocatedRecordGrossInRange(weeklyRecords, weekStartKey, weekEndKey, weeklyAbsences) +
-      sumPaidAbsenceGross(weeklyPaidAbsences);
+    const absenceGross = sumPaidAbsenceGross(selectedDayPaidAbsences);
+    const showWorkSummary = !selectedAbsence ||
+      todayMinutes > 0 ||
+      todayWorkBaseGross > 0 ||
+      todayExtraPaid.minutes > 0 ||
+      todayExtraPaid.grossAmount > 0;
 
     return {
-      primaryMetric: selectedAbsence
-        ? {
-            label: selectedDayLabel,
-            value: formatMinutesAsDuration(absenceMinutes),
-            hint: selectedAbsence.paid && selectedAbsence.paidMinutesPerDay > 0
-              ? t("dashboard:summary.paidAbsenceHours", {
-                  duration: formatMinutesAsDuration(selectedAbsence.paidMinutesPerDay)
-                })
-              : ""
-          }
-        : todayMinutes > 0
-          ? {
-              label: selectedDayLabel,
-              value: formatMinutesAsDuration(todayMinutes),
-              hint: ""
-            }
-          : null,
-      secondaryMetrics: [
+      primaryMetric: showWorkSummary ? {
+        label: t("dashboard:summary.todayHours"),
+        value: formatMinutesAsDuration(todayMinutes),
+        hint: ""
+      } : null,
+      secondaryMetrics: showWorkSummary ? [
         {
-          label: t("dashboard:summary.gross"),
+          label: t("dashboard:summary.todayMoney"),
           value: formatCombinedGross(
             selectedDayRecords,
-            todayGross,
+            todayBaseGross,
             t("dashboard:summary.mixedCurrencies"),
             selectedDayPaidAbsences
           ),
           hint: ""
-        },
-        ...(weeklyMinutes > 0 ? [{
-          label: t("dashboard:summary.week"),
-          value: formatMinutesAsDuration(weeklyMinutes),
-          hint: "",
-          placement: "week" as const
-        }] : []),
-        ...(todayPaidMinutes > 0 ? [{
-          label: t("dashboard:summary.paid"),
-          value: formatMinutesAsDuration(todayPaidMinutes),
-          hint: formatCombinedGross(
-            selectedDayRecords.filter(hasExtraPay),
-            todayPaidGross,
-            t("dashboard:summary.mixedCurrencies"),
-            selectedDayPaidAbsences
-          ),
-          placement: "financial" as const
-        }] : [])
-      ],
-      tertiaryMetric: {
-        label: t("dashboard:summary.flow"),
+        }
+      ] : [],
+      extraTimeMetric: todayExtraPaid.minutes > 0 ? {
+        label: t("dashboard:summary.extraHours"),
+        value: formatMinutesAsDuration(todayExtraPaid.minutes),
+        hint: ""
+      } : null,
+      extraMoneyMetric: todayExtraPaid.grossAmount > 0 ? {
+        label: t("dashboard:summary.extraMoney"),
         value: formatCombinedGross(
-          weeklyRecords,
-          weeklyGross,
-          t("dashboard:summary.mixedCurrencies"),
-          weeklyPaidAbsences
+          selectedDayRecords.filter(hasExtraPay),
+          todayExtraPaid.grossAmount,
+          t("dashboard:summary.mixedCurrencies")
         ),
         hint: ""
-      }
+      } : null,
+      totalTimeMetric: todayExtraPaid.minutes > 0 ? {
+        label: t("dashboard:summary.totalHours"),
+        value: formatMinutesAsDuration(todayMinutes + todayExtraPaid.minutes),
+        hint: ""
+      } : null,
+      totalMoneyMetric: todayExtraPaid.grossAmount > 0 ? {
+        label: t("dashboard:summary.totalMoney"),
+        value: formatCombinedGross(
+          selectedDayRecords,
+          todayBaseGross + todayExtraPaid.grossAmount,
+          t("dashboard:summary.mixedCurrencies"),
+          selectedDayPaidAbsences
+        ),
+        hint: ""
+      } : null,
+      absenceMetric: selectedAbsence?.paid ? {
+        label: selectedAbsence.absenceTypeName,
+        duration: formatMinutesAsDuration(selectedAbsence.paidMinutesPerDay),
+        amount: selectedDayPaidAbsences.length > 0
+          ? formatCombinedGross(
+              [],
+              absenceGross,
+              t("dashboard:summary.mixedCurrencies"),
+              selectedDayPaidAbsences
+            )
+          : null
+      } : null
     };
   }, [
-    selectedDayLabel,
+    selectedAbsence,
     selectedDayPaidAbsences,
     selectedDayRecords,
     selectedDateKey,
-    selectedAbsence,
-    preferences,
     t,
-    weekEndKey,
-    weekStartKey,
-    weeklyPaidAbsences,
     weeklyAbsences,
-    weeklyRecords
   ]);
 
   const weeklyDays = useMemo(
@@ -337,17 +319,15 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         summary={summary}
         selectedDay={selectedDayOverview}
         weeklyDays={weeklyDays}
-        previousWeekMinutes={sumAllocatedRecordMinutesInRange(
-          previousWeeklyRecords,
-          previousWeekStartKey,
-          previousWeekEndKey,
-          previousWeeklyAbsences
+        previousWeekAverageMinutes={averagePositiveValues(
+          previousWeekDays.map((date) =>
+            sumAllocatedRecordMinutes(previousWeeklyRecords, date, previousWeeklyAbsences)
+          )
         )}
-        previousWeekGross={sumAllocatedRecordGrossInRange(
-          previousWeeklyRecords,
-          previousWeekStartKey,
-          previousWeekEndKey,
-          previousWeeklyAbsences
+        previousWeekAverageGross={averagePositiveValues(
+          previousWeekDays.map((date) =>
+            sumAllocatedRecordGross(previousWeeklyRecords, date, previousWeeklyAbsences)
+          )
         )}
         flowCurrency={weeklyRecords[0]?.currency ?? preferences?.currency ?? "EUR"}
         absenceTypes={absenceTypesQuery.data ?? []}
@@ -398,20 +378,6 @@ function sumAllocatedRecordMinutes(records: WorkRecord[], date: string, absences
   }, 0);
 }
 
-function sumAllocatedRecordMinutesInRange(
-  records: WorkRecord[],
-  fromDate: string,
-  toDate: string,
-  absences: Absence[]
-) {
-  return records.reduce((total, record) => {
-    const eligibleDays = recordEligibleDays(record, absences);
-    if (eligibleDays.length === 0) return total;
-    const overlapDays = eligibleDays.filter((date) => date >= fromDate && date <= toDate).length;
-    return total + (recordTimeMinutes(record) / eligibleDays.length) * overlapDays;
-  }, 0);
-}
-
 function sumAllocatedRecordGross(records: WorkRecord[], date: string, absences: Absence[]) {
   if (hasAbsenceOnDate(absences, date)) return 0;
   return records.reduce((total, record) => {
@@ -420,17 +386,15 @@ function sumAllocatedRecordGross(records: WorkRecord[], date: string, absences: 
   }, 0);
 }
 
-function sumAllocatedRecordGrossInRange(
-  records: WorkRecord[],
-  fromDate: string,
-  toDate: string,
-  absences: Absence[]
-) {
+function sumAllocatedRecordBaseGross(records: WorkRecord[], date: string, absences: Absence[]) {
+  if (hasAbsenceOnDate(absences, date)) return 0;
   return records.reduce((total, record) => {
     const eligibleDays = recordEligibleDays(record, absences);
-    if (eligibleDays.length === 0) return total;
-    const overlapDays = eligibleDays.filter((date) => date >= fromDate && date <= toDate).length;
-    return total + (Number(record.grossAmount) / eligibleDays.length) * overlapDays;
+    if (!eligibleDays.includes(date)) return total;
+    const baseGross = record.baseGrossAmount === undefined
+      ? Number(record.grossAmount) - legacyExtraGross(record)
+      : Number(record.baseGrossAmount);
+    return total + baseGross / eligibleDays.length;
   }, 0);
 }
 
@@ -480,7 +444,6 @@ function formatCombinedGross(
   );
 }
 
-
 function sumPaidAbsenceMinutes(absences: Array<{ minutes: number }>) {
   return absences.reduce((total, absence) => total + absence.minutes, 0);
 }
@@ -489,8 +452,24 @@ function sumPaidAbsenceGross(absences: Array<{ grossAmount: number }>) {
   return absences.reduce((total, absence) => total + absence.grossAmount, 0);
 }
 
+function averagePositiveValues(values: number[]) {
+  const positiveValues = values.filter((value) => value > 0);
+  return positiveValues.length > 0
+    ? positiveValues.reduce((total, value) => total + value, 0) / positiveValues.length
+    : 0;
+}
+
 function hasExtraPay(record: WorkRecord) {
   return record.workLines?.some((line) => (line.extraPayPercentage ?? 0) > 0) ?? false;
+}
+
+function legacyExtraGross(record: WorkRecord) {
+  return record.workLines?.reduce((total, line) => {
+    const percentage = line.extraPayPercentage ?? 0;
+    return percentage > 0
+      ? total + Number(line.grossAmount) * (percentage / (100 + percentage))
+      : total;
+  }, 0) ?? 0;
 }
 
 function calculateExtraPaidInRange(
@@ -508,8 +487,14 @@ function calculateExtraPaidInRange(
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      total.minutes += Number(line.calculatedMinutes) * (percentage / 100) * allocation;
-      total.grossAmount += Number(line.grossAmount) * (percentage / (100 + percentage)) * allocation;
+      const extraMinutes = line.extraPaidEquivalentMinutes === undefined
+        ? Number(line.calculatedMinutes) * (percentage / 100)
+        : Number(line.extraPaidEquivalentMinutes);
+      const extraGross = line.extraGrossAmount === undefined
+        ? Number(line.grossAmount) * (percentage / (100 + percentage))
+        : Number(line.extraGrossAmount);
+      total.minutes += extraMinutes * allocation;
+      total.grossAmount += extraGross * allocation;
     });
     return total;
   }, { minutes: 0, grossAmount: 0 });
@@ -544,6 +529,7 @@ function toPhaseTwoWorkRecordActivity(
       ? t("dashboard:selectedDay.jobDays", { count: recordDurationDays(record) })
       : "",
     address: record.address?.formatted ?? null,
+    notes: record.notes,
     periodLabel: record.workEndDate ? formatRecordPeriod(record) : null,
     duration: timeLines.length ? formatMinutesAsDuration(minutes) : "",
     amount:
@@ -566,6 +552,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
       id: line.id,
       label: line.workTypeName,
       quantity: enteredTime,
+      extraPayPercentage: line.extraPayPercentage,
       displayOrder: line.displayOrder
     }];
   }
@@ -574,6 +561,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
       id: line.id,
       label: line.workTypeName,
       quantity: formatCurrency(line.fixedAmountSnapshot ?? "0", line.currencySnapshot),
+      extraPayPercentage: line.extraPayPercentage,
       displayOrder: line.displayOrder
     }];
   }
@@ -586,6 +574,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
       id: line.id,
       label: line.workTypeName,
       quantity,
+      extraPayPercentage: line.extraPayPercentage,
       displayOrder: line.displayOrder
     }
   ];
@@ -651,6 +640,21 @@ function buildWeeklyRhythmDays(
         return total + (eligibleDays.length > 0 ? Number(record.grossAmount) / eligibleDays.length : 0);
       }, 0);
   });
+  const extraPaidPerDay = days.map((day) => {
+    const date = formatLocalIsoDate(day);
+    return calculateExtraPaidInRange(records, date, date, absences);
+  });
+  const extraPayPercentagesPerDay = days.map((day) => {
+    const date = formatLocalIsoDate(day);
+    if (hasAbsenceOnDate(absences, date)) return [];
+    return [...new Set(
+      records
+        .filter((record) => recordCoversDate(record, date))
+        .flatMap((record) => record.workLines ?? [])
+        .map((line) => line.extraPayPercentage ?? 0)
+        .filter((percentage) => percentage > 0)
+    )].sort((left, right) => left - right);
+  });
   const maximumDailyMinutes = Math.max(...minutesPerDay, 0);
   return days.map((day, index) => {
     const absence = absences.find((item) => absenceCoversDate(item, day));
@@ -659,6 +663,9 @@ function buildWeeklyRhythmDays(
       ? absenceTypes.find((type) => type.id === absence.absenceTypeId)?.color ?? "#737373"
       : "#737373";
     const minutes = minutesPerDay[index] ?? 0;
+    const amount = grossPerDay[index] ?? 0;
+    const extraMinutes = extraPaidPerDay[index]?.minutes ?? 0;
+    const extraAmount = extraPaidPerDay[index]?.grossAmount ?? 0;
     const hasEntries = minutes > 0;
     const difference = minutes - DAILY_TARGET_MINUTES;
     const status = absence
@@ -678,7 +685,11 @@ function buildWeeklyRhythmDays(
       }).format(day),
       value: formatMinutesAsDuration(minutes),
       minutes,
-      amount: grossPerDay[index] ?? 0,
+      amount,
+      extraMinutes,
+      baseAmount: Math.max(amount - extraAmount, 0),
+      extraAmount,
+      extraPayPercentages: extraPayPercentagesPerDay[index] ?? [],
       markerLabel: hasEntries && difference !== 0 ? formatTargetDifferenceMarker(difference) : null,
       status,
       absence: absenceType

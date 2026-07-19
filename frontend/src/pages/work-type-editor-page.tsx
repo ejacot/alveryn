@@ -44,6 +44,7 @@ function createWorkTypeSchema(t: (key: string) => string) {
         ratePerUnit: optionalDecimalSchema(t("workTypeFormulas.validation.ratePerUnit")),
         currency: z.string().trim().length(3, t("workTypeFormulas.validation.currency")).optional().or(z.literal("")),
         teamworkEnabled: z.boolean().optional().default(false),
+        extraPayEnabled: z.boolean().optional().default(false),
         compositeEnabled: z.boolean().optional().default(false),
 		    color: z.preprocess(
           (value) => value == null || value === "" ? DEFAULT_WORK_TYPE_COLOR : value,
@@ -185,6 +186,7 @@ export function WorkTypeEditorPage() {
           ratePerUnit: "",
           currency: "EUR",
           teamworkEnabled: false,
+          extraPayEnabled: false,
           compositeEnabled: false,
 		      color: DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: 30,
@@ -241,6 +243,7 @@ export function WorkTypeEditorPage() {
           ratePerUnit: workTypeQuery.data.ratePerUnit ?? "",
           currency: workTypeQuery.data.currency ?? "EUR",
           teamworkEnabled: workTypeQuery.data.teamworkEnabled ?? false,
+          extraPayEnabled: workTypeQuery.data.extraPayEnabled ?? false,
           compositeEnabled: workTypeQuery.data.compositeEnabled ?? false,
 	      color: workTypeQuery.data.color ?? DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: workTypeQuery.data.defaultBreakMinutes ?? 30,
@@ -300,6 +303,7 @@ export function WorkTypeEditorPage() {
                 parentId: workType.id,
                 color: normalizedValues.color,
                 teamworkEnabled: normalizedValues.teamworkEnabled ?? false,
+                extraPayEnabled: normalizedValues.extraPayEnabled ?? false,
                 displayOrder: index,
                 active: true
               }))
@@ -347,6 +351,7 @@ export function WorkTypeEditorPage() {
         parentId: workTypeId!,
         color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
         teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
+        extraPayEnabled: workTypeQuery.data?.extraPayEnabled ?? false,
         active: true
       })),
     onSuccess: async () => {
@@ -375,6 +380,7 @@ export function WorkTypeEditorPage() {
           parentId: workTypeId!,
           color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
           teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
+          extraPayEnabled: workTypeQuery.data?.extraPayEnabled ?? false,
           active: configuration.active,
           displayOrder: configuration.displayOrder
         })
@@ -801,6 +807,16 @@ export function WorkTypeEditorPage() {
                   <span className="block font-semibold text-white/78">
                     {t("settings:workTypeEditor.fields.teamworkEnabled")}
                   </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-white"
+                  {...form.register("extraPayEnabled")}
+                />
+                <span className="block font-semibold text-white/78">
+                  {t("settings:workTypeEditor.fields.extraPayEnabled")}
                 </span>
               </label>
               <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
@@ -1472,7 +1488,7 @@ function parseSetupMode(value: string | null): WorkTypeFormulaMode | null {
 function buildDraftChildWorkTypePayload(
   child: DraftChildWorkType,
   mode: WorkTypeFormulaMode,
-  options: { parentId: string; color: string; teamworkEnabled: boolean; displayOrder: number; active: boolean }
+  options: { parentId: string; color: string; teamworkEnabled: boolean; extraPayEnabled: boolean; displayOrder: number; active: boolean }
 ) {
   return buildChildWorkTypePayload(
     {
@@ -1541,6 +1557,7 @@ function buildWorkTypePayload(
         ? currency.toUpperCase()
         : null,
     teamworkEnabled: values.teamworkEnabled ?? false,
+    extraPayEnabled: values.extraPayEnabled ?? false,
     compositeEnabled: values.compositeEnabled ?? false,
     color: options.color,
     icon: null,
@@ -1555,7 +1572,7 @@ function buildWorkTypePayload(
 
 function buildChildWorkTypePayload(
   values: ConfigurationDialogValues,
-  options: { parentId: string; color: string; teamworkEnabled?: boolean; displayOrder?: number | null; active: boolean }
+  options: { parentId: string; color: string; teamworkEnabled?: boolean; extraPayEnabled?: boolean; displayOrder?: number | null; active: boolean }
 ) {
   const calculationMethod =
     values.calculationMode === "TIME_HOURLY"
@@ -1577,6 +1594,7 @@ function buildChildWorkTypePayload(
       ratePerUnit: values.ratePerUnit,
       currency: values.currency ?? "EUR",
       teamworkEnabled: options.teamworkEnabled ?? false,
+      extraPayEnabled: options.extraPayEnabled ?? false,
       compositeEnabled: false,
       color: options.color,
       defaultBreakMinutes: values.defaultBreakMinutes,

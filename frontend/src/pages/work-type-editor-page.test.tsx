@@ -152,6 +152,7 @@ describe("WorkTypeEditorPage", () => {
       ratePerUnit: payload.ratePerUnit == null ? null : String(payload.ratePerUnit),
       currency: payload.currency ?? null,
       teamworkEnabled: payload.teamworkEnabled ?? false,
+      extraPayEnabled: payload.extraPayEnabled ?? false,
       compositeEnabled: payload.compositeEnabled ?? false,
       color: payload.color ?? "#FFFFFF",
       icon: payload.icon ?? null,
@@ -171,6 +172,7 @@ describe("WorkTypeEditorPage", () => {
       ratePerUnit: payload.ratePerUnit == null ? null : String(payload.ratePerUnit),
       currency: payload.currency ?? null,
       teamworkEnabled: payload.teamworkEnabled ?? false,
+      extraPayEnabled: payload.extraPayEnabled ?? false,
       compositeEnabled: payload.compositeEnabled ?? false,
       color: payload.color ?? "#FFFFFF",
       icon: payload.icon ?? null,
@@ -188,6 +190,7 @@ describe("WorkTypeEditorPage", () => {
     await chooseSetupMode(user, /time based/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "check");
+    await user.click(screen.getByLabelText("Extra pay"));
     expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
@@ -198,7 +201,8 @@ describe("WorkTypeEditorPage", () => {
 	        calculationMethod: "TIME_BASED",
 	        color: "#A3E635",
 	        icon: null,
-	        defaultBreakMinutes: 30
+	        defaultBreakMinutes: 30,
+          extraPayEnabled: true
 	      }));
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types", { replace: true });
     });
@@ -220,6 +224,7 @@ describe("WorkTypeEditorPage", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Default break")).toBeInTheDocument();
     expect(screen.getByLabelText("Teamwork")).toBeInTheDocument();
+    expect(screen.getByLabelText("Extra pay")).toBeInTheDocument();
     expect(screen.getByLabelText("Advanced")).toBeInTheDocument();
     expect(screen.queryByText("Fixed price")).not.toBeInTheDocument();
   });

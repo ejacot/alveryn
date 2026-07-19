@@ -73,6 +73,9 @@ public class WorkType extends BaseEntity {
   @Column(name = "teamwork_enabled", nullable = false)
   private boolean teamworkEnabled;
 
+  @Column(name = "extra_pay_enabled", nullable = false)
+  private boolean extraPayEnabled;
+
   @Column(name = "composite_enabled", nullable = false)
   private boolean compositeEnabled;
 
@@ -173,6 +176,10 @@ public class WorkType extends BaseEntity {
 
   public void changeTeamworkEnabled(boolean value) {
     teamworkEnabled = value;
+  }
+
+  public void changeExtraPayEnabled(boolean value) {
+    extraPayEnabled = value;
   }
 
   public void changeCompositeEnabled(boolean value) {

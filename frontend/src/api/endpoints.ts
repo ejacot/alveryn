@@ -87,6 +87,7 @@ export type CreateWorkTypePayload = {
   ratePerUnit?: number | null;
   currency?: string | null;
   teamworkEnabled?: boolean;
+  extraPayEnabled?: boolean;
   compositeEnabled?: boolean;
   color?: string | null;
   icon?: string | null;

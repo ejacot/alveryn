@@ -9,6 +9,15 @@ export type DashboardSummaryMetrics = {
   primaryMetric?: SummaryMetric | null;
   secondaryMetrics?: SummaryMetric[];
   tertiaryMetric?: SummaryMetric | null;
+  extraTimeMetric?: SummaryMetric | null;
+  extraMoneyMetric?: SummaryMetric | null;
+  totalTimeMetric?: SummaryMetric | null;
+  totalMoneyMetric?: SummaryMetric | null;
+  absenceMetric?: {
+    label: string;
+    duration?: string | null;
+    amount?: string | null;
+  } | null;
 };
 
 export type DashboardResponse = {
@@ -34,6 +43,7 @@ export type SelectedDayActivity = {
   kind: "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" | "ABSENCE";
   subtitle: string;
   address?: string | null;
+  notes?: string | null;
   periodLabel?: string | null;
   duration: string;
   amount: string;
@@ -42,6 +52,7 @@ export type SelectedDayActivity = {
     id?: string;
     label: string;
     quantity: string;
+    extraPayPercentage?: number | null;
     displayOrder?: number | null;
   }>;
   marker?: "free" | "sick" | "vacation";
@@ -61,6 +72,10 @@ export type WeeklyRhythmDay = {
   value: string;
   minutes: number;
   amount: number;
+  extraMinutes?: number;
+  baseAmount?: number;
+  extraAmount?: number;
+  extraPayPercentages: number[];
   markerLabel: string | null;
   status: "under" | "met" | "over" | "idle" | "absence";
   absence?: {

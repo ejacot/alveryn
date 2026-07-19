@@ -54,6 +54,7 @@
       "color": "Color",
       "defaultBreakMinutes": "Default break",
       "teamworkEnabled": "Teamwork",
+      "extraPayEnabled": "Extra pay",
       "teamworkDescription": "Ask for team size and divide direct per-unit pay by the number of workers.",
       "compositeEnabled": "Advanced",
       "compositeDescription": "This work type can contain several internal formulas.",

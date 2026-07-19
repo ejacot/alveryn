@@ -13,8 +13,8 @@ The project is organized as a Spring Boot backend plus a Vite/React frontend, wi
 ## Product
 
 - Track time-based and unit-based work entries.
-- Model personal work types, rates, calculation methods, unit types, and salary periods.
-- Review dashboard, calendar, settings, and statistics views.
+- Model personal work types, rates, calculation methods, formula groups, and salary periods.
+- Review dashboard, calendar, and settings; the statistics workspace is currently marked as coming soon while it is being finalized.
 - Support registration, email verification, onboarding, JWT auth, refresh cookies, and production email delivery.
 - Run as a deployable web app with PWA assets and mobile-focused flows.
 

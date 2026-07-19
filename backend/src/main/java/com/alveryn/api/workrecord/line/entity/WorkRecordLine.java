@@ -91,6 +91,24 @@ public class WorkRecordLine extends BaseEntity {
   @Column(name = "gross_amount", nullable = false, precision = 30, scale = 15)
   private BigDecimal grossAmount;
 
+  @Column(name = "worked_minutes", nullable = false, precision = 30, scale = 15)
+  private BigDecimal workedMinutes;
+
+  @Column(name = "extra_paid_equivalent_minutes", nullable = false, precision = 30, scale = 15)
+  private BigDecimal extraPaidEquivalentMinutes;
+
+  @Column(name = "total_paid_equivalent_minutes", nullable = false, precision = 30, scale = 15)
+  private BigDecimal totalPaidEquivalentMinutes;
+
+  @Column(name = "base_gross_amount", nullable = false, precision = 30, scale = 15)
+  private BigDecimal baseGrossAmount;
+
+  @Column(name = "extra_gross_amount", nullable = false, precision = 30, scale = 15)
+  private BigDecimal extraGrossAmount;
+
+  @Column(name = "total_gross_amount", nullable = false, precision = 30, scale = 15)
+  private BigDecimal totalGrossAmount;
+
   @Column(name = "extra_pay_percentage", nullable = false)
   private int extraPayPercentage;
 
@@ -113,7 +131,7 @@ public class WorkRecordLine extends BaseEntity {
       throw new IllegalArgumentException("break must be shorter than interval");
     }
     BigDecimal minutes = BigDecimal.valueOf(totalIntervalMinutes - breakMinutes);
-    BigDecimal gross = WorkCalculation.calculateGross(minutes, hourlyRate, extraPayPercentage);
+    BigDecimal baseGross = WorkCalculation.calculateGross(minutes, hourlyRate, 0);
     WorkRecordLine line = base(record, workType, displayOrder, extraPayPercentage, notes);
     line.startTime = startTime;
     line.endTime = endTime;
@@ -121,7 +139,7 @@ public class WorkRecordLine extends BaseEntity {
     line.calculatedMinutes = minutes.setScale(WorkCalculation.TIME_SCALE, RoundingMode.UNNECESSARY);
     line.hourlyRateSnapshot = hourlyRate.setScale(WorkCalculation.RATE_SCALE, WorkCalculation.RATE_ROUNDING);
     line.currencySnapshot = normalizeCurrency(currency);
-    line.grossAmount = gross;
+    line.captureResults(minutes, baseGross, extraPayPercentage);
     return line;
   }
 
@@ -138,13 +156,13 @@ public class WorkRecordLine extends BaseEntity {
       throw new IllegalArgumentException("durationMinutes must be positive");
     }
     BigDecimal minutes = BigDecimal.valueOf(durationMinutes);
-    BigDecimal gross = WorkCalculation.calculateGross(minutes, hourlyRate, extraPayPercentage);
+    BigDecimal baseGross = WorkCalculation.calculateGross(minutes, hourlyRate, 0);
     WorkRecordLine line = base(record, workType, displayOrder, extraPayPercentage, notes);
     line.durationMinutes = durationMinutes;
     line.calculatedMinutes = minutes.setScale(WorkCalculation.TIME_SCALE, RoundingMode.UNNECESSARY);
     line.hourlyRateSnapshot = hourlyRate.setScale(WorkCalculation.RATE_SCALE, WorkCalculation.RATE_ROUNDING);
     line.currencySnapshot = normalizeCurrency(currency);
-    line.grossAmount = gross;
+    line.captureResults(minutes, baseGross, extraPayPercentage);
     return line;
   }
 
@@ -162,13 +180,13 @@ public class WorkRecordLine extends BaseEntity {
             .multiply(BigDecimal.valueOf(60), MathContext.DECIMAL128)
             .divide(workType.getUnitsPerHour(), MathContext.DECIMAL128)
             .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
-    BigDecimal gross = WorkCalculation.calculateGross(minutes, hourlyRate, extraPayPercentage);
+    BigDecimal baseGross = WorkCalculation.calculateGross(minutes, hourlyRate, 0);
     WorkRecordLine line = unitBase(record, workType, displayOrder, quantity, extraPayPercentage, notes);
     line.unitsPerHourSnapshot = workType.getUnitsPerHour();
     line.calculatedMinutes = minutes;
     line.hourlyRateSnapshot = hourlyRate.setScale(WorkCalculation.RATE_SCALE, WorkCalculation.RATE_ROUNDING);
     line.currencySnapshot = normalizeCurrency(currency);
-    line.grossAmount = gross;
+    line.captureResults(minutes, baseGross, extraPayPercentage);
     return line;
   }
 
@@ -178,6 +196,7 @@ public class WorkRecordLine extends BaseEntity {
       int displayOrder,
       BigDecimal quantity,
       Integer teamSize,
+      int extraPayPercentage,
       String notes) {
     BigDecimal minutes =
         workType.getUnitsPerHour() == null
@@ -186,20 +205,26 @@ public class WorkRecordLine extends BaseEntity {
                 .multiply(BigDecimal.valueOf(60), MathContext.DECIMAL128)
                 .divide(workType.getUnitsPerHour(), MathContext.DECIMAL128)
                 .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
-    WorkRecordLine line = unitBase(record, workType, displayOrder, quantity, 0, notes);
+    WorkRecordLine line = unitBase(record, workType, displayOrder, quantity, extraPayPercentage, notes);
     line.unitsPerHourSnapshot = workType.getUnitsPerHour();
     line.calculatedMinutes = minutes;
     line.ratePerUnitSnapshot = workType.getRatePerUnit();
     line.currencySnapshot = normalizeCurrency(workType.getCurrency());
-    line.grossAmount =
-        WorkCalculation.calculatePerUnitGross(quantity, workType.getRatePerUnit());
+    BigDecimal baseGross = WorkCalculation.calculatePerUnitGross(quantity, workType.getRatePerUnit());
     if (workType.isTeamworkEnabled()) {
       if (teamSize == null || teamSize <= 0) {
         throw new IllegalArgumentException("teamSize is required for teamwork work types");
       }
-      line.grossAmount = line.grossAmount.divide(BigDecimal.valueOf(teamSize), WorkCalculation.GROSS_SCALE, RoundingMode.HALF_UP);
+      baseGross = baseGross.divide(BigDecimal.valueOf(teamSize), WorkCalculation.GROSS_SCALE, RoundingMode.HALF_UP);
     }
+    line.captureResults(BigDecimal.ZERO, baseGross, extraPayPercentage);
     return line;
+  }
+
+  public static WorkRecordLine unitsPerUnit(
+      WorkRecord record, WorkType workType, int displayOrder, BigDecimal quantity,
+      Integer teamSize, String notes) {
+    return unitsPerUnit(record, workType, displayOrder, quantity, teamSize, 0, notes);
   }
 
   public static WorkRecordLine fixedAmount(
@@ -208,16 +233,23 @@ public class WorkRecordLine extends BaseEntity {
       int displayOrder,
       BigDecimal fixedAmount,
       String currency,
+      int extraPayPercentage,
       String notes) {
     if (fixedAmount == null || fixedAmount.signum() <= 0) {
       throw new IllegalArgumentException("fixedAmount must be positive");
     }
-    WorkRecordLine line = base(record, workType, displayOrder, 0, notes);
+    WorkRecordLine line = base(record, workType, displayOrder, extraPayPercentage, notes);
     line.fixedAmountSnapshot = fixedAmount.setScale(WorkCalculation.GROSS_SCALE, RoundingMode.HALF_UP);
     line.calculatedMinutes = BigDecimal.ZERO.setScale(WorkCalculation.TIME_SCALE);
     line.currencySnapshot = normalizeCurrency(currency);
-    line.grossAmount = line.fixedAmountSnapshot;
+    line.captureResults(BigDecimal.ZERO, line.fixedAmountSnapshot, extraPayPercentage);
     return line;
+  }
+
+  public static WorkRecordLine fixedAmount(
+      WorkRecord record, WorkType workType, int displayOrder, BigDecimal fixedAmount,
+      String currency, String notes) {
+    return fixedAmount(record, workType, displayOrder, fixedAmount, currency, 0, notes);
   }
 
   private static WorkRecordLine base(
@@ -276,6 +308,24 @@ public class WorkRecordLine extends BaseEntity {
       throw new IllegalArgumentException("notes exceeds 500 characters");
     }
     notes = value;
+  }
+
+  private void captureResults(
+      BigDecimal workedMinutes, BigDecimal baseGrossAmount, int extraPayPercentage) {
+    this.workedMinutes = workedMinutes.setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
+    this.extraPaidEquivalentMinutes = this.workedMinutes
+        .multiply(BigDecimal.valueOf(extraPayPercentage), WorkCalculation.TIME_MATH_CONTEXT)
+        .divide(BigDecimal.valueOf(100), WorkCalculation.TIME_MATH_CONTEXT)
+        .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
+    this.totalPaidEquivalentMinutes = this.workedMinutes
+        .add(this.extraPaidEquivalentMinutes)
+        .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
+    this.baseGrossAmount = baseGrossAmount.setScale(WorkCalculation.GROSS_SCALE, RoundingMode.HALF_UP);
+    this.totalGrossAmount = WorkCalculation.applyExtraPay(this.baseGrossAmount, extraPayPercentage);
+    this.extraGrossAmount = this.totalGrossAmount
+        .subtract(this.baseGrossAmount)
+        .setScale(WorkCalculation.GROSS_SCALE, RoundingMode.HALF_UP);
+    this.grossAmount = this.totalGrossAmount;
   }
 
   private static String normalizeCurrency(String value) {

@@ -63,6 +63,7 @@ export type WorkType = {
   ratePerUnit?: string | null;
   currency?: string | null;
   teamworkEnabled?: boolean;
+  extraPayEnabled?: boolean;
   compositeEnabled?: boolean;
   color: string;
   icon: string | null;

@@ -224,6 +224,95 @@ class WorkRecordIntegrationTest {
   }
 
   @Test
+  void appliesExtraPayToEveryEnabledCalculationModeAndForcesZeroWhenDisabled() throws Exception {
+    UserAccount user = createVerifiedUser("all-extra-pay-modes@example.com");
+    WorkType time = createWorkType(user, "Shift", CalculationMethod.TIME_BASED, CompensationMethod.HOURLY);
+    WorkType equivalent = createWorkType(user, "Rooms", CalculationMethod.UNITS_PER_HOUR_BASED, CompensationMethod.HOURLY);
+    equivalent.changeCompositeEnabled(false);
+    equivalent.configureUnit("Rooms", "room");
+    equivalent.configureFormula(new BigDecimal("2.0000"), null, null);
+    WorkType unit = createWorkType(user, "Paving", CalculationMethod.UNIT_BASED, CompensationMethod.PER_UNIT);
+    unit.changeCompositeEnabled(false);
+    unit.configureUnit("Square metre", "m2");
+    unit.configureFormula(null, new BigDecimal("10.0000"), "EUR");
+    WorkType fixed = createWorkType(user, "Roof repair", CalculationMethod.FIXED_PRICE_BASED, CompensationMethod.HOURLY);
+    fixed.changeCompositeEnabled(false);
+    time.changeExtraPayEnabled(true);
+    equivalent.changeExtraPayEnabled(true);
+    unit.changeExtraPayEnabled(true);
+    fixed.changeExtraPayEnabled(true);
+    workTypes.saveAllAndFlush(java.util.List.of(time, equivalent, unit, fixed));
+    createRate(user, "20.00", "EUR");
+
+    mockMvc.perform(post("/api/work-records")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "workDate":"2026-07-18",
+                  "lines":[
+                    {"workTypeId":"%s","durationMinutes":480,"extraPayPercentage":100},
+                    {"workTypeId":"%s","quantity":10,"extraPayPercentage":50},
+                    {"workTypeId":"%s","quantity":3,"extraPayPercentage":100},
+                    {"workTypeId":"%s","fixedAmount":500,"currency":"EUR","extraPayPercentage":25}
+                  ]
+                }
+                """.formatted(time.getId(), equivalent.getId(), unit.getId(), fixed.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.workLines[0].extraPayPercentage").value(100))
+        .andExpect(jsonPath("$.data.workLines[0].workedMinutes").value(480.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].extraPaidEquivalentMinutes").value(480.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].totalPaidEquivalentMinutes").value(960.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].baseGrossAmount").value(160.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].extraGrossAmount").value(160.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].totalGrossAmount").value(320.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].grossAmount").value(320.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].extraPayPercentage").value(50))
+        .andExpect(jsonPath("$.data.workLines[1].workedMinutes").value(300.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].extraPaidEquivalentMinutes").value(150.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].totalPaidEquivalentMinutes").value(450.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].baseGrossAmount").value(100.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].extraGrossAmount").value(50.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[1].grossAmount").value(150.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[2].extraPayPercentage").value(100))
+        .andExpect(jsonPath("$.data.workLines[2].workedMinutes").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[2].baseGrossAmount").value(30.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[2].extraGrossAmount").value(30.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[2].grossAmount").value(60.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[3].extraPayPercentage").value(25))
+        .andExpect(jsonPath("$.data.workLines[3].workedMinutes").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[3].baseGrossAmount").value(500.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[3].extraGrossAmount").value(125.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[3].grossAmount").value(625.000000000000000))
+        .andExpect(jsonPath("$.data.workedMinutes").value(780.000000000000000))
+        .andExpect(jsonPath("$.data.extraPaidEquivalentMinutes").value(630.000000000000000))
+        .andExpect(jsonPath("$.data.totalPaidEquivalentMinutes").value(1410.000000000000000))
+        .andExpect(jsonPath("$.data.baseGrossAmount").value(790.000000000000000))
+        .andExpect(jsonPath("$.data.extraGrossAmount").value(365.000000000000000))
+        .andExpect(jsonPath("$.data.totalGrossAmount").value(1155.000000000000000))
+        .andExpect(jsonPath("$.data.grossAmount").value(1155.000000000000000));
+
+    fixed.changeExtraPayEnabled(false);
+    workTypes.saveAndFlush(fixed);
+    mockMvc.perform(post("/api/work-records")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "workDate":"2026-07-19",
+                  "lines":[
+                    {"workTypeId":"%s","fixedAmount":500,"currency":"EUR","extraPayPercentage":100}
+                  ]
+                }
+                """.formatted(fixed.getId())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.workLines[0].extraPayPercentage").value(0))
+        .andExpect(jsonPath("$.data.workLines[0].baseGrossAmount").value(500.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].extraGrossAmount").value(0.000000000000000))
+        .andExpect(jsonPath("$.data.workLines[0].grossAmount").value(500.000000000000000));
+  }
+
+  @Test
   void dividesDirectPerUnitPayByTeamSizeWhenWorkTypeUsesTeamwork() throws Exception {
     UserAccount user = createVerifiedUser("teamwork-unit-record@example.com");
     WorkType montage =

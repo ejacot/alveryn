@@ -145,6 +145,7 @@ function toPhaseTwoRecordActivity(record: WorkRecord, t: ReturnType<typeof useTr
     kind: "UNIT_BASED" as const,
     subtitle: record.workEndDate ? t("jobDays", { count: durationDays }) : "",
     address: record.address?.formatted ?? null,
+    notes: record.notes,
     periodLabel: record.workEndDate ? formatRecordPeriod(record) : null,
     amount: currencies.size === 1 && record.currency
       ? formatCurrency(record.grossAmount, record.currency)
@@ -166,6 +167,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
       id: line.id,
       label: line.workTypeName,
       quantity: enteredTime,
+      extraPayPercentage: line.extraPayPercentage,
       displayOrder: line.displayOrder
     }];
   }
@@ -175,6 +177,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
         id: line.id,
         label: line.workTypeName,
         quantity: formatCurrency(line.fixedAmountSnapshot ?? "0", line.currencySnapshot),
+        extraPayPercentage: line.extraPayPercentage,
         displayOrder: line.displayOrder
       }
     ];
@@ -185,6 +188,7 @@ function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
       id: line.id,
       label: line.workTypeName,
       quantity: unit ? `${Number(line.quantity ?? 0).toLocaleString()} ${unit}` : Number(line.quantity ?? 0).toLocaleString(),
+      extraPayPercentage: line.extraPayPercentage,
       displayOrder: line.displayOrder
     }
   ];

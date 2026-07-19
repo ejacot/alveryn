@@ -17,6 +17,8 @@ import com.alveryn.api.worktype.repository.WorkTypeRepository;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -65,6 +67,14 @@ public class WorkTypeService {
     if (existsByUserAndParentAndNameAndIdNot(userId, entity.getParent(), entity.getNormalizedName(), id))
       throw workTypeNameExists();
     applyUpdate(entity, dto);
+    if (entity.isCompositeEnabled() && dto.extraPayEnabled() != null) {
+      Set<UUID> descendants = familyIds(
+          repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId), entity.getId());
+      repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId).stream()
+          .filter(workType -> !workType.getId().equals(entity.getId()))
+          .filter(workType -> descendants.contains(workType.getId()))
+          .forEach(workType -> workType.changeExtraPayEnabled(dto.extraPayEnabled()));
+    }
     return toResponse(userId, entity);
   }
 
@@ -72,30 +82,48 @@ public class WorkTypeService {
   public void delete(UUID id) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     WorkType entity = find(userId, id);
-    if (hasHistoricalUsage(userId, id) || repository.existsByParentId(id)) {
+    List<WorkType> workTypes = repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId);
+    Set<UUID> familyIds = familyIds(workTypes, id);
+    Set<UUID> usedIds = new HashSet<>(workRecordLines.findUsedWorkTypeIdsByUserId(userId));
+    if (familyIds.stream().anyMatch(usedIds::contains)) {
       entity.deactivate();
       return;
     }
+    workTypes.stream()
+        .filter(workType -> !workType.getId().equals(id) && familyIds.contains(workType.getId()))
+        .sorted((left, right) -> Integer.compare(depth(right), depth(left)))
+        .forEach(repository::delete);
+    repository.flush();
     repository.delete(entity);
   }
 
   @Transactional(readOnly = true)
   public WorkTypeResponse get(UUID id) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    return toResponse(userId, find(userId, id));
+    WorkType entity = find(userId, id);
+    List<WorkType> workTypes = repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId);
+    Set<UUID> usedIds = new HashSet<>(workRecordLines.findUsedWorkTypeIdsByUserId(userId));
+    return toResponse(entity, isFamilyUnused(workTypes, usedIds, entity.getId()));
   }
 
   @Transactional(readOnly = true)
   public List<WorkTypeResponse> list() {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    return repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId).stream()
-        .map(entity -> toResponse(userId, entity))
+    List<WorkType> workTypes = repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId);
+    Set<UUID> usedIds = new HashSet<>(workRecordLines.findUsedWorkTypeIdsByUserId(userId));
+    return workTypes.stream()
+        .map(entity -> toResponse(entity, isFamilyUnused(workTypes, usedIds, entity.getId())))
         .toList();
   }
 
   private WorkTypeResponse toResponse(UUID userId, WorkType entity) {
+    List<WorkType> workTypes = repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId);
+    Set<UUID> usedIds = new HashSet<>(workRecordLines.findUsedWorkTypeIdsByUserId(userId));
+    return toResponse(entity, isFamilyUnused(workTypes, usedIds, entity.getId()));
+  }
+
+  private WorkTypeResponse toResponse(WorkType entity, boolean deletable) {
     WorkTypeResponse response = mapper.toWorkTypeResponse(entity);
-    boolean deletable = !hasHistoricalUsage(userId, entity.getId()) && !repository.existsByParentId(entity.getId());
     return new WorkTypeResponse(
         response.id(),
         response.parentId(),
@@ -108,6 +136,7 @@ public class WorkTypeService {
         response.ratePerUnit(),
         response.currency(),
         response.teamworkEnabled(),
+        response.extraPayEnabled(),
         response.compositeEnabled(),
         response.color(),
         response.icon(),
@@ -115,6 +144,37 @@ public class WorkTypeService {
         response.displayOrder(),
         response.active(),
         deletable);
+  }
+
+  private boolean isFamilyUnused(List<WorkType> workTypes, Set<UUID> usedIds, UUID rootId) {
+    return familyIds(workTypes, rootId).stream().noneMatch(usedIds::contains);
+  }
+
+  private Set<UUID> familyIds(List<WorkType> workTypes, UUID rootId) {
+    Set<UUID> ids = new HashSet<>();
+    ids.add(rootId);
+    boolean changed;
+    do {
+      changed = false;
+      for (WorkType workType : workTypes) {
+        if (workType.getParent() != null
+            && ids.contains(workType.getParent().getId())
+            && ids.add(workType.getId())) {
+          changed = true;
+        }
+      }
+    } while (changed);
+    return ids;
+  }
+
+  private int depth(WorkType workType) {
+    int depth = 0;
+    WorkType current = workType;
+    while (current.getParent() != null) {
+      depth++;
+      current = current.getParent();
+    }
+    return depth;
   }
 
   private WorkType find(UUID userId, UUID id) {
@@ -152,6 +212,9 @@ public class WorkTypeService {
     e.changeIcon(InputSanitizer.trimToNull(d.icon()));
     e.changeDefaultBreakMinutes(defaultBreakMinutes(userId, d.calculationMethod(), d.defaultBreakMinutes()));
     e.changeTeamworkEnabled(Boolean.TRUE.equals(d.teamworkEnabled()));
+    if (d.extraPayEnabled() != null) {
+      e.changeExtraPayEnabled(d.extraPayEnabled());
+    }
     e.changeCompositeEnabled(Boolean.TRUE.equals(d.compositeEnabled()));
     e.configureUnit(InputSanitizer.trimToNull(d.unitLabel()), InputSanitizer.trimToNull(d.unitSymbol()));
     e.configureFormula(d.unitsPerHour(), d.ratePerUnit(), InputSanitizer.trimToNull(d.currency()));
@@ -173,6 +236,9 @@ public class WorkTypeService {
       e.changeDefaultBreakMinutes(d.defaultBreakMinutes());
     }
     e.changeTeamworkEnabled(Boolean.TRUE.equals(d.teamworkEnabled()));
+    if (d.extraPayEnabled() != null) {
+      e.changeExtraPayEnabled(d.extraPayEnabled());
+    }
     e.changeCompositeEnabled(Boolean.TRUE.equals(d.compositeEnabled()));
     e.configureUnit(InputSanitizer.trimToNull(d.unitLabel()), InputSanitizer.trimToNull(d.unitSymbol()));
     e.configureFormula(d.unitsPerHour(), d.ratePerUnit(), InputSanitizer.trimToNull(d.currency()));

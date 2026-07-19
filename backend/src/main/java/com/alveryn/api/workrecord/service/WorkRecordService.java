@@ -185,7 +185,7 @@ public class WorkRecordService {
         breakMinutes,
         salary.hourlyRate(),
         salary.currency(),
-        normalizeExtraPayPercentage(request.extraPayPercentage()),
+        resolveExtraPayPercentage(workType, request),
         request.notes());
   }
 
@@ -205,7 +205,7 @@ public class WorkRecordService {
             durationMinutes,
             salary.hourlyRate(),
             salary.currency(),
-            normalizeExtraPayPercentage(request.extraPayPercentage()),
+            resolveExtraPayPercentage(workType, request),
             request.notes());
   }
 
@@ -230,24 +230,19 @@ public class WorkRecordService {
         quantity,
         salary.hourlyRate(),
         salary.currency(),
-        normalizeExtraPayPercentage(request.extraPayPercentage()),
+        resolveExtraPayPercentage(workType, request),
         request.notes());
   }
 
   private WorkRecordLine toUnitsPerUnitLine(
       WorkRecord record, WorkType workType, WorkRecordLineRequest request, int displayOrder) {
-    if (normalizeExtraPayPercentage(request.extraPayPercentage()) > 0) {
-      throw new ValidationException("extraPayPercentage is not supported for units paid directly");
-    }
     return WorkRecordLine.unitsPerUnit(
-        record, workType, displayOrder, requireQuantity(request), record.getTeamSize(), request.notes());
+        record, workType, displayOrder, requireQuantity(request), record.getTeamSize(),
+        resolveExtraPayPercentage(workType, request), request.notes());
   }
 
   private WorkRecordLine toFixedAmountLine(
       WorkRecord record, WorkType workType, WorkRecordLineRequest request, int displayOrder) {
-    if (normalizeExtraPayPercentage(request.extraPayPercentage()) > 0) {
-      throw new ValidationException("extraPayPercentage is not supported for fixed amount work");
-    }
     if (request.fixedAmount() == null || request.fixedAmount().signum() <= 0) {
       throw new ValidationException("fixedAmount must be positive");
     }
@@ -255,7 +250,8 @@ public class WorkRecordService {
       throw new ValidationException("currency is required for fixed amount work");
     }
     return WorkRecordLine.fixedAmount(
-        record, workType, displayOrder, request.fixedAmount(), request.currency(), request.notes());
+        record, workType, displayOrder, request.fixedAmount(), request.currency(),
+        resolveExtraPayPercentage(workType, request), request.notes());
   }
 
   private BigDecimal requireQuantity(WorkRecordLineRequest request) {
@@ -269,6 +265,10 @@ public class WorkRecordService {
     return value == null ? 0 : value;
   }
 
+  private int resolveExtraPayPercentage(WorkType workType, WorkRecordLineRequest request) {
+    return workType.isExtraPayEnabled() ? normalizeExtraPayPercentage(request.extraPayPercentage()) : 0;
+  }
+
   private WorkRecordResponse toResponse(WorkRecord record) {
     List<WorkRecordLineResponse> recordLines =
         workRecordLines.findAllByWorkRecordIdOrderByDisplayOrderAscCreatedAtAsc(record.getId()).stream()
@@ -276,8 +276,12 @@ public class WorkRecordService {
             .toList();
     BigDecimal calculatedMinutes =
         recordLines.stream().map(WorkRecordLineResponse::calculatedMinutes).reduce(BigDecimal.ZERO, BigDecimal::add);
-    BigDecimal grossAmount =
-        recordLines.stream().map(WorkRecordLineResponse::grossAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal workedMinutes = sum(recordLines, WorkRecordLineResponse::workedMinutes);
+    BigDecimal extraPaidEquivalentMinutes = sum(recordLines, WorkRecordLineResponse::extraPaidEquivalentMinutes);
+    BigDecimal totalPaidEquivalentMinutes = sum(recordLines, WorkRecordLineResponse::totalPaidEquivalentMinutes);
+    BigDecimal baseGrossAmount = sum(recordLines, WorkRecordLineResponse::baseGrossAmount);
+    BigDecimal extraGrossAmount = sum(recordLines, WorkRecordLineResponse::extraGrossAmount);
+    BigDecimal totalGrossAmount = sum(recordLines, WorkRecordLineResponse::totalGrossAmount);
     return new WorkRecordResponse(
         record.getId(),
         record.getWorkDate(),
@@ -287,8 +291,14 @@ public class WorkRecordService {
         record.getTeamSize(),
         record.getNotes(),
         calculatedMinutes,
-        calculatedMinutes.divide(BigDecimal.valueOf(60), 15, RoundingMode.HALF_UP),
-        grossAmount,
+        workedMinutes.divide(BigDecimal.valueOf(60), 15, RoundingMode.HALF_UP),
+        workedMinutes,
+        extraPaidEquivalentMinutes,
+        totalPaidEquivalentMinutes,
+        totalGrossAmount,
+        baseGrossAmount,
+        extraGrossAmount,
+        totalGrossAmount,
         resolveCurrency(recordLines),
         recordLines,
         record.getCreatedAt(),
@@ -302,6 +312,12 @@ public class WorkRecordService {
     return recordLines.stream().map(WorkRecordLineResponse::currencySnapshot).distinct().limit(2).count() == 1
         ? recordLines.getFirst().currencySnapshot()
         : null;
+  }
+
+  private BigDecimal sum(
+      List<WorkRecordLineResponse> lines,
+      java.util.function.Function<WorkRecordLineResponse, BigDecimal> value) {
+    return lines.stream().map(value).reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
   private WorkRecordLineResponse toLineResponse(WorkRecordLine line) {
@@ -322,11 +338,17 @@ public class WorkRecordService {
         line.getDurationMinutes(),
         line.getBreakMinutes(),
         line.getCalculatedMinutes(),
-        line.getCalculatedMinutes().divide(BigDecimal.valueOf(60), 15, RoundingMode.HALF_UP),
+        line.getWorkedMinutes().divide(BigDecimal.valueOf(60), 15, RoundingMode.HALF_UP),
+        line.getWorkedMinutes(),
+        line.getExtraPaidEquivalentMinutes(),
+        line.getTotalPaidEquivalentMinutes(),
         line.getHourlyRateSnapshot(),
         line.getRatePerUnitSnapshot(),
         line.getCurrencySnapshot(),
         line.getGrossAmount(),
+        line.getBaseGrossAmount(),
+        line.getExtraGrossAmount(),
+        line.getTotalGrossAmount(),
         line.getExtraPayPercentage(),
         line.getNotes());
   }

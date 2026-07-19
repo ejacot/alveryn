@@ -4,13 +4,14 @@ import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { WeeklyRhythmDay } from "../../types/dashboard";
 import { cn } from "../../utils/cn";
+import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 import { resolveWeekSwipeDirection } from "../navigation/week-selector.utils";
 
 type Props = {
   variant?: "rhythm" | "flow";
   days?: WeeklyRhythmDay[];
-  previousWeekMinutes?: number;
-  previousWeekGross?: number;
+  previousWeekAverageMinutes?: number;
+  previousWeekAverageGross?: number;
   flowCurrency?: string;
   onDaySelect?: (date: string) => void;
   onWeekSwipe?: (direction: -1 | 1) => void;
@@ -19,8 +20,8 @@ type Props = {
 export function WeeklyHoursCard({
   variant = "rhythm",
   days = [],
-  previousWeekMinutes,
-  previousWeekGross,
+  previousWeekAverageMinutes,
+  previousWeekAverageGross,
   flowCurrency = "EUR",
   onDaySelect,
   onWeekSwipe
@@ -34,18 +35,38 @@ export function WeeklyHoursCard({
   const selectedDayKey = days.find((day) => day.selected)?.key ?? "none";
   const metricValues = days.map((day) => variant === "flow" ? day.amount : day.minutes);
   const currentWeekValue = metricValues.reduce((total, value) => total + value, 0);
+  const weeklyWorkedMinutes = days.reduce((total, day) => total + day.minutes, 0);
+  const weeklyExtraMinutes = days.reduce((total, day) => total + (day.extraMinutes ?? 0), 0);
+  const weeklyBaseAmount = days.reduce(
+    (total, day) => total + (day.baseAmount ?? day.amount - (day.extraAmount ?? 0)),
+    0
+  );
+  const weeklyExtraAmount = days.reduce((total, day) => total + (day.extraAmount ?? 0), 0);
+  const weeklySummary = variant === "flow"
+    ? [
+        [t("weeklyHours.workedMoney"), formatCurrency(String(weeklyBaseAmount), flowCurrency)],
+        [t("weeklyHours.extraMoney"), formatCurrency(String(weeklyExtraAmount), flowCurrency)],
+        [t("weeklyHours.totalMoney"), formatCurrency(String(weeklyBaseAmount + weeklyExtraAmount), flowCurrency)]
+      ]
+    : [
+        [t("weeklyHours.workedHours"), formatMinutesAsDuration(weeklyWorkedMinutes)],
+        [t("weeklyHours.extraHours"), formatMinutesAsDuration(weeklyExtraMinutes)],
+        [t("weeklyHours.totalHours"), formatMinutesAsDuration(weeklyWorkedMinutes + weeklyExtraMinutes)]
+      ];
   const workedDays = days.filter((day, index) => metricValues[index] > 0 && day.status !== "absence").length;
   const dailyAverage = workedDays > 0 ? currentWeekValue / workedDays : 0;
   const maximumDailyValue = Math.max(...metricValues, 0);
   const averagePercentage = maximumDailyValue > 0
     ? Math.min((dailyAverage / maximumDailyValue) * 100, 100)
     : 0;
-  const previousWeekValue = variant === "flow" ? previousWeekGross : previousWeekMinutes;
-  const weekChange = previousWeekValue === undefined
+  const previousDailyAverage = variant === "flow"
+    ? previousWeekAverageGross
+    : previousWeekAverageMinutes;
+  const weekChange = previousDailyAverage === undefined
     ? null
-    : previousWeekValue === 0
+    : previousDailyAverage === 0
       ? currentWeekValue > 0 ? 100 : 0
-      : ((currentWeekValue - previousWeekValue) / previousWeekValue) * 100;
+      : ((dailyAverage - previousDailyAverage) / previousDailyAverage) * 100;
 
   useLayoutEffect(() => {
     if (preservedViewportTop.current === null || !sectionRef.current) return;
@@ -161,6 +182,9 @@ export function WeeklyHoursCard({
 	                {days.map((day, index) => {
 	                  const isAbsenceOnly = day.status === "absence";
 	                  const metricValue = metricValues[index] ?? 0;
+	                  const extraPayLabel = day.extraPayPercentages
+                        .map((percentage) => `+${new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(percentage)}%`)
+                        .join(" · ");
 	                  const barHeight = Math.max(
                         maximumDailyValue > 0 ? Math.min((metricValue / maximumDailyValue) * 100, 100) : 0,
                         6
@@ -182,17 +206,30 @@ export function WeeklyHoursCard({
                     >
                       <div className="relative h-28 w-full">
                         {!day.absence ? (
-                          <motion.div
-                            initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
-                            animate={{ height: `${barHeight}%`, opacity: 1 }}
-                            transition={{ duration: 0.35, delay: index * 0.04 }}
-                            className={cn(
-                              "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 rounded-full transition-colors",
-                              day.selected
-                                ? "bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.2)]"
-                                : "bg-neutral-500/55 dark:bg-neutral-400/45"
-                            )}
-                          />
+                          <>
+                            {extraPayLabel ? (
+                              <span
+                                className={cn(
+                                  "absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[0.55rem] font-bold tabular-nums",
+                                  day.selected ? "text-orange-400" : "text-emerald-500 dark:text-emerald-300"
+                                )}
+                                style={{ bottom: `calc(${barHeight}% + 0.2rem)` }}
+                              >
+                                {extraPayLabel}
+                              </span>
+                            ) : null}
+                            <motion.div
+                              initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
+                              animate={{ height: `${barHeight}%`, opacity: 1 }}
+                              transition={{ duration: 0.35, delay: index * 0.04 }}
+                              className={cn(
+                                "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 rounded-full transition-colors",
+                                day.selected
+                                  ? "bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.2)]"
+                                  : "bg-neutral-500/55 dark:bg-neutral-400/45"
+                              )}
+                            />
+                          </>
                         ) : null}
                       </div>
                       <div className="min-w-0 text-center">
@@ -228,6 +265,18 @@ export function WeeklyHoursCard({
               </motion.div>
             </AnimatePresence>
           </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 border-t border-black/10 px-5 py-4 dark:border-white/10">
+            {weeklySummary.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <p className="truncate text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-neutral-500 dark:text-white/40">
+                  {label}
+                </p>
+                <p className="mt-1 break-words text-sm font-semibold tabular-nums text-neutral-950 dark:text-white">
+                  {value}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       ) : (

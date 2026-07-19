@@ -16,8 +16,8 @@ type Props = {
   summary: DashboardSummaryMetrics | null;
   selectedDay: SelectedDayOverview;
   weeklyDays?: WeeklyRhythmDay[];
-  previousWeekMinutes?: number;
-  previousWeekGross?: number;
+  previousWeekAverageMinutes?: number;
+  previousWeekAverageGross?: number;
   flowCurrency?: string;
   absenceTypes?: AbsenceTypeSetting[];
   onQuickAdd: () => void;
@@ -36,8 +36,8 @@ export function DashboardOverview({
   summary,
   selectedDay,
   weeklyDays,
-  previousWeekMinutes,
-  previousWeekGross,
+  previousWeekAverageMinutes,
+  previousWeekAverageGross,
   flowCurrency,
   absenceTypes = [],
   onQuickAdd,
@@ -79,14 +79,14 @@ export function DashboardOverview({
       <WeeklyHoursCard
         variant="flow"
         days={weeklyDays}
-        previousWeekGross={previousWeekGross}
+        previousWeekAverageGross={previousWeekAverageGross}
         flowCurrency={flowCurrency}
         onDaySelect={onRhythmDaySelect}
         onWeekSwipe={onWeekSwipe}
       />
       <WeeklyHoursCard
         days={weeklyDays}
-        previousWeekMinutes={previousWeekMinutes}
+        previousWeekAverageMinutes={previousWeekAverageMinutes}
         onDaySelect={onRhythmDaySelect}
         onWeekSwipe={onWeekSwipe}
       />

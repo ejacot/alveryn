@@ -54,6 +54,7 @@
       "color": "Farbe",
       "defaultBreakMinutes": "Standardpause",
       "teamworkEnabled": "Teamarbeit",
+      "extraPayEnabled": "Zusatzvergütung",
       "teamworkDescription": "Fragt die Teamgröße ab und teilt direkte Einheitszahlung durch die Anzahl der Arbeiter.",
       "compositeEnabled": "Erweitert",
       "compositeDescription": "Diese Arbeitsart kann mehrere interne Formeln enthalten.",

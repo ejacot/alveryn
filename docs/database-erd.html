@@ -377,6 +377,7 @@
             <li><code>rate_per_unit</code><span class="type">numeric(12,4)</span></li>
             <li><code>currency</code><span class="type">varchar(3)</span></li>
             <li><code>teamwork_enabled</code><span class="type">boolean</span></li>
+            <li><code>extra_pay_enabled</code><span class="type">boolean</span></li>
             <li><code>composite_enabled</code><span class="type">boolean</span></li>
             <li><code>color</code><span class="type">varchar(7)</span></li>
             <li><code>default_break_minutes</code><span class="type">integer</span></li>
@@ -407,6 +408,7 @@
             <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
             <li class="fk"><code>address_id</code><span class="type">uuid</span></li>
             <li><code>work_date</code><span class="type">date</span></li>
+            <li><code>work_end_date</code><span class="type">date</span></li>
             <li><code>team_size</code><span class="type">integer</span></li>
             <li><code>notes</code><span class="type">varchar(500)</span></li>
           </ul>
@@ -432,10 +434,16 @@
             <li><code>break_minutes</code><span class="type">integer</span></li>
             <li><code>duration_minutes</code><span class="type">integer</span></li>
             <li><code>calculated_minutes</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>worked_minutes</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>extra_paid_equivalent_minutes</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>total_paid_equivalent_minutes</code><span class="type">numeric(30,15)</span></li>
             <li class="snapshot"><code>hourly_rate_snapshot</code><span class="type">numeric(10,2)</span></li>
             <li class="snapshot"><code>rate_per_unit_snapshot</code><span class="type">numeric(12,4)</span></li>
             <li class="snapshot"><code>currency_snapshot</code><span class="type">varchar(3)</span></li>
             <li><code>gross_amount</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>base_gross_amount</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>extra_gross_amount</code><span class="type">numeric(30,15)</span></li>
+            <li class="snapshot"><code>total_gross_amount</code><span class="type">numeric(30,15)</span></li>
             <li><code>extra_pay_percentage</code><span class="type">integer</span></li>
             <li><code>notes</code><span class="type">varchar(500)</span></li>
           </ul>

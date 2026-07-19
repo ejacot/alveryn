@@ -21,6 +21,14 @@ public interface WorkRecordLineRepository extends JpaRepository<WorkRecordLine, 
 
   @Query(
       """
+      select distinct line.workType.id
+      from WorkRecordLine line
+      where line.workRecord.user.id = :userId
+      """)
+  List<UUID> findUsedWorkTypeIdsByUserId(@Param("userId") UUID userId);
+
+  @Query(
+      """
       select line
       from WorkRecordLine line
       join fetch line.workRecord record

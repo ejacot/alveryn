@@ -67,12 +67,28 @@ export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }:
                     <span className={`min-w-0 truncate font-medium text-white/76 ${singleLine ? "text-base" : "text-sm"}`}>
                       {line.label}
                     </span>
-                    <span className={`max-w-[62%] text-right font-semibold leading-5 text-white ${singleLine ? "text-base" : "text-sm"}`}>
-                      {line.quantity}
+                    <span className="flex max-w-[62%] shrink-0 items-center justify-end gap-1.5">
+                      {(line.extraPayPercentage ?? 0) > 0 ? (
+                        <span className="shrink-0 rounded-md bg-emerald-400/10 px-1.5 py-1 text-[0.65rem] font-bold leading-none text-emerald-300">
+                          +{line.extraPayPercentage}%
+                        </span>
+                      ) : null}
+                      <span className={`text-right font-semibold leading-5 text-white ${singleLine ? "text-base" : "text-sm"}`}>
+                        {line.quantity}
+                      </span>
                     </span>
                   </div>
                 ))}
             </div>
+          </div>
+        ) : null}
+
+        {activity.notes?.trim() ? (
+          <div className="mt-3 border-t border-white/[0.07] pt-3">
+            <p className="hairline-text mb-1">{t("selectedDay.notes")}</p>
+            <p className="whitespace-pre-wrap break-words text-sm leading-5 text-white/62">
+              {activity.notes.trim()}
+            </p>
           </div>
         ) : null}
 

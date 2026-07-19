@@ -43,6 +43,11 @@
   "statistics": {
     "eyebrow": "Statistik",
     "title": "Statistik",
+    "comingSoon": {
+      "label": "Demnächst verfügbar",
+      "title": "Mehr Klarheit ist unterwegs",
+      "description": "Wir bereiten Statistiken vor, die deine erfasste Arbeit in hilfreiche Muster verwandeln. Deine vorhandenen Einträge stehen zum Start dieses Bereichs bereit."
+    },
     "primarySummary": "Bruttoeinkommen",
     "comparedToPrevious": "im Vergleich zum vorherigen Zeitraum",
     "filters": {

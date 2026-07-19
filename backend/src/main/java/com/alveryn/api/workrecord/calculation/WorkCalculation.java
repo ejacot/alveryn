@@ -43,6 +43,16 @@ public final class WorkCalculation {
     return quantity.multiply(ratePerUnit, TIME_MATH_CONTEXT).setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
 
+  public static BigDecimal applyExtraPay(BigDecimal amount, int extraPayPercentage) {
+    if (amount == null || amount.signum() < 0) {
+      throw new IllegalArgumentException("amount must be non-negative");
+    }
+    BigDecimal multiplier =
+        BigDecimal.valueOf(100L + normalizeExtraPayPercentage(extraPayPercentage))
+            .divide(BigDecimal.valueOf(100), TIME_MATH_CONTEXT);
+    return amount.multiply(multiplier, TIME_MATH_CONTEXT).setScale(GROSS_SCALE, RoundingMode.HALF_UP);
+  }
+
   public static int normalizeExtraPayPercentage(int value) {
     if (value < 0 || value > 1000) {
       throw new IllegalArgumentException("extraPayPercentage must be between 0 and 1000");

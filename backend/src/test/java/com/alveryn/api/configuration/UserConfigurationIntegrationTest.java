@@ -459,6 +459,58 @@ class UserConfigurationIntegrationTest {
   }
 
   @Test
+  void unusedCategoryAndItsChildrenAreDeletedTogether() throws Exception {
+    UserAccount user = createVerifiedUser("delete-unused-category@example.com");
+    WorkType category = new WorkType(user, "Cleaning", CalculationMethod.TIME_BASED);
+    category.changeColor("#87C95A");
+    category.changeCompositeEnabled(true);
+    workTypes.saveAndFlush(category);
+    WorkType child = new WorkType(user, "Rooms", CalculationMethod.TIME_BASED);
+    child.changeParent(category);
+    child.changeColor("#87C95A");
+    workTypes.saveAndFlush(child);
+
+    mockMvc
+        .perform(get("/api/work-types/" + category.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.deletable").value(true));
+
+    mockMvc
+        .perform(delete("/api/work-types/" + category.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isNoContent());
+
+    assertThat(workTypes.findById(category.getId())).isEmpty();
+    assertThat(workTypes.findById(child.getId())).isEmpty();
+  }
+
+  @Test
+  void categoryWithUsedChildIsDeactivatedAndPreserved() throws Exception {
+    UserAccount user = createVerifiedUser("deactivate-used-category@example.com");
+    createOpenEndedRate(user, "18.00");
+    WorkType category = new WorkType(user, "Hotel", CalculationMethod.TIME_BASED);
+    category.changeColor("#87C95A");
+    category.changeCompositeEnabled(true);
+    workTypes.saveAndFlush(category);
+    WorkType child = new WorkType(user, "Rooms", CalculationMethod.TIME_BASED);
+    child.changeParent(category);
+    child.changeColor("#87C95A");
+    workTypes.saveAndFlush(child);
+    createTimeBasedWorkRecord(user, child, LocalDate.of(2026, 7, 2));
+
+    mockMvc
+        .perform(get("/api/work-types/" + category.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.deletable").value(false));
+
+    mockMvc
+        .perform(delete("/api/work-types/" + category.getId()).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isNoContent());
+
+    assertThat(workTypes.findById(category.getId()).orElseThrow().isActive()).isFalse();
+    assertThat(workTypes.findById(child.getId())).isPresent();
+  }
+
+  @Test
   void childWorkTypeCrudRejectsDuplicatesAndDeletesUnusedTypes() throws Exception {
     UserAccount user = createVerifiedUser("work-formulas@example.com");
     createOpenEndedRate(user, "18.00");

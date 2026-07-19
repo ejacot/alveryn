@@ -19,6 +19,7 @@ public record WorkTypeResponse(
     BigDecimal ratePerUnit,
     String currency,
     boolean teamworkEnabled,
+    boolean extraPayEnabled,
     boolean compositeEnabled,
     String color,
     String icon,

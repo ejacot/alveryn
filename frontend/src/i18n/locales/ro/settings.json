@@ -54,6 +54,7 @@
       "color": "Culoare",
       "defaultBreakMinutes": "Pauză implicită",
       "teamworkEnabled": "Lucru in echipa",
+      "extraPayEnabled": "Plată extra",
       "teamworkDescription": "Cere numarul de lucratori si imparte plata directa per unitate la echipa.",
       "compositeEnabled": "Avansat",
       "compositeDescription": "Acest tip de lucru poate contine mai multe formule interne.",

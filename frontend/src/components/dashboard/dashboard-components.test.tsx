@@ -12,27 +12,21 @@ import type {
 
 const baseSummary: DashboardSummaryMetrics = {
   primaryMetric: {
-    label: "Today",
+    label: "Today hours",
     value: "8h 00m",
-    hint: "1 tracked entry"
+    hint: ""
   },
   secondaryMetrics: [
     {
-      label: "Gross",
+      label: "Today money",
       value: "EUR 160.00",
-      hint: "This day"
-    },
-    {
-      label: "Week",
-      value: "32h 00m",
-      hint: "4 entries this week"
+      hint: ""
     }
   ],
-  tertiaryMetric: {
-    label: "Week gross",
-    value: "EUR 640.00",
-    hint: "This week"
-  }
+  extraTimeMetric: { label: "Extra hours", value: "2h 00m", hint: "" },
+  extraMoneyMetric: { label: "Extra money", value: "EUR 40.00", hint: "" },
+  totalTimeMetric: { label: "Total hours", value: "10h 00m", hint: "" },
+  totalMoneyMetric: { label: "Total money", value: "EUR 200.00", hint: "" }
 };
 const baseSelectedDay: SelectedDayOverview = {
   label: "Today",
@@ -48,6 +42,7 @@ const weeklyDays: WeeklyRhythmDay[] = [
     value: "0h 00m",
     minutes: 0,
     amount: 0,
+    extraPayPercentages: [],
     markerLabel: null,
     status: "idle",
     percentage: 0,
@@ -59,6 +54,7 @@ const weeklyDays: WeeklyRhythmDay[] = [
     value: "4h 00m",
     minutes: 240,
     amount: 80,
+    extraPayPercentages: [],
     markerLabel: "-4",
     status: "under",
     percentage: 50,
@@ -70,6 +66,7 @@ const weeklyDays: WeeklyRhythmDay[] = [
     value: "8h 30m",
     minutes: 510,
     amount: 170,
+    extraPayPercentages: [50],
     markerLabel: null,
     status: "met",
     percentage: 100,
@@ -81,6 +78,7 @@ const weeklyDays: WeeklyRhythmDay[] = [
     value: "0h 00m",
     minutes: 0,
     amount: 0,
+    extraPayPercentages: [],
     markerLabel: null,
     status: "absence",
     absence: {
@@ -192,6 +190,56 @@ describe("dashboard components", () => {
     expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
   });
 
+  it("shows job notes only when the record contains text", () => {
+    render(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={{
+          ...baseSelectedDay,
+          entriesCount: 2,
+          activities: [
+            {
+              id: "record-with-notes",
+              title: "",
+              kind: "TIME_BASED",
+              subtitle: "",
+              notes: "Call the site manager before arrival.",
+              duration: "2h 00m",
+              amount: "EUR 40.00",
+              unitBreakdown: [
+                {
+                  id: "line-with-extra-pay",
+                  label: "Overtime shift",
+                  quantity: "2h 00m",
+                  extraPayPercentage: 100
+                }
+              ]
+            },
+            {
+              id: "record-without-notes",
+              title: "",
+              kind: "FIXED_PRICE_BASED",
+              subtitle: "",
+              notes: "   ",
+              duration: "",
+              amount: "EUR 500.00",
+              unitBreakdown: []
+            }
+          ]
+        }}
+        weeklyDays={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Call the site manager before arrival.")).toBeInTheDocument();
+    expect(screen.getAllByText("Notes")).toHaveLength(1);
+    expect(screen.getByText("+100%")).toBeInTheDocument();
+    expect(screen.getByText("Overtime shift").closest("div")).toHaveTextContent("+100%");
+    expect(screen.getByText("Overtime shift").closest("div")).not.toHaveTextContent("Extra");
+  });
+
   it("renders absence as a day activity item", () => {
     render(
       <DashboardOverview
@@ -246,10 +294,40 @@ describe("dashboard components", () => {
   it("renders the expected dashboard metric structure", () => {
     render(<SummaryCards metrics={baseSummary} />);
 
-    expect(screen.getByText("Today")).toBeInTheDocument();
-    expect(screen.getByText("Gross")).toBeInTheDocument();
-    expect(screen.getByText("Week")).toBeInTheDocument();
-    expect(screen.getByText("EUR 640.00")).toBeInTheDocument();
+    expect(screen.getByText("Today hours")).toBeInTheDocument();
+    expect(screen.getByText("Today money")).toBeInTheDocument();
+    expect(screen.getByText("Extra hours")).toBeInTheDocument();
+    expect(screen.getByText("Extra money")).toBeInTheDocument();
+    expect(screen.getByText("Total hours")).toBeInTheDocument();
+    expect(screen.getByText("Total money")).toBeInTheDocument();
+  });
+
+  it("renders the paid absence block and omits an empty unpaid block", () => {
+    const { rerender } = render(
+      <SummaryCards
+        metrics={{
+          absenceMetric: {
+            label: "Vacation",
+            duration: "8h 00m",
+            amount: "EUR 160.00"
+          }
+        }}
+      />
+    );
+
+    expect(screen.getByText("Vacation")).toBeInTheDocument();
+    expect(screen.getByText("8h 00m")).toBeInTheDocument();
+    expect(screen.getByText("EUR 160.00")).toBeInTheDocument();
+
+    rerender(
+      <SummaryCards
+        metrics={{ absenceMetric: null }}
+      />
+    );
+
+    expect(screen.queryByText("Day off")).not.toBeInTheDocument();
+    expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
+    expect(screen.queryByText("EUR 160.00")).not.toBeInTheDocument();
   });
 
   it("hides the time column when the summary only contains money", () => {
@@ -269,6 +347,31 @@ describe("dashboard components", () => {
     expect(screen.getByText("EUR 640.00")).toBeInTheDocument();
   });
 
+  it("shows worked, extra, and total weekly values in rhythm and flow", () => {
+    const summaryDays = weeklyDays.map((day) =>
+      day.key === "2026-07-15"
+        ? { ...day, extraMinutes: 60, baseAmount: 150, extraAmount: 20 }
+        : { ...day, extraMinutes: 0, baseAmount: day.amount, extraAmount: 0 }
+    );
+    const { rerender } = render(<WeeklyHoursCard days={summaryDays} />);
+
+    expect(screen.getByText("Worked")).toBeInTheDocument();
+    expect(screen.getByText("Extra")).toBeInTheDocument();
+    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("12h 30m")).toBeInTheDocument();
+    expect(screen.getByText("1h 00m")).toBeInTheDocument();
+    expect(screen.getByText("13h 30m")).toBeInTheDocument();
+
+    rerender(<WeeklyHoursCard variant="flow" days={summaryDays} flowCurrency="EUR" />);
+
+    expect(screen.getByText("Worked")).toBeInTheDocument();
+    expect(screen.getByText("Extra")).toBeInTheDocument();
+    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("€230.00")).toBeInTheDocument();
+    expect(screen.getByText("€20.00")).toBeInTheDocument();
+    expect(screen.getByText("€250.00")).toBeInTheDocument();
+  });
+
   it("renders localized weekly-hours empty state and chart", async () => {
     const onDaySelect = vi.fn();
     const user = userEvent.setup();
@@ -281,13 +384,14 @@ describe("dashboard components", () => {
     rerender(
       <WeeklyHoursCard
         days={weeklyDays}
-        previousWeekMinutes={600}
+        previousWeekAverageMinutes={300}
         onDaySelect={onDaySelect}
       />
     );
     expect(screen.queryByText("Wochenstunden")).not.toBeInTheDocument();
     expect(screen.getByText("Wed")).toBeInTheDocument();
     expect(screen.getByText("8,5")).toBeInTheDocument();
+    expect(screen.getByText("+50%")).toBeInTheDocument();
     expect(screen.queryByText("-4")).not.toBeInTheDocument();
     expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Thu, Vacation")).toBeInTheDocument();

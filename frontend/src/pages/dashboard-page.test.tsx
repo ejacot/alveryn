@@ -207,7 +207,8 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
     expect(screen.queryByText("Orders")).not.toBeInTheDocument();
     expect(screen.queryByText("1 work line")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Monday, July 13")).toHaveLength(1);
+    expect(screen.getByText("Today hours")).toBeInTheDocument();
+    expect(screen.getByText("Today money")).toBeInTheDocument();
     expect(screen.queryByText("Recent entries")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -266,12 +267,44 @@ describe("DashboardPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Sick")).toBeInTheDocument();
+    expect(await screen.findAllByText("Sick")).toHaveLength(2);
     expect(screen.getByText("Day off")).toBeInTheDocument();
     expect(screen.getByText("Equivalent worked time: 8h 00m")).toBeInTheDocument();
-    expect(screen.getByText("8h 00m paid")).toBeInTheDocument();
+    expect(screen.getByText("8h 00m")).toBeInTheDocument();
+    expect(screen.getByText("€160.00")).toBeInTheDocument();
+    expect(screen.queryByText("Today hours")).not.toBeInTheDocument();
+    expect(screen.queryByText("Today money")).not.toBeInTheDocument();
     expect(screen.queryByText("No work planned")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Absence" })).not.toBeInTheDocument();
+  });
+
+  it("renders an unpaid absence in summary without hours or money", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(getAbsences).mockResolvedValue({
+      ...emptyAbsencePage(),
+      content: [
+        {
+          id: "absence-free",
+          absenceTypeId: "absence-free-type",
+          absenceType: "DAY_OFF",
+          absenceTypeName: "Free",
+          paid: false,
+          paidMinutesPerDay: 0,
+          startDate: "2026-07-13",
+          endDate: "2026-07-13",
+          notes: null
+        }
+      ],
+      size: 1,
+      totalElements: 1,
+      numberOfElements: 1
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Free")).toBeInTheDocument();
+    expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
+    expect(screen.queryByText("€160.00")).not.toBeInTheDocument();
   });
 
   it("marks weekly absence days in the rhythm chart", async () => {

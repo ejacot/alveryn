@@ -24,6 +24,7 @@ export function PreviewDashboardPage() {
     value: index === 2 ? "6h 30m" : "4h 00m",
     minutes: index === 2 ? 390 : 240,
     amount: index === 2 ? 180 : 120,
+    extraPayPercentages: [],
     markerLabel: previewWeeklyMarkers[index] ?? null,
     status: previewWeeklyStates[index] ?? "idle",
     percentage,

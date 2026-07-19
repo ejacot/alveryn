@@ -925,7 +925,7 @@ function WorkRecordLineCard({
                 }}
                 onChange={(event) => onChange(line.id, { durationMinutes: event.currentTarget.value })}
               />
-              {!embedded ? (
+              {selectedWorkType.extraPayEnabled && !embedded ? (
                 <Input
                   label={t("records:fields.extraPay")}
                   type="number"
@@ -956,7 +956,7 @@ function WorkRecordLineCard({
                 onFocus={() => onChange(line.id, { unpaidBreakMinutes: "" })}
                 onChange={(event) => onChange(line.id, { unpaidBreakMinutes: event.currentTarget.value })}
               />
-              {!embedded ? <Input
+              {selectedWorkType.extraPayEnabled && !embedded ? <Input
                 label={t("records:fields.extraPay")}
                 type="number"
                 inputMode="numeric"
@@ -1023,7 +1023,7 @@ function WorkRecordLineCard({
                 </span>
               </div>
             </div>
-          {line.calculationMode === "UNITS_PER_HOUR" && !embedded ? (
+          {line.calculationMode === "UNITS_PER_HOUR" && selectedWorkType.extraPayEnabled && !embedded ? (
             <div className="grid grid-cols-1 gap-3">
               <Input
                 label={t("records:fields.extraPay")}
@@ -1040,6 +1040,22 @@ function WorkRecordLineCard({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {selectedWorkType?.extraPayEnabled &&
+      (embedded || line.calculationMode === "UNITS_PER_UNIT" || line.calculationMode === "FIXED_AMOUNT") ? (
+        <Input
+          label={t("records:fields.extraPay")}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={1000}
+          value={line.extraPayPercentage}
+          onFocus={() => {
+            if (line.extraPayPercentage === "0") onChange(line.id, { extraPayPercentage: "" });
+          }}
+          onChange={(event) => onChange(line.id, { extraPayPercentage: event.currentTarget.value })}
+        />
       ) : null}
 
       {preview && !embedded ? (
@@ -1305,7 +1321,7 @@ function buildPayload({
         payloadLines.push({
           ...baseLine,
           durationMinutes,
-          extraPayPercentage: workType.parentId ? 0 : Number(line.extraPayPercentage || 0)
+          extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
         });
         continue;
       }
@@ -1317,7 +1333,7 @@ function buildPayload({
         startTime: line.startTime,
         endTime: line.endTime,
         unpaidBreakMinutes: Number(line.unpaidBreakMinutes || 0),
-        extraPayPercentage: workType.parentId ? 0 : Number(line.extraPayPercentage || 0)
+        extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
       });
       continue;
     }
@@ -1333,7 +1349,8 @@ function buildPayload({
       payloadLines.push({
         ...baseLine,
         fixedAmount,
-        currency
+        currency,
+        extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
       });
       continue;
     }
@@ -1344,7 +1361,7 @@ function buildPayload({
     payloadLines.push({
       ...baseLine,
       quantity,
-      extraPayPercentage: line.calculationMode === "UNITS_PER_HOUR" && !workType.parentId ? Number(line.extraPayPercentage || 0) : 0
+      extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
     });
   }
 
