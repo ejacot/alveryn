@@ -978,7 +978,7 @@ public class StatisticsService {
     WorkLineCalculationMode mode = line.getCalculationModeSnapshot();
     CalculationMethod calculationMethod =
         switch (mode) {
-          case TIME_HOURLY -> CalculationMethod.TIME_BASED;
+          case TIME_HOURLY, TIME_ONLY -> CalculationMethod.TIME_BASED;
           case FIXED_AMOUNT -> CalculationMethod.FIXED_PRICE_BASED;
           case UNITS_PER_HOUR, UNITS_PER_UNIT -> CalculationMethod.UNIT_BASED;
         };

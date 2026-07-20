@@ -1,4 +1,5 @@
 import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 import { useTranslation } from "react-i18next";
 
 type Props = {
@@ -17,9 +18,9 @@ export function CalendarErrorState({ message, onRetry }: Props) {
         </h1>
         <p className="max-w-md text-sm leading-6 text-white/58">{message}</p>
       </div>
-      <div className="surface-muted p-5">
+      <Card variant="muted" className="p-5">
         <Button onClick={onRetry}>{t("common:actions.retry")}</Button>
-      </div>
+      </Card>
     </div>
   );
 }

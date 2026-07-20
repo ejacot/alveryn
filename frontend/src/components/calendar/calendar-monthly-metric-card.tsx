@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
+import { Card } from "../ui/card";
 
 export type CalendarMonthlyMetricDay = {
   key: string;
@@ -43,7 +44,7 @@ export function CalendarMonthlyMetricCard({
       aria-label={t(variant === "flow" ? "monthlyCharts.flow" : "monthlyCharts.rhythm")}
     >
       <p className="hairline-text">{t(variant === "flow" ? "monthlyCharts.flow" : "monthlyCharts.rhythm")}</p>
-      <div className="dashboard-glass-card overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 dark:border-white/10">
           <div className="min-w-0">
             <p className="text-xs font-medium text-neutral-500 dark:text-white/45">
@@ -121,7 +122,7 @@ export function CalendarMonthlyMetricCard({
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }

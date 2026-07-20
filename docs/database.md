@@ -1,6 +1,6 @@
 # Alveryn Database Model
 
-Current schema version: V40.
+Current schema version: V43.
 
 Alveryn now tracks work through `work_records` and `work_record_lines`.
 `work_types` define both simple formulas and optional parent/child formula groups.
@@ -34,3 +34,5 @@ Old Flyway migrations still mention them because they describe historical schema
 V34 removes the legacy Excel import and work-entry tables from the final schema.
 V36 removes `time_spans`; periods now live directly on the owning tables.
 V38 makes extra pay an explicit WorkType capability, V39 permits it for every calculation mode, and V40 adds explicit worked, extra and total result snapshots without deleting historical records.
+V41 adds the non-negative `user_preferences.guide_version_completed` marker. Existing accounts receive version `0`, so newly released mandatory guides can be shown safely without changing or deleting user work data.
+V44 promotes employment into a first-class aggregate, backfills a primary employment for every existing account, links existing work types and records without deleting legacy profile data, and adds `TIME_ONLY` record snapshots for fixed-salary hour tracking. Versions 42–43 remain reserved for the previously deployed compatibility migrations.

@@ -27,6 +27,11 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, UUID> {
       @Param("toDate") LocalDate toDate);
 
   boolean existsByUserIdAndWorkDateBetween(UUID userId, LocalDate fromDate, LocalDate toDate);
+  boolean existsByUserIdAndEmploymentIdAndWorkDateBetween(
+      UUID userId, UUID employmentId, LocalDate fromDate, LocalDate toDate);
+  boolean existsByEmploymentId(UUID employmentId);
+  long countByProjectId(UUID projectId);
+  boolean existsByProjectId(UUID projectId);
 
   @Query("select min(record.workDate) from WorkRecord record where record.user.id = :userId")
   LocalDate findEarliestWorkDateByUserId(@Param("userId") UUID userId);

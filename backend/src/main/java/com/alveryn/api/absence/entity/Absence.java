@@ -1,6 +1,7 @@
 package com.alveryn.api.absence.entity;
 
 import com.alveryn.api.common.persistence.BaseEntity;
+import com.alveryn.api.employment.entity.Employment;
 import com.alveryn.api.user.entity.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,6 +25,10 @@ public class Absence extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "employment_id", nullable = false)
+  private Employment employment;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "absence_type", nullable = false, length = 30)
@@ -52,8 +57,8 @@ public class Absence extends BaseEntity {
   private String notes;
 
   public Absence(
-      UserAccount user, AbsenceType absenceType, LocalDate startDate, LocalDate endDate) {
-    this.user = Objects.requireNonNull(user, "user is required");
+      UserAccount user, Employment employment, AbsenceType absenceType, LocalDate startDate, LocalDate endDate) {
+    assignOwner(user, employment);
     this.absenceType = Objects.requireNonNull(absenceType, "absenceType is required");
     this.absenceTypeNameSnapshot = defaultName(absenceType);
     this.paidSnapshot = false;
@@ -65,13 +70,23 @@ public class Absence extends BaseEntity {
   }
 
   public Absence(
-      UserAccount user, AbsenceTypeSetting absenceTypeSetting, LocalDate startDate, LocalDate endDate) {
-    this.user = Objects.requireNonNull(user, "user is required");
+      UserAccount user, Employment employment, AbsenceTypeSetting absenceTypeSetting, LocalDate startDate, LocalDate endDate) {
+    assignOwner(user, employment);
     applyAbsenceType(absenceTypeSetting);
     if (startDate == null || endDate == null || endDate.isBefore(startDate))
       throw new IllegalArgumentException("invalid absence range");
     this.startDate = startDate;
     this.endDate = endDate;
+  }
+
+  private void assignOwner(UserAccount owner, Employment assignedEmployment) {
+    user = Objects.requireNonNull(owner, "user is required");
+    employment = Objects.requireNonNull(assignedEmployment, "employment is required");
+    if (employment.getUser() != owner
+        && (employment.getUser().getId() == null
+            || !employment.getUser().getId().equals(owner.getId()))) {
+      throw new IllegalArgumentException("employment must belong to absence user");
+    }
   }
 
   public void update(AbsenceType absenceType, LocalDate startDate, LocalDate endDate, String notes) {

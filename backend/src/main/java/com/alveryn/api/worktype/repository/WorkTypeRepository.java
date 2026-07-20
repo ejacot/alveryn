@@ -18,6 +18,7 @@ public interface WorkTypeRepository extends JpaRepository<WorkType, UUID> {
   List<WorkType> findAllByUserIdAndParentIdIn(UUID userId, Collection<UUID> parentIds);
 
   boolean existsByParentId(UUID parentId);
+  boolean existsByEmploymentId(UUID employmentId);
 
   Optional<WorkType> findByUserIdAndNormalizedName(UUID userId, String normalizedName);
 

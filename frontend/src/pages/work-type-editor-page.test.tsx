@@ -32,6 +32,7 @@ vi.mock("../api/endpoints", () => ({
   createWorkType: vi.fn(),
   deleteWorkType: vi.fn(),
   getWorkType: vi.fn(),
+  listEmployments: vi.fn(),
   listWorkTypes: vi.fn(),
   updateWorkType: vi.fn()
 }));
@@ -47,6 +48,7 @@ import {
   createWorkType,
   deleteWorkType,
   getWorkType,
+  listEmployments,
   listWorkTypes,
   updateWorkType
 } from "../api/endpoints";
@@ -109,6 +111,25 @@ describe("WorkTypeEditorPage", () => {
     routeState.compensationMethod = undefined;
     routeState.search = undefined;
     navigateMock.mockReset();
+    vi.mocked(listEmployments).mockResolvedValue([{
+      id: "employment-1",
+      name: "Primary employment",
+      employmentType: null,
+      compensationType: "HOURLY",
+      trackingFocus: "EARNINGS",
+      hourBalanceEnabled: false,
+      termsValidFrom: "2026-01-01",
+      startDate: null,
+      endDate: null,
+      fixedSalaryAmount: null,
+      currency: null,
+      targetMinutes: null,
+      targetPeriod: null,
+      hourBalanceValidityMonths: null,
+      active: true,
+      displayOrder: 0,
+      deletable: true
+    }]);
     vi.mocked(createWorkType).mockResolvedValue({
       id: "work-type-1",
       name: "Check",
@@ -191,13 +212,13 @@ describe("WorkTypeEditorPage", () => {
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "check");
     await user.click(screen.getByLabelText("Extra pay"));
-    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("check")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalled();
 	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual(expect.objectContaining({
-	        name: "CHECK",
+	        name: "check",
 	        calculationMethod: "TIME_BASED",
 	        color: "#A3E635",
 	        icon: null,
@@ -217,10 +238,7 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Time based" })).toBeInTheDocument();
-    expect(screen.getByText("For shifts or tasks measured in hours.")).toBeInTheDocument();
-    expect(screen.getByText("A name and the usual break time.")).toBeInTheDocument();
-    expect(screen.getByText(/Worked time and estimated earnings/i)).toBeInTheDocument();
+    expect(screen.getByText("Time based")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Default break")).toBeInTheDocument();
     expect(screen.getByLabelText("Teamwork")).toBeInTheDocument();
@@ -238,9 +256,8 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Fixed price" })).toBeInTheDocument();
-    expect(screen.getByText(/Only a name. You enter the amount/i)).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Time based" })).not.toBeInTheDocument();
+    expect(screen.getByText("Fixed price")).toBeInTheDocument();
+    expect(screen.queryByText("Time based")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Default break")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
   });
@@ -254,7 +271,7 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Time based" })).toBeInTheDocument();
+    expect(screen.getByText("Time based")).toBeInTheDocument();
     expect(screen.getByLabelText("Default break")).toBeInTheDocument();
     expect(screen.queryByText("Fixed price")).not.toBeInTheDocument();
 
@@ -265,7 +282,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-        name: "CHECK",
+        name: "Check",
         calculationMethod: "TIME_BASED",
         compensationMethod: "HOURLY",
         defaultBreakMinutes: 30
@@ -320,7 +337,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-        name: "DAILY WORK",
+        name: "Daily work",
         calculationMethod: "TIME_BASED",
         teamworkEnabled: true,
         compositeEnabled: true,
@@ -361,7 +378,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
 	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual(expect.objectContaining({
-	        name: "CAMERE",
+	        name: "Camere",
 	        calculationMethod: "UNITS_PER_HOUR_BASED",
           unitLabel: "Room",
           unitsPerHour: 2.4,
@@ -396,7 +413,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
 	      expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-	        name: "ROOMS",
+	        name: "Rooms",
 	        calculationMethod: "UNITS_PER_HOUR_BASED",
           unitLabel: "Room",
           unitsPerHour: 2,
@@ -432,7 +449,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-        name: "FLOOR HEATING",
+        name: "Floor heating",
         calculationMethod: "UNITS_PER_HOUR_BASED",
         unitLabel: null,
         unitSymbol: null,
@@ -466,7 +483,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-        name: "ROOF REPAIR",
+        name: "Roof repair",
         calculationMethod: "FIXED_PRICE_BASED",
         compensationMethod: "HOURLY",
         unitLabel: null,
@@ -488,7 +505,7 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    expect(await screen.findByRole("heading", { name: "Fixed price" })).toBeInTheDocument();
+    expect(await screen.findByText("Fixed price")).toBeInTheDocument();
     expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Advanced"));
@@ -510,7 +527,7 @@ describe("WorkTypeEditorPage", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     expect(await screen.findAllByText("A work type with this name already exists.")).toHaveLength(2);
-    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -525,7 +542,7 @@ describe("WorkTypeEditorPage", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     expect(await screen.findAllByText("Name already exists")).toHaveLength(2);
-    expect(screen.getByDisplayValue("CHECK")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -575,7 +592,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
-        name: "PRESIDENT",
+        name: "president",
         active: false
       }));
     });
@@ -706,7 +723,7 @@ describe("WorkTypeEditorPage", () => {
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
-        name: "CHECK",
+        name: "Check",
         color: "#60a5fa"
       }));
     });

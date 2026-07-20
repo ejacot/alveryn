@@ -9,6 +9,7 @@ import java.util.UUID;
 @Schema(description = "Work type definition used for work record line classification")
 public record WorkTypeResponse(
     UUID id,
+    UUID employmentId,
     UUID parentId,
     String name,
     CalculationMethod calculationMethod,

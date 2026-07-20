@@ -82,10 +82,10 @@ export function StatisticsSummaryCards({ overview }: Props) {
     <section aria-label={t("statistics.cards.label")} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         {cards.map((card) => (
-          <article key={card.label} className="surface-muted p-4">
+          <Card as="article" variant="muted" key={card.label} className="p-4">
             <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-white/38">{card.label}</h2>
             <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">{card.value}</p>
-          </article>
+          </Card>
         ))}
       </div>
       {hasGrossWithoutWorkedTime ? (
@@ -96,3 +96,4 @@ export function StatisticsSummaryCards({ overview }: Props) {
     </section>
   );
 }
+import { Card } from "../../../components/ui/card";

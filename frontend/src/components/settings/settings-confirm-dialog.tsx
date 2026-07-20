@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../ui/button";
+import { LockedModalViewport } from "../ui/locked-modal-viewport";
+import { ModalActions } from "../ui/modal-actions";
 
 type Props = {
   open: boolean;
@@ -35,8 +36,6 @@ export function SettingsConfirmDialog({
     }
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     cancelButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -72,7 +71,6 @@ export function SettingsConfirmDialog({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
       previousFocusRef.current?.focus();
     };
@@ -83,10 +81,10 @@ export function SettingsConfirmDialog({
   }
 
   return (
-    <div
+    <LockedModalViewport
       ref={overlayRef}
       role="presentation"
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 px-4 pb-6 pt-10 backdrop-blur-sm sm:items-center"
+      className="bg-black/50 px-4 py-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === overlayRef.current) {
           onCancel();
@@ -99,26 +97,22 @@ export function SettingsConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="w-full max-w-md rounded-[32px] border border-white/[0.06] bg-[#0b0b0b]/95 px-6 py-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
       >
         <div className="space-y-3">
           <h2 id={titleId} className="text-[1.2rem] font-semibold tracking-[-0.05em] text-white">{title}</h2>
           <p id={descriptionId} className="text-sm leading-6 text-white/50">{description}</p>
         </div>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button ref={cancelButtonRef} type="button" variant="secondary" onClick={onCancel} disabled={pending}>
-            {t("actions.cancel")}
-          </Button>
-          <Button
-            type="button"
-            onClick={onConfirm}
-            disabled={pending}
-            className="bg-white text-black hover:bg-white/90"
-          >
-            {pending ? t("actions.working") : confirmLabel}
-          </Button>
-        </div>
+        <ModalActions
+          className="mt-6"
+          cancelRef={cancelButtonRef}
+          cancelLabel={t("actions.cancel")}
+          saveLabel={pending ? t("actions.working") : confirmLabel}
+          pending={pending}
+          onCancel={onCancel}
+          onSave={onConfirm}
+        />
       </div>
-    </div>
+    </LockedModalViewport>
   );
 }

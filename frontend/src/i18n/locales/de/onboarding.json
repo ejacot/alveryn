@@ -6,5 +6,30 @@
   "welcomeTitle": "Willkommen bei Alveryn",
   "profileTitle": "Lass uns dich kurz kennenlernen.",
   "hourlyRateTitle": "Wie viel verdienst du pro Stunde?",
-  "hourlyRateHint": "Heute als EUR gespeichert."
+  "hourlyRateHint": "Heute als EUR gespeichert.",
+  "trackingSetup": {
+    "updateLabel": "Kurzes Update",
+    "setupLabel": "Erste Einrichtung",
+    "title": "Was möchtest du erfassen?",
+    "description": "Wähle für jede Beschäftigung, was wichtig ist. Alveryn hält die Oberfläche übersichtlich und blendet irrelevante Werte aus.",
+    "chooseForEmployment": "Wähle, wie diese Beschäftigung funktionieren soll.",
+    "employmentName": "Name der Beschäftigung",
+    "choiceLabel": "Erfassungsmodus",
+    "options": {
+      "TIME": {
+        "title": "Zeiterfassung",
+        "description": "Arbeitszeit sowie Check-in und Check-out erfassen. Geld bleibt ausgeblendet."
+      },
+      "EARNINGS": {
+        "title": "Verdiensterfassung",
+        "description": "Stunden, Mengen oder erledigte Arbeit zusammen mit dem Verdienst erfassen."
+      }
+    },
+    "continue": "Speichern und weiter",
+    "saving": "Wird gespeichert...",
+    "changeLater": "Du kannst dies später unter Einstellungen → Beschäftigung ändern.",
+    "nameRequired": "Der Name der Beschäftigung ist erforderlich.",
+    "loading": "Beschäftigung wird vorbereitet...",
+    "errorTitle": "Die Einrichtung muss erneut versucht werden"
+  }
 }

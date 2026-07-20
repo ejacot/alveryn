@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Plus, X } from "lucide-react";
+import { Check, ChevronRight, Plus } from "lucide-react";
 import type { TFunction } from "i18next";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import {
@@ -16,11 +17,16 @@ import {
   type AbsenceTypePayload
 } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
-import { SettingsFormActions } from "../components/settings/settings-form-actions";
-import { SettingsContextCard } from "../components/settings/settings-context-card";
+import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
+import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
-import { Button } from "../components/ui/button";
+import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
+import { ModalActions } from "../components/ui/modal-actions";
+import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
@@ -49,13 +55,13 @@ type FormInput = z.input<typeof schema>;
 export function SettingsAbsencePage() {
   const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const employmentId = searchParams.get("employmentId");
   const [editing, setEditing] = useState<AbsenceTypeSetting | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const backButtonRef = useRef<HTMLButtonElement | null>(null);
-  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
-  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
-  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
+  const safeBack = useSafeBackNavigation({ fallback: employmentId ? `/settings/employment/${employmentId}` : "/profile" });
 
   const absenceTypesQuery = useQuery({
     queryKey: queryKeys.absenceTypes.list(false),
@@ -71,35 +77,6 @@ export function SettingsAbsencePage() {
     resolver: zodResolver(schema),
     defaultValues: toFormValues(null, absenceTypes.length)
   });
-
-  useEffect(() => {
-    let frameId = 0;
-
-    const updateCompactTitle = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const titleRect = largeTitleRef.current?.getBoundingClientRect();
-        const buttonRect = backButtonRef.current?.getBoundingClientRect();
-
-        if (!titleRect || !buttonRect) {
-          setCompactTitleVisible(false);
-          return;
-        }
-
-        setCompactTitleVisible(titleRect.top <= buttonRect.top);
-      });
-    };
-
-    updateCompactTitle();
-    window.addEventListener("scroll", updateCompactTitle, { passive: true });
-    window.addEventListener("resize", updateCompactTitle);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", updateCompactTitle);
-      window.removeEventListener("resize", updateCompactTitle);
-    };
-  }, []);
 
   useEffect(() => {
     form.reset(toFormValues(editing, absenceTypes.length));
@@ -125,14 +102,15 @@ export function SettingsAbsencePage() {
     }
   });
 
-  const deactivateMutation = useMutation({
-    mutationFn: (id: string) => deleteAbsenceType(id),
-    onSuccess: async () => {
+  const removeMutation = useMutation({
+    mutationFn: ({ id }: { id: string; deletable: boolean }) => deleteAbsenceType(id),
+    onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.absenceTypes.all() });
+      setRemoveDialogOpen(false);
       setEditorOpen(false);
       setEditing(null);
       form.reset(toFormValues(null, absenceTypes.length));
-      setSuccessMessage(t("settings:absenceSettings.deactivated"));
+      setSuccessMessage(t(variables.deletable ? "settings:absenceSettings.deleted" : "settings:absenceSettings.deactivated"));
     }
   });
 
@@ -166,6 +144,7 @@ export function SettingsAbsencePage() {
 
   function closeEditor() {
     confirmOrRun(() => {
+      setRemoveDialogOpen(false);
       setEditorOpen(false);
       setEditing(null);
       form.reset(toFormValues(null, absenceTypes.length));
@@ -173,75 +152,47 @@ export function SettingsAbsencePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
-        <button
-          ref={backButtonRef}
-          type="button"
-          onClick={() => confirmOrRun(safeBack)}
-          aria-label={t("common:actions.back")}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
-        >
-          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
-          <span>{t("common:actions.back")}</span>
-        </button>
-        <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
-            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
-          }`}
-          aria-hidden="true"
-        >
-          {title}
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <SettingsNavigationHeader
+        title={title}
+        backLabel={t("common:actions.back")}
+        onBack={safeBack}
+        action={absenceTypes.length ? {
+          label: t("settings:absenceSettings.addType"),
+          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
+          onClick: openCreate
+        } : undefined}
+      />
 
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {title}
-      </h1>
-
-      <SettingsContextCard context="absences" />
-
-      <Button className="w-full gap-2" onClick={openCreate}>
-        <Plus className="h-4 w-4" />
-        {t("settings:absenceSettings.addType")}
-      </Button>
-
-      <section className="space-y-3">
-        <p className="hairline-text">{t("settings:absenceSettings.types")}</p>
-        <div className="space-y-3">
-          {absenceTypes.map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => openEdit(type)}
-              className="dashboard-glass-card w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: type.color }} aria-hidden="true" />
-                    <p className={`truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${type.active ? "text-white" : "text-white/42"}`}>
-                      {type.name}
-                    </p>
-                  </div>
-                  <p className="mt-1 text-sm text-white/46">
-                    {type.paid
-                      ? t("settings:absenceSettings.paidSummary", { hours: formatPaidHours(type.paidMinutesPerDay) })
-                      : t("settings:absenceSettings.unpaidSummary")}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs uppercase tracking-[0.16em] text-white/28">
-                  {type.active ? t("settings:status.active") : t("settings:status.inactive")}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
+      <section className="space-y-4">
+        {absenceTypes.length ? absenceTypes.map((type) => (
+          <Card
+            as="button"
+            type="button"
+            key={type.id}
+            onClick={() => openEdit(type)}
+            className="flex min-h-[5.25rem] w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset"
+          >
+            <span className="min-w-0 flex-1">
+              <span className={`font-name block truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${type.active ? "text-white" : "text-white/42"}`}>
+                {type.name}
+              </span>
+              <span className="mt-1 block truncate text-sm text-white/48">
+                {type.paid
+                  ? t("settings:absenceSettings.paidSummary", { hours: formatPaidHours(type.paidMinutesPerDay) })
+                  : t("settings:absenceSettings.unpaidSummary")}
+                {!type.active ? ` · ${t("settings:status.inactive")}` : ""}
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-white/24" aria-hidden="true" />
+          </Card>
+        )) : (
+          <SettingsEmptyState
+            title={t("settings:absenceSettings.emptyTitle")}
+            actionLabel={t("settings:absenceSettings.addType")}
+            onAction={openCreate}
+          />
+        )}
       </section>
 
       <AbsenceTypeDialog
@@ -251,26 +202,37 @@ export function SettingsAbsencePage() {
         form={form}
         editing={editing}
         pending={saveMutation.isPending}
-        deactivatePending={deactivateMutation.isPending}
+        removePending={removeMutation.isPending}
         successMessage={successMessage}
         saveError={saveMutation.error}
-        deactivateError={deactivateMutation.error}
+        removeError={removeMutation.error}
         onClose={closeEditor}
         onSubmit={async (values) => {
           setSuccessMessage(null);
           await saveMutation.mutateAsync(values);
         }}
-        onDeactivate={() => editing ? deactivateMutation.mutate(editing.id) : undefined}
+        onRemove={() => setRemoveDialogOpen(true)}
         t={t}
+      />
+      <SettingsConfirmDialog
+        open={removeDialogOpen}
+        title={t(editing?.deletable ? "settings:absenceSettings.deleteTitle" : "settings:absenceSettings.deactivateTitle")}
+        description={t(editing?.deletable ? "settings:absenceSettings.deleteDescription" : "settings:absenceSettings.deactivateDescription")}
+        confirmLabel={t(editing?.deletable ? "settings:absenceSettings.delete" : "settings:absenceSettings.deactivate")}
+        pending={removeMutation.isPending}
+        onCancel={() => setRemoveDialogOpen(false)}
+        onConfirm={() => {
+          if (editing) removeMutation.mutate({ id: editing.id, deletable: Boolean(editing.deletable) });
+        }}
       />
       {dialog}
       {successMessage && !editorOpen ? (
-        <div className="glass-panel fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
             <Check className="h-6 w-6" />
           </div>
           <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </div>
+        </Card>
       ) : null}
     </div>
   );
@@ -295,13 +257,13 @@ function AbsenceTypeDialog({
   form,
   editing,
   pending,
-  deactivatePending,
+  removePending,
   successMessage,
   saveError,
-  deactivateError,
+  removeError,
   onClose,
   onSubmit,
-  onDeactivate,
+  onRemove,
   t
 }: {
   open: boolean;
@@ -310,13 +272,13 @@ function AbsenceTypeDialog({
   form: UseFormReturn<FormInput, undefined, FormValues>;
   editing: AbsenceTypeSetting | null;
   pending: boolean;
-  deactivatePending: boolean;
+  removePending: boolean;
   successMessage: string | null;
   saveError: unknown;
-  deactivateError: unknown;
+  removeError: unknown;
   onClose: () => void;
   onSubmit: (values: FormValues) => Promise<void>;
-  onDeactivate: () => void | undefined;
+  onRemove: () => void;
   t: TFunction<["settings", "common"]>;
 }) {
   if (!open) {
@@ -324,8 +286,8 @@ function AbsenceTypeDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+    <LockedModalViewport
+      className="z-[60] bg-black/50 px-4 py-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="absence-type-dialog-title"
@@ -337,22 +299,15 @@ function AbsenceTypeDialog({
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
       />
-      <form
-        className="relative z-10 max-h-[calc(100vh-3rem-env(safe-area-inset-top))] w-full max-w-sm overflow-y-auto rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+      <ModalPanel
+        as="form"
+        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto"
         onSubmit={form.handleSubmit(onSubmit)}
       >
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-5">
           <h2 id="absence-type-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white/48 transition hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
-            aria-label={cancelLabel}
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
         </div>
 
         <div className="space-y-3">
@@ -370,7 +325,7 @@ function AbsenceTypeDialog({
               {...form.register("color")}
             />
           </div>
-          <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-4">
+          <div className="space-y-2">
             <AbsenceToggle
               label={t("settings:absenceSettings.fields.paid")}
               checked={form.watch("paid")}
@@ -382,7 +337,7 @@ function AbsenceTypeDialog({
                 });
               }}
             />
-            {form.watch("paid") ? <div className="mt-4">
+            {form.watch("paid") ? (
               <Input
                 label={t("settings:absenceSettings.fields.paidHours")}
                 type="text"
@@ -392,23 +347,35 @@ function AbsenceTypeDialog({
                 error={form.formState.errors.paidHours?.message}
                 {...form.register("paidHours")}
               />
-            </div> : null}
+            ) : null}
           </div>
         </div>
 
-        {!successMessage && (saveError || deactivateError) ? (
-          <p className="mt-4 text-sm text-red-300">{getApiError(saveError ?? deactivateError).message}</p>
+        {!successMessage && (saveError || removeError) ? (
+          <p className="mt-4 text-sm text-red-300">{getApiError(saveError ?? removeError).message}</p>
         ) : null}
 
-        <SettingsFormActions
-          submitting={pending}
-          successMessage={successMessage}
-          onDelete={editing ? onDeactivate : undefined}
-          deleteLabel={editing ? t("settings:absenceSettings.deactivate") : undefined}
-          deleteDisabled={deactivatePending || !editing?.active}
-        />
-      </form>
-    </div>
+        <div className="mt-6 space-y-3">
+          {editing ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onRemove}
+              disabled={removePending || Boolean(!editing.deletable && !editing.active)}
+              className="border-red-400/18 bg-red-400/[0.05] text-white hover:bg-red-400/[0.08]"
+            >
+              {t(editing.deletable ? "settings:absenceSettings.delete" : "settings:absenceSettings.deactivate")}
+            </Button>
+          ) : null}
+          <ModalActions
+            cancelLabel={cancelLabel}
+            saveLabel={pending ? t("common:actions.saving") : t("common:actions.save")}
+            pending={pending}
+            onCancel={onClose}
+          />
+        </div>
+      </ModalPanel>
+    </LockedModalViewport>
   );
 }
 
@@ -440,14 +407,14 @@ function AbsenceToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4">
+    <label className="flex min-h-7 cursor-pointer items-center gap-2 text-sm font-medium text-white/78">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-5 w-5 accent-white"
+        className="h-4 w-4 accent-white"
       />
-      <span className="text-sm font-semibold text-white/78">{label}</span>
+      <span>{label}</span>
     </label>
   );
 }

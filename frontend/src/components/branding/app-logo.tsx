@@ -7,7 +7,7 @@ type Props = {
 export function AppLogo({ className }: Props) {
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      <span className="font-sans text-[0.95rem] font-semibold uppercase leading-none tracking-[0.34em] text-white">
+      <span className="font-name text-[0.95rem] font-semibold uppercase leading-none tracking-[0.34em] text-white">
         Alveryn
       </span>
     </div>

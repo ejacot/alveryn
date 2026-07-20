@@ -1,16 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronDown, Clock3, Coins, Pencil, Plus, Ruler, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock3, Coins, Plus, Ruler, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { listWorkTypes } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
-import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
-import { Button } from "../components/ui/button";
+import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { Card } from "../components/ui/card";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import type { WorkType, WorkTypeFormulaMode } from "../types/configuration";
@@ -18,11 +20,10 @@ import type { CalculationMethod, CompensationMethod } from "../types/work-calcul
 
 export function WorkTypesPage() {
   const navigate = useNavigate();
-  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
+  const [searchParams] = useSearchParams();
+  const employmentId = searchParams.get("employmentId");
+  const safeBack = useSafeBackNavigation({ fallback: employmentId ? `/settings/employment/${employmentId}` : "/profile" });
   const { t } = useTranslation(["common", "settings"]);
-  const backButtonRef = useRef<HTMLButtonElement | null>(null);
-  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
-  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
   const workTypesQuery = useQuery({
@@ -30,37 +31,8 @@ export function WorkTypesPage() {
     queryFn: listWorkTypes
   });
 
-  useEffect(() => {
-    let frameId = 0;
-
-    const updateCompactTitle = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const titleRect = largeTitleRef.current?.getBoundingClientRect();
-        const buttonRect = backButtonRef.current?.getBoundingClientRect();
-
-        if (!titleRect || !buttonRect) {
-          setCompactTitleVisible(false);
-          return;
-        }
-
-        setCompactTitleVisible(titleRect.top <= buttonRect.top);
-      });
-    };
-
-    updateCompactTitle();
-    window.addEventListener("scroll", updateCompactTitle, { passive: true });
-    window.addEventListener("resize", updateCompactTitle);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", updateCompactTitle);
-      window.removeEventListener("resize", updateCompactTitle);
-    };
-  }, []);
-
   function openWorkType(workType: WorkType) {
-    navigate(`/settings/work-types/${workType.id}`);
+    navigate(`/settings/work-types/${workType.id}${employmentId ? `?employmentId=${employmentId}` : ""}`);
   }
 
   function toggleParent(workTypeId: string) {
@@ -77,7 +49,9 @@ export function WorkTypesPage() {
 
   function openNewWorkType(option: WorkTypeSetupOption) {
     setAddDialogOpen(false);
-    navigate(`/settings/work-types/new?mode=${option.mode}`, {
+    const params = new URLSearchParams({ mode: option.mode });
+    if (employmentId) params.set("employmentId", employmentId);
+    navigate(`/settings/work-types/new?${params.toString()}`, {
       state: {
         setupMode: option.mode,
         calculationMethod: option.calculationMethod,
@@ -94,10 +68,12 @@ export function WorkTypesPage() {
     return <ScreenMessage title="Work types are unavailable" description={getApiError(workTypesQuery.error).message} />;
   }
 
-  const items = [...(workTypesQuery.data ?? [])].sort((left, right) => {
-    if (left.active !== right.active) return left.active ? -1 : 1;
-    return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
-  });
+  const items = [...(workTypesQuery.data ?? [])]
+    .filter((item) => !employmentId || item.employmentId === employmentId)
+    .sort((left, right) => {
+      if (left.active !== right.active) return left.active ? -1 : 1;
+      return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
+    });
   const parentItems = items.filter((item) => !item.parentId);
   const childrenByParentId = items.reduce<Record<string, WorkType[]>>((groups, item) => {
     if (!item.parentId) {
@@ -106,103 +82,37 @@ export function WorkTypesPage() {
     groups[item.parentId] = [...(groups[item.parentId] ?? []), item];
     return groups;
   }, {});
-  const timeBasedItems = parentItems.filter((item) => item.calculationMethod === "TIME_BASED");
-  const unitsPerHourItems = parentItems.filter((item) => item.calculationMethod === "UNITS_PER_HOUR_BASED");
-  const unitBasedItems = parentItems.filter((item) => item.calculationMethod === "UNIT_BASED");
-  const fixedAmountItems = parentItems.filter((item) => item.calculationMethod === "FIXED_PRICE_BASED");
-  const title = t("settings:workSetup.title");
+  const title = t("settings:workTypes");
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
-        <button
-          ref={backButtonRef}
-          type="button"
-          onClick={safeBack}
-          aria-label={t("common:actions.back")}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
-        >
-          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
-          <span>{t("common:actions.back")}</span>
-        </button>
-        <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
-            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
-          }`}
-          aria-hidden="true"
-        >
-          {title}
-        </div>
-      </header>
-
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {title}
-      </h1>
-      <SettingsContextCard context="workTypes" />
-      <Button className="w-full gap-2" onClick={() => setAddDialogOpen(true)}>
-        <Plus className="h-4 w-4" />
-        {t("settings:workSetup.addWorkType")}
-      </Button>
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <SettingsNavigationHeader
+        title={title}
+        backLabel={t("common:actions.back")}
+        onBack={safeBack}
+        action={parentItems.length ? {
+          label: t("settings:workSetup.addWorkType"),
+          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
+          onClick: () => setAddDialogOpen(true)
+        } : undefined}
+      />
 
       {!parentItems.length ? (
         <SettingsEmptyState
           title="No work types yet"
-          description={t("settings:workSetup.emptyDescription")}
           actionLabel={t("settings:workSetup.addWorkType")}
           onAction={() => setAddDialogOpen(true)}
         />
       ) : (
-        <div className="space-y-7">
-          <WorkTypeGroup
-            title={t("settings:workTypeEditor.modes.timeTitle")}
-            items={timeBasedItems}
-            onSelect={openWorkType}
-            onToggle={toggleParent}
-            childrenByParentId={childrenByParentId}
-            expandedParentIds={expandedParentIds}
-            childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
-            activeLabel={t("settings:status.active")}
-            inactiveLabel={t("settings:status.inactive")}
-          />
-          <WorkTypeGroup
-            title={t("settings:workTypeEditor.modes.unitsPerHourTitle")}
-            items={unitsPerHourItems}
-            onSelect={openWorkType}
-            onToggle={toggleParent}
-            childrenByParentId={childrenByParentId}
-            expandedParentIds={expandedParentIds}
-            childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
-            activeLabel={t("settings:status.active")}
-            inactiveLabel={t("settings:status.inactive")}
-          />
-          <WorkTypeGroup
-            title={t("settings:workTypeEditor.modes.perUnitTitle")}
-            items={unitBasedItems}
-            onSelect={openWorkType}
-            onToggle={toggleParent}
-            childrenByParentId={childrenByParentId}
-            expandedParentIds={expandedParentIds}
-            childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
-            activeLabel={t("settings:status.active")}
-            inactiveLabel={t("settings:status.inactive")}
-          />
-          <WorkTypeGroup
-            title={t("settings:workTypeEditor.modes.fixedTitle")}
-            items={fixedAmountItems}
-            onSelect={openWorkType}
-            onToggle={toggleParent}
-            childrenByParentId={childrenByParentId}
-            expandedParentIds={expandedParentIds}
-            childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
-            activeLabel={t("settings:status.active")}
-            inactiveLabel={t("settings:status.inactive")}
-          />
-        </div>
+        <WorkTypeList
+          items={parentItems}
+          onSelect={openWorkType}
+          onToggle={toggleParent}
+          childrenByParentId={childrenByParentId}
+          expandedParentIds={expandedParentIds}
+          childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
+          inactiveLabel={t("settings:status.inactive")}
+        />
       )}
 
       <AddWorkTypeDialog
@@ -248,8 +158,8 @@ function AddWorkTypeDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+    <LockedModalViewport
+      className="z-[60] bg-black/50 px-4 py-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-work-type-title"
@@ -261,7 +171,7 @@ function AddWorkTypeDialog({
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-[24rem] rounded-[34px] border border-white/[0.08] bg-[#090909]/95 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.55)] sm:max-w-[27rem] sm:p-5">
+      <ModalPanel className="max-w-sm">
         <div className="mb-4 flex items-center justify-between gap-4 px-1">
           <h2 id="add-work-type-title" className="text-[1.35rem] font-semibold leading-none tracking-[-0.06em] text-white">
             {title}
@@ -299,89 +209,63 @@ function AddWorkTypeDialog({
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </ModalPanel>
+    </LockedModalViewport>
   );
 }
 
-function WorkTypeGroup({
-  title,
+function WorkTypeList({
   items,
   onSelect,
   onToggle,
   childrenByParentId,
   expandedParentIds,
   childCountLabel,
-  activeLabel,
   inactiveLabel
 }: {
-  title: string;
   items: WorkType[];
   onSelect: (workType: WorkType) => void;
   onToggle: (workTypeId: string) => void;
   childrenByParentId: Record<string, WorkType[]>;
   expandedParentIds: Set<string>;
   childCountLabel: (count: number) => string;
-  activeLabel: string;
   inactiveLabel: string;
 }) {
-  if (!items.length) {
-    return null;
-  }
-
   return (
-    <section className="space-y-3">
-      <p className="hairline-text">{title}</p>
-      <div className="space-y-4">
-        {items.map((item) => {
+    <section className="space-y-4">
+      {items.map((item) => {
           const children = childrenByParentId[item.id] ?? [];
           const expandable = children.length > 0;
           const expanded = expandedParentIds.has(item.id);
           return (
-            <div key={item.id} className="dashboard-glass-card overflow-hidden">
+            <Card key={item.id} className="overflow-hidden">
               <div className="flex items-stretch">
                 <button
                   type="button"
-                  onClick={() => expandable ? onToggle(item.id) : onSelect(item)}
-                  aria-expanded={expandable ? expanded : undefined}
-                  className="min-w-0 flex-1 px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
+                  onClick={() => onSelect(item)}
+                  className="flex min-h-[5.25rem] min-w-0 flex-1 items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-4">
-                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                      <div className="min-w-0">
-                        <p className={`truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${item.active ? "text-white" : "text-white/42"}`}>
-                          {item.name}
-                        </p>
-                        <p className="mt-1 text-sm text-white/38">
-                          {expandable ? childCountLabel(children.length) : workTypeSummary(item)}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="shrink-0 text-xs uppercase tracking-[0.16em] text-white/28">
-                      {item.active ? activeLabel : inactiveLabel}
+                  <span className="min-w-0 flex-1">
+                    <span className={`font-name block truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${item.active ? "text-white" : "text-white/42"}`}>
+                      {item.name}
                     </span>
-                  </div>
+                    <span className="mt-1 block truncate text-sm text-white/48">
+                      {expandable ? childCountLabel(children.length) : workTypeSummary(item)}
+                      {!item.active ? ` · ${inactiveLabel}` : ""}
+                    </span>
+                  </span>
+                  {!expandable ? <ChevronRight className="h-4 w-4 shrink-0 text-white/24" aria-hidden="true" /> : null}
                 </button>
                 {expandable ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onToggle(item.id)}
-                      aria-label={expanded ? `Collapse ${item.name}` : `Expand ${item.name}`}
-                      className="flex w-12 shrink-0 items-center justify-center border-l border-white/[0.06] text-white/42 transition hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
-                    >
-                      <ChevronDown className={`h-5 w-5 transition ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(item)}
-                      aria-label={`Edit ${item.name}`}
-                      className="flex w-12 shrink-0 items-center justify-center border-l border-white/[0.06] text-white/42 transition hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => onToggle(item.id)}
+                    aria-expanded={expanded}
+                    aria-label={expanded ? `Collapse ${item.name}` : `Expand ${item.name}`}
+                    className="flex w-14 shrink-0 items-center justify-center border-l border-white/[0.06] text-white/42 transition hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
+                  >
+                    <ChevronDown className={`h-5 w-5 transition ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                  </button>
                 ) : null}
               </div>
               {expanded ? (
@@ -396,24 +280,21 @@ function WorkTypeGroup({
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <p className={`truncate text-sm font-semibold tracking-[-0.03em] ${child.active ? "text-white/82" : "text-white/38"}`}>
+                            <p className={`font-name truncate text-sm font-semibold tracking-[-0.03em] ${child.active ? "text-white/82" : "text-white/38"}`}>
                               {child.name}
                             </p>
                             <p className="mt-0.5 text-xs text-white/34">{workTypeSummary(child)}</p>
                           </div>
-                          <span className="shrink-0 text-[0.64rem] uppercase tracking-[0.14em] text-white/24">
-                            {child.active ? activeLabel : inactiveLabel}
-                          </span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-white/24" aria-hidden="true" />
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
               ) : null}
-            </div>
+            </Card>
           );
         })}
-      </div>
     </section>
   );
 }

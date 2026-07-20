@@ -7,10 +7,16 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Schema(description = "Hourly rate period request")
 public record HourlyRatePeriodRequest(
+    @NotNull UUID employmentId,
     @NotNull @PositiveOrZero BigDecimal hourlyRate,
     @NotBlank @Size(min = 3, max = 3) String currency,
     @NotNull LocalDate validFrom,
-    LocalDate validTo) {}
+    LocalDate validTo) {
+  public HourlyRatePeriodRequest(BigDecimal hourlyRate, String currency, LocalDate validFrom, LocalDate validTo) {
+    this(null, hourlyRate, currency, validFrom, validTo);
+  }
+}

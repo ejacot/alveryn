@@ -63,6 +63,12 @@ public class UserPreferences extends BaseEntity {
   @Column(name = "onboarding_completed", nullable = false)
   private boolean onboardingCompleted;
 
+  @Column(name = "guide_version_completed", nullable = false)
+  private int guideVersionCompleted;
+
+  @Column(name = "tracking_setup_version_completed", nullable = false)
+  private int trackingSetupVersionCompleted;
+
   public UserPreferences(UserAccount user) {
     this.user = Objects.requireNonNull(user, "user is required");
   }
@@ -115,6 +121,18 @@ public class UserPreferences extends BaseEntity {
 
   public void completeOnboarding() {
     onboardingCompleted = true;
+  }
+
+  public void completeGuideVersion(int version) {
+    if (version < guideVersionCompleted) return;
+    if (version < 0) throw new IllegalArgumentException("guide version must be non-negative");
+    guideVersionCompleted = version;
+  }
+
+  public void completeTrackingSetupVersion(int version) {
+    if (version < trackingSetupVersionCompleted) return;
+    if (version < 0) throw new IllegalArgumentException("tracking setup version must be non-negative");
+    trackingSetupVersionCompleted = version;
   }
 
   private static String required(String value, String field) {

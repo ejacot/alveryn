@@ -1,57 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ChevronRight, Plus } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { listHourlyRates } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
-import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
-import { Button } from "../components/ui/button";
+import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { Card } from "../components/ui/card";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { parseLocalIsoDate, todayLocalIsoDate } from "../utils/date";
 
 export function HourlyRatesPage() {
   const navigate = useNavigate();
-  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
-  const backButtonRef = useRef<HTMLButtonElement | null>(null);
-  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
-  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
+  const [searchParams] = useSearchParams();
+  const employmentId = searchParams.get("employmentId");
+  const safeBack = useSafeBackNavigation({ fallback: employmentId ? `/settings/employment/${employmentId}` : "/profile" });
   const ratesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
   });
-
-  useEffect(() => {
-    let frameId = 0;
-
-    const updateCompactTitle = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const titleRect = largeTitleRef.current?.getBoundingClientRect();
-        const buttonRect = backButtonRef.current?.getBoundingClientRect();
-
-        if (!titleRect || !buttonRect) {
-          setCompactTitleVisible(false);
-          return;
-        }
-
-        setCompactTitleVisible(titleRect.top <= buttonRect.top);
-      });
-    };
-
-    updateCompactTitle();
-    window.addEventListener("scroll", updateCompactTitle, { passive: true });
-    window.addEventListener("resize", updateCompactTitle);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", updateCompactTitle);
-      window.removeEventListener("resize", updateCompactTitle);
-    };
-  }, []);
 
   if (ratesQuery.isLoading) {
     return <SettingsPageSkeleton />;
@@ -61,77 +30,57 @@ export function HourlyRatesPage() {
     return <ScreenMessage title="Hourly rates are unavailable" description={getApiError(ratesQuery.error).message} />;
   }
 
-  const rates = [...(ratesQuery.data ?? [])].sort(compareRates);
+  const rates = [...(ratesQuery.data ?? [])]
+    .filter((rate) => !employmentId || rate.employmentId === employmentId)
+    .sort(compareRates);
   const title = "Hourly rates";
+  const newRatePath = employmentId
+    ? `/settings/hourly-rates/new?employmentId=${employmentId}`
+    : "/settings/hourly-rates/new";
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
-        <button
-          ref={backButtonRef}
-          type="button"
-          onClick={safeBack}
-          aria-label="Back"
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
-        >
-          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
-          <span>Back</span>
-        </button>
-        <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
-            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
-          }`}
-          aria-hidden="true"
-        >
-          {title}
-        </div>
-      </header>
-
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {title}
-      </h1>
-      <SettingsContextCard context="hourlyRates" />
-      <Button className="w-full gap-2" onClick={() => navigate("/settings/hourly-rates/new")}>
-        <Plus className="h-4 w-4" />
-        Add hourly rate
-      </Button>
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <SettingsNavigationHeader
+        title={title}
+        backLabel="Back"
+        onBack={safeBack}
+        action={rates.length > 0 ? {
+          label: "Add hourly rate",
+          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
+          onClick: () => navigate(newRatePath)
+        } : undefined}
+      />
       {rates.length === 0 ? (
         <SettingsEmptyState
           title="No hourly rates yet"
-          description="Add your first rate so new entries can calculate pay correctly."
           actionLabel="Add hourly rate"
-          onAction={() => navigate("/settings/hourly-rates/new")}
+          onAction={() => navigate(newRatePath)}
         />
       ) : (
-        <div className="space-y-4">
+        <section className="space-y-4">
           {rates.map((rate) => (
-            <button
-              key={rate.id}
+            <Card
+              as="button"
               type="button"
-              onClick={() => navigate(`/settings/hourly-rates/${rate.id}`)}
-              className="dashboard-glass-card w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
+              key={rate.id}
+              onClick={() => navigate(`/settings/hourly-rates/${rate.id}${employmentId ? `?employmentId=${employmentId}` : ""}`)}
+              className="flex min-h-[5.25rem] w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <p className="text-[1.15rem] font-semibold tracking-[-0.05em] text-white">
-                    {rate.hourlyRate} {rate.currency} / hour
-                  </p>
-                  <p className="text-sm text-white/48">
-                    {formatDateRange(rate.validFrom, rate.validTo)}
-                  </p>
-                </div>
-                <span className="rounded-full border border-white/[0.06] bg-white/[0.04] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white/46">
-                  {labelRate(rate)}
+              <span className="min-w-0 flex-1">
+                <span className="font-name block truncate text-[1.05rem] font-semibold tracking-[-0.04em] text-white">
+                  {rate.hourlyRate} {rate.currency} / hour
                 </span>
-              </div>
-            </button>
+                <span className="mt-1 block truncate text-sm text-white/48">
+                  {formatDateRange(rate.validFrom, rate.validTo)} · {labelRate(rate)}
+                </span>
+                {!employmentId && rate.employmentName ? (
+                  <span className="mt-1 block truncate text-sm text-white/38">{rate.employmentName}</span>
+                ) : null}
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-white/24" aria-hidden="true" />
+            </Card>
           ))}
-        </div>
+        </section>
       )}
     </div>
   );

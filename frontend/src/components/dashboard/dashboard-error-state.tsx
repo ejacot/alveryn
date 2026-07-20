@@ -1,4 +1,5 @@
 import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 
 type Props = {
   message: string;
@@ -8,7 +9,7 @@ type Props = {
 export function DashboardErrorState({ message, onRetry }: Props) {
   return (
     <div className="space-y-5 pb-6">
-      <section className="section-card space-y-4">
+      <Card as="section" variant="section" className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/52">
             Dashboard
@@ -21,7 +22,7 @@ export function DashboardErrorState({ message, onRetry }: Props) {
         <Button className="w-full sm:w-auto" onClick={onRetry}>
           Retry
         </Button>
-      </section>
+      </Card>
     </div>
   );
 }

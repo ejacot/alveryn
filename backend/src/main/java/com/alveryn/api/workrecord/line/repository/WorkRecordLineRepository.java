@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,6 +27,16 @@ public interface WorkRecordLineRepository extends JpaRepository<WorkRecordLine, 
       where line.workRecord.user.id = :userId
       """)
   List<UUID> findUsedWorkTypeIdsByUserId(@Param("userId") UUID userId);
+
+  @Query("""
+      select coalesce(sum(line.calculatedMinutes), 0)
+      from WorkRecordLine line
+      where line.workRecord.employment.id = :employmentId
+        and line.workRecord.workDate between :fromDate and :toDate
+        and line.calculationModeSnapshot = com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode.TIME_ONLY
+      """)
+  BigDecimal sumTimeOnlyMinutes(@Param("employmentId") UUID employmentId,
+      @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 
   @Query(
       """

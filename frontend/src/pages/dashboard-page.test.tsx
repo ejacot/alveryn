@@ -22,19 +22,25 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("../api/endpoints", () => ({
   createAbsence: vi.fn(),
+  getCurrentWorkSession: vi.fn(),
   getAbsences: vi.fn(),
   getPreferences: vi.fn(),
   listAbsenceTypes: vi.fn(),
+  listEmployments: vi.fn(),
   listHourlyRates: vi.fn(),
+  listWorkTypes: vi.fn(),
   listWorkRecordsInRange: vi.fn()
 }));
 
 import {
   createAbsence,
+  getCurrentWorkSession,
   getAbsences,
   getPreferences,
   listAbsenceTypes,
+  listEmployments,
   listHourlyRates,
+  listWorkTypes,
   listWorkRecordsInRange
 } from "../api/endpoints";
 
@@ -161,6 +167,9 @@ describe("DashboardPage", () => {
       notes: null
     });
     vi.mocked(getAbsences).mockResolvedValue(emptyAbsencePage());
+    vi.mocked(getCurrentWorkSession).mockResolvedValue(null);
+    vi.mocked(listEmployments).mockResolvedValue([]);
+    vi.mocked(listWorkTypes).mockResolvedValue([]);
     vi.mocked(getPreferences).mockResolvedValue({
       id: "pref-1",
       language: "en",
@@ -207,8 +216,8 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Regular Shift")).toBeInTheDocument();
     expect(screen.queryByText("Orders")).not.toBeInTheDocument();
     expect(screen.queryByText("1 work line")).not.toBeInTheDocument();
-    expect(screen.getByText("Today hours")).toBeInTheDocument();
-    expect(screen.getByText("Today money")).toBeInTheDocument();
+    expect(screen.queryByText("Today hours")).not.toBeInTheDocument();
+    expect(screen.queryByText("Today money")).not.toBeInTheDocument();
     expect(screen.queryByText("Recent entries")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -385,7 +394,7 @@ describe("DashboardPage", () => {
 
     expect(await screen.findAllByLabelText("Wed, Vacation")).toHaveLength(2);
     expect(screen.getByText("10 h")).toBeInTheDocument();
-    expect(screen.getAllByText("€250.00").length).toBeGreaterThan(0);
+    expect(screen.getByText("250 EUR")).toBeInTheDocument();
   });
 
   it("keeps over-target rhythm days as their real worked total", async () => {

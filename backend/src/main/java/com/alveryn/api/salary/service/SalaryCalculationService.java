@@ -19,8 +19,8 @@ public class SalaryCalculationService {
   private final Clock clock;
 
   @Transactional(readOnly = true)
-  public SalarySnapshot calculateForDate(UUID userId, LocalDate workDate, BigDecimal calculatedMinutes) {
-    HourlyRatePeriod period = resolveHistoricalRate(userId, workDate);
+  public SalarySnapshot calculateForDate(UUID userId, UUID employmentId, LocalDate workDate, BigDecimal calculatedMinutes) {
+    HourlyRatePeriod period = resolveHistoricalRate(userId, employmentId, workDate);
     return new SalarySnapshot(
         period.getHourlyRate(),
         period.getCurrency(),
@@ -28,16 +28,16 @@ public class SalaryCalculationService {
   }
 
   @Transactional(readOnly = true)
-  public HourlyRatePeriod resolveHistoricalRate(UUID userId, LocalDate workDate) {
+  public HourlyRatePeriod resolveHistoricalRate(UUID userId, UUID employmentId, LocalDate workDate) {
     return hourlyRates
-        .findValidForDate(userId, workDate)
+        .findValidForDate(userId, employmentId, workDate)
         .orElseThrow(
             () -> new ValidationException("No hourly rate is configured for " + workDate));
   }
 
   @Transactional(readOnly = true)
-  public HourlyRatePeriod resolveCurrentRate(UUID userId) {
-    return resolveHistoricalRate(userId, LocalDate.now(clock));
+  public HourlyRatePeriod resolveCurrentRate(UUID userId, UUID employmentId) {
+    return resolveHistoricalRate(userId, employmentId, LocalDate.now(clock));
   }
 
   public record SalarySnapshot(BigDecimal hourlyRate, String currency, BigDecimal grossAmount) {}

@@ -10,18 +10,25 @@ type OutletContext = {
 
 export function HomePage() {
   const { selectedDate, setSelectedDate } = useOutletContext<OutletContext>();
+  const monthLabel = new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    year: "numeric"
+  }).format(selectedDate);
 
   return (
     <div className="space-y-4">
       <div
-        className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto h-[7.25rem] w-full max-w-[560px]"
+        className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-[560px]"
       >
-        <AppLogo className="relative z-10 pt-[max(0.85rem,env(safe-area-inset-top))]" />
+        <div className="relative top-16 z-10 flex h-9 items-center px-5">
+          <span className="hairline-text whitespace-nowrap">{monthLabel}</span>
+          <AppLogo className="absolute left-1/2 -translate-x-1/2" />
+        </div>
       </div>
       <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
         <div className="space-y-2.5">
-          <div className="h-[0.95rem]" aria-hidden="true" />
-          <WeekSelector value={selectedDate} onChange={setSelectedDate} />
+          <div className="h-[1.25rem]" aria-hidden="true" />
+          <WeekSelector value={selectedDate} onChange={setSelectedDate} showMonthLabel={false} />
         </div>
       </header>
       <DashboardPage selectedDate={selectedDate} />

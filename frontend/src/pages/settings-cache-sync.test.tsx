@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { SettingsProfilePage } from "./settings-profile-page";
 import { SettingsPreferencesPage } from "./settings-preferences-page";
 import { SettingsAbsencePage } from "./settings-absence-page";
 import { queryKeys } from "../api/query-keys";
-import { changePassword, updateAbsenceType, type UpdatePreferencesPayload } from "../api/endpoints";
+import { changePassword, deleteAbsenceType, updateAbsenceType, type UpdatePreferencesPayload } from "../api/endpoints";
 
 const refreshCurrentUserMock = vi.fn();
 
@@ -135,7 +135,8 @@ vi.mock("../api/endpoints", () => ({
       paidMinutesPerDay: 480,
       color: "#ef4444",
       active: true,
-      displayOrder: 3
+      displayOrder: 3,
+      deletable: true
     }
   ]),
   createAbsenceType: vi.fn(async (payload) => ({
@@ -239,7 +240,7 @@ describe("settings cache sync", () => {
     await user.type(screen.getByLabelText(/name|nume/i), "Medical");
     await user.clear(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }));
     await user.type(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }), "6");
-    await user.click(screen.getByRole("button", { name: /save changes|salvează modificările/i }));
+    await user.click(screen.getByRole("button", { name: /^save$|^salvează$/i }));
 
     await waitFor(() => {
       expect(updateAbsenceType).toHaveBeenCalledWith(
@@ -250,6 +251,20 @@ describe("settings cache sync", () => {
           paidMinutesPerDay: 360
         })
       );
+    });
+  });
+
+  it("deletes an unused absence type after confirmation", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SettingsAbsencePage />);
+
+    await user.click(await screen.findByRole("button", { name: /sick/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$|^șterge$/i }));
+    const confirmation = screen.getByRole("dialog", { name: /delete absence type|ștergi tipul de absență/i });
+    await user.click(within(confirmation).getByRole("button", { name: /^delete$|^șterge$/i }));
+
+    await waitFor(() => {
+      expect(deleteAbsenceType).toHaveBeenCalledWith("absence-sick-type");
     });
   });
 });

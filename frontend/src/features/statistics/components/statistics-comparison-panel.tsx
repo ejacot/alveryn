@@ -283,7 +283,7 @@ export function StatisticsComparisonPanel({ filters }: Props) {
   }, [comparison.data?.series.points]);
 
   return (
-    <section className="section-card space-y-4" aria-labelledby="statistics-comparison-title">
+    <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-comparison-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/35">{t("statistics.comparison.eyebrow")}</p>
@@ -469,6 +469,7 @@ export function StatisticsComparisonPanel({ filters }: Props) {
           </div>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }
+import { Card } from "../../../components/ui/card";

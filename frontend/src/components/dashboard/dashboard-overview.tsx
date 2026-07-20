@@ -11,6 +11,10 @@ import type {
   WeeklyRhythmDay
 } from "../../types/dashboard";
 import { resolveDaySwipeDirection } from "./day-swipe.utils";
+import { Card } from "../ui/card";
+import { LockedModalViewport } from "../ui/locked-modal-viewport";
+import { ModalPanel } from "../ui/modal-panel";
+import type { ReactNode } from "react";
 
 type Props = {
   summary: DashboardSummaryMetrics | null;
@@ -29,6 +33,7 @@ type Props = {
   absencePending?: boolean;
   absenceError?: string | null;
   onEntrySelect?: (entryId: string) => void;
+  timeTracker?: ReactNode;
   preview?: boolean;
 };
 
@@ -49,6 +54,7 @@ export function DashboardOverview({
   absencePending = false,
   absenceError = null,
   onEntrySelect,
+  timeTracker,
   preview = false
 }: Props) {
   const { t } = useTranslation("dashboard");
@@ -75,6 +81,7 @@ export function DashboardOverview({
         absencePending={absencePending}
         absenceError={absenceError}
       />
+      {timeTracker}
       <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
       <WeeklyHoursCard
         variant="flow"
@@ -139,7 +146,7 @@ function SelectedDayPanel({
   if (!selectedDay.entriesCount) {
     return (
       <motion.section {...swipeProps} className="space-y-3 touch-pan-y">
-        <div className="surface-muted flex w-full items-center justify-between px-5 py-4 text-left">
+        <Card variant="muted" className="flex w-full items-center justify-between px-5 py-4 text-left">
           <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
           <div className="flex items-center gap-2">
             <button
@@ -158,7 +165,7 @@ function SelectedDayPanel({
               {t("quickAdd.cta")}
             </button>
           </div>
-        </div>
+        </Card>
         {absenceError ? <p className="px-2 text-sm text-red-200/90">{absenceError}</p> : null}
         <AbsenceChooser
           open={absenceOpen}
@@ -219,8 +226,8 @@ function AbsenceChooser({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+    <LockedModalViewport
+      className="z-50 bg-black/50 px-4 py-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="absence-title"
@@ -232,9 +239,7 @@ function AbsenceChooser({
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
       />
-      <div
-        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
-      >
+      <ModalPanel className="max-w-sm">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 id="absence-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
             {t("absence.title")}
@@ -250,19 +255,20 @@ function AbsenceChooser({
 
         <div className="space-y-2">
           {absenceTypes.map((option) => (
-            <button
+            <Card
+              as="button"
               key={option.id}
               type="button"
               disabled={pending}
               onClick={() => onSelect(option.id)}
-              className="dashboard-glass-card flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-white/[0.06] disabled:opacity-55"
+              className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-white/[0.06] disabled:opacity-55"
             >
-              <span className="font-semibold tracking-[-0.03em] text-white">{option.name}</span>
+              <span className="font-name font-semibold tracking-[-0.03em] text-white">{option.name}</span>
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: option.color }} aria-hidden="true" />
-            </button>
+            </Card>
           ))}
         </div>
-      </div>
-    </div>
+      </ModalPanel>
+    </LockedModalViewport>
   );
 }

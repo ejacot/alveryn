@@ -20,4 +20,6 @@ public record UserPreferencesResponse(
     Integer preferredDailyMinutes,
     boolean paidSickLeave,
     boolean paidVacation,
-    boolean onboardingCompleted) {}
+    boolean onboardingCompleted,
+    int guideVersionCompleted,
+    int trackingSetupVersionCompleted) {}

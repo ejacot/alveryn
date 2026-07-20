@@ -4,6 +4,8 @@ import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.NotFoundException;
 import com.alveryn.api.common.util.InputSanitizer;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.repository.EmploymentRepository;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.worktype.dto.CreateWorkTypeRequest;
@@ -40,6 +42,7 @@ public class WorkTypeService {
   private final WorkRecordLineRepository workRecordLines;
   private final UserAccountRepository users;
   private final UserPreferencesRepository preferences;
+  private final EmploymentRepository employments;
   private final WorkTypeMapper mapper;
 
   @Transactional
@@ -48,8 +51,10 @@ public class WorkTypeService {
     var user =
         users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
     CompensationMethod compensationMethod = resolveCompensationMethod(dto.compensationMethod());
-    var entity = new WorkType(user, dto.name(), dto.calculationMethod(), compensationMethod);
-    entity.changeParent(resolveParent(userId, dto.parentId()));
+    WorkType parent = resolveParent(userId, dto.parentId());
+    Employment employment = parent != null ? parent.getEmployment() : resolveEmployment(userId, dto.employmentId());
+    var entity = new WorkType(user, employment, dto.name(), dto.calculationMethod(), compensationMethod);
+    entity.changeParent(parent);
     if (existsByUserAndParentAndName(userId, entity.getParent(), entity.getNormalizedName()))
       throw workTypeNameExists();
     applyCreateDefaults(entity, userId, dto);
@@ -63,7 +68,9 @@ public class WorkTypeService {
     var entity = find(userId, id);
     validateCalculationMethodChange(userId, entity, dto);
     entity.rename(dto.name());
-    entity.changeParent(resolveParent(userId, dto.parentId()));
+    WorkType parent = resolveParent(userId, dto.parentId());
+    entity.changeParent(parent);
+    if (parent == null) entity.changeEmployment(resolveEmployment(userId, dto.employmentId()));
     if (existsByUserAndParentAndNameAndIdNot(userId, entity.getParent(), entity.getNormalizedName(), id))
       throw workTypeNameExists();
     applyUpdate(entity, dto);
@@ -126,6 +133,7 @@ public class WorkTypeService {
     WorkTypeResponse response = mapper.toWorkTypeResponse(entity);
     return new WorkTypeResponse(
         response.id(),
+        response.employmentId(),
         response.parentId(),
         response.name(),
         response.calculationMethod(),
@@ -190,6 +198,13 @@ public class WorkTypeService {
     WorkType parent = find(userId, parentId);
     parent.changeCompositeEnabled(true);
     return parent;
+  }
+
+  private Employment resolveEmployment(UUID userId, UUID employmentId) {
+    if (employmentId != null) return employments.findByIdAndUserId(employmentId, userId)
+        .orElseThrow(() -> new NotFoundException("Employment", employmentId));
+    return employments.findFirstByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(userId)
+        .orElseThrow(() -> new IllegalArgumentException("employmentId is required"));
   }
 
   private boolean existsByUserAndParentAndName(UUID userId, WorkType parent, String normalizedName) {

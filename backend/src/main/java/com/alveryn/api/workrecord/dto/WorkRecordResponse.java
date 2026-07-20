@@ -2,6 +2,7 @@ package com.alveryn.api.workrecord.dto;
 
 import com.alveryn.api.address.dto.AddressResponse;
 import com.alveryn.api.workrecord.line.dto.WorkRecordLineResponse;
+import com.alveryn.api.workrecord.entity.WorkEntryKind;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -10,6 +11,10 @@ import java.util.UUID;
 
 public record WorkRecordResponse(
     UUID id,
+    WorkEntryKind entryKind,
+    UUID employmentId,
+    UUID projectId,
+    String projectTitle,
     LocalDate workDate,
     LocalDate workEndDate,
     UUID addressId,

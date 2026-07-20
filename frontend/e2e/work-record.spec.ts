@@ -13,15 +13,15 @@ test("creates a grouped job with multiple work lines through the real UI", async
   test.setTimeout(90_000);
 
   const user = await createE2eUser(testInfo.title);
-  await createHourlyRate(user.accessToken);
-  const perUnitWorkTypeId = await createPerUnitWorkType(user.accessToken, "Montaj");
+  await createHourlyRate(user.accessToken, user.employmentId);
+  const perUnitWorkTypeId = await createPerUnitWorkType(user.accessToken, user.employmentId, "Montaj");
   await createPerUnitWorkTypeChild(user.accessToken, perUnitWorkTypeId, "2 Lagen", {
     unitLabel: "Metru patrat",
     unitSymbol: "m2",
     ratePerUnit: 50,
     currency: "EUR"
   });
-  const checkWorkTypeId = await createTimeBasedWorkType(user.accessToken, "Control");
+  const checkWorkTypeId = await createTimeBasedWorkType(user.accessToken, user.employmentId, "Control");
   await createTimeHourlyWorkTypeChild(user.accessToken, checkWorkTypeId, "Check hours");
 
   await page.context().clearCookies();

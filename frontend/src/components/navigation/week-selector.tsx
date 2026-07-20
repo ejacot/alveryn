@@ -19,9 +19,10 @@ import {
 type Props = {
   value: Date;
   onChange: (date: Date) => void;
+  showMonthLabel?: boolean;
 };
 
-export function WeekSelector({ value, onChange }: Props) {
+export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) {
   const [slideDirection, setSlideDirection] = useState(0);
   const days = useMemo(() => getWeekDays(value), [value]);
   const today = new Date();
@@ -103,13 +104,13 @@ export function WeekSelector({ value, onChange }: Props) {
 
   return (
     <section className="space-y-2.5 overflow-hidden">
-      <div className="flex items-end justify-between">
+      {showMonthLabel ? <div className="flex items-end justify-between">
         <div>
           <h2 className="hairline-text">
             {monthLabel}
           </h2>
         </div>
-      </div>
+      </div> : null}
       <div className="relative min-h-[84px] touch-pan-y overflow-hidden">
         <AnimatePresence custom={slideDirection} initial={false}>
           <motion.div

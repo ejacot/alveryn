@@ -87,6 +87,7 @@ public class AbsenceController {
       @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) UUID absenceTypeId,
       @RequestParam(required = false) AbsenceType absenceType,
+      @RequestParam(required = false) UUID employmentId,
       @RequestParam(required = false, defaultValue = "0") @Min(0) Integer page,
       @RequestParam(required = false, defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) Integer size,
       @PageableDefault(size = 20)
@@ -96,7 +97,7 @@ public class AbsenceController {
           })
           Pageable pageable) {
     return ApiResponse.of(
-        PageResponse.from(absenceService.list(year, month, from, to, absenceTypeId, absenceType, pageable)));
+        PageResponse.from(absenceService.list(year, month, from, to, absenceTypeId, absenceType, employmentId, pageable)));
   }
 
   @GetMapping("/{id}")

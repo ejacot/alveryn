@@ -13,6 +13,7 @@ export type E2eUser = {
   email: string;
   password: string;
   accessToken: string;
+  employmentId: string;
 };
 
 async function readResponseBody(response: APIResponse): Promise<unknown> {
@@ -62,7 +63,7 @@ export async function createE2eUser(testName: string): Promise<E2eUser> {
     "-c",
     `update user_accounts set email_verified = true, security_code_hash = null, security_code_expires_at = null where email = '${emailSql}'`,
     "-c",
-    `update user_preferences set onboarding_completed = true, language = 'en', currency = 'EUR', timezone = 'Europe/Berlin' where user_id = (select id from user_accounts where email = '${emailSql}')`
+    `update user_preferences set onboarding_completed = true, tracking_setup_version_completed = 1, language = 'en', currency = 'EUR', timezone = 'Europe/Berlin' where user_id = (select id from user_accounts where email = '${emailSql}')`
   ];
   const psqlCommand = process.env.E2E_PSQL_BIN ?? "psql";
 
@@ -84,13 +85,31 @@ export async function createE2eUser(testName: string): Promise<E2eUser> {
     data: { email, password }
   });
   const body = await requireSuccessfulResponse<{ data?: { accessToken?: string } }>(login, "Login e2e user");
-  await api.dispose();
 
   if (!body.data?.accessToken) {
+    await api.dispose();
     throw new Error(`Login e2e user did not return an access token: ${JSON.stringify(body)}`);
   }
+  const employment = await api.post("/api/employments", {
+    headers: { Authorization: `Bearer ${body.data.accessToken}` },
+    data: {
+      name: "Primary employment",
+      trackingFocus: "EARNINGS",
+      hourBalanceEnabled: false,
+      termsValidFrom: "2026-01-01",
+      startDate: "2026-01-01",
+      endDate: null,
+      active: true,
+      displayOrder: 0
+    }
+  });
+  const employmentBody = await requireSuccessfulResponse<{ data?: { id?: string } }>(employment, "Create e2e employment");
+  await api.dispose();
+  if (!employmentBody.data?.id) {
+    throw new Error(`Create e2e employment did not return an id: ${JSON.stringify(employmentBody)}`);
+  }
 
-  return { email, password, accessToken: body.data.accessToken };
+  return { email, password, accessToken: body.data.accessToken, employmentId: employmentBody.data.id };
 }
 
 export async function loginThroughUi(page: Page, user: E2eUser) {
@@ -101,29 +120,31 @@ export async function loginThroughUi(page: Page, user: E2eUser) {
   await page.waitForURL(/\/app$/);
 }
 
-export async function createHourlyRate(accessToken: string) {
+export async function createHourlyRate(accessToken: string, employmentId: string) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
   });
-  await api.post("/api/hourly-rates", {
+  const response = await api.post("/api/hourly-rates", {
     data: {
       hourlyRate: 20,
+      employmentId,
       currency: "EUR",
       validFrom: "2026-01-01",
       validTo: null
     }
   });
+  await requireSuccessfulResponse(response, "Create hourly rate");
   await api.dispose();
 }
 
-export async function createTimeBasedWorkType(accessToken: string, name: string) {
+export async function createTimeBasedWorkType(accessToken: string, employmentId: string, name: string) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
   });
   const response = await api.post("/api/work-types", {
-    data: { name, calculationMethod: "TIME_BASED" }
+    data: { name, employmentId, calculationMethod: "TIME_BASED" }
   });
   const body = await requireSuccessfulResponse<{ data?: { id?: string } }>(response, "Create work type");
   await api.dispose();
@@ -134,7 +155,7 @@ export async function createTimeBasedWorkType(accessToken: string, name: string)
   return body.data.id;
 }
 
-export async function createUnitBasedWorkType(accessToken: string, name: string) {
+export async function createUnitBasedWorkType(accessToken: string, employmentId: string, name: string) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
@@ -142,6 +163,7 @@ export async function createUnitBasedWorkType(accessToken: string, name: string)
   const response = await api.post("/api/work-types", {
     data: {
       name,
+      employmentId,
       calculationMethod: "UNIT_BASED",
       compensationMethod: "PER_UNIT",
       compositeEnabled: true
@@ -156,7 +178,7 @@ export async function createUnitBasedWorkType(accessToken: string, name: string)
   return body.data.id;
 }
 
-export async function createPerUnitWorkType(accessToken: string, name: string) {
+export async function createPerUnitWorkType(accessToken: string, employmentId: string, name: string) {
   const api = await request.newContext({
     baseURL: apiURL,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` }
@@ -164,6 +186,7 @@ export async function createPerUnitWorkType(accessToken: string, name: string) {
   const response = await api.post("/api/work-types", {
     data: {
       name,
+      employmentId,
       calculationMethod: "UNIT_BASED",
       compensationMethod: "PER_UNIT",
       compositeEnabled: true,

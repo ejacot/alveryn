@@ -2,6 +2,7 @@ import type { ApiMessage, ApiResponse, PageResponse } from "../types/api";
 import type { CurrentUser, AuthTokens, AuthUser } from "../types/auth";
 import type {
   HourlyRatePeriod,
+  Employment,
   UserPreferences,
   UserProfile,
   WorkType
@@ -9,6 +10,7 @@ import type {
 import type { DashboardResponse } from "../types/dashboard";
 import type { Absence, AbsenceType, AbsenceTypeSetting } from "../types/absence";
 import type { WorkRecord, WorkRecordRequest } from "../types/work-record";
+import type { WorkSession, WorkSessionCheckoutPayload } from "../types/work-session";
 import type { OnboardingStatus } from "../types/onboarding";
 import type { Address, AddressPayload } from "../types/address";
 import { http } from "./http";
@@ -68,6 +70,7 @@ export type UpdatePreferencesPayload = {
 };
 
 export type CreateHourlyRatePayload = {
+  employmentId?: string;
   hourlyRate: number;
   currency: string;
   validFrom: string;
@@ -76,8 +79,27 @@ export type CreateHourlyRatePayload = {
 
 export type UpdateHourlyRatePayload = CreateHourlyRatePayload;
 
+export type EmploymentPayload = {
+  name: string;
+  employmentType: null;
+  compensationType: null;
+  trackingFocus: Employment["trackingFocus"];
+  hourBalanceEnabled: boolean;
+  termsValidFrom: string;
+  startDate: string | null;
+  endDate: string | null;
+  fixedSalaryAmount: number | null;
+  currency: string | null;
+  targetMinutes: number | null;
+  targetPeriod: Employment["targetPeriod"];
+  hourBalanceValidityMonths: number | null;
+  active: boolean;
+  displayOrder: number | null;
+};
+
 export type CreateWorkTypePayload = {
   name: string;
+  employmentId?: string | null;
   parentId?: string | null;
   calculationMethod: WorkType["calculationMethod"];
   compensationMethod?: WorkType["compensationMethod"] | null;
@@ -191,6 +213,30 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   return response.data.data;
 }
 
+export async function listEmployments() {
+  const response = await http.get<ApiResponse<Employment[]>>("/api/employments");
+  return response.data.data;
+}
+
+export async function getEmployment(id: string) {
+  const response = await http.get<ApiResponse<Employment>>(`/api/employments/${id}`);
+  return response.data.data;
+}
+
+export async function createEmployment(payload: EmploymentPayload) {
+  const response = await http.post<ApiResponse<Employment>>("/api/employments", payload);
+  return response.data.data;
+}
+
+export async function updateEmployment(id: string, payload: EmploymentPayload) {
+  const response = await http.put<ApiResponse<Employment>>(`/api/employments/${id}`, payload);
+  return response.data.data;
+}
+
+export async function deleteEmployment(id: string) {
+  await http.delete(`/api/employments/${id}`);
+}
+
 export async function getPreferences() {
   const response = await http.get<ApiResponse<UserPreferences>>("/api/preferences");
   return response.data.data;
@@ -233,6 +279,26 @@ export async function getOnboardingStatus() {
 export async function completeOnboarding() {
   const response = await http.post<ApiResponse<OnboardingStatus>>(
     "/api/onboarding/complete"
+  );
+  return response.data.data;
+}
+
+export type TrackingSetupStatus = {
+  requiredVersion: number;
+  completedVersion: number;
+  completed: boolean;
+};
+
+export async function getTrackingSetupStatus() {
+  const response = await http.get<ApiResponse<TrackingSetupStatus>>(
+    "/api/tracking-setup/current"
+  );
+  return response.data.data;
+}
+
+export async function completeTrackingSetup() {
+  const response = await http.post<ApiResponse<UserPreferences>>(
+    "/api/tracking-setup/current/complete"
   );
   return response.data.data;
 }
@@ -296,13 +362,52 @@ export async function getDashboard() {
   return response.data.data;
 }
 
+export async function getCurrentWorkSession() {
+  const response = await http.get<ApiResponse<WorkSession | null>>("/api/work-sessions/current");
+  return response.data.data;
+}
+
+export async function checkInToWorkSession(payload: { workTypeId: string; timezone: string }) {
+  const response = await http.post<ApiResponse<WorkSession>>("/api/work-sessions/check-in", payload);
+  return response.data.data;
+}
+
+export async function checkOutOfWorkSession(payload: WorkSessionCheckoutPayload = {}) {
+  const response = await http.post<ApiResponse<WorkSession>>("/api/work-sessions/check-out", payload);
+  return response.data.data;
+}
+
+export async function startWorkSessionPause() {
+  const response = await http.post<ApiResponse<WorkSession>>("/api/work-sessions/pause/start");
+  return response.data.data;
+}
+
+export async function endWorkSessionPause() {
+  const response = await http.post<ApiResponse<WorkSession>>("/api/work-sessions/pause/end");
+  return response.data.data;
+}
+
+export async function cancelCurrentWorkSession() {
+  await http.delete("/api/work-sessions/current");
+}
+
 export async function createWorkRecord(payload: WorkRecordRequest) {
   const response = await http.post<ApiResponse<WorkRecord>>("/api/work-records", payload);
   return response.data.data;
 }
 
+export async function createWorkSession(payload: WorkRecordRequest) {
+  const response = await http.post<ApiResponse<WorkRecord>>("/api/work-records/sessions", payload);
+  return response.data.data;
+}
+
 export async function updateWorkRecord(id: string, payload: WorkRecordRequest) {
   const response = await http.put<ApiResponse<WorkRecord>>(`/api/work-records/${id}`, payload);
+  return response.data.data;
+}
+
+export async function updateWorkSession(id: string, payload: WorkRecordRequest) {
+  const response = await http.put<ApiResponse<WorkRecord>>(`/api/work-records/${id}/session`, payload);
   return response.data.data;
 }
 
@@ -365,6 +470,7 @@ async function fetchAllPages<T>(url: string, params: Record<string, unknown> = {
 }
 
 export type CreateAbsencePayload = {
+  employmentId?: string | null;
   absenceTypeId?: string | null;
   absenceType?: AbsenceType;
   startDate: string;

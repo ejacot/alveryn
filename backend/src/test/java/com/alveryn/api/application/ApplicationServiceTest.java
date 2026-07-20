@@ -6,6 +6,10 @@ import com.alveryn.api.auth.security.AuthenticatedUser;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.salary.dto.HourlyRatePeriodRequest;
 import com.alveryn.api.salary.service.HourlyRatePeriodService;
+import com.alveryn.api.salary.service.SalaryCalculationService;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.repository.EmploymentRepository;
 import com.alveryn.api.user.dto.*;
 import com.alveryn.api.user.entity.*;
 import com.alveryn.api.user.repository.UserAccountRepository;
@@ -30,14 +34,22 @@ class ApplicationServiceTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeService workTypes;
   @Autowired HourlyRatePeriodService rates;
+  @Autowired SalaryCalculationService salaryCalculations;
+  @Autowired EmploymentRepository employments;
   @Autowired UserProfileService profiles;
   @Autowired UserPreferencesService preferences;
   private UUID userId;
+  private UUID employmentId;
 
   @BeforeEach
   void setUp() {
     UserAccount user = users.save(new UserAccount("services-" + UUID.randomUUID() + "@example.com", "hash"));
     userId = user.getId();
+    var employment = new Employment(user, "Main job");
+    employment.configure(
+        EmploymentType.FULL_TIME, CompensationType.HOURLY, LocalDate.of(2025, 1, 1), null,
+        null, "EUR", null, null, true, 0);
+    employmentId = employments.saveAndFlush(employment).getId();
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(
@@ -180,14 +192,36 @@ class ApplicationServiceTest {
   void salaryServiceRejectsOverlappingPeriods() {
     rates.create(
         new HourlyRatePeriodRequest(
-            new BigDecimal("15.50"), "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
+            employmentId, new BigDecimal("15.50"), "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
     assertThatThrownBy(
             () ->
                 rates.create(
                     new HourlyRatePeriodRequest(
-                        new BigDecimal("17.50"), "EUR", LocalDate.of(2025, 1, 31), null)))
+                        employmentId, new BigDecimal("17.50"), "EUR", LocalDate.of(2025, 1, 31), null)))
         .isInstanceOf(ConflictException.class);
     assertThat(rates.list()).hasSize(1);
+  }
+
+  @Test
+  void hourlyRatesAndCalculationsAreIsolatedPerEmployment() {
+    UserAccount user = users.findById(userId).orElseThrow();
+    var minijob = new Employment(user, "Minijob");
+    minijob.configure(
+        EmploymentType.MINI_JOB, CompensationType.HOURLY, LocalDate.of(2025, 1, 1), null,
+        null, "EUR", null, null, true, 1);
+    UUID minijobId = employments.saveAndFlush(minijob).getId();
+
+    rates.create(new HourlyRatePeriodRequest(
+        employmentId, new BigDecimal("20.00"), "EUR", LocalDate.of(2025, 1, 1), null));
+    rates.create(new HourlyRatePeriodRequest(
+        minijobId, new BigDecimal("15.00"), "EUR", LocalDate.of(2025, 1, 1), null));
+
+    assertThat(salaryCalculations.calculateForDate(
+            userId, employmentId, LocalDate.of(2025, 6, 1), new BigDecimal("120")).grossAmount())
+        .isEqualByComparingTo("40.00");
+    assertThat(salaryCalculations.calculateForDate(
+            userId, minijobId, LocalDate.of(2025, 6, 1), new BigDecimal("120")).grossAmount())
+        .isEqualByComparingTo("30.00");
   }
 
   @Test

@@ -8,6 +8,8 @@ import java.util.UUID;
 @Schema(description = "Absence response")
 public record AbsenceResponse(
     UUID id,
+    UUID employmentId,
+    String employmentName,
     UUID absenceTypeId,
     AbsenceType absenceType,
     String absenceTypeName,

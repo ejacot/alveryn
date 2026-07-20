@@ -21,7 +21,7 @@ export function WorkTypeBreakdown({ items }: Props) {
   const { i18n, t } = useTranslation("common");
 
   return (
-    <section className="section-card" aria-labelledby="statistics-work-types-title">
+    <Card as="section" variant="section" aria-labelledby="statistics-work-types-title">
       <h2 id="statistics-work-types-title" className="text-base font-semibold text-white">
         {t("statistics.workTypes.title")}
       </h2>
@@ -51,6 +51,7 @@ export function WorkTypeBreakdown({ items }: Props) {
           </article>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
+import { Card } from "../../../components/ui/card";

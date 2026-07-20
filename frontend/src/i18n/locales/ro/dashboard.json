@@ -85,6 +85,27 @@
     "noWork": "Fără muncă planificată",
     "cancel": "Anulează"
   },
+  "timeTracking": {
+    "title": "Pontaj",
+    "workType": "Tip de muncă",
+    "noWorkType": "Niciun tip de muncă bazat pe timp",
+    "configureWorkType": "Creează mai întâi un tip de muncă bazat pe timp pentru acest employment.",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "break": "Pauză",
+    "resume": "Continuă",
+    "correct": "Corectează timpul",
+    "startedAt": "Început la {{time}}",
+    "defaultBreak": "Pauză automată {{minutes}} min",
+    "breakDuration": "Pauză {{duration}}",
+    "correctionTitle": "Corectează timpul",
+    "correctionDescription": "Ajustează intervalul înainte de a încheia sesiunea de lucru.",
+    "checkInTime": "Check-in",
+    "checkOutTime": "Check-out",
+    "breakMinutes": "Pauză (minute)",
+    "cancel": "Anulează",
+    "saveAndCheckOut": "Salvează și încheie"
+  },
   "weeklyHours": {
     "eyebrow": "Ritm",
     "flowEyebrow": "Flow",

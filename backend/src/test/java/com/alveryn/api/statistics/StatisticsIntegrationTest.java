@@ -14,6 +14,11 @@ import com.alveryn.api.absence.entity.AbsenceType;
 import com.alveryn.api.absence.repository.AbsenceRepository;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.repository.EmploymentRepository;
+import com.alveryn.api.employment.repository.EmploymentTermRepository;
+import com.alveryn.api.user.entity.EmploymentType;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
@@ -48,6 +53,8 @@ class StatisticsIntegrationTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
   @Autowired HourlyRatePeriodRepository hourlyRates;
+  @Autowired EmploymentRepository employments;
+  @Autowired EmploymentTermRepository employmentTerms;
   @Autowired WorkRecordRepository workRecords;
   @Autowired WorkRecordLineRepository workRecordLines;
   @Autowired AbsenceRepository absences;
@@ -62,6 +69,8 @@ class StatisticsIntegrationTest {
     absences.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
+    employmentTerms.deleteAll();
+    employments.deleteAll();
     users.deleteAll();
   }
 
@@ -324,7 +333,7 @@ class StatisticsIntegrationTest {
     WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);
     createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
     createTimeEntry(user, check, LocalDate.of(2026, 7, 2), "08:00:00", "12:00:00");
-    absences.saveAndFlush(new Absence(user, AbsenceType.VACATION, LocalDate.of(2026, 7, 3), LocalDate.of(2026, 7, 3)));
+    absences.saveAndFlush(new Absence(user, employment(user), AbsenceType.VACATION, LocalDate.of(2026, 7, 3), LocalDate.of(2026, 7, 3)));
 
     mockMvc
         .perform(
@@ -774,7 +783,7 @@ class StatisticsIntegrationTest {
   }
 
   private WorkType createWorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
-    WorkType workType = new WorkType(user, name, calculationMethod);
+    WorkType workType = new WorkType(user, employment(user), name, calculationMethod);
     if (calculationMethod != CalculationMethod.TIME_BASED) {
       workType.changeCompositeEnabled(true);
     }
@@ -791,7 +800,7 @@ class StatisticsIntegrationTest {
       String ratePerUnit,
       String currency) {
     WorkType configuration =
-        new WorkType(workType.getUser(), name, calculationMethod(mode), compensationMethod(mode));
+        new WorkType(workType.getUser(), workType.getEmployment(), name, calculationMethod(mode), compensationMethod(mode));
     configuration.changeParent(workType);
     configuration.changeTeamworkEnabled(workType.isTeamworkEnabled());
     configuration.configureUnit(unitLabel, unitSymbol);
@@ -804,7 +813,7 @@ class StatisticsIntegrationTest {
 
   private CalculationMethod calculationMethod(WorkLineCalculationMode mode) {
     return switch (mode) {
-      case TIME_HOURLY -> CalculationMethod.TIME_BASED;
+      case TIME_HOURLY, TIME_ONLY -> CalculationMethod.TIME_BASED;
       case UNITS_PER_HOUR -> CalculationMethod.UNITS_PER_HOUR_BASED;
       case UNITS_PER_UNIT -> CalculationMethod.UNIT_BASED;
       case FIXED_AMOUNT -> CalculationMethod.FIXED_PRICE_BASED;
@@ -818,7 +827,18 @@ class StatisticsIntegrationTest {
   private HourlyRatePeriod createRate(
       UserAccount user, String rate, String currency, LocalDate validFrom, LocalDate validTo) {
     return hourlyRates.saveAndFlush(
-        new HourlyRatePeriod(user, new BigDecimal(rate), currency, validFrom, validTo));
+        new HourlyRatePeriod(user, employment(user), new BigDecimal(rate), currency, validFrom, validTo));
+  }
+
+  private Employment employment(UserAccount user) {
+    return employments.findFirstByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(user.getId())
+        .orElseGet(() -> {
+          var employment = new Employment(user, "Main job");
+          employment.configure(
+              EmploymentType.FULL_TIME, CompensationType.HOURLY, LocalDate.of(2026, 1, 1), null,
+              null, "EUR", null, null, true, 0);
+          return employments.saveAndFlush(employment);
+        });
   }
 
   private String bearerToken(UserAccount user) {

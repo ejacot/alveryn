@@ -5,7 +5,7 @@ import { SettingsSection } from "../components/settings/settings-section";
 
 export function AboutAlverynPage() {
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10 pt-4">
       <SettingsPageHeader title="About Alveryn" />
       <SettingsContextCard context="about" />
       <SettingsSection title="Product">

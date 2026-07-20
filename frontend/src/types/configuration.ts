@@ -5,6 +5,29 @@ export type TimeFormat = "H12" | "H24";
 export type ThemePreference = "LIGHT" | "DARK" | "SYSTEM";
 export type FirstDayOfWeek = "MONDAY" | "SUNDAY";
 export type EmploymentType = "FULL_TIME" | "PART_TIME" | "MINI_JOB" | "FREELANCE" | "CONTRACTOR" | "OTHER";
+export type CompensationType = "FIXED_SALARY" | "HOURLY" | "PER_UNIT" | "FIXED_AMOUNT";
+export type TrackingFocus = "TIME" | "EARNINGS";
+export type TargetPeriod = "WEEKLY" | "MONTHLY";
+
+export type Employment = {
+  id: string;
+  name: string;
+  employmentType: EmploymentType | null;
+  compensationType: CompensationType;
+  trackingFocus: TrackingFocus;
+  hourBalanceEnabled: boolean;
+  termsValidFrom: string;
+  startDate: string | null;
+  endDate: string | null;
+  fixedSalaryAmount: string | null;
+  currency: string | null;
+  targetMinutes: number | null;
+  targetPeriod: TargetPeriod | null;
+  hourBalanceValidityMonths: number | null;
+  active: boolean;
+  displayOrder: number;
+  deletable: boolean;
+};
 
 export type UserProfile = {
   id: string;
@@ -41,10 +64,14 @@ export type UserPreferences = {
   paidSickLeave: boolean;
   paidVacation: boolean;
   onboardingCompleted: boolean;
+  guideVersionCompleted?: number;
+  trackingSetupVersionCompleted?: number;
 };
 
 export type HourlyRatePeriod = {
   id: string;
+  employmentId?: string;
+  employmentName?: string;
   hourlyRate: string;
   currency: string;
   validFrom: string;
@@ -53,6 +80,7 @@ export type HourlyRatePeriod = {
 
 export type WorkType = {
   id: string;
+  employmentId?: string | null;
   parentId?: string | null;
   name: string;
   calculationMethod: import("./work-calculation").CalculationMethod;

@@ -6,21 +6,27 @@ import { useNavigate, useOutletContext, useParams, useSearchParams } from "react
 import {
   createAddress,
   createWorkRecord,
+  createWorkSession,
   deleteWorkRecord,
   getWorkRecord,
   getPreferences,
   listHourlyRates,
   listWorkTypes,
-  updateWorkRecord
+  updateWorkRecord,
+  updateWorkSession
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
+import { useEmploymentScope } from "../features/employment/employment-scope";
 import { isValidDate, parseLocalIsoDate, safeLocalIsoDate } from "../utils/date";
 import { parseDecimalInput } from "../utils/decimal-input";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
@@ -118,6 +124,7 @@ export function WorkRecordEditorPage() {
   const [searchParams] = useSearchParams();
   const { recordId } = useParams();
   const isEditing = Boolean(recordId);
+  const selectedEmploymentId = useEmploymentScope();
   const outletContext = useOutletContext<OutletContext | null>();
   const selectedDate = useMemo(() => {
     const fromUrl = searchParams.get("date");
@@ -178,7 +185,9 @@ export function WorkRecordEditorPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createWorkRecord,
+    mutationFn: (payload: WorkRecordRequest) => payload.workEndDate
+      ? createWorkRecord(payload)
+      : createWorkSession(payload),
     onSuccess: async () => {
       setSuccess(true);
       await invalidateWorkRecordQueries(queryClient);
@@ -186,7 +195,9 @@ export function WorkRecordEditorPage() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (payload: WorkRecordRequest) => updateWorkRecord(recordId!, payload),
+    mutationFn: (payload: WorkRecordRequest) => payload.workEndDate
+      ? updateWorkRecord(recordId!, payload)
+      : updateWorkSession(recordId!, payload),
     onSuccess: async () => {
       setSuccess(true);
       await invalidateWorkRecordQueries(queryClient);
@@ -274,9 +285,12 @@ export function WorkRecordEditorPage() {
   const loadingError =
     workTypesQuery.error ?? hourlyRatesQuery.error ?? preferencesQuery.error ?? recordQuery.error;
 
+  const recordEmploymentId = recordQuery.data?.employmentId ?? selectedEmploymentId;
   const workTypes = useMemo(
-    () => (workTypesQuery.data ?? []).filter((workType) => workType.active),
-    [workTypesQuery.data]
+    () => (workTypesQuery.data ?? []).filter(
+      (workType) => workType.active && (!recordEmploymentId || workType.employmentId === recordEmploymentId)
+    ),
+    [recordEmploymentId, workTypesQuery.data]
   );
   const groupedLines = useMemo(() => {
     const groups: Array<{ key: string; parent: WorkType | null; lines: JobLineState[] }> = [];
@@ -410,21 +424,21 @@ export function WorkRecordEditorPage() {
   const pageTitle = isEditing ? t("records:job.editTitle") : t("records:job.title");
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-[560px] space-y-8 overflow-x-clip pb-6 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+    <div className="mx-auto min-w-0 w-full max-w-[560px] space-y-6 overflow-x-clip pb-6 pt-8">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"
           onClick={() => confirmOrRun(safeBack)}
           aria-label={t("common:actions.back")}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+          className="settings-sticky-header-control flex h-9 items-center gap-1.5 rounded-md px-0 text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
         >
           <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
           <span>{t("common:actions.back")}</span>
         </button>
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+          className={`settings-sticky-header-title pointer-events-none absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0"
           }`}
         >
@@ -434,7 +448,7 @@ export function WorkRecordEditorPage() {
 
       <h1
         ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
@@ -443,7 +457,7 @@ export function WorkRecordEditorPage() {
 
       <section className="space-y-3">
         <p className="hairline-text">{t("records:job.dates")}</p>
-        <div className="dashboard-glass-card space-y-4 p-5">
+        <Card className="space-y-4 p-5">
           <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
             <button
               type="button"
@@ -494,7 +508,7 @@ export function WorkRecordEditorPage() {
               </label>
             ) : null}
           </div>
-        </div>
+        </Card>
       </section>
 
       <section className="space-y-3">
@@ -523,25 +537,26 @@ export function WorkRecordEditorPage() {
           <p className="hairline-text">{t("records:job.lines")}</p>
         </div>
         {lines.length === 0 ? (
-          <button
+          <Card
+            as="button"
             type="button"
             onClick={() => setWorkTypePickerOpen(true)}
-            className="dashboard-glass-card flex min-h-36 w-full items-center justify-center transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
+            className="flex min-h-36 w-full items-center justify-center transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
             aria-label={t("records:job.addActivity")}
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white">
               <Plus className="h-6 w-6" aria-hidden="true" />
             </span>
-          </button>
+          </Card>
         ) : (
           <div className="space-y-4">
             {groupedLines.map((group) =>
               group.parent ? (
-                <section key={group.key} className="dashboard-glass-card overflow-hidden px-4 py-3">
+                <Card as="section" key={group.key} className="overflow-hidden px-4 py-3">
                   <div className="flex items-center gap-3 pb-2">
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: group.parent.color }} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-semibold text-white">{group.parent.name}</p>
+                      <p className="font-name truncate text-base font-semibold text-white">{group.parent.name}</p>
                     </div>
                     <button
                       type="button"
@@ -578,7 +593,7 @@ export function WorkRecordEditorPage() {
                     workDate={workDate}
                     teamSize={teamSize}
                   />
-                </section>
+                </Card>
               ) : (
                 <WorkRecordLineCard
                   key={group.key}
@@ -670,12 +685,12 @@ export function WorkRecordEditorPage() {
       {deleteMutation.error ? <p className="text-sm text-red-300">{getApiError(deleteMutation.error).message}</p> : null}
 
       {success ? (
-        <div className="glass-panel fixed inset-x-6 top-24 z-[70] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+        <Card variant="panel" className="fixed inset-x-6 top-24 z-[70] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
             <Check className="h-6 w-6" />
           </div>
           <p className="mt-3 text-base font-semibold text-white">{t("records:job.savedToast")}</p>
-        </div>
+        </Card>
       ) : null}
       {workTypePickerOpen ? (
         <WorkTypePickerDialog
@@ -700,7 +715,7 @@ function AddressFields({
   const { t } = useTranslation("settings");
 
   return (
-    <div className="dashboard-glass-card p-5">
+    <Card className="p-5">
         <div className="space-y-3">
           <Input
             label={t("profileEditor.fields.street")}
@@ -738,7 +753,7 @@ function AddressFields({
             />
           </div>
         </div>
-    </div>
+    </Card>
   );
 }
 
@@ -766,13 +781,14 @@ function WorkTypePickerDialog({
   }, {});
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/58 px-4 py-[max(1rem,env(safe-area-inset-top),env(safe-area-inset-bottom))] backdrop-blur-sm">
+    <LockedModalViewport className="bg-black/58 px-4 py-4 backdrop-blur-sm">
       <button type="button" className="absolute inset-0" onClick={onClose} aria-label={t("job.closePicker")} />
-      <section
+      <ModalPanel
+        as="section"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-type-picker-title"
-        className="dashboard-glass-card relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col overflow-hidden bg-[#111]/95"
+        className="flex max-h-[calc(100dvh-2rem)] max-w-sm flex-col overflow-hidden"
       >
         <header className="flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
           <h2 id="work-type-picker-title" className="text-xl font-semibold tracking-[-0.05em] text-white">
@@ -799,7 +815,7 @@ function WorkTypePickerDialog({
                 >
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: parent.color }} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-base font-semibold text-white">{parent.name}</span>
+                    <span className="font-name block truncate text-base font-semibold text-white">{parent.name}</span>
                     {children.length ? (
                       <span className="mt-1 block text-xs text-white/42">{t("job.activityCount", { count: children.length })}</span>
                     ) : null}
@@ -812,8 +828,8 @@ function WorkTypePickerDialog({
             );
           })}
         </div>
-      </section>
-    </div>
+      </ModalPanel>
+    </LockedModalViewport>
   );
 }
 
@@ -859,7 +875,7 @@ function WorkRecordLineCard({
       : "relative space-y-3 rounded-[22px] border border-white/[0.08] bg-white/[0.04] p-4"}
     >
       <div className="flex items-center justify-between gap-4">
-        <p className={`min-w-0 truncate font-semibold tracking-[-0.03em] text-white ${embedded ? "text-sm" : "text-base"}`}>
+        <p className={`font-name min-w-0 truncate font-semibold tracking-[-0.03em] text-white ${embedded ? "text-sm" : "text-base"}`}>
           {selectedWorkType ? selectedWorkType.name : t("records:job.lineTitle", { count: index + 1 })}
         </p>
         {onRemove ? (

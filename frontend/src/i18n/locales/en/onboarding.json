@@ -6,5 +6,30 @@
   "welcomeTitle": "Welcome to Alveryn",
   "profileTitle": "Let's get to know you.",
   "hourlyRateTitle": "How much do you earn per hour?",
-  "hourlyRateHint": "Saved as EUR from today."
+  "hourlyRateHint": "Saved as EUR from today.",
+  "trackingSetup": {
+    "updateLabel": "Quick update",
+    "setupLabel": "Initial setup",
+    "title": "What do you want to track?",
+    "description": "Choose what matters for each employment. Alveryn will keep the interface focused and hide irrelevant values.",
+    "chooseForEmployment": "Choose how this employment should work.",
+    "employmentName": "Employment name",
+    "choiceLabel": "Tracking mode",
+    "options": {
+      "TIME": {
+        "title": "Time tracking",
+        "description": "Track worked hours, check-in and check-out. Money stays out of the way."
+      },
+      "EARNINGS": {
+        "title": "Earnings tracking",
+        "description": "Track hours, quantities or completed work together with earnings."
+      }
+    },
+    "continue": "Save and continue",
+    "saving": "Saving...",
+    "changeLater": "You can change this later in Settings → Employment.",
+    "nameRequired": "Employment name is required.",
+    "loading": "Preparing your employment...",
+    "errorTitle": "Setup needs another try"
+  }
 }

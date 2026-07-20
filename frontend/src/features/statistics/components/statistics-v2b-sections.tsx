@@ -62,24 +62,24 @@ export function StatisticsInsightsSection({
   const status = <SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} />;
   if (isLoading || isError) {
     return (
-      <section className="section-card">
+      <Card as="section" variant="section">
         <p className="hairline-text">{t("statistics.insights.eyebrow")}</p>
         <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.insights.title")}</h2>
         <div className="mt-3">{status}</div>
-      </section>
+      </Card>
     );
   }
   if (insights.length === 0) {
     return (
-      <section className="section-card">
+      <Card as="section" variant="section">
         <p className="hairline-text">{t("statistics.insights.eyebrow")}</p>
         <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.insights.title")}</h2>
         <p className="mt-3 text-sm text-white/50">{t("statistics.insights.empty")}</p>
-      </section>
+      </Card>
     );
   }
   return (
-    <section className="section-card space-y-3" aria-labelledby="statistics-insights-title">
+    <Card as="section" variant="section" className="space-y-3" aria-labelledby="statistics-insights-title">
       <div>
         <p className="hairline-text">{t("statistics.insights.eyebrow")}</p>
         <h2 id="statistics-insights-title" className="mt-1 text-base font-semibold text-white">
@@ -94,7 +94,7 @@ export function StatisticsInsightsSection({
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
 
@@ -127,7 +127,7 @@ export function StatisticsForecastSection({
   const forecasts = data?.forecasts ?? [];
   const status = <SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} />;
   return (
-    <section className="section-card space-y-4" aria-labelledby="statistics-forecast-title">
+    <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-forecast-title">
       <div>
         <p className="hairline-text">{t("statistics.forecast.eyebrow")}</p>
         <h2 id="statistics-forecast-title" className="mt-1 text-base font-semibold text-white">
@@ -201,7 +201,7 @@ export function StatisticsForecastSection({
           ))}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -222,24 +222,24 @@ export function StatisticsProductivitySection({
   const { t } = useTranslation("common");
   if (isLoading || isError) {
     return (
-      <section className="section-card">
+      <Card as="section" variant="section">
         <p className="hairline-text">{t("statistics.productivity.eyebrow")}</p>
         <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.productivity.title")}</h2>
         <div className="mt-3"><SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} /></div>
-      </section>
+      </Card>
     );
   }
   if (!data?.available) {
     return (
-      <section className="section-card">
+      <Card as="section" variant="section">
         <p className="hairline-text">{t("statistics.productivity.eyebrow")}</p>
         <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.productivity.title")}</h2>
         <p className="mt-3 text-sm text-white/50">{t("statistics.productivity.empty")}</p>
-      </section>
+      </Card>
     );
   }
   return (
-    <section className="section-card space-y-4" aria-labelledby="statistics-productivity-title">
+    <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-productivity-title">
       <div>
         <p className="hairline-text">{t("statistics.productivity.eyebrow")}</p>
         <h2 id="statistics-productivity-title" className="mt-1 text-base font-semibold text-white">
@@ -301,7 +301,7 @@ export function StatisticsProductivitySection({
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -315,18 +315,18 @@ export function StatisticsHighlightsSection({
   const highlights = (data?.highlights ?? []).slice(0, 4);
   if (isLoading || isError) {
     return (
-      <section className="section-card">
+      <Card as="section" variant="section">
         <p className="hairline-text">{t("statistics.highlights.eyebrow")}</p>
         <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.highlights.title")}</h2>
         <div className="mt-3"><SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} /></div>
-      </section>
+      </Card>
     );
   }
   if (highlights.length === 0) {
     return null;
   }
   return (
-    <section className="section-card space-y-3" aria-labelledby="statistics-highlights-title">
+    <Card as="section" variant="section" className="space-y-3" aria-labelledby="statistics-highlights-title">
       <div>
         <p className="hairline-text">{t("statistics.highlights.eyebrow")}</p>
         <h2 id="statistics-highlights-title" className="mt-1 text-base font-semibold text-white">
@@ -346,7 +346,7 @@ export function StatisticsHighlightsSection({
           </article>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -369,3 +369,4 @@ function highlightValue(t: ReturnType<typeof useTranslation<"common">>["t"], hig
 function percentFromRatio(value: string | null | undefined) {
   return `${Math.round(numberValue(value) * 100)}%`;
 }
+import { Card } from "../../../components/ui/card";

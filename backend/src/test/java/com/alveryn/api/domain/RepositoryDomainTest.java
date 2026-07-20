@@ -8,6 +8,10 @@ import com.alveryn.api.absence.entity.AbsenceType;
 import com.alveryn.api.absence.repository.AbsenceRepository;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.repository.EmploymentRepository;
+import com.alveryn.api.user.entity.EmploymentType;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
@@ -28,6 +32,7 @@ class RepositoryDomainTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
   @Autowired HourlyRatePeriodRepository rates;
+  @Autowired EmploymentRepository employments;
   @Autowired AbsenceRepository absences;
 
   @Test
@@ -46,31 +51,41 @@ class RepositoryDomainTest {
   @Test
   void findsValidRateAndDetectsClosedIntervalOverlap() {
     var user = users.save(new UserAccount("rate-" + UUID.randomUUID() + "@example.com", "hash"));
+    var employment = employment(user, "Main job");
     rates.saveAndFlush(
         new HourlyRatePeriod(
-            user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
-    assertThat(rates.findValidForDate(user.getId(), LocalDate.of(2025, 1, 31))).isPresent();
+            user, employment, BigDecimal.TEN, "EUR", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
+    assertThat(rates.findValidForDate(user.getId(), employment.getId(), LocalDate.of(2025, 1, 31))).isPresent();
     assertThat(
             rates.existsOverlappingClosed(
-                user.getId(), LocalDate.of(2025, 1, 31), LocalDate.of(2025, 2, 2)))
+                user.getId(), employment.getId(), LocalDate.of(2025, 1, 31), LocalDate.of(2025, 2, 2)))
         .isTrue();
     assertThat(
             rates.existsOverlappingClosed(
-                user.getId(), LocalDate.of(2025, 2, 1), LocalDate.of(2025, 2, 28)))
+                user.getId(), employment.getId(), LocalDate.of(2025, 2, 1), LocalDate.of(2025, 2, 28)))
         .isFalse();
   }
 
   @Test
   void detectsOverlapWithOpenEndedPeriodsInBothDirections() {
     var user = users.save(new UserAccount("open-rate-" + UUID.randomUUID() + "@example.com", "hash"));
+    var employment = employment(user, "Main job");
     rates.saveAndFlush(
-        new HourlyRatePeriod(user, BigDecimal.TEN, "EUR", LocalDate.of(2025, 5, 1), null));
-    assertThat(rates.existsOverlappingOpenEnded(user.getId(), LocalDate.of(2025, 6, 1))).isTrue();
-    assertThat(rates.existsOverlappingOpenEnded(user.getId(), LocalDate.of(2024, 1, 1))).isTrue();
+        new HourlyRatePeriod(user, employment, BigDecimal.TEN, "EUR", LocalDate.of(2025, 5, 1), null));
+    assertThat(rates.existsOverlappingOpenEnded(user.getId(), employment.getId(), LocalDate.of(2025, 6, 1))).isTrue();
+    assertThat(rates.existsOverlappingOpenEnded(user.getId(), employment.getId(), LocalDate.of(2024, 1, 1))).isTrue();
     assertThat(
             rates.existsOverlappingClosed(
-                user.getId(), LocalDate.of(2024, 1, 1), LocalDate.of(2025, 4, 30)))
+                user.getId(), employment.getId(), LocalDate.of(2024, 1, 1), LocalDate.of(2025, 4, 30)))
         .isFalse();
+  }
+
+  private Employment employment(UserAccount user, String name) {
+    var employment = new Employment(user, name);
+    employment.configure(
+        EmploymentType.FULL_TIME, CompensationType.HOURLY, LocalDate.of(2025, 1, 1), null,
+        null, "EUR", null, null, true, 0);
+    return employments.saveAndFlush(employment);
   }
 
   @Test
@@ -78,7 +93,7 @@ class RepositoryDomainTest {
     var user = users.save(new UserAccount("absence-" + UUID.randomUUID() + "@example.com", "hash"));
     absences.saveAndFlush(
         new Absence(
-            user, AbsenceType.VACATION, LocalDate.of(2025, 7, 10), LocalDate.of(2025, 7, 15)));
+            user, employment(user, "Main job"), AbsenceType.VACATION, LocalDate.of(2025, 7, 10), LocalDate.of(2025, 7, 15)));
     assertThat(
             absences.findAllByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                 user.getId(), LocalDate.of(2025, 7, 12), LocalDate.of(2025, 7, 12)))

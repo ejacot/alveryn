@@ -5,7 +5,7 @@ import { SettingsSection } from "../components/settings/settings-section";
 
 export function HelpSupportPage() {
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10 pt-4">
       <SettingsPageHeader title="Help & Support" />
       <SettingsContextCard context="help" />
       <SettingsSection title="Support">

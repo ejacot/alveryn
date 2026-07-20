@@ -61,6 +61,13 @@ public class WorkRecordController {
     return ApiResponse.of(workRecordService.create(request));
   }
 
+  @PostMapping("/sessions")
+  @ResponseStatus(HttpStatus.CREATED)
+  @Operation(summary = "Create a one-day work session")
+  public ApiResponse<WorkRecordResponse> createSession(@Valid @RequestBody WorkRecordRequest request) {
+    return ApiResponse.of(workRecordService.createSession(request));
+  }
+
   @GetMapping("/{id}")
   @Operation(
       summary = "Get a work record",
@@ -78,6 +85,13 @@ public class WorkRecordController {
   public ApiResponse<WorkRecordResponse> update(
       @PathVariable UUID id, @Valid @RequestBody WorkRecordRequest request) {
     return ApiResponse.of(workRecordService.update(id, request));
+  }
+
+  @PutMapping("/{id}/session")
+  @Operation(summary = "Update a work session")
+  public ApiResponse<WorkRecordResponse> updateSession(
+      @PathVariable UUID id, @Valid @RequestBody WorkRecordRequest request) {
+    return ApiResponse.of(workRecordService.updateSession(id, request));
   }
 
   @DeleteMapping("/{id}")

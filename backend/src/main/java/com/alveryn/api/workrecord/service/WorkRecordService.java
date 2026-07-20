@@ -7,6 +7,7 @@ import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.NotFoundException;
 import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.salary.service.SalaryCalculationService;
+import com.alveryn.api.employment.entity.TrackingFocus;
 import com.alveryn.api.time.TimeCalculator;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
@@ -21,6 +22,8 @@ import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
+import com.alveryn.api.workproject.entity.WorkProject;
+import com.alveryn.api.workrecord.entity.WorkEntryKind;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -46,11 +49,35 @@ public class WorkRecordService {
 
   @Transactional
   public WorkRecordResponse create(@Valid WorkRecordRequest request) {
+    return createInternal(request, null, inferEntryKind(request));
+  }
+
+  @Transactional
+  public WorkRecordResponse createSession(@Valid WorkRecordRequest request) {
+    return createInternal(request, null, WorkEntryKind.WORK_SESSION);
+  }
+
+  @Transactional
+  public WorkRecordResponse createForProject(WorkProject project, @Valid WorkRecordRequest request) {
+    if (request.workEndDate() != null && !request.workEndDate().equals(request.workDate())) {
+      throw new ValidationException("A project work session represents exactly one day");
+    }
+    return createInternal(request, project, WorkEntryKind.WORK_SESSION);
+  }
+
+  private WorkRecordResponse createInternal(WorkRecordRequest request, WorkProject project, WorkEntryKind entryKind) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     UserAccount user = users.findById(userId).orElseThrow(() -> new NotFoundException("User", userId));
 
     validateDateRange(request);
     WorkRecord record = new WorkRecord(user, resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
+    record.classifyAs(entryKind);
+    record.assignEmployment(resolveRecordEmployment(userId, request));
+    if (project != null) {
+      if (record.getEmployment() == null || !project.getEmployment().getId().equals(record.getEmployment().getId()))
+        throw new ValidationException("All work lines must use the project's employment");
+      record.assignProject(project);
+    }
     WorkRecord savedRecord = workRecords.save(record);
     persistLines(userId, savedRecord, request);
     return toResponse(savedRecord);
@@ -64,8 +91,23 @@ public class WorkRecordService {
     return toResponse(record);
   }
 
+  @Transactional(readOnly = true)
+  public WorkRecord requireOwnedEntity(UUID id) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
+    return workRecords.findByIdAndUserId(id, userId).orElseThrow(() -> new NotFoundException("WorkRecord", id));
+  }
+
   @Transactional
   public WorkRecordResponse update(UUID id, @Valid WorkRecordRequest request) {
+    return updateInternal(id, request, inferEntryKind(request));
+  }
+
+  @Transactional
+  public WorkRecordResponse updateSession(UUID id, @Valid WorkRecordRequest request) {
+    return updateInternal(id, request, WorkEntryKind.WORK_SESSION);
+  }
+
+  private WorkRecordResponse updateInternal(UUID id, WorkRecordRequest request, WorkEntryKind entryKind) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     WorkRecord record =
         workRecords.findByIdAndUserId(id, userId).orElseThrow(() -> new NotFoundException("WorkRecord", id));
@@ -74,8 +116,14 @@ public class WorkRecordService {
 
     validateDateRange(request);
     record.update(resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
+    record.classifyAs(entryKind);
+    record.assignEmployment(resolveRecordEmployment(userId, request));
     persistLines(userId, record, request);
     return toResponse(record);
+  }
+
+  private WorkEntryKind inferEntryKind(WorkRecordRequest request) {
+    return request.workEndDate() == null ? WorkEntryKind.WORK_SESSION : WorkEntryKind.WORK_RECORD;
   }
 
   @Transactional
@@ -116,6 +164,14 @@ public class WorkRecordService {
     }
   }
 
+  private com.alveryn.api.employment.entity.Employment resolveRecordEmployment(UUID userId, WorkRecordRequest request) {
+    var employments = request.lines().stream().map(WorkRecordLineRequest::workTypeId).filter(java.util.Objects::nonNull)
+        .map(id -> workTypes.findByIdAndUserId(id, userId).orElseThrow(() -> new NotFoundException("WorkType", id)))
+        .map(WorkType::getEmployment).filter(java.util.Objects::nonNull).distinct().toList();
+    if (employments.size() > 1) throw new ValidationException("A work record cannot mix different employments");
+    return employments.isEmpty() ? null : employments.getFirst();
+  }
+
   private void validateDateRange(WorkRecordRequest request) {
     if (request.workEndDate() != null && request.workEndDate().isBefore(request.workDate())) {
       throw new ValidationException("workEndDate must be on or after workDate");
@@ -145,8 +201,14 @@ public class WorkRecordService {
             .findByIdAndUserId(workTypeId, userId)
             .orElseThrow(() -> new NotFoundException("WorkType", workTypeId));
     try {
+      if (workType.getEmployment() != null
+          && workType.getEmployment().getTrackingFocus() == TrackingFocus.TIME
+          && workType.calculationMode() == com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode.TIME_HOURLY) {
+        return toTimeOnlyLine(record, workType, request, displayOrder);
+      }
       return switch (workType.calculationMode()) {
         case TIME_HOURLY -> toTimeLine(userId, record, workType, request, displayOrder);
+        case TIME_ONLY -> throw new ValidationException("TIME_ONLY is derived from employment compensation");
         case UNITS_PER_HOUR -> toUnitsPerHourLine(userId, record, workType, request, displayOrder);
         case UNITS_PER_UNIT -> toUnitsPerUnitLine(record, workType, request, displayOrder);
         case FIXED_AMOUNT -> toFixedAmountLine(record, workType, request, displayOrder);
@@ -154,6 +216,14 @@ public class WorkRecordService {
     } catch (IllegalArgumentException ex) {
       throw new ValidationException(ex.getMessage());
     }
+  }
+
+  private WorkRecordLine toTimeOnlyLine(WorkRecord record, WorkType workType,
+      WorkRecordLineRequest request, int displayOrder) {
+    int breakMinutes = request.unpaidBreakMinutes() == null ? 0 : request.unpaidBreakMinutes();
+    if (request.durationMinutes() != null) return WorkRecordLine.timeOnlyDuration(record, workType, displayOrder, request.durationMinutes(), request.notes());
+    if (request.startTime() == null || request.endTime() == null) throw new ValidationException("startTime and endTime are required");
+    return WorkRecordLine.timeOnly(record, workType, displayOrder, request.startTime(), request.endTime(), breakMinutes, request.notes());
   }
 
   private WorkRecordLine toTimeLine(
@@ -175,7 +245,7 @@ public class WorkRecordService {
     BigDecimal workedMinutes =
         BigDecimal.valueOf(TimeCalculator.intervalMinutes(request.startTime(), request.endTime()) - breakMinutes);
     SalaryCalculationService.SalarySnapshot salary =
-        salaryCalculationService.calculateForDate(userId, record.getWorkDate(), workedMinutes);
+        salaryCalculationService.calculateForDate(userId, requireEmploymentId(record), record.getWorkDate(), workedMinutes);
     return WorkRecordLine.timeHourly(
         record,
         workType,
@@ -197,7 +267,7 @@ public class WorkRecordService {
       int displayOrder) {
     int durationMinutes = request.durationMinutes();
     SalaryCalculationService.SalarySnapshot salary =
-        salaryCalculationService.calculateForDate(userId, record.getWorkDate(), BigDecimal.valueOf(durationMinutes));
+        salaryCalculationService.calculateForDate(userId, requireEmploymentId(record), record.getWorkDate(), BigDecimal.valueOf(durationMinutes));
     return WorkRecordLine.timeHourlyDuration(
             record,
             workType,
@@ -222,7 +292,7 @@ public class WorkRecordService {
             .divide(workType.getUnitsPerHour(), WorkCalculation.TIME_MATH_CONTEXT)
             .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
     SalaryCalculationService.SalarySnapshot salary =
-        salaryCalculationService.calculateForDate(userId, record.getWorkDate(), calculatedMinutes);
+        salaryCalculationService.calculateForDate(userId, requireEmploymentId(record), record.getWorkDate(), calculatedMinutes);
     return WorkRecordLine.unitsPerHour(
         record,
         workType,
@@ -261,6 +331,11 @@ public class WorkRecordService {
     return request.quantity();
   }
 
+  private UUID requireEmploymentId(WorkRecord record) {
+    if (record.getEmployment() == null) throw new ValidationException("Employment is required for paid work");
+    return record.getEmployment().getId();
+  }
+
   private int normalizeExtraPayPercentage(Integer value) {
     return value == null ? 0 : value;
   }
@@ -284,6 +359,10 @@ public class WorkRecordService {
     BigDecimal totalGrossAmount = sum(recordLines, WorkRecordLineResponse::totalGrossAmount);
     return new WorkRecordResponse(
         record.getId(),
+        record.getEntryKind(),
+        record.getEmployment() == null ? null : record.getEmployment().getId(),
+        record.getProject() == null ? null : record.getProject().getId(),
+        record.getProject() == null ? null : record.getProject().getTitle(),
         record.getWorkDate(),
         record.getWorkEndDate(),
         record.getAddress() == null ? null : record.getAddress().getId(),

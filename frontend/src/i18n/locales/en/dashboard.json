@@ -79,6 +79,27 @@
     "noWork": "No work planned",
     "cancel": "Cancel"
   },
+  "timeTracking": {
+    "title": "Time tracking",
+    "workType": "Work type",
+    "noWorkType": "No time-based work type",
+    "configureWorkType": "Create a time-based work type for this employment before checking in.",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "break": "Break",
+    "resume": "Resume",
+    "correct": "Correct time",
+    "startedAt": "Started {{time}}",
+    "defaultBreak": "{{minutes}} min automatic break",
+    "breakDuration": "Break {{duration}}",
+    "correctionTitle": "Correct your time",
+    "correctionDescription": "Adjust the interval before completing this work session.",
+    "checkInTime": "Check-in",
+    "checkOutTime": "Check-out",
+    "breakMinutes": "Break (minutes)",
+    "cancel": "Cancel",
+    "saveAndCheckOut": "Save & check out"
+  },
   "weeklyHours": {
     "eyebrow": "Rhythm",
     "flowEyebrow": "Flow",

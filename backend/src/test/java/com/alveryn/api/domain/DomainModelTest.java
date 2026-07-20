@@ -6,8 +6,11 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import com.alveryn.api.absence.entity.Absence;
 import com.alveryn.api.absence.entity.AbsenceType;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.entity.Employment;
 import com.alveryn.api.time.TimeCalculator;
 import com.alveryn.api.user.entity.UserAccount;
+import com.alveryn.api.user.entity.EmploymentType;
 import com.alveryn.api.user.entity.UserPreferences;
 import com.alveryn.api.user.entity.UserProfile;
 import com.alveryn.api.workrecord.entity.WorkRecord;
@@ -21,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 class DomainModelTest {
   private final UserAccount user = new UserAccount("user@example.com", "hash");
+  private final Employment employment = hourlyEmployment(user, "Main job");
 
   @Test
   void validatesProfileEmploymentDates() {
@@ -50,6 +54,7 @@ class DomainModelTest {
     var rate =
         new HourlyRatePeriod(
             user,
+            employment,
             new BigDecimal("17.50"),
             "eur",
             LocalDate.of(2025, 1, 1),
@@ -59,16 +64,33 @@ class DomainModelTest {
     assertThatIllegalArgumentException()
         .isThrownBy(
             () ->
-                new HourlyRatePeriod(user, new BigDecimal("-0.01"), "EUR", LocalDate.now(), null));
+                new HourlyRatePeriod(user, employment, new BigDecimal("-0.01"), "EUR", LocalDate.now(), null));
     assertThatIllegalArgumentException()
         .isThrownBy(
             () ->
                 new HourlyRatePeriod(
                     user,
+                    employment,
                     BigDecimal.ONE,
                     "EUR",
                     LocalDate.of(2025, 2, 1),
                     LocalDate.of(2025, 1, 1)));
+  }
+
+  private static Employment hourlyEmployment(UserAccount owner, String name) {
+    var employment = new Employment(owner, name);
+    employment.configure(
+        EmploymentType.FULL_TIME,
+        CompensationType.HOURLY,
+        LocalDate.of(2025, 1, 1),
+        null,
+        null,
+        "EUR",
+        null,
+        null,
+        true,
+        0);
+    return employment;
   }
 
   @Test
@@ -115,10 +137,10 @@ class DomainModelTest {
   @Test
   void absenceSupportsSingleAndMultiDayRanges() {
     LocalDate day = LocalDate.of(2025, 7, 1);
-    assertThat(new Absence(user, AbsenceType.DAY_OFF, day, day).getEndDate()).isEqualTo(day);
-    assertThat(new Absence(user, AbsenceType.VACATION, day, day.plusDays(4)).getEndDate())
+    assertThat(new Absence(user, employment, AbsenceType.DAY_OFF, day, day).getEndDate()).isEqualTo(day);
+    assertThat(new Absence(user, employment, AbsenceType.VACATION, day, day.plusDays(4)).getEndDate())
         .isEqualTo(day.plusDays(4));
     assertThatIllegalArgumentException()
-        .isThrownBy(() -> new Absence(user, AbsenceType.SICK_LEAVE, day, day.minusDays(1)));
+        .isThrownBy(() -> new Absence(user, employment, AbsenceType.SICK_LEAVE, day, day.minusDays(1)));
   }
 }

@@ -48,7 +48,7 @@ export function StatisticsDrilldownPanel({ filters, point, onClose }: Props) {
   }
 
   return (
-    <section className="section-card space-y-4" aria-labelledby="statistics-drilldown-title">
+    <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-drilldown-title">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/35">{t("statistics.drilldown.eyebrow")}</p>
@@ -114,6 +114,7 @@ export function StatisticsDrilldownPanel({ filters, point, onClose }: Props) {
           </button>
         </>
       ) : null}
-    </section>
+    </Card>
   );
 }
+import { Card } from "../../../components/ui/card";

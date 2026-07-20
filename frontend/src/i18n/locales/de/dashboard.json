@@ -79,6 +79,27 @@
     "noWork": "Keine Arbeit geplant",
     "cancel": "Abbrechen"
   },
+  "timeTracking": {
+    "title": "Zeiterfassung",
+    "workType": "Arbeitsart",
+    "noWorkType": "Keine zeitbasierte Arbeitsart",
+    "configureWorkType": "Erstelle zuerst eine zeitbasierte Arbeitsart für diese Beschäftigung.",
+    "checkIn": "Einstempeln",
+    "checkOut": "Ausstempeln",
+    "break": "Pause",
+    "resume": "Fortsetzen",
+    "correct": "Zeit korrigieren",
+    "startedAt": "Beginn {{time}}",
+    "defaultBreak": "{{minutes}} Min. automatische Pause",
+    "breakDuration": "Pause {{duration}}",
+    "correctionTitle": "Zeit korrigieren",
+    "correctionDescription": "Passe den Zeitraum an, bevor du die Arbeitssitzung abschließt.",
+    "checkInTime": "Check-in",
+    "checkOutTime": "Check-out",
+    "breakMinutes": "Pause (Minuten)",
+    "cancel": "Abbrechen",
+    "saveAndCheckOut": "Speichern & ausstempeln"
+  },
   "weeklyHours": {
     "eyebrow": "Rhythmus",
     "flowEyebrow": "Flow",

@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -12,6 +12,7 @@ import {
   createHourlyRate,
   deleteHourlyRate,
   getHourlyRate,
+  listEmployments,
   updateHourlyRate
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
@@ -20,6 +21,10 @@ import { SettingsPageSkeleton } from "../components/settings/settings-page-skele
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { Card } from "../components/ui/card";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
+import { ModalActions } from "../components/ui/modal-actions";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { todayLocalIsoDate } from "../utils/date";
@@ -32,6 +37,7 @@ function createSchema(t: (key: string) => string) {
       z.coerce.number().min(0, t("hourlyRateEditor.validation.hourlyRate"))
     ),
     currency: z.string().length(3, t("hourlyRateEditor.validation.currency")),
+    employmentId: z.string().min(1, t("hourlyRateEditor.validation.employment")),
     validFrom: z.string().min(1, t("hourlyRateEditor.validation.validFrom")),
     validTo: z.string().optional()
   })
@@ -49,12 +55,23 @@ export function HourlyRateEditorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { rateId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedEmploymentId = searchParams.get("employmentId") ?? "";
   const isEditing = Boolean(rateId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [suppressUnsavedGuard, setSuppressUnsavedGuard] = useState(false);
   const [hourlyRateClearedOnFocus, setHourlyRateClearedOnFocus] = useState(false);
-  const safeBack = useSafeBackNavigation({ fallback: "/settings/hourly-rates" });
+  const ratesPath = requestedEmploymentId
+    ? `/settings/hourly-rates?employmentId=${requestedEmploymentId}`
+    : "/settings/hourly-rates";
+  const safeBack = useSafeBackNavigation({ fallback: ratesPath });
+
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments,
+    enabled: !requestedEmploymentId
+  });
 
   const rateQuery = useQuery({
     queryKey: rateId ? queryKeys.hourlyRates.detail(rateId) : queryKeys.hourlyRates.all(),
@@ -67,6 +84,7 @@ export function HourlyRateEditorPage() {
     defaultValues: {
       hourlyRate: "0",
       currency: "EUR",
+      employmentId: requestedEmploymentId,
       validFrom: todayLocalIsoDate(),
       validTo: ""
     }
@@ -77,10 +95,11 @@ export function HourlyRateEditorPage() {
     form.reset({
       hourlyRate: rateQuery.data.hourlyRate,
       currency: rateQuery.data.currency,
+      employmentId: rateQuery.data.employmentId ?? requestedEmploymentId,
       validFrom: rateQuery.data.validFrom,
       validTo: rateQuery.data.validTo ?? ""
     });
-  }, [form, rateQuery.data]);
+  }, [form, rateQuery.data, requestedEmploymentId]);
 
   async function afterSuccess() {
     await Promise.all([
@@ -89,7 +108,9 @@ export function HourlyRateEditorPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
     ]);
-    window.setTimeout(() => navigate("/settings/hourly-rates", { replace: true }), 520);
+      const employmentId = form.getValues("employmentId");
+      const path = employmentId ? `/settings/hourly-rates?employmentId=${employmentId}` : "/settings/hourly-rates";
+      window.setTimeout(() => navigate(path, { replace: true }), 520);
   }
 
   const saveMutation = useMutation({
@@ -128,20 +149,20 @@ export function HourlyRateEditorPage() {
       !deleteMutation.isPending
   });
 
-  if (rateQuery.isLoading) {
+  if (rateQuery.isLoading || employmentsQuery.isLoading) {
     return <SettingsPageSkeleton />;
   }
 
-  if (rateQuery.error) {
-    return <ScreenMessage title={t("hourlyRateEditor.unavailableTitle")} description={getApiError(rateQuery.error).message} />;
+  if (rateQuery.error || employmentsQuery.error) {
+    return <ScreenMessage title={t("hourlyRateEditor.unavailableTitle")} description={getApiError(rateQuery.error ?? employmentsQuery.error).message} />;
   }
 
   const title = isEditing ? t("hourlyRateEditor.editTitle") : t("hourlyRateEditor.addTitle");
   const hourlyRateField = form.register("hourlyRate");
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+    <LockedModalViewport
+      className="z-[60] bg-black/50 px-4 py-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="hourly-rate-title"
@@ -153,23 +174,17 @@ export function HourlyRateEditorPage() {
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={() => confirmOrRun(safeBack)}
       />
-      <form
-        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+      <ModalPanel
+        as="form"
+        className="max-w-sm"
         onSubmit={form.handleSubmit(async (values) => {
           await saveMutation.mutateAsync(values);
         })}
       >
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-5">
           <h1 id="hourly-rate-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
             {title}
           </h1>
-          <button
-            type="button"
-            onClick={() => confirmOrRun(safeBack)}
-            className="rounded-full px-3 py-2 text-sm font-semibold text-white/48 transition hover:text-white"
-          >
-            {t("hourlyRateEditor.cancel")}
-          </button>
         </div>
 
         <div className="mb-5">
@@ -177,6 +192,21 @@ export function HourlyRateEditorPage() {
         </div>
 
         <div className="space-y-3">
+          {!requestedEmploymentId ? (
+            <Select
+              label={t("hourlyRateEditor.fields.employment")}
+              error={form.formState.errors.employmentId?.message}
+              disabled={isEditing}
+              {...form.register("employmentId")}
+            >
+              <option value="">{t("hourlyRateEditor.selectEmployment")}</option>
+              {(employmentsQuery.data ?? [])
+                .filter((employment) => employment.active || employment.id === form.getValues("employmentId"))
+                .map((employment) => (
+                  <option key={employment.id} value={employment.id}>{employment.name}</option>
+                ))}
+            </Select>
+          ) : null}
           <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
             <Input
               type="text"
@@ -220,7 +250,7 @@ export function HourlyRateEditorPage() {
         </div>
 
         {saveMutation.error ? <p className="mt-4 text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
-        <div className="mt-6 flex items-center gap-3">
+        <div className="mt-6 space-y-3">
           {isEditing ? (
             <button
               type="button"
@@ -231,15 +261,14 @@ export function HourlyRateEditorPage() {
               {t("hourlyRateEditor.deleteLabel")}
             </button>
           ) : null}
-          <button
-            type="submit"
-            disabled={saveMutation.isPending || deleteMutation.isPending}
-            className="ml-auto min-h-12 rounded-full bg-white px-6 text-sm font-semibold tracking-[-0.02em] text-black shadow-[0_16px_40px_rgba(255,255,255,0.12)] transition hover:bg-white/90 disabled:opacity-55"
-          >
-            {saveMutation.isPending ? t("hourlyRateEditor.saving") : t("hourlyRateEditor.save")}
-          </button>
+          <ModalActions
+            cancelLabel={t("hourlyRateEditor.cancel")}
+            saveLabel={saveMutation.isPending ? t("hourlyRateEditor.saving") : t("hourlyRateEditor.save")}
+            pending={saveMutation.isPending || deleteMutation.isPending}
+            onCancel={() => confirmOrRun(safeBack)}
+          />
         </div>
-      </form>
+      </ModalPanel>
 
       <SettingsConfirmDialog
         open={showConfirm}
@@ -252,19 +281,20 @@ export function HourlyRateEditorPage() {
       />
       {dialog}
       {successMessage ? (
-        <div className="glass-panel fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
             <Check className="h-6 w-6" />
           </div>
           <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </div>
+        </Card>
       ) : null}
-    </div>
+    </LockedModalViewport>
   );
 }
 
 function toRatePayload(values: FormValues) {
   return {
+    employmentId: values.employmentId,
     hourlyRate: values.hourlyRate,
     currency: values.currency.toUpperCase(),
     validFrom: values.validFrom,

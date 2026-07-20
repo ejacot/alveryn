@@ -6,5 +6,7 @@ import org.mapstruct.*;
 
 @Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface HourlyRatePeriodMapper {
+  @Mapping(target = "employmentId", source = "employment.id")
+  @Mapping(target = "employmentName", source = "employment.name")
   HourlyRatePeriodResponse toResponse(HourlyRatePeriod e);
 }

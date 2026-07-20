@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "work_record_lines")
 public class WorkRecordLine extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "work_record_id", nullable = false)
+  @JoinColumn(name = "work_session_id", nullable = false)
   private WorkRecord workRecord;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -85,7 +85,7 @@ public class WorkRecordLine extends BaseEntity {
   @Column(name = "rate_per_unit_snapshot", precision = 12, scale = 4)
   private BigDecimal ratePerUnitSnapshot;
 
-  @Column(name = "currency_snapshot", nullable = false, length = 3)
+  @Column(name = "currency_snapshot", length = 3)
   private String currencySnapshot;
 
   @Column(name = "gross_amount", nullable = false, precision = 30, scale = 15)
@@ -163,6 +163,29 @@ public class WorkRecordLine extends BaseEntity {
     line.hourlyRateSnapshot = hourlyRate.setScale(WorkCalculation.RATE_SCALE, WorkCalculation.RATE_ROUNDING);
     line.currencySnapshot = normalizeCurrency(currency);
     line.captureResults(minutes, baseGross, extraPayPercentage);
+    return line;
+  }
+
+  public static WorkRecordLine timeOnly(WorkRecord record, WorkType workType, int displayOrder,
+      LocalTime startTime, LocalTime endTime, int breakMinutes, String notes) {
+    int totalIntervalMinutes = TimeCalculator.intervalMinutes(startTime, endTime);
+    if (breakMinutes < 0 || breakMinutes >= totalIntervalMinutes) throw new IllegalArgumentException("break must be shorter than interval");
+    WorkRecordLine line = base(record, workType, displayOrder, 0, notes);
+    line.calculationModeSnapshot = WorkLineCalculationMode.TIME_ONLY;
+    line.startTime = startTime; line.endTime = endTime; line.breakMinutes = breakMinutes;
+    line.calculatedMinutes = BigDecimal.valueOf(totalIntervalMinutes - breakMinutes).setScale(WorkCalculation.TIME_SCALE);
+    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, 0);
+    return line;
+  }
+
+  public static WorkRecordLine timeOnlyDuration(WorkRecord record, WorkType workType, int displayOrder,
+      int durationMinutes, String notes) {
+    if (durationMinutes <= 0) throw new IllegalArgumentException("durationMinutes must be positive");
+    WorkRecordLine line = base(record, workType, displayOrder, 0, notes);
+    line.calculationModeSnapshot = WorkLineCalculationMode.TIME_ONLY;
+    line.durationMinutes = durationMinutes;
+    line.calculatedMinutes = BigDecimal.valueOf(durationMinutes).setScale(WorkCalculation.TIME_SCALE);
+    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, 0);
     return line;
   }
 

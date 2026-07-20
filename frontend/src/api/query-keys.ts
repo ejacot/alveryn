@@ -36,7 +36,12 @@ export const queryKeys = {
   addresses: {
     all: () => ["addresses"] as const
   },
+  employments: {
+    all: () => ["employments"] as const,
+    detail: (id: string) => ["employments", "detail", id] as const
+  },
   onboardingStatus: () => ["onboarding-status"] as const,
+  trackingSetupStatus: () => ["tracking-setup-status"] as const,
   dashboard: () => ["dashboard"] as const,
   calendar: {
     activityRange: () => ["calendar", "activity-range"] as const
@@ -54,6 +59,9 @@ export const queryKeys = {
     day: (date: string) => ["work-records", "day", date] as const,
     range: (params: { from: string; to: string }) => ["work-records", "range", params] as const,
     detail: (id: string) => ["work-records", "detail", id] as const
+  },
+  workSessions: {
+    current: () => ["work-sessions", "current"] as const
   },
   absences: {
     all: () => ["absences"] as const,

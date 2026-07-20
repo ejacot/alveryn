@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../../utils/cn";
+import { Card } from "../ui/card";
 
 type SettingsGroupProps = {
   title: string;
@@ -18,11 +19,11 @@ type SettingsRowProps = {
 
 export function SettingsGroup({ title, children }: SettingsGroupProps) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2">
       <p className="hairline-text">{title}</p>
-      <div className="dashboard-glass-card overflow-hidden">
+      <Card className="overflow-hidden">
         {children}
-      </div>
+      </Card>
     </section>
   );
 }
@@ -36,7 +37,7 @@ export function SettingsRow({
   showChevron
 }: SettingsRowProps) {
   const classes =
-    "flex min-h-16 w-full items-center justify-between gap-4 px-6 py-4 text-left transition hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset";
+    "flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset";
 
   const content = (
     <>

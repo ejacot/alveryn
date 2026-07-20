@@ -15,11 +15,21 @@ public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpec
 
   Optional<Absence> findByIdAndUserId(UUID id, UUID userId);
 
+  boolean existsByEmploymentId(UUID employmentId);
+
+  boolean existsByAbsenceTypeSettingId(UUID absenceTypeSettingId);
+
   boolean existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
       UUID userId, LocalDate rangeEnd, LocalDate rangeStart);
 
+  boolean existsByUserIdAndEmploymentIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+      UUID userId, UUID employmentId, LocalDate rangeEnd, LocalDate rangeStart);
+
   boolean existsByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndIdNot(
       UUID userId, LocalDate rangeEnd, LocalDate rangeStart, UUID id);
+
+  boolean existsByUserIdAndEmploymentIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualAndIdNot(
+      UUID userId, UUID employmentId, LocalDate rangeEnd, LocalDate rangeStart, UUID id);
 
   @Query("select min(absence.startDate) from Absence absence where absence.user.id = :userId")
   LocalDate findEarliestStartDateByUserId(UUID userId);

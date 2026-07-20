@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.alveryn.api.auth.security.JwtService;
+import com.alveryn.api.absence.repository.AbsenceRepository;
+import com.alveryn.api.absence.repository.AbsenceTypeSettingRepository;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
 import com.alveryn.api.address.entity.Address;
@@ -21,10 +23,17 @@ import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
+import com.alveryn.api.workproject.repository.WorkProjectRepository;
+import com.alveryn.api.worksession.repository.WorkSessionRepository;
 import com.alveryn.api.worktype.entity.CalculationMethod;
 import com.alveryn.api.worktype.entity.CompensationMethod;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.repository.EmploymentRepository;
+import com.alveryn.api.employment.repository.EmploymentTermRepository;
+import com.alveryn.api.user.entity.EmploymentType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
@@ -49,7 +58,13 @@ class WorkRecordIntegrationTest {
   @Autowired HourlyRatePeriodRepository hourlyRates;
   @Autowired WorkRecordRepository workRecords;
   @Autowired WorkRecordLineRepository workRecordLines;
+  @Autowired WorkSessionRepository workIntervals;
+  @Autowired WorkProjectRepository workProjects;
+  @Autowired AbsenceRepository absences;
+  @Autowired AbsenceTypeSettingRepository absenceTypes;
   @Autowired AddressRepository addresses;
+  @Autowired EmploymentRepository employments;
+  @Autowired EmploymentTermRepository employmentTerms;
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -64,13 +79,19 @@ class WorkRecordIntegrationTest {
   }
 
   private void cleanDatabase() {
+    workIntervals.deleteAll();
     workRecordLines.deleteAll();
     workRecords.deleteAll();
+    workProjects.deleteAll();
+    absences.deleteAll();
+    absenceTypes.deleteAll();
     profiles.deleteAll();
     addresses.deleteAll();
     preferences.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
+    employmentTerms.deleteAll();
+    employments.deleteAll();
     users.deleteAll();
   }
 
@@ -96,7 +117,7 @@ class WorkRecordIntegrationTest {
 
     mockMvc
         .perform(
-            post("/api/work-records")
+            post("/api/work-records/sessions")
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
@@ -120,6 +141,7 @@ class WorkRecordIntegrationTest {
                     """
                         .formatted(squareMeters.getId(), checkHours.getId())))
         .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.entryKind").value("WORK_SESSION"))
         .andExpect(jsonPath("$.data.workLines.length()").value(2))
         .andExpect(jsonPath("$.data.workLines[0].configurationName").value("2 Lagen"))
         .andExpect(jsonPath("$.data.workLines[0].quantity").value(300.0000))
@@ -151,6 +173,7 @@ class WorkRecordIntegrationTest {
                 }
                 """.formatted(workType.getId())))
         .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.entryKind").value("WORK_RECORD"))
         .andExpect(jsonPath("$.data.workDate").value("2026-07-16"))
         .andExpect(jsonPath("$.data.workEndDate").value("2026-07-20"));
 
@@ -624,7 +647,7 @@ class WorkRecordIntegrationTest {
 
   private WorkType createWorkType(
       UserAccount user, String name, CalculationMethod calculationMethod, CompensationMethod compensationMethod) {
-    WorkType workType = new WorkType(user, name, calculationMethod);
+    WorkType workType = new WorkType(user, employment(user), name, calculationMethod);
     workType.changeCompensationMethod(compensationMethod);
     if (calculationMethod != CalculationMethod.TIME_BASED) {
       workType.changeCompositeEnabled(true);
@@ -642,7 +665,7 @@ class WorkRecordIntegrationTest {
       String unitsPerHour,
       String ratePerUnit,
       String currency) {
-    WorkType child = new WorkType(workType.getUser(), name, calculationMethod(mode));
+    WorkType child = new WorkType(workType.getUser(), workType.getEmployment(), name, calculationMethod(mode));
     child.changeParent(workType);
     child.changeTeamworkEnabled(workType.isTeamworkEnabled());
     child.configureUnit(unitLabel, unitSymbol);
@@ -655,7 +678,7 @@ class WorkRecordIntegrationTest {
 
   private CalculationMethod calculationMethod(WorkLineCalculationMode mode) {
     return switch (mode) {
-      case TIME_HOURLY -> CalculationMethod.TIME_BASED;
+      case TIME_HOURLY, TIME_ONLY -> CalculationMethod.TIME_BASED;
       case UNITS_PER_HOUR -> CalculationMethod.UNITS_PER_HOUR_BASED;
       case UNITS_PER_UNIT -> CalculationMethod.UNIT_BASED;
       case FIXED_AMOUNT -> CalculationMethod.FIXED_PRICE_BASED;
@@ -664,7 +687,15 @@ class WorkRecordIntegrationTest {
 
   private HourlyRatePeriod createRate(UserAccount user, String rate, String currency) {
     return hourlyRates.saveAndFlush(
-        new HourlyRatePeriod(user, new BigDecimal(rate), currency, LocalDate.of(2026, 1, 1), null));
+        new HourlyRatePeriod(user, employment(user), new BigDecimal(rate), currency, LocalDate.of(2026, 1, 1), null));
+  }
+
+  private Employment employment(UserAccount user) {
+    var existing = employments.findAllByUserIdOrderByDisplayOrderAscNameAsc(user.getId());
+    if (!existing.isEmpty()) return existing.getFirst();
+    Employment employment = new Employment(user, "Test employment");
+    employment.configure(EmploymentType.FULL_TIME, CompensationType.HOURLY, LocalDate.of(2026,1,1), null, null, null, null, null, true, 0);
+    return employments.saveAndFlush(employment);
   }
 
   private String bearerToken(UserAccount user) {

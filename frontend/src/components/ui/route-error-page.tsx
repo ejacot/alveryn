@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { ArrowLeft, Home } from "lucide-react";
 import { AppLogo } from "../branding/app-logo";
+import { Card } from "./card";
 import { Button } from "./button";
 
 type Props = {
@@ -42,7 +43,7 @@ export function RouteErrorPage({ title, description }: Props) {
 
   return (
     <main className="screen-shell flex min-h-screen items-center justify-center">
-      <section className="glass-panel w-full max-w-sm rounded-[30px] px-6 py-6 text-center">
+      <Card as="section" variant="panel" className="w-full max-w-sm rounded-[30px] px-6 py-6 text-center">
         <AppLogo />
         <p className="mt-6 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-white/38">
           Alveryn
@@ -69,7 +70,7 @@ export function RouteErrorPage({ title, description }: Props) {
             Home
           </Button>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }

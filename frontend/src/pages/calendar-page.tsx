@@ -42,6 +42,7 @@ import type { WorkRecord } from "../types/work-record";
 import { parseLocalIsoDate } from "../utils/date";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
 import { calculatePaidAbsenceDays } from "../utils/paid-absence";
+import { useEmploymentScope } from "../features/employment/employment-scope";
 
 const EMPTY_ABSENCES: Absence[] = [];
 const EMPTY_WORK_RECORDS: WorkRecord[] = [];
@@ -56,6 +57,7 @@ export function CalendarPage() {
   const outletContext = useOutletContext<OutletContext>();
   const { t } = useTranslation("calendar");
   const queryClient = useQueryClient();
+  const selectedEmploymentId = useEmploymentScope();
   const today = useMemo(() => new Date(), []);
   const [activeMonth, setActiveMonth] = useState(() => startOfMonth(today));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -189,17 +191,32 @@ export function CalendarPage() {
     previousAbsencesQuery.error ??
     preferencesQuery.error ??
     hourlyRatesQuery.error;
-  const records = workRecordsQuery.data ?? EMPTY_WORK_RECORDS;
-  const absences = absencesQuery.data ?? EMPTY_ABSENCES;
+  const records = useMemo(
+    () => (workRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
+    [selectedEmploymentId, workRecordsQuery.data]
+  );
+  const absences = useMemo(
+    () => (absencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
+    [absencesQuery.data, selectedEmploymentId]
+  );
   const absenceTypes = absenceTypesQuery.data ?? EMPTY_ABSENCE_TYPES;
   const absenceTypeById = useMemo(
     () => new Map(absenceTypes.map((type) => [type.id, type])),
     [absenceTypes]
   );
-  const previousRecords = previousWorkRecordsQuery.data ?? EMPTY_WORK_RECORDS;
-  const previousAbsences = previousAbsencesQuery.data ?? EMPTY_ABSENCES;
+  const previousRecords = useMemo(
+    () => (previousWorkRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
+    [previousWorkRecordsQuery.data, selectedEmploymentId]
+  );
+  const previousAbsences = useMemo(
+    () => (previousAbsencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
+    [previousAbsencesQuery.data, selectedEmploymentId]
+  );
   const preferences = preferencesQuery.data ?? null;
-  const hourlyRates = useMemo(() => hourlyRatesQuery.data ?? [], [hourlyRatesQuery.data]);
+  const hourlyRates = useMemo(
+    () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
+    [hourlyRatesQuery.data, selectedEmploymentId]
+  );
   const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
   const todayIso = toIsoDate(today);
 
@@ -338,10 +355,10 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-28 pt-12">
-      <header className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto h-[7.25rem] w-full max-w-[560px]">
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-28 pt-8">
+      <header className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[560px]">
         <div
-          className={`absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+          className={`settings-sticky-header-title absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0"
           }`}
           aria-hidden="true"
@@ -352,7 +369,7 @@ export function CalendarPage() {
 
       <h1
         ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
@@ -553,4 +570,8 @@ function defaultAbsenceColor(type: Absence["absenceType"]) {
   if (type === "SICK_LEAVE") return "#ef4444";
   if (type === "VACATION") return "#22c55e";
   return "#737373";
+}
+
+function matchesEmployment(value: string | null | undefined, selectedEmploymentId: string | null) {
+  return !selectedEmploymentId || value === selectedEmploymentId;
 }

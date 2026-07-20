@@ -74,8 +74,10 @@ export function StatisticsHeatmap({
   const selected = heatmap?.days.find((day) => day.date === selectedDay);
 
   return (
-    <section
-      className="section-card space-y-4"
+    <Card
+      as="section"
+      variant="section"
+      className="space-y-4"
       aria-labelledby="statistics-heatmap-title"
     >
       <div className="flex items-center justify-between gap-3">
@@ -223,6 +225,7 @@ export function StatisticsHeatmap({
           ) : null}
         </>
       )}
-    </section>
+    </Card>
   );
 }
+import { Card } from "../../../components/ui/card";

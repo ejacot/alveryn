@@ -2,6 +2,7 @@ package com.alveryn.api.salary.entity;
 
 import com.alveryn.api.common.persistence.BaseEntity;
 import com.alveryn.api.user.entity.UserAccount;
+import com.alveryn.api.employment.entity.Employment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -25,6 +26,10 @@ public class HourlyRatePeriod extends BaseEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
 
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "employment_id", nullable = false)
+  private Employment employment;
+
   @Column(name = "hourly_rate", nullable = false, precision = 10, scale = 2)
   private BigDecimal hourlyRate;
 
@@ -39,11 +44,18 @@ public class HourlyRatePeriod extends BaseEntity {
 
   public HourlyRatePeriod(
       UserAccount user,
+      Employment employment,
       BigDecimal hourlyRate,
       String currency,
       LocalDate validFrom,
       LocalDate validTo) {
     this.user = Objects.requireNonNull(user, "user is required");
+    this.employment = Objects.requireNonNull(employment, "employment is required");
+    if (employment.getUser() != user
+        && (employment.getUser().getId() == null
+            || !employment.getUser().getId().equals(user.getId()))) {
+      throw new IllegalArgumentException("employment must belong to rate user");
+    }
     if (hourlyRate == null || hourlyRate.signum() < 0)
       throw new IllegalArgumentException("hourlyRate must be non-negative");
     this.hourlyRate = hourlyRate;

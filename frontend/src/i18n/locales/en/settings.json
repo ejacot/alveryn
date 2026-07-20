@@ -1,5 +1,15 @@
 {
   "title": "Settings",
+  "pdfExport": {
+    "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment included",
+    "scopeHint": "The report follows the employment selected in Settings. Select All to combine every employment.",
+    "period": "Period", "from": "From", "to": "To", "include": "Include in report",
+    "singlePageHint": "The layout automatically compacts the chronological list so the complete report stays on one A4 page.",
+    "generate": "Generate PDF", "generating": "Generating PDF…",
+    "fields": { "date": "Date", "activity": "Activity", "intervals": "Work intervals", "hours": "Worked hours", "quantity": "Completed quantity", "extra": "Extra percentage", "earnings": "Earnings", "notes": "Notes" },
+    "errors": { "dateRange": "The end date cannot be before the start date.", "fields": "Select at least one field for the report.", "empty": "There is no work to export for this employment and period.", "generation": "The PDF could not be generated: {{reason}}" },
+    "pdf": { "report": "Work report", "employment": "Employment", "period": "Period", "generated": "Generated", "workedDays": "Worked days", "absences": "Absences", "totalHours": "Total hours", "totalExtraHours": "Total extra hours", "generatedWith": "Generated with Alveryn.com", "mixedCurrencies": "Mixed currencies" }
+  },
   "pageInfo": {
     "profile": { "title": "Your personal details", "description": "Keep your name, birth date and address up to date." },
     "preferences": { "title": "Make Alveryn yours", "description": "Choose your language, formats, theme and daily work defaults." },
@@ -14,6 +24,114 @@
   "status": {
     "active": "Active",
     "inactive": "Inactive"
+  },
+  "employment": {
+    "title": "Employment",
+    "listTitle": "Employments",
+    "add": "Add employment",
+    "addTitle": "Add employment",
+    "createTitle": "Create employment",
+    "editTitle": "Edit employment",
+    "editNameTitle": "Employment name",
+    "editContractTitle": "Tracking and hour balance",
+    "create": "Create employment",
+    "saved": "Employment saved.",
+    "none": "None",
+    "count": "{{count}} employments",
+    "all": "All",
+    "choose": "Choose employment",
+    "settingsTitle": "Employment settings",
+    "contractPeriod": "Tracking",
+    "current": "Current",
+    "unavailableTitle": "Employment is unavailable",
+    "unavailableDescription": "This employment could not be found.",
+    "applyChanges": {
+      "title": "When should the new rules apply?",
+      "description": "Earlier work keeps the rules that were active at that time.",
+      "TODAY": "From today",
+      "MONTH_START": "From the beginning of this month",
+      "CUSTOM": "Choose another date",
+      "customDate": "Apply changes from",
+      "confirm": "Apply changes"
+    },
+    "emptyTitle": "No employment yet",
+    "emptyDescription": "Add a job, contract or freelance activity to keep its work and payment rules separate.",
+    "delete": "Delete employment",
+    "deactivate": "Deactivate employment",
+    "activate": "Activate employment",
+    "deleteTitle": "Delete employment?",
+    "deleteDescription": "This employment has no related data and can be removed completely.",
+    "deactivateTitle": "Deactivate employment?",
+    "deactivateDescription": "Historical records remain intact. This employment will no longer be available for new work.",
+    "hourlyRates": "Hourly rates",
+    "currentHourlyRate": "Current hourly rate",
+    "hourlyRatesDescription": "Manage the dated rates used by this employment.",
+    "targetSummary": "{{hours}} h {{period}}",
+    "tracking": {
+      "description": "Choose what matters for this employment. Alveryn will keep the rest out of the way.",
+      "TIME": {
+        "title": "Track my working time",
+        "summaryTitle": "Time tracking",
+        "description": "Focus on worked hours, check-in and an optional hour balance."
+      },
+      "EARNINGS": {
+        "title": "Track my earnings",
+        "summaryTitle": "Earnings tracking",
+        "description": "See how much you earn and which work produced it."
+      }
+    },
+    "sections": {
+      "name": "Name",
+      "identity": "Employment details",
+      "tracking": "What do you want to track?",
+      "period": "Contract period",
+      "hourBalance": "Working time",
+      "fixedSalary": "Fixed salary and hour balance",
+      "availability": "Availability"
+    },
+    "fields": {
+      "name": "Employment name",
+      "employmentType": "Employment type",
+      "compensationType": "Payment model",
+      "termsValidFrom": "Terms valid from",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "salaryAmount": "Fixed salary (optional)",
+      "currency": "Currency",
+      "targetHours": "Target hours",
+      "targetPeriod": "Target period",
+      "validityMonths": "Hour balance validity",
+      "hourBalance": "Calculate my hour balance",
+      "active": "Active employment"
+    },
+    "help": {
+      "termsValidFrom": "When payment or target-hour changes begin. Older work keeps the previous terms.",
+      "targetHours": "Expected hours for the selected week or month.",
+      "validityMonths": "How many months worked-hour differences remain in the carried balance.",
+      "hourBalance": "Compare worked hours with your target and carry positive or negative hours forward.",
+      "active": "Inactive employments remain in history but cannot receive new entries."
+    },
+    "compensation": {
+      "FIXED_SALARY": "Fixed salary",
+      "HOURLY": "Paid hourly",
+      "PER_UNIT": "Paid per unit",
+      "FIXED_AMOUNT": "Fixed amount per task"
+    },
+    "targetPeriods": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
+    "validation": {
+      "nameRequired": "Employment name is required",
+      "nameTooLong": "Employment name is too long",
+      "termsValidFrom": "Terms start date is required",
+      "endBeforeStart": "End date cannot be before start date",
+      "salary": "Salary must be zero or positive",
+      "currency": "Use a three-letter currency code",
+      "targetHours": "Target hours must be greater than zero",
+      "validityMonths": "Validity must be a positive number of months",
+      "timeConfiguration": "Enter valid target hours and a positive balance validity."
+    }
   },
   "workSetup": {
     "title": "Work setup",
@@ -46,6 +164,7 @@
     "deleteDescription": "This work type has no saved work records, so it can be removed completely.",
     "deleteConfirm": "Delete",
     "savedEntriesError": "This work type already has saved work records. Create a new work type instead.",
+    "sections": { "name": "Name" },
     "fields": {
       "name": "Name",
       "categoryName": "Category name",
@@ -165,14 +284,21 @@
   "preferences": "Preferences",
   "absenceSettings": {
     "title": "Absences",
+    "emptyTitle": "No absence types yet",
     "normalDay": "Normal day",
     "paidTypes": "Paid absence types",
     "types": "Absence types",
     "addType": "Add absence type",
     "editType": "Edit absence type",
     "saved": "Absence type saved.",
+    "deleted": "Absence type deleted.",
     "deactivated": "Absence type deactivated.",
+    "delete": "Delete",
     "deactivate": "Deactivate",
+    "deleteTitle": "Delete absence type?",
+    "deleteDescription": "This absence type has not been used and can be deleted permanently.",
+    "deactivateTitle": "Deactivate absence type?",
+    "deactivateDescription": "This absence type is used in your history, so it will be hidden without deleting past absences.",
     "paidSummary": "Paid {{hours}} per day",
     "unpaidSummary": "Unpaid",
     "fields": {
@@ -230,6 +356,7 @@
     "unavailableTitle": "Profile is unavailable",
     "basicInformation": "Basic information",
     "employment": "Employment",
+    "employments": "Employments",
     "address": "Address",
     "menu": {
       "personalInformation": "Personal Information",
@@ -330,17 +457,20 @@
     "deleteDescription": "This removes the rate period, but saved work record amounts remain unchanged.",
     "deleteConfirm": "Delete period",
     "fields": {
+      "employment": "Employment",
       "hourlyRate": "Hourly rate",
       "currency": "Currency",
       "validFrom": "Valid from",
       "validTo": "Valid to"
     },
     "validation": {
+      "employment": "Select an employment",
       "hourlyRate": "Hourly rate must be zero or positive",
       "currency": "Use a three-letter currency code",
       "validFrom": "Start date is required",
       "validToBeforeFrom": "End date cannot be before start date"
     },
+    "selectEmployment": "Choose an employment",
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving"

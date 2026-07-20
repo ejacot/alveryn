@@ -1,5 +1,15 @@
 {
   "title": "Einstellungen",
+  "pdfExport": {
+    "title": "PDF exportieren", "menuLabel": "PDF exportieren", "employment": "Enthaltene Beschäftigung",
+    "scopeHint": "Der Bericht verwendet die in den Einstellungen ausgewählte Beschäftigung. Mit Alle werden sämtliche Beschäftigungen kombiniert.",
+    "period": "Zeitraum", "from": "Von", "to": "Bis", "include": "Im Bericht anzeigen",
+    "singlePageHint": "Die chronologische Liste wird automatisch verdichtet, damit der vollständige Bericht auf einer A4-Seite bleibt.",
+    "generate": "PDF erstellen", "generating": "PDF wird erstellt…",
+    "fields": { "date": "Datum", "activity": "Aktivität", "intervals": "Arbeitsintervalle", "hours": "Arbeitsstunden", "quantity": "Erledigte Menge", "extra": "Extra-Prozentsatz", "earnings": "Verdienst", "notes": "Notizen" },
+    "errors": { "dateRange": "Das Enddatum darf nicht vor dem Startdatum liegen.", "fields": "Wähle mindestens ein Feld für den Bericht aus.", "empty": "Für diese Beschäftigung und diesen Zeitraum gibt es keine Arbeit zum Exportieren.", "generation": "Das PDF konnte nicht erstellt werden: {{reason}}" },
+    "pdf": { "report": "Arbeitsbericht", "employment": "Beschäftigung", "period": "Zeitraum", "generated": "Erstellt", "workedDays": "Arbeitstage", "absences": "Abwesenheiten", "totalHours": "Stunden gesamt", "totalExtraHours": "Extrastunden gesamt", "generatedWith": "Erstellt mit Alveryn.com", "mixedCurrencies": "Mehrere Währungen" }
+  },
   "pageInfo": {
     "profile": { "title": "Deine persönlichen Daten", "description": "Halte Name, Geburtsdatum und Adresse aktuell." },
     "preferences": { "title": "Alveryn für dich einstellen", "description": "Wähle Sprache, Formate, Design und Standardwerte für deine Arbeit." },
@@ -14,6 +24,114 @@
   "status": {
     "active": "Aktiv",
     "inactive": "Inaktiv"
+  },
+  "employment": {
+    "title": "Beschäftigung",
+    "listTitle": "Beschäftigungen",
+    "add": "Beschäftigung hinzufügen",
+    "addTitle": "Beschäftigung hinzufügen",
+    "createTitle": "Beschäftigung erstellen",
+    "editTitle": "Beschäftigung bearbeiten",
+    "editNameTitle": "Name der Beschäftigung",
+    "editContractTitle": "Erfassung und Stundenkonto",
+    "create": "Beschäftigung erstellen",
+    "saved": "Beschäftigung gespeichert.",
+    "none": "Keine",
+    "count": "{{count}} Beschäftigungen",
+    "all": "Alle",
+    "choose": "Beschäftigung auswählen",
+    "settingsTitle": "Beschäftigungseinstellungen",
+    "contractPeriod": "Erfassung",
+    "current": "Aktuell",
+    "unavailableTitle": "Beschäftigung nicht verfügbar",
+    "unavailableDescription": "Diese Beschäftigung wurde nicht gefunden.",
+    "applyChanges": {
+      "title": "Ab wann gelten die neuen Regeln?",
+      "description": "Frühere Arbeit behält die Regeln, die zu diesem Zeitpunkt aktiv waren.",
+      "TODAY": "Ab heute",
+      "MONTH_START": "Ab Anfang dieses Monats",
+      "CUSTOM": "Anderes Datum wählen",
+      "customDate": "Änderungen anwenden ab",
+      "confirm": "Änderungen anwenden"
+    },
+    "emptyTitle": "Noch keine Beschäftigung",
+    "emptyDescription": "Füge einen Job, Vertrag oder eine selbstständige Tätigkeit hinzu, um Arbeits- und Zahlungsregeln getrennt zu halten.",
+    "delete": "Beschäftigung löschen",
+    "deactivate": "Beschäftigung deaktivieren",
+    "activate": "Beschäftigung aktivieren",
+    "deleteTitle": "Beschäftigung löschen?",
+    "deleteDescription": "Diese Beschäftigung hat keine verknüpften Daten und kann vollständig entfernt werden.",
+    "deactivateTitle": "Beschäftigung deaktivieren?",
+    "deactivateDescription": "Historische Einträge bleiben erhalten. Neue Einträge sind für diese Beschäftigung nicht mehr möglich.",
+    "hourlyRates": "Stundensätze",
+    "currentHourlyRate": "Aktueller Stundensatz",
+    "hourlyRatesDescription": "Verwalte die zeitlich gültigen Sätze dieser Beschäftigung.",
+    "targetSummary": "{{hours}} Std. {{period}}",
+    "tracking": {
+      "description": "Wähle, was für diese Beschäftigung wichtig ist. Alveryn blendet den Rest aus.",
+      "TIME": {
+        "title": "Meine Arbeitszeit erfassen",
+        "summaryTitle": "Zeiterfassung",
+        "description": "Arbeitsstunden, Check-in und optional ein Stundenkonto im Blick behalten."
+      },
+      "EARNINGS": {
+        "title": "Meine Einnahmen erfassen",
+        "summaryTitle": "Verdiensterfassung",
+        "description": "Sieh, wie viel du verdienst und aus welcher Arbeit der Betrag stammt."
+      }
+    },
+    "sections": {
+      "name": "Name",
+      "identity": "Beschäftigungsdetails",
+      "tracking": "Was möchtest du erfassen?",
+      "period": "Vertragszeitraum",
+      "hourBalance": "Arbeitszeit",
+      "fixedSalary": "Festgehalt und Stundenkonto",
+      "availability": "Verfügbarkeit"
+    },
+    "fields": {
+      "name": "Name der Beschäftigung",
+      "employmentType": "Beschäftigungsart",
+      "compensationType": "Vergütungsmodell",
+      "termsValidFrom": "Bedingungen gültig ab",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "salaryAmount": "Festgehalt (optional)",
+      "currency": "Währung",
+      "targetHours": "Sollstunden",
+      "targetPeriod": "Sollzeitraum",
+      "validityMonths": "Gültigkeit des Stundenkontos",
+      "hourBalance": "Mein Stundenkonto berechnen",
+      "active": "Aktive Beschäftigung"
+    },
+    "help": {
+      "termsValidFrom": "Ab diesem Datum gelten Änderungen an Vergütung oder Sollstunden. Frühere Arbeit behält die alten Bedingungen.",
+      "targetHours": "Erwartete Stunden für die ausgewählte Woche oder den Monat.",
+      "validityMonths": "Wie viele Monate Stundendifferenzen im laufenden Saldo bleiben.",
+      "hourBalance": "Vergleicht deine Arbeitszeit mit dem Soll und überträgt positive oder negative Stunden.",
+      "active": "Inaktive Beschäftigungen bleiben im Verlauf, können aber keine neuen Einträge erhalten."
+    },
+    "compensation": {
+      "FIXED_SALARY": "Festgehalt",
+      "HOURLY": "Stundenlohn",
+      "PER_UNIT": "Bezahlung pro Einheit",
+      "FIXED_AMOUNT": "Fester Betrag pro Aufgabe"
+    },
+    "targetPeriods": {
+      "WEEKLY": "Wöchentlich",
+      "MONTHLY": "Monatlich"
+    },
+    "validation": {
+      "nameRequired": "Der Name ist erforderlich",
+      "nameTooLong": "Der Name ist zu lang",
+      "termsValidFrom": "Das Startdatum der Bedingungen ist erforderlich",
+      "endBeforeStart": "Das Enddatum darf nicht vor dem Startdatum liegen",
+      "salary": "Das Gehalt muss null oder positiv sein",
+      "currency": "Verwende einen dreistelligen Währungscode",
+      "targetHours": "Die Sollstunden müssen größer als null sein",
+      "validityMonths": "Die Gültigkeit muss eine positive Anzahl Monate sein",
+      "timeConfiguration": "Gib gültige Sollstunden und eine positive Gültigkeitsdauer ein."
+    }
   },
   "workSetup": {
     "title": "Arbeits-Setup",
@@ -46,6 +164,7 @@
     "deleteDescription": "Diese Arbeitsart hat keine gespeicherten Arbeitseinträge und kann vollständig entfernt werden.",
     "deleteConfirm": "Löschen",
     "savedEntriesError": "Diese Arbeitsart hat bereits gespeicherte Eintrage. Erstelle stattdessen eine neue Arbeitsart.",
+    "sections": { "name": "Name" },
     "fields": {
       "name": "Name",
       "categoryName": "Kategoriename",
@@ -165,14 +284,21 @@
   "preferences": "Einstellungen",
   "absenceSettings": {
     "title": "Abwesenheiten",
+    "emptyTitle": "Noch keine Abwesenheitsarten",
     "normalDay": "Normaler Tag",
     "paidTypes": "Bezahlte Abwesenheiten",
     "types": "Abwesenheitstypen",
     "addType": "Abwesenheitstyp hinzufügen",
     "editType": "Abwesenheitstyp bearbeiten",
     "saved": "Abwesenheitstyp gespeichert.",
+    "deleted": "Abwesenheitstyp gelöscht.",
     "deactivated": "Abwesenheitstyp deaktiviert.",
+    "delete": "Löschen",
     "deactivate": "Deaktivieren",
+    "deleteTitle": "Abwesenheitstyp löschen?",
+    "deleteDescription": "Dieser Abwesenheitstyp wurde noch nicht verwendet und kann dauerhaft gelöscht werden.",
+    "deactivateTitle": "Abwesenheitstyp deaktivieren?",
+    "deactivateDescription": "Dieser Abwesenheitstyp wird im Verlauf verwendet und wird deshalb ausgeblendet, ohne frühere Abwesenheiten zu löschen.",
     "paidSummary": "Bezahlt {{hours}} pro Tag",
     "unpaidSummary": "Unbezahlt",
     "fields": {
@@ -230,6 +356,7 @@
     "unavailableTitle": "Profil ist nicht verfügbar",
     "basicInformation": "Grunddaten",
     "employment": "Beschäftigung",
+    "employments": "Beschäftigungen",
     "address": "Adresse",
     "menu": {
       "personalInformation": "Persönliche Informationen",
@@ -330,17 +457,20 @@
     "deleteDescription": "Der Zeitraum wird entfernt, gespeicherte Beträge in Arbeitseinträgen bleiben aber unverändert.",
     "deleteConfirm": "Zeitraum löschen",
     "fields": {
+      "employment": "Beschäftigung",
       "hourlyRate": "Stundensatz",
       "currency": "Währung",
       "validFrom": "Gültig ab",
       "validTo": "Gültig bis"
     },
     "validation": {
+      "employment": "Wähle eine Beschäftigung",
       "hourlyRate": "Der Stundensatz muss null oder positiv sein",
       "currency": "Verwende einen dreistelligen Währungscode",
       "validFrom": "Startdatum ist erforderlich",
       "validToBeforeFrom": "Das Enddatum darf nicht vor dem Startdatum liegen"
     },
+    "selectEmployment": "Beschäftigung auswählen",
     "cancel": "Abbrechen",
     "save": "Speichern",
     "saving": "Speichern"

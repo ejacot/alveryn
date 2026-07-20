@@ -361,6 +361,7 @@ describe("dashboard components", () => {
     expect(screen.getByText("12h 30m")).toBeInTheDocument();
     expect(screen.getByText("1h 00m")).toBeInTheDocument();
     expect(screen.getByText("13h 30m")).toBeInTheDocument();
+    expect(screen.getByText("+50%")).toBeInTheDocument();
 
     rerender(<WeeklyHoursCard variant="flow" days={summaryDays} flowCurrency="EUR" />);
 
@@ -370,6 +371,13 @@ describe("dashboard components", () => {
     expect(screen.getByText("€230.00")).toBeInTheDocument();
     expect(screen.getByText("€20.00")).toBeInTheDocument();
     expect(screen.getByText("€250.00")).toBeInTheDocument();
+    expect(screen.getByText("+50%")).toBeInTheDocument();
+
+    const flowBar = screen.getByTestId("flow-segmented-bar-2026-07-15");
+    expect(flowBar.querySelector('[data-segment="worked"]')).toBeInTheDocument();
+    expect(flowBar.querySelector('[data-segment="extra"]')).toHaveStyle({
+      height: `${(20 / 170) * 100}%`
+    });
   });
 
   it("renders localized weekly-hours empty state and chart", async () => {

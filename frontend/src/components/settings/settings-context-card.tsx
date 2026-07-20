@@ -38,7 +38,7 @@ export function SettingsContextCard({ context }: { context: SettingsContext }) {
   const Icon = icons[context];
 
   return (
-    <section className="dashboard-glass-card overflow-hidden rounded-[24px] px-4 py-4 sm:px-5">
+    <Card as="section" className="overflow-hidden rounded-[24px] px-4 py-4 sm:px-5">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white/[0.09] text-white/78">
           <Icon className="h-6 w-6" aria-hidden="true" />
@@ -52,6 +52,7 @@ export function SettingsContextCard({ context }: { context: SettingsContext }) {
           </p>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
+import { Card } from "../ui/card";

@@ -70,10 +70,10 @@ describe("WorkTypesPage", () => {
     ]);
   });
 
-  it("renders work setup as the central configuration surface", async () => {
+  it("renders work types as separate employment-style cards", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Work setup" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Work types" })).toBeInTheDocument();
     expect(screen.queryByText(/Configure the activities/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Hours")).not.toBeInTheDocument();
     expect(screen.queryByText("Units to hours")).not.toBeInTheDocument();
@@ -149,7 +149,7 @@ describe("WorkTypesPage", () => {
     expect(parentCard).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /normal m2/i })).not.toBeInTheDocument();
 
-    await user.click(parentCard);
+    await user.click(screen.getByRole("button", { name: /expand floor heating/i }));
 
     expect(await screen.findByRole("button", { name: /normal m2/i })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /normal m2/i }));

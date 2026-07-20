@@ -6,6 +6,8 @@ export type AbsenceType =
 
 export type Absence = {
   id: string;
+  employmentId?: string | null;
+  employmentName?: string | null;
   absenceTypeId?: string | null;
   absenceType: AbsenceType;
   absenceTypeName: string;
@@ -25,4 +27,5 @@ export type AbsenceTypeSetting = {
   color: string;
   active: boolean;
   displayOrder: number;
+  deletable?: boolean;
 };

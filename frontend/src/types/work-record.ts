@@ -57,6 +57,10 @@ export type WorkRecordLine = {
 
 export type WorkRecord = {
   id: string;
+  entryKind?: "WORK_SESSION" | "WORK_RECORD";
+  employmentId?: string | null;
+  projectId?: string | null;
+  projectTitle?: string | null;
   workDate: string;
   workEndDate?: string | null;
   addressId?: string | null;

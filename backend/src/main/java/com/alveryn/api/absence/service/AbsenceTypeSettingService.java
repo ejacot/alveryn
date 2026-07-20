@@ -4,6 +4,7 @@ import com.alveryn.api.absence.dto.AbsenceTypeSettingRequest;
 import com.alveryn.api.absence.dto.AbsenceTypeSettingResponse;
 import com.alveryn.api.absence.entity.AbsenceTypeSetting;
 import com.alveryn.api.absence.repository.AbsenceTypeSettingRepository;
+import com.alveryn.api.absence.repository.AbsenceRepository;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.NotFoundException;
@@ -24,6 +25,7 @@ import org.springframework.validation.annotation.Validated;
 public class AbsenceTypeSettingService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final AbsenceTypeSettingRepository repository;
+  private final AbsenceRepository absences;
   private final UserAccountRepository users;
 
   @Transactional
@@ -76,9 +78,13 @@ public class AbsenceTypeSettingService {
   }
 
   @Transactional
-  public void deactivate(UUID id) {
+  public void deleteOrDeactivate(UUID id) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     AbsenceTypeSetting setting = findOwned(id, userId);
+    if (!absences.existsByAbsenceTypeSettingId(id)) {
+      repository.delete(setting);
+      return;
+    }
     setting.update(
         setting.getName(),
         setting.getCode(),
@@ -111,6 +117,7 @@ public class AbsenceTypeSettingService {
         setting.getPaidMinutesPerDay(),
         setting.getColor(),
         setting.isActive(),
-        setting.getDisplayOrder());
+        setting.getDisplayOrder(),
+        !absences.existsByAbsenceTypeSettingId(setting.getId()));
   }
 }

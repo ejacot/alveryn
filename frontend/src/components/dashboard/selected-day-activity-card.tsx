@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { SelectedDayActivity } from "../../types/dashboard";
+import { Card } from "../ui/card";
 
 type Props = {
   activity: SelectedDayActivity;
@@ -11,7 +12,6 @@ type Props = {
 export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }: Props) {
   const { t } = useTranslation("dashboard");
   const interactive = activity.kind !== "ABSENCE";
-  const Component = interactive ? "button" : "div";
   const singleLine = activity.unitBreakdown.length === 1;
 
   return (
@@ -19,7 +19,7 @@ export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }:
       {activity.periodLabel ? (
         <div className="px-1">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-sm font-semibold text-white/76">{activity.subtitle}</p>
+            <p className="font-name text-sm font-semibold text-white/76">{activity.subtitle}</p>
             <span className="shrink-0 text-right text-sm font-semibold text-white/62">
               {activity.periodLabel}
             </span>
@@ -28,14 +28,15 @@ export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }:
         </div>
       ) : null}
 
-      <Component
+      <Card
+        as={interactive ? "button" : "div"}
         {...(interactive ? { type: "button", onClick: () => onSelect?.(activity.id) } : {})}
-        className="dashboard-glass-card w-full px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
+        className="w-full px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
       >
         {activity.marker ? (
           <div className="flex items-start justify-between gap-4">
             <div>
-              {activity.title ? <p className="font-semibold tracking-[-0.03em] text-white">{activity.title}</p> : null}
+              {activity.title ? <p className="font-name font-semibold tracking-[-0.03em] text-white">{activity.title}</p> : null}
               {activity.subtitle ? <p className="mt-1 text-sm text-white/52">{activity.subtitle}</p> : null}
             </div>
             <button
@@ -64,7 +65,7 @@ export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }:
                     key={line.id ?? `${line.label}-${line.quantity}`}
                     className={`flex items-center justify-between gap-3 ${singleLine ? "min-h-12 py-2" : "min-h-8 py-1.5"}`}
                   >
-                    <span className={`min-w-0 truncate font-medium text-white/76 ${singleLine ? "text-base" : "text-sm"}`}>
+                    <span className={`font-name min-w-0 truncate font-medium text-white/76 ${singleLine ? "text-base" : "text-sm"}`}>
                       {line.label}
                     </span>
                     <span className="flex max-w-[62%] shrink-0 items-center justify-end gap-1.5">
@@ -108,7 +109,7 @@ export function SelectedDayActivityCard({ activity, onSelect, onDeleteAbsence }:
             </div>
           </div>
         )}
-      </Component>
+      </Card>
     </div>
   );
 }

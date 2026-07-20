@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLogo } from "../branding/app-logo";
+import { Card } from "../ui/card";
 
 type Props = {
   title: string;
@@ -28,7 +29,7 @@ export function AuthCard({
         <div className="mb-7 flex justify-center">
           <AppLogo />
         </div>
-        <div className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-[22px] sm:p-6">
+        <Card variant="auth" className="p-5 sm:p-6">
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/20" />
         <div className="space-y-1">
           <h1 className="text-[1.9rem] font-semibold leading-none tracking-[-0.055em] text-white">
@@ -54,7 +55,7 @@ export function AuthCard({
             </Link>
           </div>
         ) : null}
-        </div>
+        </Card>
         <div className="mt-4 text-center text-[0.68rem] leading-4 text-white/24">
           {t("legal.footnote")}
         </div>

@@ -9,7 +9,7 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   test.setTimeout(90_000);
 
   const user = await createE2eUser(testInfo.title);
-  await createHourlyRate(user.accessToken);
+  await createHourlyRate(user.accessToken, user.employmentId);
   const requests: string[] = [];
   const consoleErrors: string[] = [];
 

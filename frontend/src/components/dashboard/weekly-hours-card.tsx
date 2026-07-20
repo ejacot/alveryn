@@ -6,6 +6,7 @@ import type { WeeklyRhythmDay } from "../../types/dashboard";
 import { cn } from "../../utils/cn";
 import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 import { resolveWeekSwipeDirection } from "../navigation/week-selector.utils";
+import { Card } from "../ui/card";
 
 type Props = {
   variant?: "rhythm" | "flow";
@@ -110,7 +111,7 @@ export function WeeklyHoursCard({
         {t(variant === "flow" ? "weeklyHours.flowEyebrow" : "weeklyHours.eyebrow")}
       </p>
       {hasDays ? (
-        <div className="dashboard-glass-card overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-black/10 px-5 py-4 dark:border-white/10">
             <div>
               <p className="text-xs font-medium text-neutral-500 dark:text-white/45">
@@ -182,6 +183,12 @@ export function WeeklyHoursCard({
 	                {days.map((day, index) => {
 	                  const isAbsenceOnly = day.status === "absence";
 	                  const metricValue = metricValues[index] ?? 0;
+                  const flowExtraAmount = Math.max(day.extraAmount ?? 0, 0);
+                  const flowBaseAmount = Math.max(day.baseAmount ?? metricValue - flowExtraAmount, 0);
+                  const flowTotalAmount = flowBaseAmount + flowExtraAmount;
+                  const flowExtraPercentage = flowTotalAmount > 0
+                    ? Math.min((flowExtraAmount / flowTotalAmount) * 100, 100)
+                    : 0;
 	                  const extraPayLabel = day.extraPayPercentages
                         .map((percentage) => `+${new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(percentage)}%`)
                         .join(" · ");
@@ -211,24 +218,57 @@ export function WeeklyHoursCard({
                               <span
                                 className={cn(
                                   "absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[0.55rem] font-bold tabular-nums",
-                                  day.selected ? "text-orange-400" : "text-emerald-500 dark:text-emerald-300"
+                                  variant === "flow"
+                                    ? "text-emerald-500 dark:text-emerald-300"
+                                    : day.selected
+                                      ? "text-orange-400"
+                                      : "text-emerald-500 dark:text-emerald-300"
                                 )}
                                 style={{ bottom: `calc(${barHeight}% + 0.2rem)` }}
                               >
                                 {extraPayLabel}
                               </span>
                             ) : null}
-                            <motion.div
-                              initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
-                              animate={{ height: `${barHeight}%`, opacity: 1 }}
-                              transition={{ duration: 0.35, delay: index * 0.04 }}
-                              className={cn(
-                                "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 rounded-full transition-colors",
-                                day.selected
-                                  ? "bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.2)]"
-                                  : "bg-neutral-500/55 dark:bg-neutral-400/45"
-                              )}
-                            />
+                            {variant === "flow" ? (
+                              <motion.div
+                                initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
+                                animate={{ height: `${barHeight}%`, opacity: 1 }}
+                                transition={{ duration: 0.35, delay: index * 0.04 }}
+                                className="absolute bottom-0 left-1/2 flex w-full max-w-6 -translate-x-1/2 flex-col overflow-hidden rounded-full"
+                                data-testid={`flow-segmented-bar-${day.key}`}
+                              >
+                                {flowExtraPercentage > 0 ? (
+                                  <span
+                                    data-segment="extra"
+                                    className="w-full bg-emerald-400 dark:bg-emerald-400"
+                                    style={{ height: `${flowExtraPercentage}%` }}
+                                    aria-hidden="true"
+                                  />
+                                ) : null}
+                                <span
+                                  data-segment="worked"
+                                  className={cn(
+                                    "w-full flex-1",
+                                    day.selected
+                                      ? "bg-orange-400"
+                                      : "bg-neutral-500/55 dark:bg-neutral-400/45"
+                                  )}
+                                  aria-hidden="true"
+                                />
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
+                                animate={{ height: `${barHeight}%`, opacity: 1 }}
+                                transition={{ duration: 0.35, delay: index * 0.04 }}
+                                className={cn(
+                                  "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 overflow-hidden rounded-full transition-colors",
+                                  day.selected
+                                    ? "bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.2)]"
+                                    : "bg-neutral-500/55 dark:bg-neutral-400/45"
+                                )}
+                              />
+                            )}
                           </>
                         ) : null}
                       </div>
@@ -278,9 +318,9 @@ export function WeeklyHoursCard({
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="dashboard-glass-card h-36 px-5 py-6" aria-hidden="true" />
+        <Card className="h-36 px-5 py-6" aria-hidden="true" />
       )}
     </section>
   );

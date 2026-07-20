@@ -10,6 +10,8 @@ import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.user.repository.UserProfileRepository;
 import com.alveryn.api.user.service.UserPreferencesService;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
+import com.alveryn.api.employment.entity.TrackingFocus;
+import com.alveryn.api.employment.repository.EmploymentRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +28,7 @@ public class OnboardingService {
   private final UserPreferencesService userPreferencesService;
   private final HourlyRatePeriodRepository hourlyRates;
   private final WorkTypeRepository workTypes;
+  private final EmploymentRepository employments;
 
   @Transactional(readOnly = true)
   public OnboardingStatusResponse getStatus() {
@@ -33,7 +36,8 @@ public class OnboardingService {
     boolean profileConfigured =
         profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false);
     boolean preferencesConfigured = preferences.findByUserId(userId).isPresent();
-    boolean hourlyRateConfigured = hourlyRates.existsByUserId(userId);
+    boolean hourlyRateRequired = employments.existsByUserIdAndActiveTrueAndTrackingFocus(userId, TrackingFocus.EARNINGS);
+    boolean hourlyRateConfigured = !hourlyRateRequired || hourlyRates.existsForActiveEarningsEmployment(userId);
     boolean workTypeConfigured = workTypes.existsByUserIdAndActiveTrue(userId);
     boolean onboardingCompleted =
         preferences.findByUserId(userId).map(UserPreferences::isOnboardingCompleted).orElse(false);
@@ -63,7 +67,8 @@ public class OnboardingService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     if (!profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false)
         || !preferences.findByUserId(userId).isPresent()
-        || !hourlyRates.existsByUserId(userId)) {
+        || (employments.existsByUserIdAndActiveTrueAndTrackingFocus(userId, TrackingFocus.EARNINGS)
+            && !hourlyRates.existsForActiveEarningsEmployment(userId))) {
       OnboardingStatusResponse status = getStatus();
       throw new ConflictException(
           "Onboarding cannot be completed until missing steps are resolved: "

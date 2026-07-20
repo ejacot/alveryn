@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import * as React from "react";
 import { ProfilePage } from "./profile-page";
+import { listEmployments } from "../api/endpoints";
 
 const { logoutMock, updatePreferencesMock } = vi.hoisted(() => ({
   logoutMock: vi.fn(),
@@ -100,16 +101,25 @@ vi.mock("../api/endpoints", () => ({
     }
   ]),
   updatePreferences: updatePreferencesMock,
-  listWorkTypes: vi.fn(async () => [
+  listEmployments: vi.fn(async () => [
     {
-      id: "work-type-1",
-      name: "Regular Shift",
-      calculationMethod: "TIME_BASED",
-      color: "#FFFFFF",
-      icon: null,
-      defaultBreakMinutes: null,
+      id: "employment-1",
+      name: "Main contract",
+      employmentType: null,
+      compensationType: "HOURLY",
+      trackingFocus: "TIME",
+      hourBalanceEnabled: false,
+      termsValidFrom: "2026-01-01",
+      startDate: null,
+      endDate: null,
+      fixedSalaryAmount: null,
+      currency: null,
+      targetMinutes: null,
+      targetPeriod: null,
+      hourBalanceValidityMonths: null,
       displayOrder: 0,
-      active: true
+      active: true,
+      deletable: true
     }
   ])
 }));
@@ -131,6 +141,10 @@ function renderPage() {
 }
 
 describe("ProfilePage", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders the premium settings shell with profile and grouped rows", async () => {
     renderPage();
 
@@ -139,13 +153,13 @@ describe("ProfilePage", () => {
     expect(screen.getByText("alveryn000app@gmail.com")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /^profile$/i })).toHaveLength(1);
     expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/settings/profile");
-    expect(screen.getByText("Hourly rates")).toBeInTheDocument();
-    expect(await screen.findByText("17.50 EUR")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Absences" })).toHaveAttribute("href", "/settings/absences");
+    expect(await screen.findByRole("link", { name: /employment main contract/i })).toHaveAttribute("href", "/settings/employment");
+    expect(screen.queryByText("Absences")).not.toBeInTheDocument();
     expect(screen.getByText("Language")).toBeInTheDocument();
     expect(screen.getByText("English")).toBeInTheDocument();
     expect(screen.getByText("Timezone")).toBeInTheDocument();
     expect(screen.getByText("Europe/Berlin")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Export PDF" })).toHaveAttribute("href", "/settings/export-pdf");
     expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
   });
 
@@ -166,5 +180,57 @@ describe("ProfilePage", () => {
         expect.anything()
       );
     });
+  });
+
+  it("uses the native employment selector when more than one employment is active", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listEmployments).mockResolvedValueOnce([
+      {
+        id: "employment-1",
+        name: "Main contract",
+        employmentType: null,
+        compensationType: "HOURLY",
+        trackingFocus: "TIME",
+        hourBalanceEnabled: false,
+        termsValidFrom: "2026-01-01",
+        startDate: null,
+        endDate: null,
+        fixedSalaryAmount: null,
+        currency: null,
+        targetMinutes: null,
+        targetPeriod: null,
+        hourBalanceValidityMonths: null,
+        displayOrder: 0,
+        active: true,
+        deletable: true
+      },
+      {
+        id: "employment-2",
+        name: "Minijob",
+        employmentType: null,
+        compensationType: "HOURLY",
+        trackingFocus: "EARNINGS",
+        hourBalanceEnabled: false,
+        termsValidFrom: "2026-01-01",
+        startDate: null,
+        endDate: null,
+        fixedSalaryAmount: null,
+        currency: null,
+        targetMinutes: null,
+        targetPeriod: null,
+        hourBalanceValidityMonths: null,
+        displayOrder: 1,
+        active: true,
+        deletable: true
+      }
+    ]);
+    renderPage();
+
+    const selector = await screen.findByRole("combobox", { name: "Choose employment" });
+    expect(selector).toHaveValue("");
+    await user.selectOptions(selector, "employment-2");
+
+    expect(selector).toHaveValue("employment-2");
+    expect(window.localStorage.getItem("alveryn.employment-scope")).toBe("employment-2");
   });
 });

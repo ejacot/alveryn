@@ -8,6 +8,7 @@ import {
   completeOnboarding,
   createHourlyRate,
   getOnboardingStatus,
+  listEmployments,
   listHourlyRates,
   updatePreferences,
   updateProfile
@@ -18,6 +19,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { Card } from "../components/ui/card";
 import {
   clearStoredOnboardingStep,
   storeOnboardingStep
@@ -32,7 +34,6 @@ import { firstDayOfCurrentMonthLocalIsoDate } from "../utils/date";
 
 const STEP_PROFILE = 1;
 const STEP_HOURLY_RATE = 2;
-const TOTAL_STEPS = 2;
 const DEFAULT_DATE_FORMAT = "dd/MM/yyyy";
 const CURRENCY_OPTIONS = ["EUR", "CHF", "RON", "USD", "GBP", "PLN"];
 
@@ -54,11 +55,27 @@ export function OnboardingPage() {
     queryFn: listHourlyRates,
     enabled: Boolean(userId && defaultsReady)
   });
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments,
+    enabled: Boolean(userId && defaultsReady)
+  });
+
+  const earningsEmployment = employmentsQuery.data?.find(
+    (employment) => employment.active && employment.trackingFocus === "EARNINGS"
+  );
+  const hourlyRateRequired = Boolean(earningsEmployment);
 
   const profileComplete = Boolean(
     user?.profile?.firstName?.trim() && user.profile?.lastName?.trim()
   );
-  const hourlyRateComplete = Boolean(hourlyRatesQuery.data?.length);
+  const hourlyRateComplete =
+    !hourlyRateRequired ||
+    Boolean(
+      hourlyRatesQuery.data?.some(
+        (rate) => rate.employmentId === earningsEmployment?.id
+      )
+    );
 
   const profileForm = useForm({
     resolver: zodResolver(profileStepSchema),
@@ -148,12 +165,14 @@ export function OnboardingPage() {
     setCurrentStep(
       deriveCurrentStep({
         profileComplete,
-        hourlyRateComplete
+        hourlyRateComplete,
+        hourlyRateRequired
       })
     );
   }, [
     defaultsReady,
     hourlyRateComplete,
+    hourlyRateRequired,
     navigate,
     onboardingStatusQuery.data?.onboardingCompleted,
     profileComplete,
@@ -170,8 +189,12 @@ export function OnboardingPage() {
   const profileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async () => {
-      setCurrentStep(STEP_HOURLY_RATE);
       await refreshCurrentUser();
+      if (hourlyRateRequired) {
+        setCurrentStep(STEP_HOURLY_RATE);
+      } else {
+        await finishMutation.mutateAsync();
+      }
     }
   });
 
@@ -191,6 +214,26 @@ export function OnboardingPage() {
     }
   });
 
+  useEffect(() => {
+    if (
+      defaultsReady &&
+      employmentsQuery.isSuccess &&
+      profileComplete &&
+      !hourlyRateRequired &&
+      !onboardingStatusQuery.data?.onboardingCompleted &&
+      !finishMutation.isPending
+    ) {
+      void finishMutation.mutateAsync();
+    }
+  }, [
+    defaultsReady,
+    employmentsQuery.isSuccess,
+    finishMutation,
+    hourlyRateRequired,
+    onboardingStatusQuery.data?.onboardingCompleted,
+    profileComplete
+  ]);
+
   const hourlyRateMutation = useMutation({
     mutationFn: createHourlyRate
   });
@@ -203,11 +246,13 @@ export function OnboardingPage() {
     !defaultsReady ||
     onboardingStatusQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
+    employmentsQuery.isLoading ||
     preferencesBootstrapMutation.isPending;
 
   const combinedError =
     onboardingStatusQuery.error ??
     hourlyRatesQuery.error ??
+    employmentsQuery.error ??
     preferencesBootstrapMutation.error;
 
   if (!userId || isBootstrapping) {
@@ -221,7 +266,7 @@ export function OnboardingPage() {
 
   if (combinedError) {
     return (
-      <div className="section-card mt-10 space-y-4 text-center">
+      <Card variant="section" className="mt-10 space-y-4 text-center">
         <p className="text-lg font-semibold text-white">Onboarding needs another try</p>
         <p className="text-sm leading-6 text-white/62">{getApiError(combinedError).message}</p>
         <Button
@@ -233,11 +278,12 @@ export function OnboardingPage() {
         >
           Retry
         </Button>
-      </div>
+      </Card>
     );
   }
 
-  const progressValue = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
+  const totalSteps = hourlyRateRequired ? 2 : 1;
+  const progressValue = totalSteps === 1 ? 100 : ((currentStep - 1) / (totalSteps - 1)) * 100;
 
   return (
     <section className="pb-8 pt-6">
@@ -245,7 +291,7 @@ export function OnboardingPage() {
         <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.24em] text-white/42">
           <span>Onboarding</span>
           <span>
-            {currentStep} / {TOTAL_STEPS}
+            {currentStep} / {totalSteps}
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-white/10">
@@ -257,12 +303,14 @@ export function OnboardingPage() {
         </div>
       </div>
 
-      <motion.div
+      <Card
+        as={motion.div}
         key={currentStep}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
-        className="section-card mx-auto max-w-md space-y-6 rounded-[32px] p-6"
+        variant="section"
+        className="mx-auto max-w-md space-y-6 rounded-[32px] p-6"
       >
         {currentStep === STEP_PROFILE ? (
           <form
@@ -311,6 +359,7 @@ export function OnboardingPage() {
             className="space-y-5"
             onSubmit={hourlyRateForm.handleSubmit(async (values) => {
               await hourlyRateMutation.mutateAsync({
+                employmentId: earningsEmployment?.id,
                 hourlyRate: values.hourlyRate,
                 currency: values.currency,
                 validFrom: resolveHourlyRateValidFrom(values.validFrom)
@@ -399,7 +448,7 @@ export function OnboardingPage() {
             <FormLevelError error={hourlyRateMutation.error ?? currencyPreferenceMutation.error ?? finishMutation.error} />
           </form>
         ) : null}
-      </motion.div>
+      </Card>
     </section>
   );
 }
@@ -431,15 +480,17 @@ function FormLevelError({ error }: { error: unknown }) {
 
 export function deriveCurrentStep({
   profileComplete,
-  hourlyRateComplete
+  hourlyRateComplete,
+  hourlyRateRequired = true
 }: {
   profileComplete: boolean;
   hourlyRateComplete: boolean;
+  hourlyRateRequired?: boolean;
 }) {
   if (!profileComplete) {
     return STEP_PROFILE;
   }
-  if (!hourlyRateComplete) {
+  if (hourlyRateRequired && !hourlyRateComplete) {
     return STEP_HOURLY_RATE;
   }
   return STEP_HOURLY_RATE;

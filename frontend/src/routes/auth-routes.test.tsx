@@ -87,12 +87,13 @@ describe("auth routes", () => {
     expect(await screen.findByText("Onboarding")).toBeInTheDocument();
   });
 
-  it("redirects authenticated users with incomplete setup into onboarding", async () => {
+  it("redirects authenticated users into tracking setup before onboarding", async () => {
     renderWithAuth(
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
           <Route path="/onboarding" element={<div>Onboarding</div>} />
+          <Route path="/tracking-setup" element={<div>Tracking setup</div>} />
         </Route>
       </Routes>,
       {
@@ -110,6 +111,53 @@ describe("auth routes", () => {
             },
             profile: null,
             preferences: null
+          }
+        }
+      }
+    );
+
+    expect(await screen.findByText("Tracking setup")).toBeInTheDocument();
+  });
+
+  it("continues into profile onboarding after tracking setup", async () => {
+    renderWithAuth(
+      <Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
+          <Route path="/onboarding" element={<div>Onboarding</div>} />
+          <Route path="/tracking-setup" element={<div>Tracking setup</div>} />
+        </Route>
+      </Routes>,
+      {
+        route: APP_HOME_PATH,
+        authValue: {
+          ...baseAuthValue,
+          isAuthenticated: true,
+          user: {
+            account: {
+              id: "1",
+              email: "alveryn@example.com",
+              emailVerified: true,
+              status: "ACTIVE",
+              lastLoginAt: null
+            },
+            profile: null,
+            preferences: {
+              id: "pref-1",
+              language: "en",
+              timezone: "Europe/Berlin",
+              currency: "EUR",
+              firstDayOfWeek: "MONDAY",
+              dateFormat: "dd/MM/yyyy",
+              timeFormat: "H24",
+              theme: "DARK",
+              defaultBreakMinutes: 30,
+              preferredDailyMinutes: 480,
+              paidSickLeave: true,
+              paidVacation: true,
+              onboardingCompleted: false,
+              trackingSetupVersionCompleted: 1
+            }
           }
         }
       }
@@ -152,7 +200,8 @@ describe("auth routes", () => {
               preferredDailyMinutes: 480,
               paidSickLeave: true,
               paidVacation: true,
-              onboardingCompleted: true
+              onboardingCompleted: true,
+              trackingSetupVersionCompleted: 1
             }
           }
         }

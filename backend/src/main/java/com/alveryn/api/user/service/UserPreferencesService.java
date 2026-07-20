@@ -57,6 +57,20 @@ public class UserPreferencesService {
     return repository.save(preferences);
   }
 
+  @Transactional
+  public UserPreferencesResponse completeGuideVersion(int version) {
+    UserPreferences preferences = getOrCreatePreferences();
+    preferences.completeGuideVersion(version);
+    return mapper.toPreferencesResponse(repository.save(preferences));
+  }
+
+  @Transactional
+  public UserPreferencesResponse completeTrackingSetupVersion(int version) {
+    UserPreferences preferences = getOrCreatePreferences();
+    preferences.completeTrackingSetupVersion(version);
+    return mapper.toPreferencesResponse(repository.save(preferences));
+  }
+
   @Transactional(readOnly = true)
   public UserPreferences findCurrentPreferencesOrNull() {
     return repository.findByUserId(authenticatedUserAccessor.requireUserId()).orElse(null);

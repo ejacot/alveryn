@@ -6,6 +6,7 @@ import type { SelectedDayActivity } from "../../types/dashboard";
 import { SelectedDayActivityCard } from "../dashboard/selected-day-activity-card";
 import { daysBetweenInclusive, parseLocalIsoDate } from "../../utils/date";
 import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
+import { Card } from "../ui/card";
 
 type Props = {
   title: string;
@@ -35,7 +36,8 @@ export function CalendarSelectedDayPanel({
 
       <AnimatePresence mode="popLayout" initial={false}>
         {activities.length ? (
-          <motion.div
+          <Card
+            as={motion.div}
             key={`entries-${title}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -50,34 +52,36 @@ export function CalendarSelectedDayPanel({
                 onSelect={onEntrySelect}
               />
             ))}
-          </motion.div>
+          </Card>
         ) : null}
 
         {!hasContent ? (
-          <motion.div
+          <Card
+            as={motion.div}
             key={`empty-${title}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="dashboard-glass-card px-5 py-4"
+            className="px-5 py-4"
           >
             <p className="font-semibold tracking-[-0.03em] text-white">{t("emptyDay")}</p>
-          </motion.div>
+          </Card>
         ) : null}
 
         {absence ? (
-          <motion.div
+          <Card
+            as={motion.div}
             key={`absence-${absence.id}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="dashboard-glass-card px-5 py-4"
+            className="px-5 py-4"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold tracking-[-0.03em] text-white">
+                <p className="font-name font-semibold tracking-[-0.03em] text-white">
                   {absence.absenceTypeName || absenceTitle(absence.absenceType, t)}
                 </p>
                 <p className="mt-1 text-sm text-white/52">{t("absence.dayOff")}</p>
@@ -98,7 +102,7 @@ export function CalendarSelectedDayPanel({
             {absence.notes ? (
               <p className="pt-1 text-sm leading-6 text-white/58">{absence.notes}</p>
             ) : null}
-          </motion.div>
+          </Card>
         ) : null}
       </AnimatePresence>
     </section>

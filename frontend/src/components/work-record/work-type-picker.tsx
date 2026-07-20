@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { WorkType } from "../../types/configuration";
 import { cn } from "../../utils/cn";
+import { Card } from "../ui/card";
 
 type Props = {
   selectedId: string;
@@ -19,7 +20,8 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
         const inactive = !workType.active;
 
         return (
-          <motion.button
+          <Card
+            as={motion.button}
             key={workType.id}
             type="button"
             initial={{ opacity: 0.96, y: 6 }}
@@ -38,7 +40,7 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
             })}
             disabled={inactive}
             className={cn(
-              "dashboard-glass-card flex min-h-[76px] items-center gap-4 px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
+              "flex min-h-[76px] items-center gap-4 px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24",
               selected
                 ? "border-white/[0.18] bg-white/[0.075] shadow-[0_18px_54px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.14)]"
                 : "hover:bg-white/[0.06]",
@@ -57,7 +59,7 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold tracking-[-0.03em] text-white">
+              <p className="font-name truncate text-base font-semibold tracking-[-0.03em] text-white">
                 {workType.name}
               </p>
               <p className="mt-1 text-sm text-white/46">
@@ -73,7 +75,7 @@ export function WorkTypePicker({ selectedId, workTypes, onChange }: Props) {
                 {t("workTypePicker.inactive")}
               </span>
             ) : null}
-          </motion.button>
+          </Card>
         );
       })}
     </div>

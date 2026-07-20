@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { queryKeys } from "../api/query-keys";
-import { getPreferences, getProfile, listHourlyRates, listWorkTypes, updatePreferences } from "../api/endpoints";
+import { getPreferences, getProfile, listEmployments, updatePreferences } from "../api/endpoints";
 import { useAuth } from "../features/auth/use-auth";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsProfileCard } from "../components/settings/settings-profile-card";
-import { todayLocalIsoDate } from "../utils/date";
 import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
 import { applyAppLanguage } from "../i18n";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -15,11 +14,13 @@ import { APP_HOME_PATH } from "../routes/app-paths";
 import type { UserPreferences } from "../types/configuration";
 import { getSupportedTimezones } from "../utils/timezones";
 import { applyAppTheme } from "../utils/theme";
+import { setEmploymentScope, useEmploymentScope } from "../features/employment/employment-scope";
 
 export function ProfilePage() {
   const { t } = useTranslation(["settings", "common"]);
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const selectedEmploymentId = useEmploymentScope();
   const safeBack = useSafeBackNavigation({ fallback: APP_HOME_PATH });
   const backButtonRef = useRef<HTMLButtonElement | null>(null);
   const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
@@ -35,13 +36,9 @@ export function ProfilePage() {
     queryFn: getPreferences,
     initialData: user?.preferences ?? undefined
   });
-  const hourlyRatesQuery = useQuery({
-    queryKey: queryKeys.hourlyRates.all(),
-    queryFn: listHourlyRates
-  });
-  const workTypesQuery = useQuery({
-    queryKey: queryKeys.workTypes.all(),
-    queryFn: listWorkTypes
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments
   });
 
   const profile = profileQuery.data ?? user?.profile ?? null;
@@ -102,30 +99,33 @@ export function ProfilePage() {
     return source;
   }, [profile?.firstName, profile?.lastName, user?.account.email]);
 
-  const hourlyRateValue = useMemo(() => {
-    const rates = hourlyRatesQuery.data ?? [];
-    if (!rates.length) {
-      return t("settings:notSet");
+  const activeEmployments = useMemo(
+    () => (employmentsQuery.data ?? []).filter((employment) => employment.active),
+    [employmentsQuery.data]
+  );
+  const employmentValue = useMemo(() => {
+    if (!activeEmployments.length) return t("settings:employment.none");
+    if (activeEmployments.length === 1) return activeEmployments[0].name;
+    return selectedEmploymentId
+      ? activeEmployments.find((employment) => employment.id === selectedEmploymentId)?.name ?? t("settings:employment.all")
+      : t("settings:employment.all");
+  }, [activeEmployments, selectedEmploymentId, t]);
+  const employmentLabel = t(
+    activeEmployments.length > 1
+      ? "settings:profileEditor.employments"
+      : "settings:profileEditor.employment"
+  );
+
+  useEffect(() => {
+    if (!employmentsQuery.isSuccess) return;
+    if (activeEmployments.length === 1 && selectedEmploymentId !== activeEmployments[0].id) {
+      setEmploymentScope(activeEmployments[0].id);
+      return;
     }
-
-    const today = todayLocalIsoDate();
-    const current =
-      rates.find((rate) => rate.validFrom <= today && (!rate.validTo || rate.validTo >= today)) ??
-      rates[0];
-
-    return `${current.hourlyRate} ${current.currency}`;
-  }, [hourlyRatesQuery.data, t]);
-
-  const workTypesValue = useMemo(() => {
-    const items = workTypesQuery.data ?? [];
-    const activeCount = items.filter((item) => item.active).length;
-
-    if (!items.length) {
-      return "0";
+    if (!activeEmployments.length || (selectedEmploymentId && !activeEmployments.some((employment) => employment.id === selectedEmploymentId))) {
+      setEmploymentScope(null);
     }
-
-    return `${activeCount}`;
-  }, [workTypesQuery.data]);
+  }, [activeEmployments, employmentsQuery.isSuccess, selectedEmploymentId]);
 
   useEffect(() => {
     let frameId = 0;
@@ -157,20 +157,20 @@ export function ProfilePage() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"
           onClick={safeBack}
           aria-label={t("common:actions.back")}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+          className="settings-sticky-header-control flex h-9 items-center gap-1.5 rounded-md px-0 text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
         >
           <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
           <span>{t("common:actions.back")}</span>
         </button>
         <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+          className={`settings-sticky-header-title pointer-events-none absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
           }`}
           aria-hidden="true"
@@ -181,7 +181,7 @@ export function ProfilePage() {
 
       <h1
         ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
@@ -193,17 +193,14 @@ export function ProfilePage() {
         fullName={fullName}
         email={user?.account.email ?? ""}
         ariaLabel={t("settings:profile")}
+        employmentLabel={employmentLabel}
+        employmentValue={employmentValue}
+        employmentOptions={activeEmployments.map(({ id, name }) => ({ id, name }))}
+        selectedEmploymentId={selectedEmploymentId}
+        allEmploymentsLabel={t("settings:employment.all")}
+        chooseEmploymentLabel={t("settings:employment.choose")}
+        onEmploymentChange={setEmploymentScope}
       />
-
-      <SettingsGroup title={t("settings:work")}>
-        <SettingsRow to="/settings/employment" label={t("settings:profileEditor.employment")} />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/hourly-rates" label={t("settings:hourlyRates")} value={hourlyRateValue} />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/work-types" label={t("settings:workSetup.title")} value={workTypesValue} />
-        <div className="mx-6 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/absences" label={t("settings:absenceSettings.title")} />
-      </SettingsGroup>
 
       <SettingsGroup title={t("settings:preferences")}>
         <InlinePreferenceRow
@@ -213,7 +210,7 @@ export function ProfilePage() {
           onChange={(value) => updatePreference("language", value)}
           options={["en", "de", "ro"].map((language) => ({ value: language, label: formatLanguage(language) }))}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.timezone")}
           value={preferences?.timezone ?? "Europe/Berlin"}
@@ -221,7 +218,7 @@ export function ProfilePage() {
           onChange={(value) => updatePreference("timezone", value)}
           options={supportedTimezones.map((timezone) => ({ value: timezone, label: timezone }))}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.currency")}
           value={preferences?.currency ?? "EUR"}
@@ -229,7 +226,7 @@ export function ProfilePage() {
           onChange={(value) => updatePreference("currency", value)}
           options={["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => ({ value: currency, label: currency }))}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.firstDayOfWeek")}
           value={preferences?.firstDayOfWeek ?? "MONDAY"}
@@ -240,7 +237,7 @@ export function ProfilePage() {
             { value: "SUNDAY", label: t("settings:preferencesOptions.sunday") }
           ]}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.timeFormat")}
           value={preferences?.timeFormat ?? "H24"}
@@ -251,7 +248,7 @@ export function ProfilePage() {
             { value: "H12", label: t("settings:preferencesOptions.time12") }
           ]}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.dateFormat")}
           value={preferences?.dateFormat ?? "DD.MM.YYYY"}
@@ -263,7 +260,7 @@ export function ProfilePage() {
             { value: "YYYY-MM-DD", label: "2026-12-31" }
           ]}
         />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <InlinePreferenceRow
           label={t("settings:preferencesFields.theme")}
           value={preferences?.theme ?? "SYSTEM"}
@@ -278,8 +275,10 @@ export function ProfilePage() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:app")}>
+        <SettingsRow to="/settings/export-pdf" label={t("settings:pdfExport.menuLabel")} />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/about" label={t("settings:about")} />
-        <div className="mx-6 h-px bg-white/[0.06]" />
+        <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/help" label={t("settings:help")} />
       </SettingsGroup>
 
@@ -312,20 +311,23 @@ function InlinePreferenceRow({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex min-h-16 w-full items-center justify-between gap-4 px-6 py-3">
+    <label className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3">
       <span className="min-w-0 text-[1rem] tracking-[-0.02em] text-white">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        style={{ textAlignLast: "right" }}
-        className="min-w-0 max-w-[58%] cursor-pointer appearance-none truncate border-0 bg-transparent py-2 text-right text-sm text-white/48 outline-none transition focus:text-white focus:ring-2 focus:ring-white/24 disabled:cursor-wait disabled:opacity-55"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
+      <span className="flex min-w-0 max-w-[62%] items-center gap-3">
+        <select
+          aria-label={label}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          style={{ textAlignLast: "right" }}
+          className="min-w-0 flex-1 cursor-pointer appearance-none truncate border-0 bg-transparent py-2 text-right text-sm text-white/48 outline-none transition focus:text-white focus:ring-2 focus:ring-white/24 disabled:cursor-wait disabled:opacity-55"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+        <ChevronsUpDown className="h-4 w-4 shrink-0 text-white/24" aria-hidden="true" />
+      </span>
     </label>
   );
 }

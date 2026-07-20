@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @Schema(description = "Absence request")
 public record AbsenceRequest(
+    @NotNull UUID employmentId,
     UUID absenceTypeId,
     AbsenceType absenceType,
     @NotNull LocalDate startDate,

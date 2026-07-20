@@ -6,5 +6,30 @@
   "welcomeTitle": "Bine ai venit in Alveryn",
   "profileTitle": "Hai sa te cunoastem putin.",
   "hourlyRateTitle": "Cat castigi pe ora?",
-  "hourlyRateHint": "Salvat astazi in EUR."
+  "hourlyRateHint": "Salvat astazi in EUR.",
+  "trackingSetup": {
+    "updateLabel": "Actualizare rapida",
+    "setupLabel": "Configurare initiala",
+    "title": "Ce vrei sa urmaresti?",
+    "description": "Alege ce conteaza pentru fiecare employment. Alveryn va pastra interfata clara si va ascunde valorile irelevante.",
+    "chooseForEmployment": "Alege cum trebuie sa functioneze acest employment.",
+    "employmentName": "Numele employmentului",
+    "choiceLabel": "Mod de urmarire",
+    "options": {
+      "TIME": {
+        "title": "Time tracking",
+        "description": "Urmaresti orele lucrate, check-in si check-out. Banii nu sunt afisati."
+      },
+      "EARNINGS": {
+        "title": "Earnings tracking",
+        "description": "Urmaresti ore, cantitati sau lucrari finalizate impreuna cu veniturile."
+      }
+    },
+    "continue": "Salveaza si continua",
+    "saving": "Se salveaza...",
+    "changeLater": "Poti schimba alegerea mai tarziu in Settings → Employment.",
+    "nameRequired": "Numele employmentului este obligatoriu.",
+    "loading": "Pregatim employmentul...",
+    "errorTitle": "Configurarea trebuie incercata din nou"
+  }
 }

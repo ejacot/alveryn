@@ -60,6 +60,11 @@ const SettingsEmploymentPage = lazy(() =>
     default: module.SettingsEmploymentPage
   }))
 );
+const SettingsEmploymentDetailPage = lazy(() =>
+  import("../pages/settings-employment-detail-page").then((module) => ({
+    default: module.SettingsEmploymentDetailPage
+  }))
+);
 const HourlyRatesPage = lazy(() =>
   import("../pages/hourly-rates-page").then((module) => ({
     default: module.HourlyRatesPage
@@ -88,6 +93,11 @@ const AboutAlverynPage = lazy(() =>
 const HelpSupportPage = lazy(() =>
   import("../pages/help-support-page").then((module) => ({
     default: module.HelpSupportPage
+  }))
+);
+const PdfExportPage = lazy(() =>
+  import("../pages/pdf-export-page").then((module) => ({
+    default: module.PdfExportPage
   }))
 );
 const LoginPage = lazy(() =>
@@ -128,6 +138,11 @@ const PreviewDashboardPage = lazy(() =>
 const OnboardingPage = lazy(() =>
   import("../pages/onboarding-page").then((module) => ({
     default: module.OnboardingPage
+  }))
+);
+const TrackingSetupPage = lazy(() =>
+  import("../pages/tracking-setup-page").then((module) => ({
+    default: module.TrackingSetupPage
   }))
 );
 
@@ -183,6 +198,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
+            { path: "/settings/employment/:employmentId", element: withSuspense(<SettingsEmploymentDetailPage />) },
             { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
             { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },
             { path: "/settings/hourly-rates/:rateId", element: withSuspense(<HourlyRateEditorPage />) },
@@ -190,12 +206,16 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/work-types/new", element: withSuspense(<WorkTypeEditorPage />) },
             { path: "/settings/work-types/:workTypeId", element: withSuspense(<WorkTypeEditorPage />) },
             { path: "/settings/about", element: withSuspense(<AboutAlverynPage />) },
-            { path: "/settings/help", element: withSuspense(<HelpSupportPage />) }
+            { path: "/settings/help", element: withSuspense(<HelpSupportPage />) },
+            { path: "/settings/export-pdf", element: withSuspense(<PdfExportPage />) }
           ]
         },
         {
           element: <OnboardingLayout />,
-          children: [{ path: "/onboarding", element: withSuspense(<OnboardingPage />) }]
+          children: [
+            { path: "/tracking-setup", element: withSuspense(<TrackingSetupPage />) },
+            { path: "/onboarding", element: withSuspense(<OnboardingPage />) }
+          ]
         }
       ]
     }

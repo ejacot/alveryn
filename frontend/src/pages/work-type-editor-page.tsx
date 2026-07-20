@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Clock3, Coins, Ruler } from "lucide-react";
+import { Check, Clock3, Coins, Ruler } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import {
   createWorkType,
   deleteWorkType,
   getWorkType,
+  listEmployments,
   listWorkTypes,
   updateWorkType
 } from "../api/endpoints";
@@ -19,10 +20,16 @@ import { SettingsConfirmDialog } from "../components/settings/settings-confirm-d
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsFormActions } from "../components/settings/settings-form-actions";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
+import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
 import { SettingsSection } from "../components/settings/settings-section";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
+import { ModalActions } from "../components/ui/modal-actions";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import type { WorkType, WorkTypeFormula, WorkTypeFormulaMode } from "../types/configuration";
@@ -34,8 +41,8 @@ function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
 	    name: z.string()
 	      .trim()
-	      .transform((value) => value.toLocaleUpperCase())
-	      .pipe(z.string().min(1, t("workTypeEditor.validation.nameRequired")).max(100, t("workTypeEditor.validation.nameTooLong"))),
+	      .min(1, t("workTypeEditor.validation.nameRequired"))
+	      .max(100, t("workTypeEditor.validation.nameTooLong")),
 		    calculationMethod: z.enum(["TIME_BASED", "UNIT_BASED", "UNITS_PER_HOUR_BASED", "FIXED_PRICE_BASED"]),
 		    compensationMethod: z.enum(["HOURLY", "PER_UNIT"]).default("HOURLY"),
         unitLabel: z.string().trim().max(100).optional().or(z.literal("")),
@@ -129,6 +136,7 @@ export function WorkTypeEditorPage() {
   const queryClient = useQueryClient();
   const { workTypeId } = useParams();
   const isEditing = Boolean(workTypeId);
+  const requestedEmploymentId = new URLSearchParams(location.search).get("employmentId");
   const setupModeFromSearch = !isEditing
     ? parseSetupMode(new URLSearchParams(location.search).get("mode"))
     : null;
@@ -148,6 +156,7 @@ export function WorkTypeEditorPage() {
   const initialCalculationMethod = initialSetupOption?.calculationMethod ?? setupState?.calculationMethod ?? "TIME_BASED";
   const initialCompensationMethod = initialSetupOption?.compensationMethod ?? setupState?.compensationMethod ?? "HOURLY";
   const [showConfirm, setShowConfirm] = useState(false);
+  const [chosenEmploymentId, setChosenEmploymentId] = useState(requestedEmploymentId ?? "");
   const [selectedSetupMode, setSelectedSetupMode] = useState<WorkTypeFormulaMode | null>(initialSetupOption?.mode ?? null);
   const [configurationDialogOpen, setConfigurationDialogOpen] = useState(false);
   const [selectedConfiguration, setSelectedConfiguration] = useState<WorkTypeFormula | null>(null);
@@ -155,7 +164,10 @@ export function WorkTypeEditorPage() {
   const [suppressUnsavedGuard, setSuppressUnsavedGuard] = useState(false);
   const [draftChildren, setDraftChildren] = useState<DraftChildWorkType[]>([]);
   const navigationTimeoutRef = useRef<number | null>(null);
-  const safeBack = useSafeBackNavigation({ fallback: "/settings/work-types" });
+  const workTypesPath = requestedEmploymentId
+    ? `/settings/work-types?employmentId=${encodeURIComponent(requestedEmploymentId)}`
+    : "/settings/work-types";
+  const safeBack = useSafeBackNavigation({ fallback: workTypesPath });
   const schema = useMemo(() => createWorkTypeSchema((key) => t(`settings:${key}`)), [t]);
   const configurationDialogSchema = useMemo(
     () => createConfigurationDialogSchema((key) => t(`settings:${key}`)),
@@ -167,6 +179,15 @@ export function WorkTypeEditorPage() {
     queryFn: () => getWorkType(workTypeId!),
     enabled: isEditing
   });
+
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments,
+    enabled: !isEditing && !requestedEmploymentId
+  });
+  const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
+  const effectiveEmploymentId = (requestedEmploymentId ?? chosenEmploymentId)
+    || (activeEmployments.length === 1 ? activeEmployments[0].id : null);
 
   const childWorkTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -264,10 +285,10 @@ export function WorkTypeEditorPage() {
     }
     navigationTimeoutRef.current = window.setTimeout(() => {
       if (targetId && (isEditing || shouldStayInEditor)) {
-        navigate(`/settings/work-types/${targetId}`, { replace: true });
+        navigate(`/settings/work-types/${targetId}${requestedEmploymentId ? `?employmentId=${requestedEmploymentId}` : ""}`, { replace: true });
         return;
       }
-      navigate("/settings/work-types", { replace: true });
+      navigate(workTypesPath, { replace: true });
     }, 520);
   }
 
@@ -283,7 +304,8 @@ export function WorkTypeEditorPage() {
       const payload = buildWorkTypePayload(normalizedValues, {
         color: normalizedValues.color ?? DEFAULT_WORK_TYPE_COLOR,
         displayOrder: workTypeQuery.data?.displayOrder ?? undefined,
-        active: workTypeQuery.data?.active ?? true
+        active: workTypeQuery.data?.active ?? true,
+        employmentId: effectiveEmploymentId ?? workTypeQuery.data?.employmentId ?? null
       });
       if (isEditing) {
 	        return updateWorkType(workTypeId!, {
@@ -478,7 +500,7 @@ export function WorkTypeEditorPage() {
     resetConfigurationDialog();
   }
 
-  const { confirmOrRun, dialog } = useUnsavedChangesGuard({
+  const { dialog } = useUnsavedChangesGuard({
     isDirty:
       !suppressUnsavedGuard &&
       form.formState.isDirty &&
@@ -569,7 +591,7 @@ export function WorkTypeEditorPage() {
       <WorkTypeEditorShell
           title={t("settings:workTypeEditor.chooseModeTitle")}
           backLabel={t("common:actions.back")}
-          onBack={() => confirmOrRun(safeBack)}
+          onBack={safeBack}
       >
           <div className="grid grid-cols-2 gap-3">
             {setupModeOptions(t).map((option) => (
@@ -621,12 +643,17 @@ export function WorkTypeEditorPage() {
     <WorkTypeEditorShell
         title={headerTitle}
         backLabel={t("common:actions.back")}
-        onBack={() => confirmOrRun(safeBack)}
+        onBack={safeBack}
     >
       <form
         noValidate
         className="space-y-6"
         onSubmit={(event) => {
+          if (!isEditing && !effectiveEmploymentId) {
+            event.preventDefault();
+            form.setError("root", { message: t("settings:employment.choose") });
+            return;
+          }
           normalizeFormForCurrentMode();
           void form.handleSubmit(
             async (values) => {
@@ -653,71 +680,32 @@ export function WorkTypeEditorPage() {
             {form.formState.errors.root.message}
           </p>
         ) : null}
-        {selectedCalculationMethod === "TIME_BASED" ? (
-          <WorkTypeInfoCard
-            icon={<Clock3 className="h-6 w-6" aria-hidden="true" />}
-            title={t("settings:workTypeEditor.info.timeTitle")}
-            description={t("settings:workTypeEditor.info.timeDescription")}
-            details={[
-              {
-                label: t("settings:workTypeEditor.info.configureLabel"),
-                value: t("settings:workTypeEditor.info.timeConfigureValue")
-              },
-              {
-                label: t("settings:workTypeEditor.info.resultLabel"),
-                value: t("settings:workTypeEditor.info.timeResultValue")
-              }
-            ]}
-          />
+        {!isEditing && !requestedEmploymentId && activeEmployments.length > 1 ? (
+          <SettingsSection title={t("settings:employment.title")}>
+            <Select
+              label={t("settings:employment.choose")}
+              value={chosenEmploymentId}
+              onChange={(event) => {
+                setChosenEmploymentId(event.currentTarget.value);
+                form.clearErrors("root");
+              }}
+            >
+              <option value="">{t("settings:employment.choose")}</option>
+              {activeEmployments.map((employment) => (
+                <option key={employment.id} value={employment.id}>{employment.name}</option>
+              ))}
+            </Select>
+          </SettingsSection>
         ) : null}
-        {selectedCalculationMethod === "UNITS_PER_HOUR_BASED" ? (
-          <WorkTypeInfoCard
-            icon={<Ruler className="h-6 w-6" aria-hidden="true" />}
-            title={t("settings:workTypeEditor.info.unitsPerHourTitle")}
-            description={t("settings:workTypeEditor.info.unitsPerHourDescription")}
-            details={[
-              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.unitsPerHourConfigureValue") },
-              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.unitsPerHourResultValue") }
-            ]}
+        <SettingsSection title={t("settings:workTypeEditor.sections.name")}>
+          <Input
+            label={parentOnly ? t("settings:workTypeEditor.fields.categoryName") : t("settings:workTypeEditor.fields.name")}
+            error={form.formState.errors.name?.message}
+            {...form.register("name")}
           />
-        ) : null}
-        {selectedCalculationMethod === "UNIT_BASED" ? (
-          <WorkTypeInfoCard
-            icon={<Coins className="h-6 w-6" aria-hidden="true" />}
-            title={t("settings:workTypeEditor.info.perUnitTitle")}
-            description={t("settings:workTypeEditor.info.perUnitDescription")}
-            details={[
-              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.perUnitConfigureValue") },
-              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.perUnitResultValue") }
-            ]}
-          />
-        ) : null}
-        {selectedCalculationMethod === "FIXED_PRICE_BASED" ? (
-          <WorkTypeInfoCard
-            icon={<Coins className="h-6 w-6" aria-hidden="true" />}
-            title={t("settings:workTypeEditor.info.fixedTitle")}
-            description={t("settings:workTypeEditor.info.fixedDescription")}
-            details={[
-              { label: t("settings:workTypeEditor.info.configureLabel"), value: t("settings:workTypeEditor.info.fixedConfigureValue") },
-              { label: t("settings:workTypeEditor.info.resultLabel"), value: t("settings:workTypeEditor.info.fixedResultValue") }
-            ]}
-          />
-        ) : null}
+        </SettingsSection>
         <SettingsSection title={editorSectionTitle}>
           <div className="space-y-4">
-	            <Input
-	              label={parentOnly ? t("settings:workTypeEditor.fields.categoryName") : t("settings:workTypeEditor.fields.name")}
-              error={form.formState.errors.name?.message}
-              {...form.register("name", {
-                onChange: (event) => {
-                  const input = event.target as HTMLInputElement;
-                  const upperValue = input.value.toLocaleUpperCase();
-                  if (input.value !== upperValue) {
-                    input.value = upperValue;
-                  }
-                }
-	              })}
-	            />
               <Input
                 label={t("settings:workTypeEditor.fields.color")}
                 type="color"
@@ -874,15 +862,16 @@ export function WorkTypeEditorPage() {
               {orderedConfigurations.length ? (
                 <div className="space-y-3">
                   {orderedConfigurations.map((configuration) => (
-                    <button
+                    <Card
+                      as="button"
                       key={configuration.id}
                       type="button"
                       onClick={() => openConfigurationEditDialog(configuration)}
-                      className="dashboard-glass-card w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
+                      className="w-full px-5 py-5 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className={`text-[1.05rem] font-semibold tracking-[-0.04em] ${configuration.active ? "text-white" : "text-white/42"}`}>
+                          <p className={`font-name text-[1.05rem] font-semibold tracking-[-0.04em] ${configuration.active ? "text-white" : "text-white/42"}`}>
                             {configuration.name}
                           </p>
                           <p className="mt-1 text-sm text-white/46">
@@ -893,7 +882,7 @@ export function WorkTypeEditorPage() {
                           {configuration.active ? t("settings:status.active") : t("settings:status.inactive")}
                         </span>
                       </div>
-                    </button>
+                    </Card>
                   ))}
                 </div>
               ) : (
@@ -954,12 +943,12 @@ export function WorkTypeEditorPage() {
       />
       {dialog}
       {successMessage ? (
-        <div className="glass-panel fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
+        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
             <Check className="h-6 w-6" />
           </div>
           <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </div>
+        </Card>
       ) : null}
     </WorkTypeEditorShell>
   );
@@ -976,106 +965,11 @@ function WorkTypeEditorShell({
   onBack: () => void;
   children: React.ReactNode;
 }) {
-  const backButtonRef = useRef<HTMLButtonElement | null>(null);
-  const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
-  const [compactTitleVisible, setCompactTitleVisible] = useState(false);
-
-  useEffect(() => {
-    let frameId = 0;
-
-    const updateCompactTitle = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const titleRect = largeTitleRef.current?.getBoundingClientRect();
-        const buttonRect = backButtonRef.current?.getBoundingClientRect();
-
-        if (!titleRect || !buttonRect) {
-          setCompactTitleVisible(false);
-          return;
-        }
-
-        setCompactTitleVisible(titleRect.top <= buttonRect.top);
-      });
-    };
-
-    updateCompactTitle();
-    window.addEventListener("scroll", updateCompactTitle, { passive: true });
-    window.addEventListener("resize", updateCompactTitle);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", updateCompactTitle);
-      window.removeEventListener("resize", updateCompactTitle);
-    };
-  }, []);
-
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
-        <button
-          ref={backButtonRef}
-          type="button"
-          onClick={onBack}
-          aria-label={backLabel}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
-        >
-          <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
-          <span>{backLabel}</span>
-        </button>
-        <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
-            compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
-          }`}
-          aria-hidden="true"
-        >
-          {title}
-        </div>
-      </header>
-
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {title}
-      </h1>
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <SettingsNavigationHeader title={title} backLabel={backLabel} onBack={onBack} />
       {children}
     </div>
-  );
-}
-
-function WorkTypeInfoCard({
-  icon,
-  title,
-  description,
-  details
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  details: Array<{ label: string; value: string }>;
-}) {
-  return (
-    <section className="dashboard-glass-card overflow-hidden rounded-[24px] px-4 py-4 sm:px-5">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white/[0.09] text-white/78">
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-[1.05rem] font-semibold leading-tight tracking-normal text-white">{title}</h2>
-          <p className="mt-1 text-sm leading-5 tracking-normal text-white/56">{description}</p>
-        </div>
-      </div>
-      <dl className="mt-4 divide-y divide-white/[0.07] border-t border-white/[0.07]">
-        {details.map((detail) => (
-          <div key={detail.label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 py-3 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)]">
-            <dt className="font-medium text-white/42">{detail.label}</dt>
-            <dd className="leading-5 text-white/76">{detail.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
   );
 }
 
@@ -1225,8 +1119,8 @@ function WorkTypeFormulaDialog({
     : ["TIME_HOURLY", "UNITS_PER_HOUR", "UNITS_PER_UNIT", "FIXED_AMOUNT"] as const;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-sm"
+    <LockedModalViewport
+      className="z-50 bg-black/50 px-4 py-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="work-type-configuration-dialog-title"
@@ -1238,9 +1132,10 @@ function WorkTypeFormulaDialog({
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
       />
-      <form
+      <ModalPanel
+        as="form"
         noValidate
-        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+        className="max-h-[calc(100dvh-2rem)] max-w-sm overflow-y-auto"
         onSubmit={form.handleSubmit(
           async (values) => {
             form.clearErrors("root");
@@ -1255,18 +1150,10 @@ function WorkTypeFormulaDialog({
           }
         )}
       >
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-5">
           <h2 id="work-type-configuration-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
             {mode === "edit" ? t("settings:workTypeFormulas.editTitle") : t("settings:workTypeFormulas.addTitle")}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            className="rounded-full px-3 py-2 text-sm font-semibold text-white/48 transition hover:text-white disabled:opacity-50"
-          >
-            {t("common:actions.cancel")}
-          </button>
         </div>
 
         <div className="space-y-4">
@@ -1386,12 +1273,12 @@ function WorkTypeFormulaDialog({
               {...form.register("defaultBreakMinutes")}
             />
           ) : null}
-          <div className="grid gap-3">
+          <div className="space-y-3">
             {onDeactivate ? (
               <Button
                 type="button"
                 variant="secondary"
-                className="w-full border-red-400/18 bg-red-400/[0.05] text-white hover:bg-red-400/[0.08]"
+                className="border-red-400/18 bg-red-400/[0.05] text-white hover:bg-red-400/[0.08]"
                 disabled={pending}
                 onClick={() => {
                   void onDeactivate();
@@ -1400,13 +1287,16 @@ function WorkTypeFormulaDialog({
                 {t("settings:workTypeFormulas.deactivate")}
               </Button>
             ) : null}
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? t("common:actions.saving") : t("common:actions.save")}
-            </Button>
+            <ModalActions
+              cancelLabel={t("common:actions.cancel")}
+              saveLabel={pending ? t("common:actions.saving") : t("common:actions.save")}
+              pending={pending}
+              onCancel={onClose}
+            />
           </div>
         </div>
-      </form>
-    </div>
+      </ModalPanel>
+    </LockedModalViewport>
   );
 }
 
@@ -1526,7 +1416,7 @@ function workTypeToConfiguration(workType: WorkType): WorkTypeFormula {
 
 function buildWorkTypePayload(
   values: FormValues,
-  options: { color: string; displayOrder?: number; active: boolean }
+  options: { color: string; displayOrder?: number; active: boolean; employmentId?: string | null }
 ) {
   const unitLabel = values.unitLabel?.trim();
   const unitSymbol = values.unitSymbol?.trim();
@@ -1534,6 +1424,7 @@ function buildWorkTypePayload(
   const parentOnly = Boolean(values.compositeEnabled);
   return {
     name: values.name,
+    ...(options.employmentId ? { employmentId: options.employmentId } : {}),
     calculationMethod: values.calculationMethod,
     compensationMethod: values.calculationMethod === "UNIT_BASED" ? "PER_UNIT" as const : "HOURLY" as const,
     unitLabel:

@@ -1,5 +1,15 @@
 {
   "title": "Setari",
+  "pdfExport": {
+    "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment inclus",
+    "scopeHint": "Raportul folosește employmentul selectat în Setări. Selectează Toate pentru a combina toate employmenturile.",
+    "period": "Interval", "from": "De la", "to": "Până la", "include": "Include în raport",
+    "singlePageHint": "Lista cronologică este compactată automat pentru ca întregul raport să rămână pe o singură pagină A4.",
+    "generate": "Generează PDF", "generating": "Se generează PDF-ul…",
+    "fields": { "date": "Data", "activity": "Activitate", "intervals": "Intervale de muncă", "hours": "Ore lucrate", "quantity": "Cantitate efectuată", "extra": "Procentaj extra", "earnings": "Bani", "notes": "Notițe" },
+    "errors": { "dateRange": "Data de sfârșit nu poate fi înaintea datei de început.", "fields": "Selectează cel puțin un câmp pentru raport.", "empty": "Nu există date de exportat pentru acest employment și interval.", "generation": "PDF-ul nu a putut fi generat: {{reason}}" },
+    "pdf": { "report": "Raport de lucru", "employment": "Employment", "period": "Interval", "generated": "Generat", "workedDays": "Zile lucrate", "absences": "Absențe", "totalHours": "Total ore", "totalExtraHours": "Total ore extra", "generatedWith": "Generat cu Alveryn.com", "mixedCurrencies": "Valute diferite" }
+  },
   "pageInfo": {
     "profile": { "title": "Datele tale personale", "description": "Păstrează actualizate numele, data nașterii și adresa." },
     "preferences": { "title": "Configurează Alveryn pentru tine", "description": "Alege limba, formatele, tema și valorile implicite pentru muncă." },
@@ -14,6 +24,114 @@
   "status": {
     "active": "Activ",
     "inactive": "Inactiv"
+  },
+  "employment": {
+    "title": "Employment",
+    "listTitle": "Employmenturi",
+    "add": "Adaugă employment",
+    "addTitle": "Adaugă employment",
+    "createTitle": "Creează employment",
+    "editTitle": "Editează employment",
+    "editNameTitle": "Numele employmentului",
+    "editContractTitle": "Evidență și soldul de ore",
+    "create": "Creează employment",
+    "saved": "Employment salvat.",
+    "none": "Niciunul",
+    "count": "{{count}} employments",
+    "all": "Toate",
+    "choose": "Alege employmentul",
+    "settingsTitle": "Setările employmentului",
+    "contractPeriod": "Urmărire",
+    "current": "Prezent",
+    "unavailableTitle": "Employment indisponibil",
+    "unavailableDescription": "Acest employment nu a putut fi găsit.",
+    "applyChanges": {
+      "title": "De când aplicăm noile reguli?",
+      "description": "Munca anterioară păstrează regulile care erau active atunci.",
+      "TODAY": "De astăzi",
+      "MONTH_START": "De la începutul acestei luni",
+      "CUSTOM": "Alege altă dată",
+      "customDate": "Aplică modificările din",
+      "confirm": "Aplică modificările"
+    },
+    "emptyTitle": "Nu există niciun employment",
+    "emptyDescription": "Adaugă un loc de muncă, contract sau activitate freelance pentru a păstra separat regulile de lucru și plată.",
+    "delete": "Șterge employment",
+    "deactivate": "Dezactivează employment",
+    "activate": "Activează employment",
+    "deleteTitle": "Ștergi employmentul?",
+    "deleteDescription": "Acest employment nu are date asociate și poate fi eliminat complet.",
+    "deactivateTitle": "Dezactivezi employmentul?",
+    "deactivateDescription": "Istoricul rămâne intact. Employmentul nu va mai fi disponibil pentru înregistrări noi.",
+    "hourlyRates": "Tarife orare",
+    "currentHourlyRate": "Tarif orar actual",
+    "hourlyRatesDescription": "Gestionează tarifele cu perioadă de valabilitate pentru acest employment.",
+    "targetSummary": "{{hours}} h {{period}}",
+    "tracking": {
+      "description": "Alege ce contează pentru acest employment. Alveryn va ascunde informațiile de care nu ai nevoie.",
+      "TIME": {
+        "title": "Urmăresc timpul lucrat",
+        "summaryTitle": "Urmărirea timpului",
+        "description": "Vezi orele lucrate, folosește check-in și opțional soldul de ore."
+      },
+      "EARNINGS": {
+        "title": "Urmăresc câștigurile",
+        "summaryTitle": "Urmărirea câștigurilor",
+        "description": "Vezi câți bani câștigi și din ce activitate provin."
+      }
+    },
+    "sections": {
+      "name": "Nume",
+      "identity": "Detalii employment",
+      "tracking": "Ce vrei să urmărești?",
+      "period": "Perioada contractului",
+      "hourBalance": "Timp de lucru",
+      "fixedSalary": "Salariu fix și soldul de ore",
+      "availability": "Disponibilitate"
+    },
+    "fields": {
+      "name": "Numele employmentului",
+      "employmentType": "Tipul angajării",
+      "compensationType": "Modul de plată",
+      "termsValidFrom": "Condiții valabile din",
+      "startDate": "Data începerii",
+      "endDate": "Data încheierii",
+      "salaryAmount": "Salariu fix (opțional)",
+      "currency": "Monedă",
+      "targetHours": "Ore țintă",
+      "targetPeriod": "Perioada țintei",
+      "validityMonths": "Valabilitatea soldului de ore",
+      "hourBalance": "Calculează soldul meu de ore",
+      "active": "Employment activ"
+    },
+    "help": {
+      "termsValidFrom": "Data de la care se aplică schimbările de plată sau ore. Munca veche păstrează condițiile anterioare.",
+      "targetHours": "Orele așteptate pentru săptămâna sau luna selectată.",
+      "validityMonths": "Numărul de luni în care diferențele de ore rămân în soldul acumulat.",
+      "hourBalance": "Compară orele lucrate cu norma și transferă orele pozitive sau negative în perioada următoare.",
+      "active": "Employmenturile inactive rămân în istoric, dar nu primesc înregistrări noi."
+    },
+    "compensation": {
+      "FIXED_SALARY": "Salariu fix",
+      "HOURLY": "Plătit la oră",
+      "PER_UNIT": "Plătit per unitate",
+      "FIXED_AMOUNT": "Sumă fixă per lucrare"
+    },
+    "targetPeriods": {
+      "WEEKLY": "Săptămânal",
+      "MONTHLY": "Lunar"
+    },
+    "validation": {
+      "nameRequired": "Numele employmentului este obligatoriu",
+      "nameTooLong": "Numele employmentului este prea lung",
+      "termsValidFrom": "Data începerii condițiilor este obligatorie",
+      "endBeforeStart": "Data încheierii nu poate fi înainte de data începerii",
+      "salary": "Salariul trebuie să fie zero sau pozitiv",
+      "currency": "Folosește un cod de monedă din trei litere",
+      "targetHours": "Orele țintă trebuie să fie mai mari decât zero",
+      "validityMonths": "Valabilitatea trebuie să fie un număr pozitiv de luni",
+      "timeConfiguration": "Introdu orele țintă corecte și o valabilitate pozitivă a soldului."
+    }
   },
   "workSetup": {
     "title": "Configurarea muncii",
@@ -46,6 +164,7 @@
     "deleteDescription": "Acest tip de lucru nu are inregistrari salvate, deci poate fi sters complet.",
     "deleteConfirm": "Sterge",
     "savedEntriesError": "Acest tip de lucru are deja inregistrari salvate. Creeaza un tip de lucru nou.",
+    "sections": { "name": "Nume" },
     "fields": {
       "name": "Nume",
       "categoryName": "Nume categorie",
@@ -165,14 +284,21 @@
   "preferences": "Preferințe",
   "absenceSettings": {
     "title": "Absențe",
+    "emptyTitle": "Nu există încă tipuri de absență",
     "normalDay": "Zi normală",
     "paidTypes": "Tipuri de absențe plătite",
     "types": "Tipuri de absență",
     "addType": "Adaugă tip de absență",
     "editType": "Editează tipul de absență",
     "saved": "Tipul de absență a fost salvat.",
+    "deleted": "Tipul de absență a fost șters.",
     "deactivated": "Tipul de absență a fost dezactivat.",
+    "delete": "Șterge",
     "deactivate": "Dezactivează",
+    "deleteTitle": "Ștergi tipul de absență?",
+    "deleteDescription": "Acest tip de absență nu a fost utilizat și poate fi șters definitiv.",
+    "deactivateTitle": "Dezactivezi tipul de absență?",
+    "deactivateDescription": "Acest tip este utilizat în istoric, așa că va fi ascuns fără a șterge absențele anterioare.",
     "paidSummary": "Plătit {{hours}} pe zi",
     "unpaidSummary": "Neplătit",
     "fields": {
@@ -230,6 +356,7 @@
     "unavailableTitle": "Profilul nu este disponibil",
     "basicInformation": "Informații de bază",
     "employment": "Angajare",
+    "employments": "Angajări",
     "address": "Adresă",
     "menu": {
       "personalInformation": "Informații personale",
@@ -330,17 +457,20 @@
     "deleteDescription": "Intervalul este șters, dar sumele deja salvate în pontaje rămân neschimbate.",
     "deleteConfirm": "Șterge intervalul",
     "fields": {
+      "employment": "Employment",
       "hourlyRate": "Tarif orar",
       "currency": "Monedă",
       "validFrom": "Valabil de la",
       "validTo": "Valabil până la"
     },
     "validation": {
+      "employment": "Selectează un employment",
       "hourlyRate": "Tariful orar trebuie să fie zero sau pozitiv",
       "currency": "Folosește un cod de monedă din trei litere",
       "validFrom": "Data de început este obligatorie",
       "validToBeforeFrom": "Data de final nu poate fi înainte de data de început"
     },
+    "selectEmployment": "Alege un employment",
     "cancel": "Anulează",
     "save": "Salvează",
     "saving": "Se salvează"

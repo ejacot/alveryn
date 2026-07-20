@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record UpdateWorkTypeRequest(
     @NotBlank @Size(max = 100) String name,
+    UUID employmentId,
     UUID parentId,
     @NotNull CalculationMethod calculationMethod,
     CompensationMethod compensationMethod,
@@ -33,7 +34,7 @@ public record UpdateWorkTypeRequest(
       Integer displayOrder,
       boolean active) {
     this(
-        name,
+        name, null,
         null,
         calculationMethod,
         CompensationMethod.HOURLY,
@@ -69,7 +70,7 @@ public record UpdateWorkTypeRequest(
       Integer defaultBreakMinutes,
       Integer displayOrder,
       Boolean active) {
-    this(name, parentId, calculationMethod, compensationMethod, unitLabel, unitSymbol,
+    this(name, null, parentId, calculationMethod, compensationMethod, unitLabel, unitSymbol,
         unitsPerHour, ratePerUnit, currency, teamworkEnabled, false, compositeEnabled,
         color, icon, defaultBreakMinutes, displayOrder, active);
   }

@@ -1,6 +1,7 @@
 package com.alveryn.api.worktype.entity;
 
 import com.alveryn.api.common.persistence.BaseEntity;
+import com.alveryn.api.employment.entity.Employment;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import jakarta.persistence.Column;
@@ -24,6 +25,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "work_types")
 public class WorkType extends BaseEntity {
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "employment_id")
+  private Employment employment;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
@@ -85,20 +90,38 @@ public class WorkType extends BaseEntity {
   @Column(name = "display_order", nullable = false)
   private int displayOrder;
 
+  public WorkType(UserAccount user, Employment employment, String name, CalculationMethod calculationMethod) {
+    this(user, employment, name, calculationMethod, CompensationMethod.HOURLY);
+  }
+
+  /** Compatibility constructor for imported and legacy domain data. Application writes assign an Employment. */
   public WorkType(UserAccount user, String name, CalculationMethod calculationMethod) {
-    this(user, name, calculationMethod, CompensationMethod.HOURLY);
+    this(user, null, name, calculationMethod, CompensationMethod.HOURLY);
+  }
+
+  /** Compatibility constructor for imported and legacy domain data. Application writes assign an Employment. */
+  public WorkType(UserAccount user, String name, CalculationMethod calculationMethod, CompensationMethod compensationMethod) {
+    this(user, null, name, calculationMethod, compensationMethod);
   }
 
   public WorkType(
       UserAccount user,
-      String name,
+      Employment employment, String name,
       CalculationMethod calculationMethod,
       CompensationMethod compensationMethod) {
     this.user = Objects.requireNonNull(user, "user is required");
+    if (employment != null) changeEmployment(employment);
     this.calculationMethod =
         Objects.requireNonNull(calculationMethod, "calculationMethod is required");
     changeCompensationMethod(compensationMethod);
     rename(name);
+  }
+
+  public void changeEmployment(Employment value) {
+    Employment next = Objects.requireNonNull(value, "employment is required");
+    if (!next.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("employment must belong to the same user");
+    if (parent != null && !next.getId().equals(parent.getEmployment().getId())) throw new IllegalArgumentException("child work type must use its parent's employment");
+    employment = next;
   }
 
   public void changeParent(WorkType value) {
@@ -109,6 +132,7 @@ public class WorkType extends BaseEntity {
       throw new IllegalArgumentException("work type cannot be its own parent");
     }
     parent = value;
+    if (value != null) employment = value.getEmployment();
   }
 
   public void rename(String value) {

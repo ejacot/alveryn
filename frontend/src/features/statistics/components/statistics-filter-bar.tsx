@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/ui/select";
+import { Card } from "../../../components/ui/card";
 import type { WorkType } from "../../../types/configuration";
 import type { CalculationMethod } from "../../../types/work-calculation";
 import {
@@ -37,7 +38,7 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
   }
 
   return (
-    <section aria-label={t("statistics.filters.label")} className="section-card space-y-3">
+    <Card as="section" variant="section" aria-label={t("statistics.filters.label")} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <Select
           label={t("statistics.filters.period")}
@@ -175,6 +176,6 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
           </div>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

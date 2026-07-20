@@ -13,4 +13,5 @@ public record AbsenceTypeSettingResponse(
     int paidMinutesPerDay,
     String color,
     boolean active,
-    int displayOrder) {}
+    int displayOrder,
+    boolean deletable) {}

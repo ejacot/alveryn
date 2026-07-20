@@ -32,19 +32,24 @@ export default {
       },
       fontFamily: {
         sans: [
+          "Inter",
           "-apple-system",
           "BlinkMacSystemFont",
           "SF Pro Display",
           "SF Pro Text",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif"
+        ],
+        title: [
+          "Manrope",
           "Inter",
           "ui-sans-serif",
           "system-ui",
           "sans-serif"
         ],
-        brand: [
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "SF Pro Display",
+        name: [
+          "Sora",
           "Inter",
           "ui-sans-serif",
           "system-ui",

@@ -18,6 +18,11 @@ import com.alveryn.api.address.repository.AddressRepository;
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.salary.entity.HourlyRatePeriod;
 import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.entity.Employment;
+import com.alveryn.api.employment.repository.EmploymentRepository;
+import com.alveryn.api.employment.repository.EmploymentTermRepository;
+import com.alveryn.api.user.entity.EmploymentType;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserProfileRepository;
@@ -47,6 +52,8 @@ class UserConfigurationIntegrationTest {
   @Autowired UserAccountRepository users;
   @Autowired WorkTypeRepository workTypes;
   @Autowired HourlyRatePeriodRepository hourlyRates;
+  @Autowired EmploymentRepository employments;
+  @Autowired EmploymentTermRepository employmentTerms;
   @Autowired AbsenceRepository absences;
   @Autowired AbsenceTypeSettingRepository absenceTypes;
   @Autowired WorkRecordRepository workRecords;
@@ -64,6 +71,8 @@ class UserConfigurationIntegrationTest {
     absenceTypes.deleteAll();
     workTypes.deleteAll();
     hourlyRates.deleteAll();
+    employmentTerms.deleteAll();
+    employments.deleteAll();
     profiles.deleteAll();
     addresses.deleteAll();
     users.deleteAll();
@@ -282,18 +291,20 @@ class UserConfigurationIntegrationTest {
   void hourlyRateCrudSupportsAdjacentButRejectsOverlapAndEnforcesOwnership() throws Exception {
     UserAccount user = createVerifiedUser("rates@example.com");
     UserAccount otherUser = createVerifiedUser("other-rates@example.com");
+    Employment employment = employment(user);
 
     String firstRateId =
         createHourlyRate(
             user,
             """
             {
+              "employmentId":"%s",
               "hourlyRate":15.50,
               "currency":"EUR",
               "validFrom":"2026-01-01",
               "validTo":"2026-01-31"
             }
-            """);
+            """.formatted(employment.getId()));
 
     mockMvc
         .perform(
@@ -303,12 +314,13 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "hourlyRate":17.50,
                       "currency":"EUR",
                       "validFrom":"2026-01-15",
                       "validTo":"2026-02-15"
                     }
-                    """))
+                    """.formatted(employment.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -319,12 +331,13 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "hourlyRate":17.50,
                       "currency":"EUR",
                       "validFrom":"2026-02-01",
                       "validTo":null
                     }
-                    """))
+                    """.formatted(employment.getId())))
         .andExpect(status().isCreated());
 
     mockMvc
@@ -335,12 +348,13 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "hourlyRate":16.00,
                       "currency":"EUR",
                       "validFrom":"2026-01-01",
                       "validTo":"2026-01-31"
                     }
-                    """))
+                    """.formatted(employment.getId())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.hourlyRate").value(16.00));
 
@@ -461,7 +475,7 @@ class UserConfigurationIntegrationTest {
   @Test
   void unusedCategoryAndItsChildrenAreDeletedTogether() throws Exception {
     UserAccount user = createVerifiedUser("delete-unused-category@example.com");
-    WorkType category = new WorkType(user, "Cleaning", CalculationMethod.TIME_BASED);
+    WorkType category = new WorkType(user, employment(user), "Cleaning", CalculationMethod.TIME_BASED);
     category.changeColor("#87C95A");
     category.changeCompositeEnabled(true);
     workTypes.saveAndFlush(category);
@@ -487,7 +501,7 @@ class UserConfigurationIntegrationTest {
   void categoryWithUsedChildIsDeactivatedAndPreserved() throws Exception {
     UserAccount user = createVerifiedUser("deactivate-used-category@example.com");
     createOpenEndedRate(user, "18.00");
-    WorkType category = new WorkType(user, "Hotel", CalculationMethod.TIME_BASED);
+    WorkType category = new WorkType(user, employment(user), "Hotel", CalculationMethod.TIME_BASED);
     category.changeColor("#87C95A");
     category.changeCompositeEnabled(true);
     workTypes.saveAndFlush(category);
@@ -601,6 +615,7 @@ class UserConfigurationIntegrationTest {
   void absenceTypesAreUserOwnedConfigurableAndSnapshotAbsences() throws Exception {
     UserAccount user = createVerifiedUser("absence-types@example.com");
     UserAccount otherUser = createVerifiedUser("absence-types-other@example.com");
+    Employment absenceEmployment = employment(user);
 
     mockMvc
         .perform(get("/api/absence-types").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -629,6 +644,7 @@ class UserConfigurationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.name").value("Training"))
                 .andExpect(jsonPath("$.data.paidMinutesPerDay").value(120))
+                .andExpect(jsonPath("$.data.deletable").value(true))
                 .andReturn()
                 .getResponse()
                 .getContentAsString(),
@@ -642,12 +658,13 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-08-01",
                       "endDate":"2026-08-01"
                     }
                     """
-                        .formatted(customTypeId)))
+                        .formatted(absenceEmployment.getId(), customTypeId)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.absenceTypeId").value(customTypeId))
         .andExpect(jsonPath("$.data.absenceTypeName").value("Training"))
@@ -689,12 +706,13 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-08-02",
                       "endDate":"2026-08-02"
                     }
                     """
-                        .formatted(customTypeId)))
+                        .formatted(absenceEmployment.getId(), customTypeId)))
         .andExpect(status().isNotFound());
 
     mockMvc
@@ -702,6 +720,37 @@ class UserConfigurationIntegrationTest {
         .andExpect(status().isNoContent());
 
     assertThat(absenceTypes.findById(UUID.fromString(customTypeId)).orElseThrow().isActive()).isFalse();
+
+    String unusedTypeId =
+        extractJsonValue(
+            mockMvc
+                .perform(
+                    post("/api/absence-types")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "name":"Unused",
+                              "paid":false,
+                              "paidMinutesPerDay":0,
+                              "color":"#777777",
+                              "active":true,
+                              "displayOrder":10
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.deletable").value(true))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            "id");
+
+    mockMvc
+        .perform(delete("/api/absence-types/" + unusedTypeId).header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isNoContent());
+
+    assertThat(absenceTypes.findById(UUID.fromString(unusedTypeId))).isEmpty();
   }
 
   @Test
@@ -711,9 +760,12 @@ class UserConfigurationIntegrationTest {
     WorkType workType = createTimeWorkType(user, "Shift");
     createOpenEndedRate(user, "20.00");
     createTimeBasedWorkRecord(user, workType, LocalDate.of(2026, 7, 10));
-    workRecords.saveAndFlush(new WorkRecord(user, null, LocalDate.of(2026, 7, 14), null, null));
+    WorkRecord directRecord = new WorkRecord(user, null, LocalDate.of(2026, 7, 14), null, null);
+    directRecord.assignEmployment(employment(user));
+    workRecords.saveAndFlush(directRecord);
     AbsenceTypeSetting vacationType =
         absenceTypes.saveAndFlush(new AbsenceTypeSetting(user, "Vacation", null, true, 150, "#10B981", 0));
+    UUID employmentId = employment(user).getId();
 
     mockMvc
         .perform(
@@ -723,14 +775,36 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-07-11",
                       "endDate":"2026-07-12",
                       "notes":" Summer "
                     }
-                    """.formatted(vacationType.getId())))
+                    """.formatted(employmentId, vacationType.getId())))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.notes").value("Summer"));
+
+    Employment minijob = new Employment(user, "Minijob");
+    minijob.configure(
+        EmploymentType.MINI_JOB, CompensationType.HOURLY, LocalDate.of(2026, 1, 1), null,
+        null, "EUR", null, null, true, 1);
+    UUID minijobId = employments.saveAndFlush(minijob).getId();
+    mockMvc
+        .perform(
+            post("/api/absences")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "employmentId":"%s",
+                      "absenceTypeId":"%s",
+                      "startDate":"2026-07-11",
+                      "endDate":"2026-07-12"
+                    }
+                    """.formatted(minijobId, vacationType.getId())))
+        .andExpect(status().isCreated());
 
     mockMvc
         .perform(
@@ -740,11 +814,12 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-07-12",
                       "endDate":"2026-07-13"
                     }
-                    """.formatted(vacationType.getId())))
+                    """.formatted(employmentId, vacationType.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -755,11 +830,12 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-07-10",
                       "endDate":"2026-07-10"
                     }
-                    """.formatted(vacationType.getId())))
+                    """.formatted(employmentId, vacationType.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -770,11 +846,12 @@ class UserConfigurationIntegrationTest {
                 .content(
                     """
                     {
+                      "employmentId":"%s",
                       "absenceTypeId":"%s",
                       "startDate":"2026-07-14",
                       "endDate":"2026-07-14"
                     }
-                    """.formatted(vacationType.getId())))
+                    """.formatted(employmentId, vacationType.getId())))
         .andExpect(status().isConflict());
 
     mockMvc
@@ -783,13 +860,16 @@ class UserConfigurationIntegrationTest {
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
                 .param("year", "2026")
                 .param("month", "7")
+                .param("employmentId", employmentId.toString())
                 .param("absenceTypeId", vacationType.getId().toString())
                 .param("size", "1"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.totalElements").value(1))
         .andExpect(jsonPath("$.data.content.length()").value(1));
 
-    Absence ownedAbsence = absences.findAll().getFirst();
+    Absence ownedAbsence = absences.findAll().stream()
+        .filter(item -> item.getEmployment().getId().equals(employmentId))
+        .findFirst().orElseThrow();
     assertThat(ownedAbsence.getStartDate()).isEqualTo(LocalDate.of(2026, 7, 11));
     assertThat(ownedAbsence.getEndDate()).isEqualTo(LocalDate.of(2026, 7, 12));
     mockMvc
@@ -811,7 +891,8 @@ class UserConfigurationIntegrationTest {
         .andExpect(jsonPath("$.data.profileConfigured").value(false))
         .andExpect(jsonPath("$.data.preferencesConfigured").value(false))
         .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
-        .andExpect(jsonPath("$.data.missingSteps.length()").value(3));
+        .andExpect(jsonPath("$.data.hourlyRateConfigured").value(true))
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -838,16 +919,24 @@ class UserConfigurationIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.onboardingCompleted").value(false));
 
+    Employment earningsEmployment = employment(user);
+    mockMvc
+        .perform(get("/api/onboarding/status").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.hourlyRateConfigured").value(false))
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
+
     createHourlyRate(
         user,
         """
         {
+          "employmentId":"%s",
           "hourlyRate":19.00,
           "currency":"EUR",
           "validFrom":"2026-01-01",
           "validTo":null
         }
-        """);
+        """.formatted(earningsEmployment.getId()));
 
     mockMvc
         .perform(
@@ -897,14 +986,25 @@ class UserConfigurationIntegrationTest {
   }
 
   private WorkType createTimeWorkType(UserAccount user, String name) {
-    WorkType workType = new WorkType(user, name, CalculationMethod.TIME_BASED);
+    WorkType workType = new WorkType(user, employment(user), name, CalculationMethod.TIME_BASED);
     workType.changeColor("#87C95A");
     return workTypes.saveAndFlush(workType);
   }
 
   private void createOpenEndedRate(UserAccount user, String rate) {
     hourlyRates.saveAndFlush(
-        new HourlyRatePeriod(user, new BigDecimal(rate), "EUR", LocalDate.of(2026, 1, 1), null));
+        new HourlyRatePeriod(user, employment(user), new BigDecimal(rate), "EUR", LocalDate.of(2026, 1, 1), null));
+  }
+
+  private Employment employment(UserAccount user) {
+    return employments.findFirstByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(user.getId())
+        .orElseGet(() -> {
+          var employment = new Employment(user, "Main job");
+          employment.configure(
+              EmploymentType.FULL_TIME, CompensationType.HOURLY, LocalDate.of(2026, 1, 1), null,
+              null, "EUR", null, null, true, 0);
+          return employments.saveAndFlush(employment);
+        });
   }
 
   private void createTimeBasedWorkRecord(UserAccount user, WorkType workType, LocalDate workDate)

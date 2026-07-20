@@ -13,6 +13,7 @@ import { SettingsContextCard } from "../components/settings/settings-context-car
 import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { Card } from "../components/ui/card";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { applyAppLanguage } from "../i18n";
@@ -90,7 +91,7 @@ export function SettingsPreferencesPage() {
   }
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10 pt-4">
       <SettingsPageHeader
         title={t("settings:preferences")}
         fallbackHref="/profile"
@@ -116,7 +117,7 @@ export function SettingsPreferencesPage() {
           });
         })}
       >
-        <section className="dashboard-glass-card overflow-hidden">
+        <Card as="section" className="overflow-hidden">
           <PreferenceRow label={t("settings:preferencesFields.language")} error={form.formState.errors.language?.message}>
             <select aria-label={t("settings:preferencesFields.language")} {...form.register("language")}>
               {["en", "de", "ro"].map((language) => (
@@ -168,7 +169,7 @@ export function SettingsPreferencesPage() {
               <option value="DARK">{t("settings:preferencesOptions.darkTheme")}</option>
             </select>
           </PreferenceRow>
-        </section>
+        </Card>
 
         <SettingsFormActions submitting={mutation.isPending} successMessage={successMessage} />
         {!successMessage && mutation.error ? (
@@ -192,7 +193,7 @@ function PreferenceRow({
   children: React.ReactElement<{ className?: string }>;
 }) {
   return (
-    <div className={`relative flex min-h-16 items-center justify-between gap-4 px-6 py-3 ${last ? "" : "after:absolute after:inset-x-6 after:bottom-0 after:h-px after:bg-white/[0.06]"}`}>
+    <div className={`relative flex min-h-14 items-center justify-between gap-4 px-5 py-3 ${last ? "" : "after:absolute after:inset-x-5 after:bottom-0 after:h-px after:bg-white/[0.06]"}`}>
       <span className="min-w-0 text-[1rem] tracking-[-0.02em] text-white">{label}</span>
       <div className="min-w-0 max-w-[58%] text-right">
         <div className="[&_select]:max-w-full [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:truncate [&_select]:border-0 [&_select]:bg-transparent [&_select]:py-2 [&_select]:text-right [&_select]:text-sm [&_select]:text-white/48 [&_select]:outline-none [&_select]:focus:text-white">

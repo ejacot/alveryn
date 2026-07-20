@@ -17,6 +17,7 @@ import { i18n } from "../i18n";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
+import { TimeTrackingCard } from "../components/dashboard/time-tracking-card";
 import type { DashboardSummaryMetrics, SelectedDayActivity, WeeklyRhythmDay } from "../types/dashboard";
 import type { Absence, AbsenceTypeSetting } from "../types/absence";
 import type { WorkRecord, WorkRecordLine } from "../types/work-record";
@@ -26,6 +27,7 @@ import {
   formatMinutesAsDuration
 } from "../utils/format";
 import { calculatePaidAbsenceDays } from "../utils/paid-absence";
+import { useEmploymentScope } from "../features/employment/employment-scope";
 
 type OutletContext = {
   selectedDate?: Date;
@@ -40,6 +42,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const selectedEmploymentId = useEmploymentScope();
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = useMemo(
     () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
@@ -84,6 +87,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const absenceMutation = useMutation({
     mutationFn: ({ absenceTypeId, date }: { absenceTypeId: string; date: string }) =>
       createAbsence({
+        ...(selectedEmploymentId ? { employmentId: selectedEmploymentId } : {}),
         absenceTypeId,
         startDate: date,
         endDate: date,
@@ -123,7 +127,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     (absenceTypesQuery.error ? absenceTypesQuery : null) ??
     (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null);
 
-  const rhythmRecords = useMemo(() => rhythmRecordsQuery.data ?? [], [rhythmRecordsQuery.data]);
+  const rhythmRecords = useMemo(
+    () => (rhythmRecordsQuery.data ?? []).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
+    [rhythmRecordsQuery.data, selectedEmploymentId]
+  );
   const weeklyRecords = useMemo(
     () => rhythmRecords.filter((record) => recordOverlapsRange(record, weekStartKey, weekEndKey)),
     [rhythmRecords, weekEndKey, weekStartKey]
@@ -137,10 +144,13 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     [selectedDateKey, weeklyRecords]
   );
   const preferences = preferencesQuery.data ?? null;
-  const hourlyRates = useMemo(() => hourlyRatesQuery.data ?? [], [hourlyRatesQuery.data]);
+  const hourlyRates = useMemo(
+    () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
+    [hourlyRatesQuery.data, selectedEmploymentId]
+  );
   const rhythmAbsences = useMemo(
-    () => weeklyAbsencesQuery.data?.content ?? [],
-    [weeklyAbsencesQuery.data]
+    () => (weeklyAbsencesQuery.data?.content ?? []).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
+    [selectedEmploymentId, weeklyAbsencesQuery.data]
   );
   const weeklyAbsences = useMemo(
     () => rhythmAbsences.filter((absence) => absenceOverlapsRange(absence, weekStartKey, weekEndKey)),
@@ -186,30 +196,9 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       weeklyAbsences
     );
     const absenceGross = sumPaidAbsenceGross(selectedDayPaidAbsences);
-    const showWorkSummary = !selectedAbsence ||
-      todayMinutes > 0 ||
-      todayWorkBaseGross > 0 ||
-      todayExtraPaid.minutes > 0 ||
-      todayExtraPaid.grossAmount > 0;
-
     return {
-      primaryMetric: showWorkSummary ? {
-        label: t("dashboard:summary.todayHours"),
-        value: formatMinutesAsDuration(todayMinutes),
-        hint: ""
-      } : null,
-      secondaryMetrics: showWorkSummary ? [
-        {
-          label: t("dashboard:summary.todayMoney"),
-          value: formatCombinedGross(
-            selectedDayRecords,
-            todayBaseGross,
-            t("dashboard:summary.mixedCurrencies"),
-            selectedDayPaidAbsences
-          ),
-          hint: ""
-        }
-      ] : [],
+      primaryMetric: null,
+      secondaryMetrics: [],
       extraTimeMetric: todayExtraPaid.minutes > 0 ? {
         label: t("dashboard:summary.extraHours"),
         value: formatMinutesAsDuration(todayExtraPaid.minutes),
@@ -349,6 +338,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         onEntrySelect={(entryId) =>
           navigate(`/records/${entryId.slice("record:".length)}?returnDate=${selectedDateKey}`)
         }
+        timeTracker={<TimeTrackingCard />}
       />
     </div>
   );
@@ -745,4 +735,8 @@ function formatQuantity(value: string) {
   return new Intl.NumberFormat(i18n.resolvedLanguage, {
     maximumFractionDigits: 2
   }).format(parsed);
+}
+
+function matchesEmployment(value: string | null | undefined, selectedEmploymentId: string | null) {
+  return !selectedEmploymentId || value === selectedEmploymentId;
 }

@@ -18,6 +18,7 @@ import { SettingsFormActions } from "../components/settings/settings-form-action
 import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsGroup, SettingsRow } from "../components/settings/settings-group";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
+import { Card } from "../components/ui/card";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -227,20 +228,20 @@ export function SettingsProfilePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-8 pb-10 pt-12">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex h-[7.25rem] w-full max-w-[560px] items-start px-5 pt-2">
+    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"
           onClick={handleBack}
           aria-label={t("actions.back", { ns: "common" })}
-          className="mt-[3.25rem] flex h-10 items-center gap-1.5 rounded-md px-0 text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
+          className="settings-sticky-header-control flex h-9 items-center gap-1.5 rounded-md px-0 text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
         >
           <ArrowLeft className="h-[1.22rem] w-[1.22rem]" aria-hidden="true" />
           <span>{t("actions.back", { ns: "common" })}</span>
         </button>
         <div
-          className={`pointer-events-none absolute left-1/2 top-[3.75rem] flex h-10 -translate-x-1/2 items-center text-[1.08rem] font-bold leading-none tracking-[-0.045em] text-white transition duration-300 ${
+          className={`settings-sticky-header-title pointer-events-none absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0 delay-0"
           }`}
           aria-hidden="true"
@@ -251,7 +252,7 @@ export function SettingsProfilePage() {
 
       <h1
         ref={largeTitleRef}
-        className={`text-[2.8rem] font-semibold leading-none tracking-[-0.08em] text-white transition duration-200 ${
+        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
@@ -270,11 +271,11 @@ export function SettingsProfilePage() {
                 className="h-28 w-28 rounded-full border border-white/[0.08] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.28)]"
               />
             ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] text-[2rem] font-semibold tracking-[-0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="font-name flex h-28 w-28 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] text-[2rem] font-semibold tracking-[-0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 {initials}
               </div>
             )}
-            <h2 className="mt-5 text-[2.2rem] font-semibold leading-none tracking-[-0.075em] text-white">{fullName}</h2>
+            <h2 className="font-name mt-5 text-[2.2rem] font-semibold leading-none tracking-[-0.075em] text-white">{fullName}</h2>
             <p className="mt-2 text-[1.05rem] font-medium tracking-[-0.04em] text-white/48">{user?.account.email}</p>
           </section>
 
@@ -284,20 +285,20 @@ export function SettingsProfilePage() {
               onClick={() => setActiveSection("personal")}
               showChevron
             />
-            <div className="mx-6 h-px bg-white/[0.06]" />
+            <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
               label={t("profileEditor.menu.signInSecurity")}
               onClick={() => setActiveSection("security")}
               showChevron
             />
-            <div className="mx-6 h-px bg-white/[0.06]" />
+            <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
               label={t("profileEditor.menu.paymentShipping")}
               value={t("profileEditor.menu.notSet")}
               onClick={() => setActiveSection("payment")}
               showChevron
             />
-            <div className="mx-6 h-px bg-white/[0.06]" />
+            <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
               label={t("profileEditor.menu.subscriptions")}
               onClick={() => setActiveSection("subscriptions")}
@@ -314,7 +315,7 @@ export function SettingsProfilePage() {
               onClick={() => setActiveSection("email")}
               showChevron
             />
-            <div className="mx-6 h-px bg-white/[0.06]" />
+            <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
               label={t("profileEditor.menu.phoneNumber")}
               value={profile?.phone || t("profileEditor.menu.notSet")}
@@ -423,10 +424,10 @@ export function SettingsProfilePage() {
 
 function ProfilePlaceholder({ title, description }: { title: string; description: string }) {
   return (
-    <section className="dashboard-glass-card px-5 py-6">
+    <Card as="section" className="px-5 py-6">
       <p className="text-[1.15rem] font-semibold tracking-[-0.05em] text-white">{title}</p>
       <p className="mt-2 text-sm leading-6 text-white/48">{description}</p>
-    </section>
+    </Card>
   );
 }
 
@@ -440,9 +441,9 @@ function ProfileFormSection({
   return (
     <section className="space-y-3">
       <p className="hairline-text">{title}</p>
-      <div className="dashboard-glass-card space-y-4 p-5">
+      <Card className="space-y-4 p-5">
         {children}
-      </div>
+      </Card>
     </section>
   );
 }

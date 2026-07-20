@@ -21,6 +21,7 @@ describe("preview routes", () => {
     const routes = buildRoutes(false);
 
     expect(hasRoutePath("/onboarding", routes)).toBe(true);
+    expect(hasRoutePath("/tracking-setup", routes)).toBe(true);
   });
 
   it("includes the public OAuth callback route", () => {
@@ -64,5 +65,6 @@ describe("preview routes", () => {
     expect(hasRoutePath("/records/:recordId", routes)).toBe(true);
     expect(hasRoutePath("/settings/about", routes)).toBe(true);
     expect(hasRoutePath("/settings/help", routes)).toBe(true);
+    expect(hasRoutePath("/settings/export-pdf", routes)).toBe(true);
   });
 });
