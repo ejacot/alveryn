@@ -1,17 +1,20 @@
 package com.alveryn.api.auth.security;
 
 import com.alveryn.api.user.entity.UserStatus;
+import com.alveryn.api.user.entity.UserRole;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public record AuthenticatedUser(UUID userId, String email, boolean emailVerified, UserStatus status)
+public record AuthenticatedUser(
+    UUID userId, String email, boolean emailVerified, UserStatus status, UserRole role)
     implements UserDetails {
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of();
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
   }
 
   @Override

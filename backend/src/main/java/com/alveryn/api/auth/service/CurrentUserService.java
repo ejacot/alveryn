@@ -23,10 +23,10 @@ public class CurrentUserService {
   @Transactional(readOnly = true)
   public CurrentUserResponse getCurrentUser() {
     var userId = authenticatedUserAccessor.requireUserId();
-    var account =
-        mapper.toDto(users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId)));
+    var user = users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
+    var account = mapper.toDto(user);
     var profile = profiles.findByUserId(userId).map(mapper::toProfileResponse).orElse(null);
     var prefs = preferences.findByUserId(userId).map(mapper::toPreferencesResponse).orElse(null);
-    return new CurrentUserResponse(account, profile, prefs);
+    return new CurrentUserResponse(account, profile, prefs, user.isAdmin());
   }
 }

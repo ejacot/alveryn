@@ -145,7 +145,6 @@ const TrackingSetupPage = lazy(() =>
     default: module.TrackingSetupPage
   }))
 );
-
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
 }

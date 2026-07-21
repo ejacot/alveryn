@@ -1,6 +1,6 @@
 # Alveryn Database Model
 
-Current schema version: V43.
+Current schema version: V57.
 
 Alveryn now tracks work through `work_records` and `work_record_lines`.
 `work_types` define both simple formulas and optional parent/child formula groups.
@@ -17,6 +17,16 @@ Alveryn now tracks work through `work_records` and `work_record_lines`.
 - `hourly_rate_periods`: user-owned hourly rates with validity periods.
 - `absence_types`: user-owned paid/unpaid absence definitions.
 - `absences`: historical absences with absence-type snapshots.
+- `user_activity_days`: one privacy-minimised activity heartbeat per user and UTC day.
+- `product_events`: allowlisted product events such as successful PDF exports, without work content.
+- `admin_audit_events`: audit trail for access to the private Founder dashboard.
+
+## Founder analytics
+
+`user_accounts.role` separates normal users from the single configured Founder account. The
+Founder identity is supplied through `FOUNDER_EMAIL` at deployment time and is never exposed
+through a role-management API. Founder metrics exclude admin accounts and aggregate product
+adoption without storing page paths, IP addresses, notes, earnings or work-line content.
 
 ## Removed Legacy Tables
 

@@ -1,5 +1,15 @@
 {
   "title": "Einstellungen",
+  "founder": {
+    "title": "Founder", "menuLabel": "Founder-Dashboard", "refresh": "Dashboard aktualisieren",
+    "error": "Die Founder-Daten konnten nicht geladen werden. Versuche es erneut.",
+    "overview": "Übersicht", "registrations": "Registrierungen · letzte 30 Tage", "activation": "Aktivierung", "usage": "Produktnutzung", "users": "Benutzer",
+    "noUsers": "Noch keine Benutzerkonten.", "verified": "Verifiziert", "unverified": "Ausstehend",
+    "joined": "Registriert {{date}}", "lastActive": "Zuletzt aktiv {{date}}", "userCounts": "{{employments}} Jobs · {{types}} Typen · {{sessions}} Tage",
+    "metrics": { "totalUsers": "Benutzer gesamt", "activeToday": "Heute aktiv", "active7": "Aktiv · 7 Tage", "active30": "Aktiv · 30 Tage", "newToday": "Heute neu", "new7": "Neu · 7 Tage" },
+    "funnel": { "registered": "Registriert", "verified": "E-Mail verifiziert", "setup": "Tracking eingerichtet", "employment": "Employment erstellt", "workType": "Work Type erstellt", "firstSession": "Erster Arbeitstag" },
+    "usageMetrics": { "timeUsers": "Time-Tracking-Benutzer", "earningsUsers": "Earnings-Tracking-Benutzer", "workSessions": "Arbeitstage", "projects": "Projekte", "checkIns": "Check-ins", "pdfExports": "PDF-Exporte" }
+  },
   "pdfExport": {
     "title": "PDF exportieren", "menuLabel": "PDF exportieren", "employment": "Enthaltene Beschäftigung",
     "scopeHint": "Der Bericht verwendet die in den Einstellungen ausgewählte Beschäftigung. Mit Alle werden sämtliche Beschäftigungen kombiniert.",

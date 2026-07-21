@@ -1,6 +1,8 @@
 # Alveryn backend architecture
 
-The backend is organized by feature under `com.alveryn.api`, including `user`, `salary`, `worktype`, `workrecord`, `absence`, `calendar`, `dashboard`, and `statistics`. Shared persistence infrastructure is limited to `common.persistence.BaseEntity`; empty controller, service, and DTO layers are not created in advance.
+The backend is organized by feature under `com.alveryn.api`, including `user`, `salary`, `worktype`, `workrecord`, `absence`, `calendar`, `dashboard`, `statistics`, and the isolated `admin` module. Shared persistence infrastructure is limited to `common.persistence.BaseEntity`; empty controller, service, and DTO layers are not created in advance.
+
+The `admin` module exposes aggregate Founder metrics only under `/api/admin/**`, protected by the database-backed `ADMIN` authority. The sole Founder identity comes from the deployment environment. Customer activity uses one UTC-day heartbeat and a small allowlist of explicit product events; work content and financial values never enter analytics. Every Founder dashboard read creates an audit event.
 
 All persisted domain objects use UUID identifiers. `BaseEntity` is a mapped superclass that supplies the UUID plus immutable-from-the-domain `createdAt` and `updatedAt` values. Hibernate's UUID and timestamp annotations keep the implementation small and consistent while Flyway remains the schema authority (`ddl-auto: validate`).
 

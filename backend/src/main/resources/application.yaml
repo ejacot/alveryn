@@ -56,6 +56,8 @@ management:
         enabled: true
 
 alveryn:
+  founder:
+    email: ${FOUNDER_EMAIL:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}

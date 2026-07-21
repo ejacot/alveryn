@@ -15,6 +15,12 @@ export function AboutAlverynPage() {
           <p>Calm work tracking for hourly and unit-based workflows, designed to feel like a premium native app.</p>
         </div>
       </SettingsSection>
+      <SettingsSection title="Data and privacy">
+        <div className="space-y-3 text-sm leading-6 text-white/58">
+          <p>Alveryn records one activity marker per day and successful PDF exports to understand whether the product is useful.</p>
+          <p>No page history, IP address, work notes, earnings or work-line content is included in product analytics.</p>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

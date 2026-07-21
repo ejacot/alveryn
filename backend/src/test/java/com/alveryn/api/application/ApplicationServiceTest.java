@@ -53,7 +53,7 @@ class ApplicationServiceTest {
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(
-                new AuthenticatedUser(userId, user.getEmail(), false, user.getStatus()),
+                new AuthenticatedUser(userId, user.getEmail(), false, user.getStatus(), user.getRole()),
                 null));
   }
 

@@ -1,6 +1,7 @@
 package com.alveryn.api.auth.security;
 
 import com.alveryn.api.auth.config.WebCorsProperties;
+import com.alveryn.api.admin.security.UserActivityFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,7 @@ public class SecurityConfig {
   private final ApiAuthenticationEntryPoint authenticationEntryPoint;
   private final ApiAccessDeniedHandler accessDeniedHandler;
   private final WebCorsProperties corsProperties;
+  private final UserActivityFilter userActivityFilter;
 
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,10 +44,12 @@ public class SecurityConfig {
                 auth.requestMatchers("/actuator/health", "/error").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/auth/oauth/google/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/api/me").authenticated()
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(userActivityFilter, JwtAuthenticationFilter.class)
         .securityContext(Customizer.withDefaults());
 
     return http.build();

@@ -12,6 +12,7 @@ export type CurrentUser = {
   account: AuthUser;
   profile: UserProfile | null;
   preferences: UserPreferences | null;
+  founder?: boolean;
 };
 
 export type AuthTokens = {

@@ -13,6 +13,7 @@ import type { WorkRecord, WorkRecordRequest } from "../types/work-record";
 import type { WorkSession, WorkSessionCheckoutPayload } from "../types/work-session";
 import type { OnboardingStatus } from "../types/onboarding";
 import type { Address, AddressPayload } from "../types/address";
+import type { FounderDashboard } from "../types/admin";
 import { http } from "./http";
 
 export type Credentials = {
@@ -190,6 +191,15 @@ export async function logout() {
 export async function getCurrentUser() {
   const response = await http.get<ApiResponse<CurrentUser>>("/api/me");
   return response.data.data;
+}
+
+export async function getFounderDashboard() {
+  const response = await http.get<ApiResponse<FounderDashboard>>("/api/admin/dashboard");
+  return response.data.data;
+}
+
+export async function recordPdfExport() {
+  await http.post("/api/analytics/pdf-export");
 }
 
 export type CalendarActivityRange = {

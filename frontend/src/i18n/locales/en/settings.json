@@ -1,5 +1,15 @@
 {
   "title": "Settings",
+  "founder": {
+    "title": "Founder", "menuLabel": "Founder dashboard", "refresh": "Refresh dashboard",
+    "error": "Founder data could not be loaded. Try again in a moment.",
+    "overview": "Overview", "registrations": "Registrations · last 30 days", "activation": "Activation funnel", "usage": "Product usage", "users": "Users",
+    "noUsers": "No customer accounts yet.", "verified": "Verified", "unverified": "Pending",
+    "joined": "Joined {{date}}", "lastActive": "Last active {{date}}", "userCounts": "{{employments}} jobs · {{types}} types · {{sessions}} days",
+    "metrics": { "totalUsers": "Total users", "activeToday": "Active today", "active7": "Active · 7 days", "active30": "Active · 30 days", "newToday": "New today", "new7": "New · 7 days" },
+    "funnel": { "registered": "Registered", "verified": "Email verified", "setup": "Tracking configured", "employment": "Employment created", "workType": "Work type created", "firstSession": "First workday added" },
+    "usageMetrics": { "timeUsers": "Time tracking users", "earningsUsers": "Earnings tracking users", "workSessions": "Workdays", "projects": "Projects", "checkIns": "Check-ins", "pdfExports": "PDF exports" }
+  },
   "pdfExport": {
     "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment included",
     "scopeHint": "The report follows the employment selected in Settings. Select All to combine every employment.",

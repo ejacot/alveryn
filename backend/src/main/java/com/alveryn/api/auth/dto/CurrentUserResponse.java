@@ -7,4 +7,7 @@ import com.alveryn.api.user.dto.UserProfileResponse;
 
 @Schema(description = "Authenticated current user response")
 public record CurrentUserResponse(
-    UserAccountDto account, UserProfileResponse profile, UserPreferencesResponse preferences) {}
+    UserAccountDto account,
+    UserProfileResponse profile,
+    UserPreferencesResponse preferences,
+    boolean founder) {}

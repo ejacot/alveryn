@@ -44,7 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               user -> {
                 var principal =
                     new AuthenticatedUser(
-                        user.getId(), user.getEmail(), user.isEmailVerified(), user.getStatus());
+                        user.getId(), user.getEmail(), user.isEmailVerified(), user.getStatus(),
+                        user.getRole());
                 var authentication =
                     new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getApiError } from "../api/api-errors";
-import { listAbsencesInRange, listEmployments, listWorkRecordsInRange } from "../api/endpoints";
+import { listAbsencesInRange, listEmployments, listWorkRecordsInRange, recordPdfExport } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
 import { Card } from "../components/ui/card";
@@ -113,6 +113,7 @@ export function PdfExportPage() {
           mixedCurrencies: t("settings:pdfExport.pdf.mixedCurrencies")
         }
       });
+      void recordPdfExport().catch(() => undefined);
     } catch (cause) {
       setError(cause instanceof Error && cause.message
         ? t("settings:pdfExport.errors.generation", { reason: cause.message })

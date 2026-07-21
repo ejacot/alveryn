@@ -5,6 +5,8 @@ springdoc:
     enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
 
 alveryn:
+  founder:
+    email: ${FOUNDER_EMAIL:eusebiujacot@gmail.com}
   local-dev:
     seed-account: ${ALVERYN_LOCAL_DEV_SEED_ACCOUNT:true}
     reset-account: ${ALVERYN_LOCAL_DEV_RESET_ACCOUNT:false}

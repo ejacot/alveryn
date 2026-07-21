@@ -31,6 +31,7 @@ type StatisticsComparisonKey = {
 
 export const queryKeys = {
   currentUser: () => ["current-user"] as const,
+  founderDashboard: () => ["founder-dashboard"] as const,
   profile: () => ["profile"] as const,
   preferences: () => ["preferences"] as const,
   addresses: {

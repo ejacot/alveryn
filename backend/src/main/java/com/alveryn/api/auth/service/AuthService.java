@@ -1,6 +1,7 @@
 package com.alveryn.api.auth.service;
 
 import com.alveryn.api.auth.config.AuthProperties;
+import com.alveryn.api.admin.config.FounderProperties;
 import com.alveryn.api.auth.dto.*;
 import com.alveryn.api.auth.email.AuthenticationEmailService;
 import com.alveryn.api.auth.exception.AuthenticationFailureException;
@@ -45,6 +46,7 @@ public class AuthService {
   private final PasswordResetService passwordResetService;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
+  private final FounderProperties founderProperties;
 
   @Transactional
   public AuthUserResponse register(RegisterRequest request) {
@@ -55,6 +57,7 @@ public class AuthService {
     OffsetDateTime now = OffsetDateTime.now(clock);
     String verificationCode = tokenGenerator.generateVerificationCode();
     UserAccount user = new UserAccount(email, passwordEncoder.encode(request.password()));
+    if (founderProperties.matches(email)) user.promoteToAdmin();
     user.assignSecurityCode(
         passwordEncoder.encode(verificationCode), now.plus(properties.emailVerificationCodeLifetime()));
     UserAccount saved = users.save(user);

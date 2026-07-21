@@ -25,6 +25,8 @@ springdoc:
     enabled: false
 
 alveryn:
+  founder:
+    email: ""
   cors:
     allowed-origins:
       - http://localhost:5173

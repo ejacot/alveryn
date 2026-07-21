@@ -34,6 +34,10 @@ public class UserAccount extends BaseEntity {
   @Column(nullable = false, length = 30)
   private UserStatus status = UserStatus.ACTIVE;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private UserRole role = UserRole.USER;
+
   @Column(name = "security_code_hash", length = 255)
   private String securityCodeHash;
 
@@ -101,6 +105,14 @@ public class UserAccount extends BaseEntity {
 
   public boolean isDeleted() {
     return status == UserStatus.DELETED;
+  }
+
+  public boolean isAdmin() {
+    return role == UserRole.ADMIN;
+  }
+
+  public void promoteToAdmin() {
+    role = UserRole.ADMIN;
   }
 
   public void registerFailedLogin() {

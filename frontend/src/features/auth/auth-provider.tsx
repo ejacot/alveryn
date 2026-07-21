@@ -74,7 +74,7 @@ export function AuthProvider({ children }: Props) {
   async function loginWithPassword(email: string, password: string) {
     const result = await login({ email, password });
     storeSession(result.accessToken);
-    await refreshCurrentUser();
+    return refreshCurrentUser();
   }
 
   async function registerWithPassword(email: string, password: string) {

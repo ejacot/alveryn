@@ -13,11 +13,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Profile("local")
+@Order(0)
 public class LocalDevelopmentAccountSeeder implements ApplicationRunner {
   private static final String EMAIL = "eusebiujacot@gmail.com";
   private static final String PASSWORD_HASH =

@@ -1,5 +1,15 @@
 {
   "title": "Setari",
+  "founder": {
+    "title": "Founder", "menuLabel": "Panou Founder", "refresh": "Actualizează panoul",
+    "error": "Datele Founder nu au putut fi încărcate. Încearcă din nou.",
+    "overview": "Privire generală", "registrations": "Înregistrări · ultimele 30 de zile", "activation": "Parcursul activării", "usage": "Utilizarea produsului", "users": "Utilizatori",
+    "noUsers": "Încă nu există conturi de utilizatori.", "verified": "Verificat", "unverified": "În așteptare",
+    "joined": "Înregistrat {{date}}", "lastActive": "Ultima activitate {{date}}", "userCounts": "{{employments}} joburi · {{types}} tipuri · {{sessions}} zile",
+    "metrics": { "totalUsers": "Total utilizatori", "activeToday": "Activi astăzi", "active7": "Activi · 7 zile", "active30": "Activi · 30 zile", "newToday": "Noi astăzi", "new7": "Noi · 7 zile" },
+    "funnel": { "registered": "Înregistrați", "verified": "Email verificat", "setup": "Tracking configurat", "employment": "Employment creat", "workType": "Work type creat", "firstSession": "Prima zi adăugată" },
+    "usageMetrics": { "timeUsers": "Utilizatori time tracking", "earningsUsers": "Utilizatori earnings tracking", "workSessions": "Zile lucrate", "projects": "Proiecte", "checkIns": "Check-in-uri", "pdfExports": "Exporturi PDF" }
+  },
   "pdfExport": {
     "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment inclus",
     "scopeHint": "Raportul folosește employmentul selectat în Setări. Selectează Toate pentru a combina toate employmenturile.",
