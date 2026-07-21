@@ -11,6 +11,7 @@ import com.alveryn.api.user.entity.UserPreferences;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +33,15 @@ class AdminIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    preferences.deleteAll();
+    users.deleteAll();
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+  }
+
+  @AfterEach
+  void tearDown() {
+    preferences.deleteAll();
+    users.deleteAll();
   }
 
   @Test
