@@ -14,6 +14,12 @@ import type { WorkSession, WorkSessionCheckoutPayload } from "../types/work-sess
 import type { OnboardingStatus } from "../types/onboarding";
 import type { Address, AddressPayload } from "../types/address";
 import type { FounderDashboard } from "../types/admin";
+import type {
+  ScheduledShift,
+  ShiftOverridePayload,
+  WeeklySchedule,
+  WeeklySchedulePayload
+} from "../types/schedule";
 import { http } from "./http";
 
 export type Credentials = {
@@ -275,6 +281,41 @@ export async function updateEmployment(id: string, payload: EmploymentPayload) {
 
 export async function deleteEmployment(id: string) {
   await http.delete(`/api/employments/${id}`);
+}
+
+export async function getWeeklySchedule(employmentId: string) {
+  const response = await http.get<ApiResponse<WeeklySchedule | null>>(
+    `/api/employments/${employmentId}/schedule`
+  );
+  return response.data.data;
+}
+
+export async function saveWeeklySchedule(employmentId: string, payload: WeeklySchedulePayload) {
+  const response = await http.put<ApiResponse<WeeklySchedule>>(
+    `/api/employments/${employmentId}/schedule`,
+    payload
+  );
+  return response.data.data;
+}
+
+export async function getScheduledShifts(employmentId: string, from: string, to: string) {
+  const response = await http.get<ApiResponse<ScheduledShift[]>>(
+    `/api/employments/${employmentId}/schedule/shifts`,
+    { params: { from, to } }
+  );
+  return response.data.data;
+}
+
+export async function overrideScheduledShift(
+  employmentId: string,
+  assignmentId: string,
+  payload: ShiftOverridePayload
+) {
+  const response = await http.put<ApiResponse<ScheduledShift>>(
+    `/api/employments/${employmentId}/schedule/shifts/${assignmentId}`,
+    payload
+  );
+  return response.data.data;
 }
 
 export async function getPreferences() {

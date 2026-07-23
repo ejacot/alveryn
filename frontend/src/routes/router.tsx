@@ -65,6 +65,11 @@ const SettingsEmploymentDetailPage = lazy(() =>
     default: module.SettingsEmploymentDetailPage
   }))
 );
+const SettingsSchedulePage = lazy(() =>
+  import("../pages/settings-schedule-page").then((module) => ({
+    default: module.SettingsSchedulePage
+  }))
+);
 const HourlyRatesPage = lazy(() =>
   import("../pages/hourly-rates-page").then((module) => ({
     default: module.HourlyRatesPage
@@ -198,6 +203,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
             { path: "/settings/employment/:employmentId", element: withSuspense(<SettingsEmploymentDetailPage />) },
+            { path: "/settings/employment/:employmentId/schedule", element: withSuspense(<SettingsSchedulePage />) },
             { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
             { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },
             { path: "/settings/hourly-rates/:rateId", element: withSuspense(<HourlyRateEditorPage />) },

@@ -268,6 +268,12 @@ export function SettingsEmploymentDetailPage() {
 
       <SettingsGroup title={t("settings:employment.settingsTitle")} description={t("settings:employment.sectionHelp.rules")}>
         <SettingsRow
+          to={`/settings/employment/${employment.id}/schedule`}
+          label={t("settings:schedule.title")}
+          description={t("settings:schedule.description")}
+        />
+        <div className="mx-5 h-px bg-white/[0.06]" />
+        <SettingsRow
           to={`/settings/hourly-rates?${suffix}`}
           label={t("settings:employment.hourlyRates")}
           description={t("settings:employment.hourlyRatesDescription")}

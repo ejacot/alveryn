@@ -3,6 +3,7 @@ package com.alveryn.api.employment.entity;
 import com.alveryn.api.common.persistence.BaseEntity;
 import com.alveryn.api.user.entity.EmploymentType;
 import com.alveryn.api.user.entity.UserAccount;
+import com.alveryn.api.organization.entity.Organization;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "employments")
 public class Employment extends BaseEntity {
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "organization_id")
+  private Organization organization;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
@@ -56,6 +61,16 @@ public class Employment extends BaseEntity {
   @Column(nullable = false) private boolean active = true;
   @Column(name = "display_order", nullable = false) private int displayOrder;
 
+  public Employment(Organization organization, UserAccount user, String name) {
+    this.organization = Objects.requireNonNull(organization, "organization is required");
+    this.user = Objects.requireNonNull(user, "user is required");
+    rename(name);
+  }
+
+  /**
+   * Compatibility constructor for legacy imports and fixtures. Application services must use the
+   * workspace-aware constructor.
+   */
   public Employment(UserAccount user, String name) {
     this.user = Objects.requireNonNull(user, "user is required");
     rename(name);
