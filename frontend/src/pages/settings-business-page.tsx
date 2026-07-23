@@ -47,6 +47,8 @@ export function SettingsBusinessPage() {
       await client.invalidateQueries({ queryKey: queryKeys.organizations.invitations(activeId) });
     }
   });
+  const pendingInvitations = (invitations.data ?? [])
+    .filter((item) => !item.acceptedAt && !item.revokedAt);
 
   return (
     <div className="mx-auto w-full max-w-[620px] space-y-6 pb-10 pt-8">
@@ -87,6 +89,18 @@ export function SettingsBusinessPage() {
                   <span className="text-xs font-semibold text-white/60">{member.role}</span>
                 </div>
               ))}
+              {canAdmin ? pendingInvitations.map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-white">{invitation.email}</span>
+                    <span className="text-xs text-amber-300/70">Invitation pending</span>
+                  </span>
+                  <span className="text-xs font-semibold text-white/60">{invitation.role}</span>
+                </div>
+              )) : null}
+              {!(members.data ?? []).length && (!canAdmin || !pendingInvitations.length) ? (
+                <p className="px-5 py-4 text-sm text-white/42">No team members yet.</p>
+              ) : null}
             </Card>
           </section>
           {canAdmin ? (
@@ -101,8 +115,6 @@ export function SettingsBusinessPage() {
               </label>
               {invite.error ? <p className="text-sm text-red-300">{getApiError(invite.error).message}</p> : null}
               <Button className="w-full" disabled={!email.trim() || invite.isPending} onClick={() => invite.mutate()}>Send invitation</Button>
-              {(invitations.data ?? []).filter((item) => !item.acceptedAt && !item.revokedAt).map((item) =>
-                <p key={item.id} className="text-xs text-white/42">Pending: {item.email} · {item.role}</p>)}
             </Card>
           ) : null}
         </>
