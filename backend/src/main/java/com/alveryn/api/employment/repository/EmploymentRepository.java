@@ -10,4 +10,5 @@ public interface EmploymentRepository extends JpaRepository<Employment, UUID> {
   Optional<Employment> findFirstByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(UUID userId);
   boolean existsByUserIdAndActiveTrue(UUID userId);
   boolean existsByUserIdAndActiveTrueAndTrackingFocus(UUID userId, com.alveryn.api.employment.entity.TrackingFocus trackingFocus);
+  boolean existsByUserIdAndActiveTrueAndCompensationType(UUID userId, com.alveryn.api.employment.entity.CompensationType compensationType);
 }

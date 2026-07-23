@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public record EmploymentResponse(UUID id, String name, EmploymentType employmentType,
     CompensationType compensationType, TrackingFocus trackingFocus, boolean hourBalanceEnabled,
+    boolean timerEnabled,
     LocalDate termsValidFrom, LocalDate startDate, LocalDate endDate,
     BigDecimal fixedSalaryAmount, String currency, Integer targetMinutes,
     TargetPeriod targetPeriod, Integer hourBalanceValidityMonths,

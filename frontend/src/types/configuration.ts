@@ -16,6 +16,7 @@ export type Employment = {
   compensationType: CompensationType;
   trackingFocus: TrackingFocus;
   hourBalanceEnabled: boolean;
+  timerEnabled?: boolean;
   termsValidFrom: string;
   startDate: string | null;
   endDate: string | null;

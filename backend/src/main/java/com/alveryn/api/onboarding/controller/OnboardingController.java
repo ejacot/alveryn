@@ -3,7 +3,11 @@ package com.alveryn.api.onboarding.controller;
 import com.alveryn.api.common.response.ApiErrorResponse;
 import com.alveryn.api.common.response.ApiResponse;
 import com.alveryn.api.onboarding.dto.OnboardingStatusResponse;
+import com.alveryn.api.onboarding.dto.InitialSetupRequest;
+import com.alveryn.api.onboarding.dto.InitialSetupResponse;
+import com.alveryn.api.onboarding.service.InitialSetupService;
 import com.alveryn.api.onboarding.service.OnboardingService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Onboarding", description = "Authenticated onboarding status endpoints")
 public class OnboardingController {
   private final OnboardingService onboardingService;
+  private final InitialSetupService initialSetupService;
 
   @GetMapping("/status")
   @Operation(
@@ -63,6 +68,15 @@ public class OnboardingController {
   })
   public ApiResponse<OnboardingStatusResponse> complete() {
     return ApiResponse.of(onboardingService.complete());
+  }
+
+  @PostMapping("/initial-setup")
+  @Operation(
+      summary = "Complete the initial account setup atomically",
+      description = "Creates the profile, preferences, first employment, rate when required, and first work type in one transaction.",
+      security = @SecurityRequirement(name = "bearerAuth"))
+  public ApiResponse<InitialSetupResponse> initialSetup(@Valid @org.springframework.web.bind.annotation.RequestBody InitialSetupRequest request) {
+    return ApiResponse.of(initialSetupService.complete(request));
   }
 
   @Schema(name = "OnboardingStatusApiResponse", description = "Wrapped onboarding status response")

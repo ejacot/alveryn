@@ -7,6 +7,7 @@ import java.util.List;
 public record OnboardingStatusResponse(
     boolean profileConfigured,
     boolean preferencesConfigured,
+    boolean employmentConfigured,
     boolean hourlyRateConfigured,
     boolean workTypeConfigured,
     boolean onboardingCompleted,

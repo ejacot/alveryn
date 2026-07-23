@@ -14,6 +14,7 @@ public record EmploymentRequest(
     CompensationType compensationType,
     TrackingFocus trackingFocus,
     Boolean hourBalanceEnabled,
+    Boolean timerEnabled,
     LocalDate termsValidFrom,
     LocalDate startDate,
     LocalDate endDate,

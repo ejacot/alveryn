@@ -10,7 +10,7 @@ import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.user.repository.UserProfileRepository;
 import com.alveryn.api.user.service.UserPreferencesService;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
-import com.alveryn.api.employment.entity.TrackingFocus;
+import com.alveryn.api.employment.entity.CompensationType;
 import com.alveryn.api.employment.repository.EmploymentRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,9 @@ public class OnboardingService {
     boolean profileConfigured =
         profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false);
     boolean preferencesConfigured = preferences.findByUserId(userId).isPresent();
-    boolean hourlyRateRequired = employments.existsByUserIdAndActiveTrueAndTrackingFocus(userId, TrackingFocus.EARNINGS);
+    boolean employmentConfigured = employments.existsByUserIdAndActiveTrue(userId);
+    boolean hourlyRateRequired =
+        employments.existsByUserIdAndActiveTrueAndCompensationType(userId, CompensationType.HOURLY);
     boolean hourlyRateConfigured = !hourlyRateRequired || hourlyRates.existsForActiveEarningsEmployment(userId);
     boolean workTypeConfigured = workTypes.existsByUserIdAndActiveTrue(userId);
     boolean onboardingCompleted =
@@ -49,13 +51,20 @@ public class OnboardingService {
     if (!preferencesConfigured) {
       missingSteps.add("preferences");
     }
+    if (!employmentConfigured) {
+      missingSteps.add("employment");
+    }
     if (!hourlyRateConfigured) {
       missingSteps.add("hourlyRate");
+    }
+    if (!workTypeConfigured) {
+      missingSteps.add("workType");
     }
 
     return new OnboardingStatusResponse(
         profileConfigured,
         preferencesConfigured,
+        employmentConfigured,
         hourlyRateConfigured,
         workTypeConfigured,
         onboardingCompleted,
@@ -67,7 +76,9 @@ public class OnboardingService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     if (!profiles.findByUserId(userId).map(this::hasRequiredProfileFields).orElse(false)
         || !preferences.findByUserId(userId).isPresent()
-        || (employments.existsByUserIdAndActiveTrueAndTrackingFocus(userId, TrackingFocus.EARNINGS)
+        || !employments.existsByUserIdAndActiveTrue(userId)
+        || !workTypes.existsByUserIdAndActiveTrue(userId)
+        || (employments.existsByUserIdAndActiveTrueAndCompensationType(userId, CompensationType.HOURLY)
             && !hourlyRates.existsForActiveEarningsEmployment(userId))) {
       OnboardingStatusResponse status = getStatus();
       throw new ConflictException(

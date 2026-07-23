@@ -70,6 +70,35 @@ export type UpdatePreferencesPayload = {
   paidVacation: boolean;
 };
 
+export type InitialSetupPayload = {
+  firstName: string;
+  lastName: string;
+  language: string;
+  timezone: string;
+  currency: string;
+  firstDayOfWeek: UserPreferences["firstDayOfWeek"];
+  dateFormat: string;
+  timeFormat: UserPreferences["timeFormat"];
+  theme: UserPreferences["theme"];
+  defaultBreakMinutes: number;
+  preferredDailyMinutes: number;
+  paidSickLeave: boolean;
+  paidVacation: boolean;
+  employmentName: string;
+  startDate: string;
+  compensationType: Employment["compensationType"];
+  hourlyRate: number | null;
+  fixedSalaryAmount: number | null;
+  timerEnabled: boolean;
+  hourBalanceEnabled: boolean;
+  targetMinutes: number | null;
+  hourBalanceValidityMonths: number | null;
+  workTypeName: string;
+  unitLabel: string | null;
+  unitSymbol: string | null;
+  ratePerUnit: number | null;
+};
+
 export type CreateHourlyRatePayload = {
   employmentId?: string;
   hourlyRate: number;
@@ -83,9 +112,10 @@ export type UpdateHourlyRatePayload = CreateHourlyRatePayload;
 export type EmploymentPayload = {
   name: string;
   employmentType: null;
-  compensationType: null;
+  compensationType: Employment["compensationType"] | null;
   trackingFocus: Employment["trackingFocus"];
   hourBalanceEnabled: boolean;
+  timerEnabled?: boolean;
   termsValidFrom: string;
   startDate: string | null;
   endDate: string | null;
@@ -290,6 +320,15 @@ export async function completeOnboarding() {
   const response = await http.post<ApiResponse<OnboardingStatus>>(
     "/api/onboarding/complete"
   );
+  return response.data.data;
+}
+
+export async function completeInitialSetup(payload: InitialSetupPayload) {
+  const response = await http.post<ApiResponse<{
+    employmentId: string;
+    workTypeId: string;
+    status: OnboardingStatus;
+  }>>("/api/onboarding/initial-setup", payload);
   return response.data.data;
 }
 

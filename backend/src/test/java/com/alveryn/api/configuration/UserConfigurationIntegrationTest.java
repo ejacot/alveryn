@@ -79,6 +79,68 @@ class UserConfigurationIntegrationTest {
   }
 
   @Test
+  void initialSetupCreatesAReadyHourlyAccountAtomically() throws Exception {
+    UserAccount user = createVerifiedUser("initial-setup@example.com");
+
+    mockMvc
+        .perform(
+            post("/api/onboarding/initial-setup")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "firstName":"Mia",
+                      "lastName":"Taylor",
+                      "language":"en",
+                      "timezone":"America/New_York",
+                      "currency":"USD",
+                      "firstDayOfWeek":"SUNDAY",
+                      "dateFormat":"MM/dd/yyyy",
+                      "timeFormat":"H12",
+                      "theme":"SYSTEM",
+                      "defaultBreakMinutes":15,
+                      "preferredDailyMinutes":480,
+                      "paidSickLeave":false,
+                      "paidVacation":false,
+                      "employmentName":"Mia's Cleaning",
+                      "startDate":"2026-07-01",
+                      "compensationType":"HOURLY",
+                      "hourlyRate":35,
+                      "timerEnabled":true,
+                      "hourBalanceEnabled":false,
+                      "workTypeName":"Standard cleaning"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.employmentId").isNotEmpty())
+        .andExpect(jsonPath("$.data.workTypeId").isNotEmpty())
+        .andExpect(jsonPath("$.data.status.profileConfigured").value(true))
+        .andExpect(jsonPath("$.data.status.preferencesConfigured").value(true))
+        .andExpect(jsonPath("$.data.status.employmentConfigured").value(true))
+        .andExpect(jsonPath("$.data.status.hourlyRateConfigured").value(true))
+        .andExpect(jsonPath("$.data.status.workTypeConfigured").value(true))
+        .andExpect(jsonPath("$.data.status.onboardingCompleted").value(true));
+
+    assertThat(profiles.findByUserId(user.getId()).orElseThrow().getFirstName()).isEqualTo("Mia");
+    assertThat(employments.findAllByUserIdOrderByDisplayOrderAscNameAsc(user.getId()))
+        .singleElement()
+        .satisfies(employment -> {
+          assertThat(employment.getCompensationType()).isEqualTo(CompensationType.HOURLY);
+          assertThat(employment.isTimerEnabled()).isTrue();
+        });
+    assertThat(hourlyRates.findAllByUserIdOrderByEmploymentDisplayOrderAscValidFromDesc(user.getId()))
+        .singleElement()
+        .satisfies(rate -> assertThat(rate.getHourlyRate()).isEqualByComparingTo("35"));
+    assertThat(workTypes.findAllByUserIdOrderByDisplayOrderAscNameAsc(user.getId()))
+        .singleElement()
+        .satisfies(workType -> {
+          assertThat(workType.getName()).isEqualTo("Standard cleaning");
+          assertThat(workType.getCalculationMethod()).isEqualTo(CalculationMethod.TIME_BASED);
+        });
+  }
+
+  @Test
   void profileGetAutoCreatesAndProfileUpdateNormalizesValues() throws Exception {
     UserAccount user = createVerifiedUser("profile@example.com");
 
@@ -890,9 +952,10 @@ class UserConfigurationIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.profileConfigured").value(false))
         .andExpect(jsonPath("$.data.preferencesConfigured").value(false))
+        .andExpect(jsonPath("$.data.employmentConfigured").value(false))
         .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
         .andExpect(jsonPath("$.data.hourlyRateConfigured").value(true))
-        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(4));
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
@@ -924,7 +987,7 @@ class UserConfigurationIntegrationTest {
         .perform(get("/api/onboarding/status").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.hourlyRateConfigured").value(false))
-        .andExpect(jsonPath("$.data.missingSteps.length()").value(2));
+        .andExpect(jsonPath("$.data.missingSteps.length()").value(3));
 
     createHourlyRate(
         user,
@@ -956,12 +1019,18 @@ class UserConfigurationIntegrationTest {
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isConflict());
+
+    createTimeWorkType(user, "Regular work");
+
+    mockMvc
+        .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.onboardingCompleted").value(true))
-        .andExpect(jsonPath("$.data.workTypeConfigured").value(false))
+        .andExpect(jsonPath("$.data.workTypeConfigured").value(true))
         .andExpect(jsonPath("$.data.missingSteps.length()").value(0));
 
-    assertThat(workTypes.findAll()).isEmpty();
+    assertThat(workTypes.findAll()).hasSize(1);
 
     mockMvc
         .perform(post("/api/onboarding/complete").header(HttpHeaders.AUTHORIZATION, bearerToken(user)))

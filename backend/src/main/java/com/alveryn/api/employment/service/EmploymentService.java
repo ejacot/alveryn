@@ -75,14 +75,14 @@ public class EmploymentService {
     }
     TrackingFocus trackingFocus = entity.getTrackingFocus();
     boolean hourBalanceEnabled = entity.isHourBalanceEnabled();
+    boolean timerEnabled = entity.isTimerEnabled();
     entity.configure(entity.getEmploymentType(), entity.getCompensationType(), entity.getStartDate(), entity.getEndDate(), entity.getFixedSalaryAmount(), entity.getCurrency(), entity.getTargetMinutes(), entity.getTargetPeriod(), entity.getHourBalanceValidityMonths(), false, entity.getDisplayOrder());
     entity.configureTracking(trackingFocus, hourBalanceEnabled);
+    entity.configureTimer(timerEnabled);
   }
   @Transactional(readOnly = true) public EmploymentHourBalanceResponse hourBalance(UUID id, YearMonth month) {
     Employment employment = requireOwned(id);
-    EmploymentTerm selectedTerm = effectiveTerm(id, month.atEndOfMonth());
-    if (employment.getTrackingFocus() != TrackingFocus.TIME || !employment.isHourBalanceEnabled()
-        || selectedTerm.getCompensationType() != CompensationType.FIXED_SALARY)
+    if (!employment.isHourBalanceEnabled())
       throw new IllegalArgumentException("Hour balance is not enabled for this employment");
     YearMonth first = employment.getStartDate() == null ? month : YearMonth.from(employment.getStartDate());
     if (month.isBefore(first)) throw new IllegalArgumentException("month is before employment start");
@@ -111,6 +111,8 @@ public class EmploymentService {
         balanceEnabled ? r.hourBalanceValidityMonths() : null,
         r.active() == null || r.active(), r.displayOrder() == null ? fallbackOrder : r.displayOrder());
     e.configureTracking(trackingFocus(r), balanceEnabled);
+    e.configureTimer(r.timerEnabled() == null ? (e.getId() == null
+        ? trackingFocus(r) == TrackingFocus.TIME : e.isTimerEnabled()) : r.timerEnabled());
   }
 
   private TrackingFocus trackingFocus(EmploymentRequest request) {
@@ -119,13 +121,13 @@ public class EmploymentService {
   }
 
   private boolean hourBalanceEnabled(EmploymentRequest request) {
-    if (trackingFocus(request) != TrackingFocus.TIME) return false;
-    return request.trackingFocus() == null
+    return request.hourBalanceEnabled() == null
         ? request.compensationType() == CompensationType.FIXED_SALARY
-        : Boolean.TRUE.equals(request.hourBalanceEnabled());
+        : request.hourBalanceEnabled();
   }
 
   private CompensationType compensationType(EmploymentRequest request) {
+    if (request.compensationType() != null) return request.compensationType();
     if (request.trackingFocus() == null) {
       return Objects.requireNonNull(request.compensationType(), "compensationType or trackingFocus is required");
     }
@@ -133,19 +135,21 @@ public class EmploymentService {
   }
 
   private java.math.BigDecimal fixedSalaryAmount(EmploymentRequest request) {
-    return request.trackingFocus() == null ? request.fixedSalaryAmount() : null;
+    return request.fixedSalaryAmount();
   }
 
   private String currency(EmploymentRequest request) {
-    return request.trackingFocus() == null ? request.currency() : null;
+    return request.currency();
   }
 
   private Integer targetMinutes(EmploymentRequest request) {
-    return hourBalanceEnabled(request) ? request.targetMinutes() : null;
+    return hourBalanceEnabled(request) || compensationType(request) == CompensationType.FIXED_SALARY
+        ? request.targetMinutes() : null;
   }
 
   private com.alveryn.api.employment.entity.TargetPeriod targetPeriod(EmploymentRequest request) {
-    return hourBalanceEnabled(request) ? request.targetPeriod() : null;
+    return hourBalanceEnabled(request) || compensationType(request) == CompensationType.FIXED_SALARY
+        ? request.targetPeriod() : null;
   }
   public Employment requireOwned(UUID id) { UUID userId = authenticatedUserAccessor.requireUserId(); return repository.findByIdAndUserId(id, userId).orElseThrow(() -> new NotFoundException("Employment", id)); }
   private boolean isDeletable(Employment e) {
@@ -162,7 +166,7 @@ public class EmploymentService {
     double total = 0;
     for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
       EmploymentTerm term = effectiveTerm(employmentId, date);
-      if (term.getCompensationType() != com.alveryn.api.employment.entity.CompensationType.FIXED_SALARY) continue;
+      if (term.getTargetMinutes() == null || term.getTargetPeriod() == null) continue;
       total += term.getTargetPeriod() == com.alveryn.api.employment.entity.TargetPeriod.WEEKLY
           ? term.getTargetMinutes() / 7d
           : term.getTargetMinutes() / (double) date.lengthOfMonth();
@@ -172,7 +176,7 @@ public class EmploymentService {
   private EmploymentResponse response(Employment e) {
     EmploymentTerm current = terms.findFirstByEmploymentIdOrderByValidFromDesc(e.getId()).orElse(null);
     return new EmploymentResponse(e.getId(), e.getName(), e.getEmploymentType(), e.getCompensationType(),
-        e.getTrackingFocus(), e.isHourBalanceEnabled(),
+        e.getTrackingFocus(), e.isHourBalanceEnabled(), e.isTimerEnabled(),
         current == null ? e.getStartDate() : current.getValidFrom(), e.getStartDate(), e.getEndDate(),
         e.getFixedSalaryAmount(), e.getCurrency(), e.getTargetMinutes(), e.getTargetPeriod(), e.getHourBalanceValidityMonths(),
         e.isActive(), e.getDisplayOrder(), isDeletable(e));

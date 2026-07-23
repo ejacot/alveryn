@@ -45,7 +45,7 @@ export function TimeTrackingCard() {
   const timeEmployments = useMemo(
     () => (employmentsQuery.data ?? []).filter((employment) =>
       employment.active &&
-      employment.trackingFocus === "TIME" &&
+      (employment.timerEnabled ?? employment.trackingFocus === "TIME") &&
       (!selectedEmploymentId || employment.id === selectedEmploymentId)
     ),
     [employmentsQuery.data, selectedEmploymentId]

@@ -39,6 +39,9 @@ public class Employment extends BaseEntity {
   @Column(name = "hour_balance_enabled", nullable = false)
   private boolean hourBalanceEnabled;
 
+  @Column(name = "timer_enabled", nullable = false)
+  private boolean timerEnabled;
+
   @Column(name = "start_date") private LocalDate startDate;
   @Column(name = "end_date") private LocalDate endDate;
   @Column(name = "fixed_salary_amount", precision = 14, scale = 4) private BigDecimal fixedSalaryAmount;
@@ -97,7 +100,11 @@ public class Employment extends BaseEntity {
 
   public void configureTracking(TrackingFocus focus, boolean balanceEnabled) {
     trackingFocus = Objects.requireNonNull(focus, "trackingFocus is required");
-    hourBalanceEnabled = focus == TrackingFocus.TIME && balanceEnabled;
+    hourBalanceEnabled = balanceEnabled;
+  }
+
+  public void configureTimer(boolean enabled) {
+    timerEnabled = enabled;
   }
 
   private static String normalizeCurrency(String value) {

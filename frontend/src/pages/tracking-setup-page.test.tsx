@@ -10,7 +10,8 @@ const apiMocks = vi.hoisted(() => ({
   listEmployments: vi.fn(),
   updateEmployment: vi.fn(),
   createEmployment: vi.fn(),
-  completeTrackingSetup: vi.fn()
+  completeTrackingSetup: vi.fn(),
+  completeInitialSetup: vi.fn()
 }));
 
 vi.mock("../api/endpoints", async (importOriginal) => ({
@@ -40,9 +41,15 @@ const employment: Employment = {
 
 describe("TrackingSetupPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     apiMocks.listEmployments.mockResolvedValue([employment]);
     apiMocks.updateEmployment.mockResolvedValue({ ...employment, trackingFocus: "TIME" });
     apiMocks.completeTrackingSetup.mockResolvedValue({ trackingSetupVersionCompleted: 1 });
+    apiMocks.completeInitialSetup.mockResolvedValue({
+      employmentId: "employment-new",
+      workTypeId: "work-type-new",
+      status: { onboardingCompleted: true }
+    });
   });
 
   it("confirms tracking per employment before opening the application", async () => {
@@ -80,6 +87,51 @@ describe("TrackingSetupPage", () => {
       );
     });
     expect(apiMocks.completeTrackingSetup).toHaveBeenCalledOnce();
+    expect(await screen.findByText("Application")).toBeInTheDocument();
+  });
+
+  it("creates a complete hourly account through one atomic setup request", async () => {
+    const user = userEvent.setup();
+    apiMocks.listEmployments.mockResolvedValue([]);
+    const refreshCurrentUser = vi.fn().mockResolvedValue({
+      ...authValue.user,
+      preferences: { ...authValue.user!.preferences, onboardingCompleted: true }
+    });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AuthContext.Provider value={{ ...authValue, refreshCurrentUser }}>
+          <MemoryRouter initialEntries={["/tracking-setup"]}>
+            <Routes>
+              <Route path="/tracking-setup" element={<TrackingSetupPage />} />
+              <Route path="/app" element={<div>Application</div>} />
+            </Routes>
+          </MemoryRouter>
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await user.type(await screen.findByLabelText(/first name/i), "Mia");
+    await user.type(screen.getByLabelText(/last name/i), "Taylor");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/business or work name/i), "Mia's Cleaning");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/hourly rate/i), "35");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.type(screen.getByLabelText(/service or work type/i), "Standard cleaning");
+    await user.click(screen.getByRole("button", { name: /finish setup/i }));
+
+    await waitFor(() => expect(apiMocks.completeInitialSetup).toHaveBeenCalledOnce());
+    expect(apiMocks.completeInitialSetup).toHaveBeenCalledWith(expect.objectContaining({
+      firstName: "Mia",
+      employmentName: "Mia's Cleaning",
+      compensationType: "HOURLY",
+      hourlyRate: 35,
+      workTypeName: "Standard cleaning",
+      timerEnabled: true
+    }));
     expect(await screen.findByText("Application")).toBeInTheDocument();
   });
 });
