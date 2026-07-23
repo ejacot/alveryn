@@ -17,6 +17,8 @@ import com.alveryn.api.auth.repository.UserOAuthIdentityRepository;
 import com.alveryn.api.auth.service.GoogleOAuthClient;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
+import com.alveryn.api.organization.entity.*;
+import com.alveryn.api.organization.repository.*;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +52,8 @@ class AuthIntegrationTest {
   private MockMvc mockMvc;
   @Autowired UserAccountRepository users;
   @Autowired UserPreferencesRepository preferences;
+  @Autowired OrganizationRepository organizations;
+  @Autowired OrganizationMembershipRepository memberships;
   @Autowired RefreshTokenRepository refreshTokens;
   @Autowired UserOAuthIdentityRepository oauthIdentities;
   @Autowired PasswordResetTokenRepository passwordResetTokens;
@@ -94,6 +98,33 @@ class AuthIntegrationTest {
     assertThat(savedPreferences.getTimezone()).isEqualTo("UTC");
     assertThat(savedPreferences.getDefaultBreakMinutes()).isEqualTo(30);
     assertThat(savedPreferences.getPreferredDailyMinutes()).isEqualTo(480);
+    assertThat(savedPreferences.getAccountMode()).isEqualTo(com.alveryn.api.user.entity.AccountMode.PERSONAL);
+    assertThat(organizations.findByPersonalOwnerId(user.getId())).isPresent();
+  }
+
+  @Test
+  void businessRegistrationCreatesCompanyAndOwnerAtomically() throws Exception {
+    mockMvc.perform(post("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"email":"owner@northstar.test","password":"super-secret",
+                 "accountType":"BUSINESS","companyName":"Northstar Logistics",
+                 "timezone":"America/Chicago"}
+                """))
+        .andExpect(status().isCreated());
+
+    var user = users.findByEmailIgnoreCase("owner@northstar.test").orElseThrow();
+    var savedPreferences = preferences.findByUserId(user.getId()).orElseThrow();
+    assertThat(savedPreferences.getAccountMode())
+        .isEqualTo(com.alveryn.api.user.entity.AccountMode.BUSINESS);
+    assertThat(savedPreferences.getTimezone()).isEqualTo("America/Chicago");
+    var membership = memberships.findAllByUserIdAndStatusOrderByJoinedAtAsc(
+        user.getId(), MembershipStatus.ACTIVE).getFirst();
+    assertThat(membership.getRole()).isEqualTo(MembershipRole.OWNER);
+    var organization = organizations.findById(membership.getOrganization().getId()).orElseThrow();
+    assertThat(organization.getName()).isEqualTo("Northstar Logistics");
+    assertThat(organization.getOrganizationType()).isEqualTo(OrganizationType.BUSINESS);
+    assertThat(organizations.findByPersonalOwnerId(user.getId())).isEmpty();
   }
 
   @Test

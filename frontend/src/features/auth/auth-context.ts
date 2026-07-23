@@ -6,7 +6,8 @@ export type AuthContextValue = {
   isAuthenticated: boolean;
   isHydrating: boolean;
   loginWithPassword: (email: string, password: string) => Promise<CurrentUser>;
-  registerWithPassword: (email: string, password: string) => Promise<void>;
+  registerWithPassword: (email: string, password: string,
+    accountType?: "PERSONAL" | "BUSINESS", companyName?: string | null) => Promise<void>;
   completeEmailVerification: (tokens: AuthTokens) => Promise<CurrentUser>;
   completeOAuthLogin: () => Promise<CurrentUser>;
   logout: () => Promise<void>;

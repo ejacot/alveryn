@@ -28,6 +28,11 @@ export type Credentials = {
   email: string;
   password: string;
 };
+export type RegistrationPayload = Credentials & {
+  accountType: "PERSONAL" | "BUSINESS";
+  companyName?: string | null;
+  timezone: string;
+};
 
 export async function listOrganizations() {
   return (await http.get<ApiResponse<Organization[]>>("/api/organizations")).data.data;
@@ -237,7 +242,7 @@ export type UpdateWorkTypePayload = CreateWorkTypePayload & {
   active: boolean;
 };
 
-export async function register(payload: Credentials) {
+export async function register(payload: RegistrationPayload) {
   const response = await http.post<ApiResponse<AuthUser>>(
     "/api/auth/register",
     payload

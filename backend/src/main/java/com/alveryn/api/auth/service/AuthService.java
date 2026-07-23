@@ -16,9 +16,13 @@ import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.entity.UserPreferences;
 import com.alveryn.api.user.entity.UserStatus;
+import com.alveryn.api.user.entity.AccountMode;
 import com.alveryn.api.user.mapper.UserMapper;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
+import com.alveryn.api.organization.entity.*;
+import com.alveryn.api.organization.repository.*;
+import java.time.ZoneId;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Locale;
@@ -47,6 +51,8 @@ public class AuthService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
   private final FounderProperties founderProperties;
+  private final OrganizationRepository organizations;
+  private final OrganizationMembershipRepository memberships;
 
   @Transactional
   public AuthUserResponse register(RegisterRequest request) {
@@ -61,9 +67,34 @@ public class AuthService {
     user.assignSecurityCode(
         passwordEncoder.encode(verificationCode), now.plus(properties.emailVerificationCodeLifetime()));
     UserAccount saved = users.save(user);
-    preferences.save(new UserPreferences(saved));
+    UserPreferences userPreferences = new UserPreferences(saved);
+    AccountMode mode = request.accountType() == RegistrationAccountType.BUSINESS
+        ? AccountMode.BUSINESS : AccountMode.PERSONAL;
+    userPreferences.chooseAccountMode(mode);
+    String timezone = validTimezone(request.timezone());
+    userPreferences.changeTimezone(timezone);
+    preferences.save(userPreferences);
+    Organization organization;
+    if (mode == AccountMode.BUSINESS) {
+      if (request.companyName() == null || request.companyName().isBlank())
+        throw new ValidationException("Company name is required for a business account");
+      organization = organizations.save(new Organization(request.companyName(), timezone));
+    } else {
+      organization = organizations.save(new Organization(saved, saved.getEmail(), timezone));
+    }
+    memberships.save(new OrganizationMembership(organization, saved, MembershipRole.OWNER));
     emailService.sendVerificationCode(saved, verificationCode);
     return toAuthUserResponse(saved);
+  }
+
+  private String validTimezone(String value) {
+    String candidate = value == null || value.isBlank() ? "UTC" : value.trim();
+    try {
+      ZoneId.of(candidate);
+      return candidate;
+    } catch (RuntimeException error) {
+      throw new ValidationException("Timezone is invalid");
+    }
   }
 
   @Transactional

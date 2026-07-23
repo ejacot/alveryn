@@ -3,6 +3,7 @@ package com.alveryn.api.user.dto;
 import com.alveryn.api.user.entity.ThemePreference;
 import com.alveryn.api.user.entity.TimeFormat;
 import com.alveryn.api.user.entity.FirstDayOfWeek;
+import com.alveryn.api.user.entity.AccountMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 
@@ -22,4 +23,5 @@ public record UserPreferencesResponse(
     boolean paidVacation,
     boolean onboardingCompleted,
     int guideVersionCompleted,
-    int trackingSetupVersionCompleted) {}
+    int trackingSetupVersionCompleted,
+    AccountMode accountMode) {}

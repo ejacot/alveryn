@@ -67,6 +67,7 @@ export type UserPreferences = {
   onboardingCompleted: boolean;
   guideVersionCompleted?: number;
   trackingSetupVersionCompleted?: number;
+  accountMode?: "PERSONAL" | "BUSINESS";
 };
 
 export type HourlyRatePeriod = {

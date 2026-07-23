@@ -69,8 +69,16 @@ public class UserPreferences extends BaseEntity {
   @Column(name = "tracking_setup_version_completed", nullable = false)
   private int trackingSetupVersionCompleted;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "account_mode", nullable = false, length = 20)
+  private AccountMode accountMode = AccountMode.PERSONAL;
+
   public UserPreferences(UserAccount user) {
     this.user = Objects.requireNonNull(user, "user is required");
+  }
+
+  public void chooseAccountMode(AccountMode value) {
+    accountMode = Objects.requireNonNull(value, "accountMode is required");
   }
 
   public void changeLanguage(String value) {

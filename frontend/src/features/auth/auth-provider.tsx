@@ -77,8 +77,15 @@ export function AuthProvider({ children }: Props) {
     return refreshCurrentUser();
   }
 
-  async function registerWithPassword(email: string, password: string) {
-    await register({ email, password });
+  async function registerWithPassword(email: string, password: string,
+      accountType: "PERSONAL" | "BUSINESS" = "PERSONAL", companyName?: string | null) {
+    await register({
+      email,
+      password,
+      accountType,
+      companyName: accountType === "BUSINESS" ? companyName : null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+    });
   }
 
   async function completeEmailVerification(tokens: AuthTokens) {

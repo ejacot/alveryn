@@ -6,7 +6,18 @@ export const loginSchema = z.object({
   password: z.string().min(8, i18n.t("auth:validation.passwordMin"))
 });
 
-export const registerSchema = loginSchema;
+export const registerSchema = loginSchema.extend({
+  accountType: z.enum(["PERSONAL", "BUSINESS"]),
+  companyName: z.string().trim().max(160).optional()
+}).superRefine((value, context) => {
+  if (value.accountType === "BUSINESS" && !value.companyName?.trim()) {
+    context.addIssue({
+      code: "custom",
+      path: ["companyName"],
+      message: i18n.t("auth:validation.companyName")
+    });
+  }
+});
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email(i18n.t("auth:validation.email"))

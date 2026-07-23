@@ -43,9 +43,10 @@ export function VerifyEmailPage() {
   async function onSubmit(values: VerifyEmailValues) {
     try {
       const result = await verifyEmail(values);
-      await completeEmailVerification(result);
+      const currentUser = await completeEmailVerification(result);
       window.sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
-      navigate("/onboarding", { replace: true });
+      navigate(currentUser.preferences?.accountMode === "BUSINESS" ? "/business" : "/onboarding",
+        { replace: true });
     } catch (error) {
       const apiError = getApiError(error);
       if (apiError.fieldErrors.email) {

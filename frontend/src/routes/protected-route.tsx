@@ -18,11 +18,19 @@ export function ProtectedRoute() {
   }
 
   const onboardingCompleted = user?.preferences?.onboardingCompleted === true;
+  const businessAccount = user?.preferences?.accountMode === "BUSINESS";
   const isOnboardingRoute = location.pathname.startsWith("/onboarding");
   const trackingSetupCompleted =
     (user?.preferences?.trackingSetupVersionCompleted ?? 0) >=
     REQUIRED_TRACKING_SETUP_VERSION;
   const isTrackingSetupRoute = location.pathname.startsWith("/tracking-setup");
+
+  if (businessAccount) {
+    if (isOnboardingRoute || isTrackingSetupRoute) {
+      return <Navigate to="/business" replace />;
+    }
+    return <Outlet />;
+  }
 
   if (!trackingSetupCompleted && !isTrackingSetupRoute) {
     return <Navigate to="/tracking-setup" replace />;
