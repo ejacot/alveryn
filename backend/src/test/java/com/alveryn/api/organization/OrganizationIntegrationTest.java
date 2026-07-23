@@ -116,8 +116,17 @@ class OrganizationIntegrationTest {
             +"\",\"activityId\":\""+activityId+"\",\"date\":\"2026-07-27\","
             +"\"startTime\":\"08:00\",\"endTime\":\"17:00\",\"breakMinutes\":30}"))
         .andExpect(status().isCreated()).andExpect(jsonPath("$.data.plannedMinutes").value(510))
+        .andExpect(jsonPath("$.data.status").value("DRAFT"))
         .andReturn().getResponse().getContentAsString();
     String assignmentId=value(shiftBody,"assignmentId");
+    mvc.perform(get("/api/organizations/{id}/shifts",organization.getId())
+            .param("from","2026-07-27").param("to","2026-07-27")
+            .header(HttpHeaders.AUTHORIZATION,token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
+    mvc.perform(post("/api/organizations/{id}/shifts/publish", organization.getId())
+            .param("from","2026-07-27").param("to","2026-07-27")
+            .header(HttpHeaders.AUTHORIZATION,token(owner)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].status").value("PUBLISHED"));
     String requestBody=mvc.perform(post("/api/organizations/{id}/shift-requests/assignments/{assignmentId}",
             organization.getId(),assignmentId).header(HttpHeaders.AUTHORIZATION,token(employee))
         .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"DROP\",\"reason\":\"Cannot attend\"}"))

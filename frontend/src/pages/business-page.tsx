@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Plus, Users } from "lucide-react";
+import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Copy, Plus, Send, Users, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   cancelBusinessShift, createBusinessShift, createMemberEmployment,
   createOrganizationActivity, createShiftChangeRequest, decideShiftChangeRequest,
   listBusinessShifts, listMemberEmployments, listOrganizationActivities,
-  listOrganizationMembers, listOrganizations, listShiftChangeRequests
+  listOrganizationMembers, listOrganizations, listShiftChangeRequests,
+  publishBusinessWeek, updateBusinessShift
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
+import { ModalPanel } from "../components/ui/modal-panel";
 import { useWorkspaceScope } from "../features/organization/workspace-scope";
 import type { BusinessShift, Organization } from "../types/organization";
 
@@ -169,31 +172,67 @@ function Schedule({ organization, shifts, from, to, canManage, refresh }: {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [activityId, setActivityId] = useState("");
+  const [editing, setEditing] = useState<BusinessShift | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const selectedActivity = activityId || activities.data?.find((item) => item.active)?.id || "";
-  const employmentId = employments.data?.find((item) => item.active)?.id || "";
-  const create = useMutation({
-    mutationFn: () => createBusinessShift(organization.id, {
+  const employmentId = editing?.employmentId || employments.data?.find((item) => item.active)?.id || "";
+  const payload = () => ({
       membershipId: activeMember, employmentId, activityId: selectedActivity,
       date, startTime, endTime, breakMinutes: activities.data?.find((item) => item.id === selectedActivity)?.defaultBreakMinutes ?? 0
-    }), onSuccess: refresh
+  });
+  const save = useMutation({
+    mutationFn: () => editing
+      ? updateBusinessShift(organization.id, editing.assignmentId, payload())
+      : createBusinessShift(organization.id, payload()),
+    onSuccess: async () => { setEditorOpen(false); setEditing(null); await refresh(); }
   });
   const cancel = useMutation({ mutationFn: (id: string) => cancelBusinessShift(organization.id, id),
+    onSuccess: async () => { setEditorOpen(false); setEditing(null); await refresh(); } });
+  const publish = useMutation({ mutationFn: () => publishBusinessWeek(organization.id, from, to),
     onSuccess: refresh });
   const team = (members.data ?? []).filter((item) => item.status === "ACTIVE" && item.role !== "OWNER");
   const days = Array.from({ length: 7 }, (_, index) => addDays(from, index));
-  return <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+  const activeShifts = shifts.filter((shift) => shift.status !== "CANCELLED");
+  const draftCount = activeShifts.filter((shift) => shift.status === "DRAFT").length;
+  const openNew = (nextMemberId: string, nextDate: string) => {
+    setEditing(null); setMemberId(nextMemberId); setDate(nextDate);
+    setStartTime("09:00"); setEndTime("17:00"); setActivityId(""); setEditorOpen(true);
+  };
+  const openEdit = (shift: BusinessShift) => {
+    setEditing(shift); setMemberId(shift.membershipId); setDate(shift.startsAt.slice(0, 10));
+    setStartTime(shift.startsAt.slice(11, 16)); setEndTime(shift.endsAt.slice(11, 16));
+    setActivityId(shift.activityId); setEditorOpen(true);
+  };
+  const openCopy = () => {
+    if (!editing) return;
+    setEditing(null);
+  };
+  return <div className="space-y-4">
     <section className="min-w-0 space-y-3">
-      <div><h2 className="font-semibold text-white">Weekly team planner</h2>
-        <p className="text-xs text-white/42">Employees are rows. Select a day to assign a job.</p></div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h2 className="font-semibold text-white">Weekly team planner</h2>
+          <p className="text-xs text-white/42">Employees are rows. Select a day to assign a job.</p></div>
+        {canManage ? <Button disabled={!draftCount || publish.isPending}
+          onClick={() => publish.mutate()}>
+          <Send className="mr-2 h-4 w-4" />
+          {draftCount ? `Publish week · ${draftCount}` : "Week published"}
+        </Button> : null}
+      </div>
+      {publish.error ? <p className="text-sm text-red-300">{getApiError(publish.error).message}</p> : null}
       {!team.length ? <Card className="p-5 text-sm text-white/45">No active employees. Invite a team member first.</Card> :
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
             <div className="min-w-[980px]">
               <div className="grid grid-cols-[180px_repeat(7,minmax(112px,1fr))] border-b border-white/[0.08] bg-white/[0.025]">
-                <div className="p-3 text-xs font-semibold uppercase tracking-[0.12em] text-white/35">Employee</div>
+                <div className="p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/35">Employee</p>
+                  <p className="mt-2 text-[10px] text-white/30">Weekly total</p>
+                </div>
                 {days.map((day) => {
                   const parsed = new Date(`${day}T12:00:00`);
                   const today = day === iso(new Date());
+                  const total = activeShifts.filter((shift) => shift.startsAt.slice(0, 10) === day)
+                    .reduce((sum, shift) => sum + shift.plannedMinutes, 0);
                   return <div key={day} className={`border-l border-white/[0.06] p-3 text-center ${today ? "bg-blue-400/[0.07]" : ""}`}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">
                       {new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(parsed)}
@@ -201,73 +240,95 @@ function Schedule({ organization, shifts, from, to, canManage, refresh }: {
                     <p className={`mt-1 text-sm font-semibold ${today ? "text-blue-200" : "text-white/75"}`}>
                       {new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short" }).format(parsed)}
                     </p>
+                    <p className="mt-1 text-[10px] text-white/35">{minutes(total)}</p>
                   </div>;
                 })}
               </div>
-              {team.map((member) => <div key={member.membershipId}
-                className="grid min-h-28 grid-cols-[180px_repeat(7,minmax(112px,1fr))] border-b border-white/[0.06] last:border-b-0">
-                <div className="min-w-0 p-3">
+              {team.map((member) => {
+                const memberTotal = activeShifts.filter((shift) => shift.membershipId === member.membershipId)
+                  .reduce((sum, shift) => sum + shift.plannedMinutes, 0);
+                return <div key={member.membershipId}
+                  className="grid min-h-28 grid-cols-[180px_repeat(7,minmax(112px,1fr))] border-b border-white/[0.06] last:border-b-0">
+                  <div className="min-w-0 p-3">
                   <p className="truncate text-sm font-medium text-white">{member.email.split("@")[0]}</p>
                   <p className="mt-1 truncate text-[11px] text-white/35">{member.email}</p>
-                </div>
+                    <p className="mt-3 text-xs font-semibold text-white/55">{minutes(memberTotal)}</p>
+                  </div>
                 {days.map((day) => {
                   const assignments = shifts.filter((shift) => shift.membershipId === member.membershipId
                     && shift.startsAt.slice(0, 10) === day && shift.status !== "CANCELLED");
                   return <div key={day} role={canManage ? "button" : undefined}
                     tabIndex={canManage ? 0 : undefined}
-                    onClick={() => { if (canManage) { setMemberId(member.membershipId); setDate(day); } }}
+                    onClick={() => { if (canManage) openNew(member.membershipId, day); }}
                     onKeyDown={(event) => {
                       if (canManage && (event.key === "Enter" || event.key === " ")) {
-                        setMemberId(member.membershipId); setDate(day);
+                        openNew(member.membershipId, day);
                       }
                     }}
                     className="group min-h-28 space-y-2 border-l border-white/[0.06] p-2 text-left transition hover:bg-white/[0.035]">
-                    {assignments.map((shift) => <span key={shift.assignmentId}
-                      className="block rounded-xl border border-white/[0.08] bg-white/[0.055] p-2"
+                    {assignments.map((shift) => <button type="button" key={shift.assignmentId}
+                      onClick={(event) => { event.stopPropagation(); if (canManage) openEdit(shift); }}
+                      className={`block w-full rounded-xl border p-2 text-left ${
+                        shift.status === "DRAFT" ? "border-dashed border-amber-300/25 bg-amber-300/[0.055]"
+                          : "border-white/[0.08] bg-white/[0.055]"}`}
                       style={{ borderLeftColor: shift.activityColor, borderLeftWidth: 3 }}>
                       <span className="block truncate text-xs font-semibold text-white">{shift.activityName}</span>
                       <span className="mt-1 block text-[10px] text-white/45">
                         {shift.startsAt.slice(11, 16)}–{shift.endsAt.slice(11, 16)}
                       </span>
-                      {canManage ? <button type="button"
-                        className="mt-1 block text-[10px] text-red-300/65 hover:text-red-200"
-                        onClick={(event) => { event.stopPropagation(); cancel.mutate(shift.assignmentId); }}>
-                        Cancel
-                      </button> : null}
-                    </span>)}
+                      {shift.status === "DRAFT" ? <span className="mt-1 block text-[9px] font-semibold uppercase tracking-wider text-amber-200/65">Draft</span> : null}
+                    </button>)}
                     {canManage ? <span className="flex items-center gap-1 text-[10px] font-medium text-white/0 transition group-hover:text-white/40">
                       <Plus className="h-3 w-3" />Assign job
                     </span> : null}
                   </div>;
                 })}
-              </div>)}
+                </div>;
+              })}
             </div>
           </div>
         </Card>}
     </section>
-    {canManage ? <Card className="h-fit space-y-4 p-5">
-      <div><h2 className="font-semibold text-white">Assign a job</h2>
-        <p className="mt-1 text-xs leading-5 text-white/42">Assignments become visible to the employee immediately.</p></div>
-      <Select label="Employee" value={activeMember} onChange={setMemberId}
-        options={(members.data ?? []).filter((item) => item.status === "ACTIVE" && item.role !== "OWNER")
-          .map((item) => ({ value: item.membershipId, label: item.email }))} />
-      {!activeMember ? <Hint text="Invite an employee from Business settings first." /> :
-        !employmentId ? <CreateEmployment organizationId={organization.id} memberId={activeMember}
-          onCreated={() => client.invalidateQueries({ queryKey:
-            queryKeys.organizations.memberEmployments(organization.id, activeMember) })} /> : null}
-      <Select label="Activity" value={selectedActivity} onChange={setActivityId}
-        options={(activities.data ?? []).filter((item) => item.active)
-          .map((item) => ({ value: item.id, label: item.name }))} />
-      {!selectedActivity ? <Hint text="Create an activity under Setup first." /> : null}
-      <Input label="Date" type="date" min={from} max={to} value={date} onChange={(event) => setDate(event.target.value)} />
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Start" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
-        <Input label="End" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
-      </div>
-      {create.error ? <p className="text-sm text-red-300">{getApiError(create.error).message}</p> : null}
-      <Button className="w-full" disabled={!activeMember || !employmentId || !selectedActivity || create.isPending}
-        onClick={() => create.mutate()}>Assign job</Button>
-    </Card> : null}
+    {canManage && editorOpen ? <LockedModalViewport className="items-end bg-black/55 px-3 py-3 backdrop-blur-sm md:items-center"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) setEditorOpen(false); }}>
+      <ModalPanel role="dialog" aria-modal="true" className="max-h-[92dvh] max-w-lg overflow-y-auto rounded-[28px]">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div><h2 className="text-xl font-semibold text-white">{editing ? "Edit job" : "Assign a job"}</h2>
+            <p className="mt-1 text-xs leading-5 text-white/42">
+              Saved as draft. Employees see it only after the week is published.
+            </p></div>
+          <button aria-label="Close editor" onClick={() => setEditorOpen(false)}
+            className="rounded-full p-2 text-white/45 hover:bg-white/[0.08] hover:text-white"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="space-y-4">
+          <Select label="Employee" value={activeMember} onChange={setMemberId}
+            options={team.map((item) => ({ value: item.membershipId, label: item.email }))} />
+          {!activeMember ? <Hint text="Invite an employee from Business settings first." /> :
+            !employmentId ? <CreateEmployment organizationId={organization.id} memberId={activeMember}
+              onCreated={() => client.invalidateQueries({ queryKey:
+                queryKeys.organizations.memberEmployments(organization.id, activeMember) })} /> : null}
+          <Select label="Job / activity" value={selectedActivity} onChange={setActivityId}
+            options={(activities.data ?? []).filter((item) => item.active)
+              .map((item) => ({ value: item.id, label: item.name }))} />
+          {!selectedActivity ? <Hint text="Create an activity under Setup first." /> : null}
+          <Input label="Date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Start" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+            <Input label="End" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+          </div>
+          {save.error ? <p className="text-sm text-red-300">{getApiError(save.error).message}</p> : null}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {editing ? <Button variant="secondary" onClick={openCopy}>
+              <Copy className="mr-2 h-4 w-4" />Save as copy
+            </Button> : null}
+            {editing ? <Button variant="secondary" className="text-red-200"
+              disabled={cancel.isPending} onClick={() => cancel.mutate(editing.assignmentId)}>Cancel job</Button> : null}
+            <Button className="ml-auto" disabled={!activeMember || !employmentId || !selectedActivity || save.isPending}
+              onClick={() => save.mutate()}>{editing ? "Save changes" : "Save draft"}</Button>
+          </div>
+        </div>
+      </ModalPanel>
+    </LockedModalViewport> : null}
   </div>;
 }
 

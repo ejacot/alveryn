@@ -93,6 +93,15 @@ export async function createBusinessShift(id: string, payload: BusinessShiftPayl
   return (await http.post<ApiResponse<BusinessShift>>(
     `/api/organizations/${id}/shifts`, payload)).data.data;
 }
+export async function updateBusinessShift(id: string, assignmentId: string,
+    payload: BusinessShiftPayload) {
+  return (await http.put<ApiResponse<BusinessShift>>(
+    `/api/organizations/${id}/shifts/${assignmentId}`, payload)).data.data;
+}
+export async function publishBusinessWeek(id: string, from: string, to: string) {
+  return (await http.post<ApiResponse<BusinessShift[]>>(
+    `/api/organizations/${id}/shifts/publish`, undefined, { params: { from, to } })).data.data;
+}
 export async function cancelBusinessShift(id: string, assignmentId: string) {
   await http.delete(`/api/organizations/${id}/shifts/${assignmentId}`);
 }

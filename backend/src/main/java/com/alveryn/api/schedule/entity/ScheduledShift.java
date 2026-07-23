@@ -93,8 +93,8 @@ public class ScheduledShift extends BaseEntity {
     this.timezone = Objects.requireNonNull(timezone);
     this.createdBy = Objects.requireNonNull(createdBy);
     this.source = ShiftSource.MANUAL;
-    this.status = ShiftStatus.PUBLISHED;
-    this.publishedAt = OffsetDateTime.now();
+    this.status = ShiftStatus.DRAFT;
+    this.publishedAt = null;
   }
 
   public void override(OffsetDateTime nextStart, OffsetDateTime nextEnd) {
@@ -103,6 +103,18 @@ public class ScheduledShift extends BaseEntity {
     endsAt = Objects.requireNonNull(nextEnd);
     manuallyOverridden = true;
     version++;
+  }
+  public void publish(OffsetDateTime now) {
+    if (status != ShiftStatus.DRAFT) return;
+    status = ShiftStatus.PUBLISHED;
+    publishedAt = Objects.requireNonNull(now);
+    version++;
+  }
+  public void returnToDraft() {
+    if (status == ShiftStatus.CANCELLED || status == ShiftStatus.COMPLETED)
+      throw new IllegalStateException("finished shift cannot return to draft");
+    status = ShiftStatus.DRAFT;
+    publishedAt = null;
   }
   public void cancel() { status = ShiftStatus.CANCELLED; version++; }
 }

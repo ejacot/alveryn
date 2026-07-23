@@ -20,7 +20,8 @@ export type BusinessShift = {
   shiftId: string; assignmentId: string; membershipId: string; employeeEmail: string;
   employmentId: string; employmentName: string; activityId: string; activityName: string;
   activityColor: string; startsAt: string; endsAt: string; breakMinutes: number;
-  status: "PLANNED" | "CANCELLED"; assignmentStatus: "ASSIGNED" | "CANCELLED";
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
+  assignmentStatus: "ASSIGNED" | "CANCELLED";
   plannedMinutes: number; workedMinutes: number;
 };
 export type ShiftChangeRequest = {

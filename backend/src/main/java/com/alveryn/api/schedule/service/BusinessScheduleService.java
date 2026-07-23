@@ -25,6 +25,7 @@ public class BusinessScheduleService {
   private final ShiftAssignmentRepository assignments;
   private final ShiftBreakRepository breaks;
   private final WorkRecordLineRepository workLines;
+  private final Clock clock;
 
   @Transactional
   public BusinessShiftResponse create(UUID organizationId, BusinessShiftRequest request) {
@@ -62,7 +63,22 @@ public class BusinessScheduleService {
     var values = assignments.findOrganizationRange(organizationId,
         from.atStartOfDay(zone).toOffsetDateTime(), to.plusDays(1).atStartOfDay(zone).toOffsetDateTime());
     if (member.getRole() == MembershipRole.EMPLOYEE)
-      values = values.stream().filter(value -> value.getWorker().getId().equals(member.getId())).toList();
+      values = values.stream()
+          .filter(value -> value.getWorker().getId().equals(member.getId()))
+          .filter(value -> value.getShift().getStatus() != ShiftStatus.DRAFT)
+          .toList();
+    return values.stream().map(this::response).toList();
+  }
+
+  @Transactional
+  public List<BusinessShiftResponse> publish(UUID organizationId, LocalDate from, LocalDate to) {
+    var manager = access.requireManager(organizationId);
+    if (to.isBefore(from)) throw new IllegalArgumentException("to must be on or after from");
+    ZoneId zone = ZoneId.of(manager.getOrganization().getTimezone());
+    var values = assignments.findOrganizationRange(organizationId,
+        from.atStartOfDay(zone).toOffsetDateTime(), to.plusDays(1).atStartOfDay(zone).toOffsetDateTime());
+    var now = OffsetDateTime.now(clock);
+    values.forEach(value -> value.getShift().publish(now));
     return values.stream().map(this::response).toList();
   }
 
@@ -87,6 +103,7 @@ public class BusinessScheduleService {
     if (pause >= Duration.between(start, end).toMinutes())
       throw new IllegalArgumentException("break must fit inside shift");
     existing.getShift().override(start, end);
+    existing.getShift().returnToDraft();
     var shiftBreak = breaks.findFirstByShiftId(existing.getShift().getId()).orElse(null);
     if (shiftBreak == null && pause > 0) breaks.save(new ShiftBreak(existing.getShift(), pause, false));
     else if (shiftBreak != null) shiftBreak.changePlannedMinutes(pause);

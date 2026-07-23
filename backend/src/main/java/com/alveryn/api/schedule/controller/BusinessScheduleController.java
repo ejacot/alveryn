@@ -21,6 +21,11 @@ public class BusinessScheduleController {
       @Valid @RequestBody BusinessShiftRequest request) {
     return ApiResponse.of(service.create(organizationId, request));
   }
+  @PostMapping("/publish")
+  public ApiResponse<List<BusinessShiftResponse>> publish(@PathVariable UUID organizationId,
+      @RequestParam LocalDate from, @RequestParam LocalDate to) {
+    return ApiResponse.of(service.publish(organizationId, from, to));
+  }
   @PutMapping("/{assignmentId}")
   public ApiResponse<BusinessShiftResponse> update(@PathVariable UUID organizationId,
       @PathVariable UUID assignmentId, @Valid @RequestBody BusinessShiftRequest request) {

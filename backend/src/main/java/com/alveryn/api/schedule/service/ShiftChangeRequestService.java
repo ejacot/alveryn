@@ -24,6 +24,8 @@ public class ShiftChangeRequestService {
     var assignment=assignments.findByIdAndOrganizationId(assignmentId,organizationId)
         .filter(value->value.getWorker().getId().equals(member.getId()))
         .orElseThrow(()->new NotFoundException("ShiftAssignment",assignmentId));
+    if (assignment.getShift().getStatus() == ShiftStatus.DRAFT)
+      throw new NotFoundException("ShiftAssignment", assignmentId);
     if(requests.existsByAssignmentIdAndStatus(assignmentId,ShiftChangeRequestStatus.PENDING))
       throw new ConflictException("A request is already pending for this shift");
     OffsetDateTime start=null,end=null;
