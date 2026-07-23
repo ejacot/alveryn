@@ -45,6 +45,10 @@ public class AdminDashboardService {
         activeSince(today.minusDays(29)));
 
     long registered = overview.totalUsers();
+    AcquisitionFunnel acquisition = new AcquisitionFunnel(
+        publicVisitorsSince("LANDING_VIEW", thirtyDaysAgo),
+        publicVisitorsSince("REGISTRATION_STARTED", thirtyDaysAgo),
+        overview.registrationsLast7Days() + countRegistrationsBetween(thirtyDaysAgo, sevenDaysAgo));
     ActivationFunnel activation = new ActivationFunnel(
         registered,
         overview.verifiedUsers(),
@@ -70,7 +74,7 @@ public class AdminDashboardService {
     List<RegistrationPoint> registrations = registrationSeries(today.minusDays(29), today);
     List<UserSummary> users = userSummaries();
     audit("VIEW_FOUNDER_DASHBOARD", now);
-    return new AdminDashboardResponse(overview, activation, usage, registrations, users);
+    return new AdminDashboardResponse(overview, acquisition, activation, usage, registrations, users);
   }
 
   private long count(String sql) {
@@ -93,6 +97,28 @@ public class AdminDashboardService {
         """,
         Long.class,
         since);
+    return value == null ? 0 : value;
+  }
+
+  private long publicVisitorsSince(String eventType, OffsetDateTime since) {
+    Long value = jdbc.queryForObject(
+        """
+        SELECT COUNT(DISTINCT anonymous_id)
+        FROM product_events
+        WHERE event_type = ? AND anonymous_id IS NOT NULL AND occurred_at >= ?
+        """,
+        Long.class,
+        eventType,
+        Timestamp.from(since.toInstant()));
+    return value == null ? 0 : value;
+  }
+
+  private long countRegistrationsBetween(OffsetDateTime from, OffsetDateTime to) {
+    Long value = jdbc.queryForObject(
+        "SELECT COUNT(*) FROM user_accounts WHERE " + CUSTOMER + " AND created_at >= ? AND created_at < ?",
+        Long.class,
+        Timestamp.from(from.toInstant()),
+        Timestamp.from(to.toInstant()));
     return value == null ? 0 : value;
   }
 

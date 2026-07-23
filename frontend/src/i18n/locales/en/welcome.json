@@ -1,67 +1,113 @@
 {
   "loading": "Loading Alveryn...",
-  "nav": { "features": "Features", "how": "How it works", "login": "Sign in", "register": "Start tracking" },
+  "nav": {
+    "product": "Product",
+    "how": "How it works",
+    "forWho": "Who it is for",
+    "login": "Sign in",
+    "register": "Create free account"
+  },
   "hero": {
-    "eyebrow": "One clear record for every kind of work",
-    "title": "Know your hours. Understand your earnings.",
-    "subtitle": "Alveryn brings hours, completed work and earnings together, even when a working day contains several different activities.",
-    "primaryCta": "Start tracking", "secondaryCta": "See how it works",
-    "benefits": ["No spreadsheets", "Automatic calculations", "Built for real work"]
+    "eyebrow": "Work tracking that understands how you get paid",
+    "title": "Track the work. Know the hours. Understand the money.",
+    "subtitle": "Alveryn keeps your hours, completed work, rates and absences in one reliable record — even when every day is different.",
+    "primaryCta": "Create free account",
+    "secondaryCta": "Explore the product",
+    "points": ["Set up in minutes", "Multiple ways of working", "A history you can trust"]
   },
-  "problem": {
-    "eyebrow": "Clarity after every workday", "title": "Your workday ends. The questions remain.",
-    "body": "A day can include a shift, completed units and a fixed-price task. Alveryn keeps them together without flattening them into one inaccurate total.",
-    "questions": ["How many hours did I actually work?", "What work did I complete today?", "How much have I earned so far?"],
-    "answer": "The answers stay ready in one work history, without loose notes or end-of-month calculations."
+  "formats": {
+    "time": "Hourly shifts",
+    "unit": "Work paid per unit",
+    "fixed": "Fixed-price jobs",
+    "absence": "Leave and absences"
   },
-  "setup": {
-    "eyebrow": "Your work setup", "title": "Configure the way you work once.",
-    "body": "Create simple work types or advanced categories, then let every future record use the rules that fit your job.",
-    "steps": [
-      { "title": "Choose a calculation", "description": "Track time, direct unit pay, units converted to equivalent hours, or a fixed amount." },
-      { "title": "Add the relevant details", "description": "Configure breaks, unit symbols, rates, pace, teamwork and child work types only where they apply." },
-      { "title": "Reuse the setup every day", "description": "Your configured work types are ready whenever you create a new work record." }
-    ]
-  },
-  "workTypes": {
+  "capabilities": {
+    "eyebrow": "What Alveryn does",
+    "title": "From a complicated workday to a clear answer.",
+    "body": "Record the work once. Alveryn keeps the calculation rules and the history organized for you.",
     "items": [
-      { "title": "Time based", "description": "Record a time interval or duration and calculate earnings from the valid hourly rate.", "examples": "Shifts, cleaning, checks or administration." },
-      { "title": "Units per hour", "description": "Convert completed quantity into equivalent hours using your configured pace.", "examples": "Rooms, deliveries, packages or orders." },
-      { "title": "Direct per unit", "description": "Calculate earnings directly from quantity multiplied by the rate per unit.", "examples": "Square metres, pieces, tasks or kilometres." },
-      { "title": "Fixed price", "description": "Record a task whose agreed amount is entered directly when the work is completed.", "examples": "A repair, installation or one-off service." }
+      {
+        "title": "Record work your way",
+        "description": "Use clock-in and clock-out, enter a duration, add completed units or record a fixed-price job. Different activities can live in the same day."
+      },
+      {
+        "title": "Calculate what the work means",
+        "description": "Connect rates and payment models to your work. Alveryn turns time and output into understandable hours and earnings."
+      },
+      {
+        "title": "Review the complete picture",
+        "description": "See workdays, absences, hours and calculated earnings together instead of rebuilding the month from notes and spreadsheets."
+      }
     ]
   },
-  "record": {
-    "eyebrow": "One day, one clear record", "title": "Combine everything you did without losing detail.",
-    "body": "A Work Record groups the activities from one job or working day. Each Work Line keeps its own input, calculation and historical result.",
+  "workflow": {
+    "eyebrow": "Simple daily workflow",
+    "title": "Configure once. Record in seconds. Review anytime.",
+    "body": "Alveryn adapts to the rules of your work, then keeps everyday tracking focused.",
     "steps": [
-      { "title": "Create the record", "description": "Choose the date and add the context needed for that day." },
-      { "title": "Add multiple activities", "description": "Mix hours, square metres, completed units and fixed-price work in the same record." },
-      { "title": "Save a reliable history", "description": "Alveryn stores quantity, time and money results so later configuration changes do not rewrite old work." }
+      {
+        "title": "Describe how you work",
+        "description": "Add your job, payment model, rate and the types of work you perform."
+      },
+      {
+        "title": "Record each working day",
+        "description": "Track a live session or enter time, units and completed jobs manually."
+      },
+      {
+        "title": "Use the history",
+        "description": "Review the calendar, absences and totals without calculating everything again."
+      }
     ]
   },
-  "analytics": {
-    "eyebrow": "From entries to understanding", "title": "See more than totals. See your pattern.",
-    "body": "As your history grows, Alveryn turns daily records into a clearer view of time, earnings and workload.",
+  "audience": {
+    "eyebrow": "Built for work that changes",
+    "title": "One app when work is more than one simple shift.",
+    "body": "Alveryn is useful when hours, output and payment do not fit neatly into a basic timer.",
     "items": [
-      { "title": "Weekly rhythm", "description": "See how each day compares with the strongest day and the active week's average." },
-      { "title": "Earnings flow", "description": "Follow daily calculated income while keeping zero-activity days out of the worked-day average." },
-      { "title": "Period overview", "description": "Review totals and comparisons across the period you select." },
-      { "title": "Activity pattern", "description": "Spot stronger and lighter days without reading every record separately." }
+      {
+        "title": "Hourly workers",
+        "description": "Keep an independent history of shifts, breaks, overtime context and absences."
+      },
+      {
+        "title": "Multi-job workers",
+        "description": "Separate jobs, work types and rates without splitting your history across different tools."
+      },
+      {
+        "title": "Output-based work",
+        "description": "Track rooms, deliveries, pieces, kilometres or completed jobs alongside time."
+      }
     ]
   },
-  "calendar": {
-    "eyebrow": "Calendar and absences", "title": "Your entire working month, in one place.",
-    "body": "See work records and configurable absences together, while each day keeps its detailed activities.",
-    "stats": ["Worked days", "Actual and equivalent hours", "Vacation and sick leave", "Calculated gross earnings"]
+  "preview": {
+    "dashboardAlt": "Alveryn dashboard preview showing worked time, earnings, activities and an upcoming absence.",
+    "today": "Thursday, 23 July",
+    "greeting": "Your work today",
+    "synced": "Up to date",
+    "worked": "Recorded time",
+    "workedValue": "7h 45m",
+    "earned": "Calculated earnings",
+    "earnedValue": "€168.40",
+    "recordTitle": "Today's activities",
+    "recordDate": "2 entries",
+    "activities": [
+      { "name": "Morning shift", "detail": "6h 30m · €19.20/hour", "value": "€124.80" },
+      { "name": "Completed deliveries", "detail": "24 units · €1.82/unit", "value": "€43.60" }
+    ],
+    "nextAbsence": "Vacation approved",
+    "nextAbsenceDate": "3–7 August"
   },
-  "final": { "title": "Your work deserves more than a rough estimate.", "subtitle": "Build a clear history of your hours, completed work and earnings from today.", "primaryCta": "Create your account", "secondaryCta": "Sign in" },
-  "images": {
-    "dashboardLabel": "Dashboard", "entryLabel": "Work record", "statisticsLabel": "Overview", "calendarLabel": "Calendar",
-    "dashboardAlt": "Alveryn dashboard component showing work records and weekly rhythm.",
-    "entryAlt": "Alveryn work record form with several activities.", "statisticsAlt": "Alveryn overview with time and earnings patterns.",
-    "comparisonAlt": "Alveryn period comparison component.", "forecastAlt": "Alveryn earnings forecast component.",
-    "productivityAlt": "Alveryn productivity component.", "heatmapAlt": "Alveryn work activity heatmap.",
-    "calendarAlt": "Alveryn calendar component showing work and absences."
+  "monthPreview": {
+    "alt": "Alveryn monthly overview showing workdays, hours, earnings and an absence.",
+    "period": "Monthly overview",
+    "title": "July 2026",
+    "days": "Worked days",
+    "hours": "Total hours",
+    "earnings": "Earnings",
+    "absence": "Approved absence appears in the same timeline"
+  },
+  "final": {
+    "title": "Stop reconstructing your work at the end of the month.",
+    "subtitle": "Start building a clear, reliable history of your time, output and earnings today.",
+    "primaryCta": "Start tracking for free"
   }
 }

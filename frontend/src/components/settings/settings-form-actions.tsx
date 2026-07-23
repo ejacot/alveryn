@@ -20,27 +20,9 @@ export function SettingsFormActions({
   deleteDisabled = false
 }: Props) {
   const { t } = useTranslation("common");
-  const [visibleSuccess, setVisibleSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!successMessage) {
-      setVisibleSuccess(null);
-      return;
-    }
-
-    setVisibleSuccess(successMessage);
-    const timeoutId = window.setTimeout(() => {
-      setVisibleSuccess(null);
-    }, 2000);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [successMessage]);
-
   return (
     <div className="flex flex-col gap-3 pt-2">
-      {visibleSuccess ? <p className="text-sm text-white/58">{visibleSuccess}</p> : null}
+      <SettingsSuccessMessage message={successMessage} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {onDelete && deleteLabel ? (
           <Button
@@ -61,4 +43,30 @@ export function SettingsFormActions({
       </div>
     </div>
   );
+}
+
+export function SettingsSuccessMessage({ message }: { message?: string | null }) {
+  const [visibleSuccess, setVisibleSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!message) {
+      setVisibleSuccess(null);
+      return;
+    }
+
+    setVisibleSuccess(message);
+    const timeoutId = window.setTimeout(() => {
+      setVisibleSuccess(null);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [message]);
+
+  return visibleSuccess ? (
+    <p className="text-sm text-white/58" role="status" aria-live="polite">
+      {visibleSuccess}
+    </p>
+  ) : null;
 }

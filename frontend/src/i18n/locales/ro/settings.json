@@ -3,7 +3,8 @@
   "founder": {
     "title": "Founder", "menuLabel": "Panou Founder", "refresh": "Actualizează panoul",
     "error": "Datele Founder nu au putut fi încărcate. Încearcă din nou.",
-    "overview": "Privire generală", "registrations": "Înregistrări · ultimele 30 de zile", "activation": "Parcursul activării", "usage": "Utilizarea produsului", "users": "Utilizatori",
+    "overview": "Privire generală", "acquisition": "Achiziție · ultimele 30 de zile", "registrations": "Înregistrări · ultimele 30 de zile", "activation": "Parcursul activării", "usage": "Utilizarea produsului", "users": "Utilizatori",
+    "acquisitionFunnel": { "landing": "Sesiuni Welcome", "started": "Înregistrare începută", "registered": "Conturi create" },
     "noUsers": "Încă nu există conturi de utilizatori.", "verified": "Verificat", "unverified": "În așteptare",
     "joined": "Înregistrat {{date}}", "lastActive": "Ultima activitate {{date}}", "userCounts": "{{employments}} joburi · {{types}} tipuri · {{sessions}} zile",
     "metrics": { "totalUsers": "Total utilizatori", "activeToday": "Activi astăzi", "active7": "Activi · 7 zile", "active30": "Activi · 30 zile", "newToday": "Noi astăzi", "new7": "Noi · 7 zile" },
@@ -13,7 +14,7 @@
   "pdfExport": {
     "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment inclus",
     "scopeHint": "Raportul folosește employmentul selectat în Setări. Selectează Toate pentru a combina toate employmenturile.",
-    "period": "Interval", "from": "De la", "to": "Până la", "include": "Include în raport",
+    "period": "Interval", "periodHint": "Vor fi incluse doar munca și absențele dintre aceste date.", "from": "De la", "to": "Până la", "include": "Include în raport", "includeHint": "Alege informațiile pe care vrei să le vadă destinatarul.",
     "singlePageHint": "Lista cronologică este compactată automat pentru ca întregul raport să rămână pe o singură pagină A4.",
     "generate": "Generează PDF", "generating": "Se generează PDF-ul…",
     "fields": { "date": "Data", "activity": "Activitate", "intervals": "Intervale de muncă", "hours": "Ore lucrate", "quantity": "Cantitate efectuată", "extra": "Procentaj extra", "earnings": "Bani", "notes": "Notițe" },
@@ -28,6 +29,7 @@
     "hourlyRates": { "title": "Tarife corecte pentru fiecare perioadă", "description": "Adaugă tarife cu date de valabilitate, astfel încât fiecare zi să folosească valoarea corectă." },
     "hourlyRateEditor": { "title": "Adaugă o perioadă de tarif", "description": "Introdu suma pe oră, valuta și datele în care se aplică." },
     "workTypes": { "title": "Construiește-ți propriul Work Setup", "description": "Pornești fără tipuri implicite și adaugi doar activitățile și calculele pe care le folosești." },
+    "pdfExport": { "title": "Creează un raport de lucru", "description": "Alege perioada și exportă detaliile pe care vrei să le trimiți." },
     "about": { "title": "Despre aplicație", "description": "Vezi versiunea instalată și informațiile despre Alveryn." },
     "help": { "title": "Ai nevoie de ajutor?", "description": "Contactează suportul când ceva nu este clar sau nu funcționează." }
   },
@@ -52,6 +54,9 @@
     "choose": "Alege employmentul",
     "settingsTitle": "Setările employmentului",
     "contractPeriod": "Urmărire",
+    "dashboardFocus": "Ce evidențiază dashboard-ul",
+    "enabled": "Activ",
+    "disabled": "Dezactivat",
     "current": "Prezent",
     "unavailableTitle": "Employment indisponibil",
     "unavailableDescription": "Acest employment nu a putut fi găsit.",
@@ -96,8 +101,17 @@
       "tracking": "Ce vrei să urmărești?",
       "period": "Perioada contractului",
       "hourBalance": "Timp de lucru",
+      "overview": "Dashboard",
+      "timeEntry": "Înregistrarea timpului",
+      "hourBalanceAccount": "Contul de ore",
       "fixedSalary": "Salariu fix și soldul de ore",
       "availability": "Disponibilitate"
+    },
+    "sectionHelp": {
+      "overview": "Schimbă doar ce evidențiază dashboard-ul; timpul și plățile salvate rămân disponibile.",
+      "timeEntry": "Alege dacă pentru acest employment ai nevoie de un cronometru check-in.",
+      "hourBalanceAccount": "Opțional pentru cei care compară orele lucrate cu o normă stabilită.",
+      "rules": "Gestionează tarifele, activitățile și regulile de absență ale acestui employment."
     },
     "fields": {
       "name": "Numele employmentului",
@@ -112,6 +126,8 @@
       "targetPeriod": "Perioada țintei",
       "validityMonths": "Valabilitatea soldului de ore",
       "hourBalance": "Calculează soldul meu de ore",
+      "hourBalanceAccount": "Cont pentru soldul de ore",
+      "timer": "Cronometru check-in",
       "active": "Employment activ"
     },
     "help": {
@@ -119,6 +135,8 @@
       "targetHours": "Orele așteptate pentru săptămâna sau luna selectată.",
       "validityMonths": "Numărul de luni în care diferențele de ore rămân în soldul acumulat.",
       "hourBalance": "Compară orele lucrate cu norma și transferă orele pozitive sau negative în perioada următoare.",
+      "dashboardFocus": "Alege dacă dashboard-ul evidențiază timpul lucrat sau câștigurile. Celelalte funcții rămân disponibile.",
+      "timer": "Afișează check-in și check-out în dashboard. Înregistrările manuale rămân disponibile.",
       "active": "Employmenturile inactive rămân în istoric, dar nu primesc înregistrări noi."
     },
     "compensation": {
@@ -145,6 +163,7 @@
   },
   "workSetup": {
     "title": "Configurarea muncii",
+    "emptyTitle": "Nu există încă tipuri de muncă",
     "description": "Configureaza activitatile care pot fi adaugate intr-un job. Un job poate contine mai multe linii de lucru, iar fiecare linie pastreaza formula ei.",
     "addWorkType": "Adauga tip de lucru",
     "emptyDescription": "Creeaza prima formula pe care o folosesti la munca: ore, unitati transformate in ore sau plata directa pe unitate.",
@@ -294,7 +313,10 @@
   "preferences": "Preferințe",
   "absenceSettings": {
     "title": "Absențe",
+    "description": "Definește concediul, medicalul și alte zile libere și stabilește dacă sunt considerate timp plătit.",
     "emptyTitle": "Nu există încă tipuri de absență",
+    "emptyDescription": "Creează primul tip de absență înainte de a marca o zi în care nu lucrezi.",
+    "paidHelp": "Dacă activezi opțiunea, aceste ore apar în totaluri și rapoarte ca absență plătită.",
     "normalDay": "Zi normală",
     "paidTypes": "Tipuri de absențe plătite",
     "types": "Tipuri de absență",
@@ -454,6 +476,10 @@
     }
   },
   "hourlyRates": "Tarife orare",
+  "hourlyRateList": {
+    "emptyTitle": "Nu există încă tarife orare",
+    "emptyDescription": "Adaugă tariful și data de început pentru ca veniturile fiecărei zile să fie calculate corect."
+  },
   "hourlyRateEditor": {
     "addTitle": "Adaugă tarif orar",
     "editTitle": "Editează tariful orar",

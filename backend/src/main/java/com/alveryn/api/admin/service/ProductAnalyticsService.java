@@ -1,5 +1,6 @@
 package com.alveryn.api.admin.service;
 
+import com.alveryn.api.admin.dto.PublicAnalyticsEventType;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -39,5 +40,34 @@ public class ProductAnalyticsService {
         UUID.randomUUID(),
         userId,
         Timestamp.from(OffsetDateTime.now(clock).toInstant()));
+  }
+
+  @Transactional
+  public void recordPublicEvent(PublicAnalyticsEventType eventType, UUID anonymousId) {
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    OffsetDateTime dayStart = now.atZoneSameInstant(ZoneOffset.UTC).toLocalDate()
+        .atStartOfDay().atOffset(ZoneOffset.UTC);
+    OffsetDateTime nextDay = dayStart.plusDays(1);
+    jdbc.update(
+        """
+        INSERT INTO product_events (id, anonymous_id, event_type, occurred_at)
+        SELECT ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM product_events
+          WHERE anonymous_id = ?
+            AND event_type = ?
+            AND occurred_at >= ?
+            AND occurred_at < ?
+        )
+        """,
+        UUID.randomUUID(),
+        anonymousId,
+        eventType.name(),
+        Timestamp.from(now.toInstant()),
+        anonymousId,
+        eventType.name(),
+        Timestamp.from(dayStart.toInstant()),
+        Timestamp.from(nextDay.toInstant()));
   }
 }

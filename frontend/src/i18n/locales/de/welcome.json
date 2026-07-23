@@ -1,65 +1,113 @@
 {
   "loading": "Alveryn wird geladen...",
-  "nav": { "features": "Funktionen", "how": "So funktioniert es", "login": "Einloggen", "register": "Tracking starten" },
+  "nav": {
+    "product": "Produkt",
+    "how": "So funktioniert es",
+    "forWho": "Für wen",
+    "login": "Einloggen",
+    "register": "Kostenlos starten"
+  },
   "hero": {
-    "eyebrow": "Ein klarer Verlauf für jede Art von Arbeit", "title": "Kenne deine Stunden. Verstehe dein Einkommen.",
-    "subtitle": "Alveryn bringt Stunden, erledigte Arbeit und Einkommen zusammen, auch wenn ein Arbeitstag aus mehreren Tätigkeiten besteht.",
-    "primaryCta": "Tracking starten", "secondaryCta": "So funktioniert es", "benefits": ["Keine Tabellen", "Automatische Berechnungen", "Für echte Arbeit gebaut"]
+    "eyebrow": "Arbeitszeiterfassung, die deine Bezahlung versteht",
+    "title": "Arbeit erfassen. Stunden kennen. Einkommen verstehen.",
+    "subtitle": "Alveryn hält Stunden, erledigte Arbeit, Tarife und Abwesenheiten in einem verlässlichen Verlauf zusammen — auch wenn jeder Arbeitstag anders ist.",
+    "primaryCta": "Kostenloses Konto erstellen",
+    "secondaryCta": "Produkt ansehen",
+    "points": ["In wenigen Minuten eingerichtet", "Mehrere Arbeitsmodelle", "Ein verlässlicher Verlauf"]
   },
-  "problem": {
-    "eyebrow": "Klarheit nach jedem Arbeitstag", "title": "Der Arbeitstag endet. Die Fragen bleiben.",
-    "body": "Ein Tag kann eine Schicht, erledigte Einheiten und eine Festpreisaufgabe enthalten. Alveryn hält alles zusammen, ohne daraus eine ungenaue Summe zu machen.",
-    "questions": ["Wie viele Stunden habe ich wirklich gearbeitet?", "Welche Arbeit habe ich heute erledigt?", "Wie viel habe ich bisher verdient?"],
-    "answer": "Die Antworten bleiben in einem Arbeitsverlauf bereit, ohne lose Notizen oder Rechnungen am Monatsende."
+  "formats": {
+    "time": "Arbeit nach Stunden",
+    "unit": "Bezahlung pro Einheit",
+    "fixed": "Aufträge zum Festpreis",
+    "absence": "Urlaub und Abwesenheiten"
   },
-  "setup": {
-    "eyebrow": "Deine Arbeitskonfiguration", "title": "Konfiguriere einmal, wie du arbeitest.",
-    "body": "Erstelle einfache Arbeitstypen oder erweiterte Kategorien. Jeder neue Eintrag nutzt danach die passenden Regeln.",
-    "steps": [
-      { "title": "Berechnung auswählen", "description": "Erfasse Zeit, direkte Stückzahlung, Einheiten als äquivalente Stunden oder einen Festbetrag." },
-      { "title": "Passende Details ergänzen", "description": "Konfiguriere Pause, Einheit, Preis, Tempo, Teamarbeit und Untertypen nur dort, wo sie gebraucht werden." },
-      { "title": "Konfiguration täglich nutzen", "description": "Deine Arbeitstypen stehen bei jedem neuen Arbeitseintrag bereit." }
-    ]
-  },
-  "workTypes": {
+  "capabilities": {
+    "eyebrow": "Was Alveryn macht",
+    "title": "Vom komplizierten Arbeitstag zur klaren Antwort.",
+    "body": "Erfasse deine Arbeit einmal. Alveryn hält Berechnungsregeln und Verlauf für dich geordnet.",
     "items": [
-      { "title": "Zeitbasiert", "description": "Erfasse Zeitraum oder Dauer und berechne das Einkommen mit dem gültigen Stundenlohn.", "examples": "Schichten, Reinigung, Kontrollen oder Verwaltung." },
-      { "title": "Einheiten pro Stunde", "description": "Wandle erledigte Mengen mit dem konfigurierten Tempo in äquivalente Stunden um.", "examples": "Zimmer, Lieferungen, Pakete oder Bestellungen." },
-      { "title": "Direkt pro Einheit", "description": "Berechne Einkommen direkt aus Menge mal Preis pro Einheit.", "examples": "Quadratmeter, Teile, Aufgaben oder Kilometer." },
-      { "title": "Festpreis", "description": "Erfasse eine Aufgabe mit einem vereinbarten Betrag, der bei Abschluss eingetragen wird.", "examples": "Reparatur, Montage oder einmalige Leistung." }
+      {
+        "title": "Arbeit passend erfassen",
+        "description": "Nutze Ein- und Ausstempeln, trage eine Dauer ein, ergänze erledigte Einheiten oder erfasse einen Festpreisauftrag. Mehrere Tätigkeiten passen in denselben Tag."
+      },
+      {
+        "title": "Bedeutung der Arbeit berechnen",
+        "description": "Verbinde Tarife und Bezahlmodelle mit deiner Arbeit. Alveryn macht aus Zeit und Leistung verständliche Stunden und Einnahmen."
+      },
+      {
+        "title": "Das Gesamtbild prüfen",
+        "description": "Sieh Arbeitstage, Abwesenheiten, Stunden und berechnetes Einkommen zusammen, statt den Monat aus Notizen und Tabellen neu aufzubauen."
+      }
     ]
   },
-  "record": {
-    "eyebrow": "Ein Tag, ein klarer Eintrag", "title": "Kombiniere alles, ohne Details zu verlieren.",
-    "body": "Ein Work Record gruppiert die Tätigkeiten eines Auftrags oder Arbeitstags. Jede Work Line behält ihre Eingabe, Berechnung und ihr historisches Ergebnis.",
+  "workflow": {
+    "eyebrow": "Einfacher täglicher Ablauf",
+    "title": "Einmal konfigurieren. In Sekunden erfassen. Jederzeit prüfen.",
+    "body": "Alveryn passt sich den Regeln deiner Arbeit an und hält die tägliche Erfassung danach einfach.",
     "steps": [
-      { "title": "Eintrag erstellen", "description": "Wähle das Datum und ergänze den Kontext des Arbeitstags." },
-      { "title": "Mehrere Tätigkeiten hinzufügen", "description": "Kombiniere Stunden, Quadratmeter, erledigte Einheiten und Festpreisarbeit in einem Eintrag." },
-      { "title": "Verlässlichen Verlauf speichern", "description": "Alveryn speichert Menge, Zeit und Geld, damit spätere Änderungen alte Arbeit nicht überschreiben." }
+      {
+        "title": "Beschreibe deine Arbeit",
+        "description": "Füge Job, Bezahlmodell, Tarif und deine Arbeitstypen hinzu."
+      },
+      {
+        "title": "Erfasse jeden Arbeitstag",
+        "description": "Tracke eine laufende Schicht oder trage Zeit, Einheiten und erledigte Aufträge manuell ein."
+      },
+      {
+        "title": "Nutze deinen Verlauf",
+        "description": "Prüfe Kalender, Abwesenheiten und Summen, ohne alles erneut zu berechnen."
+      }
     ]
   },
-  "analytics": {
-    "eyebrow": "Von Einträgen zu Klarheit", "title": "Sieh mehr als Summen. Sieh dein Muster.",
-    "body": "Mit wachsendem Verlauf macht Alveryn Zeit, Einkommen und Arbeitsmenge besser verständlich.",
+  "audience": {
+    "eyebrow": "Für wechselnde Arbeit gebaut",
+    "title": "Eine App, wenn Arbeit mehr als eine einfache Schicht ist.",
+    "body": "Alveryn hilft, wenn Stunden, Leistung und Bezahlung nicht in einen einfachen Timer passen.",
     "items": [
-      { "title": "Wochenrhythmus", "description": "Vergleiche jeden Tag mit dem stärksten Tag und dem Durchschnitt der angezeigten Woche." },
-      { "title": "Einkommensfluss", "description": "Verfolge tägliches Einkommen; Tage ohne Aktivität verändern den Arbeitstage-Durchschnitt nicht." },
-      { "title": "Periodenübersicht", "description": "Prüfe Summen und Vergleiche für den ausgewählten Zeitraum." },
-      { "title": "Aktivitätsmuster", "description": "Erkenne stärkere und leichtere Tage, ohne jeden Eintrag einzeln zu lesen." }
+      {
+        "title": "Arbeit nach Stunden",
+        "description": "Führe einen eigenen Verlauf über Schichten, Pausen, Überstundenkontext und Abwesenheiten."
+      },
+      {
+        "title": "Mehrere Jobs",
+        "description": "Trenne Jobs, Arbeitstypen und Tarife, ohne deinen Verlauf auf mehrere Tools zu verteilen."
+      },
+      {
+        "title": "Leistungsbasierte Arbeit",
+        "description": "Erfasse Zimmer, Lieferungen, Teile, Kilometer oder abgeschlossene Aufträge zusammen mit der Zeit."
+      }
     ]
   },
-  "calendar": {
-    "eyebrow": "Kalender und Abwesenheiten", "title": "Dein ganzer Arbeitsmonat an einem Ort.",
-    "body": "Sieh Arbeitseinträge und konfigurierbare Abwesenheiten zusammen, während jeder Tag seine Tätigkeiten behält.",
-    "stats": ["Arbeitstage", "Reale und äquivalente Stunden", "Urlaub und Krankheit", "Berechnetes Bruttoeinkommen"]
+  "preview": {
+    "dashboardAlt": "Alveryn Dashboard-Vorschau mit Arbeitszeit, Einnahmen, Tätigkeiten und einer kommenden Abwesenheit.",
+    "today": "Donnerstag, 23. Juli",
+    "greeting": "Deine Arbeit heute",
+    "synced": "Aktuell",
+    "worked": "Erfasste Zeit",
+    "workedValue": "7 Std. 45 Min.",
+    "earned": "Berechnetes Einkommen",
+    "earnedValue": "168,40 €",
+    "recordTitle": "Heutige Tätigkeiten",
+    "recordDate": "2 Einträge",
+    "activities": [
+      { "name": "Frühschicht", "detail": "6 Std. 30 Min. · 19,20 €/Std.", "value": "124,80 €" },
+      { "name": "Erledigte Lieferungen", "detail": "24 Einheiten · 1,82 €/Einheit", "value": "43,60 €" }
+    ],
+    "nextAbsence": "Urlaub genehmigt",
+    "nextAbsenceDate": "3.–7. August"
   },
-  "final": { "title": "Deine Arbeit verdient mehr als eine grobe Schätzung.", "subtitle": "Baue ab heute einen klaren Verlauf deiner Stunden, Arbeit und Einnahmen auf.", "primaryCta": "Konto erstellen", "secondaryCta": "Einloggen" },
-  "images": {
-    "dashboardLabel": "Dashboard", "entryLabel": "Arbeitseintrag", "statisticsLabel": "Übersicht", "calendarLabel": "Kalender",
-    "dashboardAlt": "Alveryn Dashboard-Komponente mit Arbeitseinträgen und Wochenrhythmus.",
-    "entryAlt": "Alveryn Formular für einen Eintrag mit mehreren Tätigkeiten.", "statisticsAlt": "Alveryn Übersicht über Zeit und Einkommen.",
-    "comparisonAlt": "Alveryn Komponente zum Periodenvergleich.", "forecastAlt": "Alveryn Komponente zur Einkommensprognose.",
-    "productivityAlt": "Alveryn Produktivitätskomponente.", "heatmapAlt": "Alveryn Heatmap der Arbeitsaktivität.",
-    "calendarAlt": "Alveryn Kalenderkomponente mit Arbeit und Abwesenheiten."
+  "monthPreview": {
+    "alt": "Alveryn Monatsübersicht mit Arbeitstagen, Stunden, Einkommen und einer Abwesenheit.",
+    "period": "Monatsübersicht",
+    "title": "Juli 2026",
+    "days": "Arbeitstage",
+    "hours": "Gesamtstunden",
+    "earnings": "Einnahmen",
+    "absence": "Genehmigte Abwesenheiten erscheinen im selben Verlauf"
+  },
+  "final": {
+    "title": "Rekonstruiere deine Arbeit nicht erst am Monatsende.",
+    "subtitle": "Baue ab heute einen klaren, verlässlichen Verlauf über Zeit, Leistung und Einkommen auf.",
+    "primaryCta": "Kostenlos mit Tracking starten"
   }
 }

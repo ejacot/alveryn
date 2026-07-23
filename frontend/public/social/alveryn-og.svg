@@ -1,0 +1,47 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(870 120) rotate(124) scale(520 580)">
+      <stop stop-color="#F4C95D" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#F4C95D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="670" y1="128" x2="1080" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171717"/>
+      <stop offset="1" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <filter id="shadow" x="610" y="70" width="570" height="520" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="#050505"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <text x="72" y="75" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" letter-spacing="9">ALVERYN</text>
+  <text x="72" y="216" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">
+    <tspan x="72" dy="0">Track the work.</tspan>
+    <tspan x="72" dy="65">Know the hours.</tspan>
+    <tspan x="72" dy="65">Understand the money.</tspan>
+  </text>
+  <text x="72" y="470" fill="#A3A3A3" font-family="Arial, Helvetica, sans-serif" font-size="25">
+    <tspan x="72" dy="0">Hours, completed work, earnings and absences</tspan>
+    <tspan x="72" dy="38">in one reliable record.</tspan>
+  </text>
+  <g filter="url(#shadow)">
+    <rect x="650" y="110" width="470" height="410" rx="34" fill="url(#card)" stroke="#343434" stroke-width="2"/>
+    <text x="690" y="155" fill="#888" font-family="Arial, Helvetica, sans-serif" font-size="15">THURSDAY, 23 JULY</text>
+    <text x="690" y="193" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Your work today</text>
+    <rect x="690" y="226" width="184" height="110" rx="20" fill="#0A0A0A" stroke="#333"/>
+    <text x="714" y="259" fill="#888" font-family="Arial, Helvetica, sans-serif" font-size="14">RECORDED TIME</text>
+    <text x="714" y="308" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">7h 45m</text>
+    <rect x="894" y="226" width="186" height="110" rx="20" fill="#1B1709" stroke="#665218"/>
+    <text x="918" y="259" fill="#B8A36B" font-family="Arial, Helvetica, sans-serif" font-size="14">EARNINGS</text>
+    <text x="918" y="308" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">€168.40</text>
+    <rect x="690" y="356" width="390" height="124" rx="20" fill="#090909" stroke="#292929"/>
+    <rect x="714" y="382" width="5" height="34" rx="2.5" fill="#F4C95D"/>
+    <text x="735" y="397" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600">Morning shift</text>
+    <text x="735" y="417" fill="#777" font-family="Arial, Helvetica, sans-serif" font-size="13">6h 30m · €19.20/hour</text>
+    <text x="1006" y="405" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700">€124.80</text>
+    <rect x="714" y="432" width="5" height="28" rx="2.5" fill="#6DD5FA"/>
+    <text x="735" y="450" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600">24 deliveries</text>
+    <text x="1006" y="450" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700">€43.60</text>
+  </g>
+  <rect x="72" y="550" width="204" height="6" rx="3" fill="#F4C95D"/>
+</svg>

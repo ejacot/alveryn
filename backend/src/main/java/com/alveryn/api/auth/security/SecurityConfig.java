@@ -44,6 +44,7 @@ public class SecurityConfig {
                 auth.requestMatchers("/actuator/health", "/error").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/auth/oauth/google/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/analytics/public-event").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/api/me").authenticated()
                     .anyRequest()

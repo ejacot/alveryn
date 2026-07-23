@@ -162,6 +162,30 @@ describe("dashboard components", () => {
     expect(onCreateAbsence).toHaveBeenCalledWith("absence-sick-type");
   });
 
+  it("explains how to configure absences when a new account has no absence types", async () => {
+    const onConfigureAbsences = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={baseSelectedDay}
+        weeklyDays={[]}
+        absenceTypes={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+        onConfigureAbsences={onConfigureAbsences}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Absence" }));
+
+    expect(screen.getByText("No absence types configured")).toBeInTheDocument();
+    expect(screen.getByText(/Create your first absence type/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create absence type" }));
+    expect(onConfigureAbsences).toHaveBeenCalledOnce();
+  });
+
   it("hides absence action when the selected day already has activity", () => {
     render(
       <DashboardOverview

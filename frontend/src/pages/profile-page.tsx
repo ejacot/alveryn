@@ -275,7 +275,11 @@ export function ProfilePage() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:app")}>
-        <SettingsRow to="/settings/export-pdf" label={t("settings:pdfExport.menuLabel")} />
+        <SettingsRow
+          to="/settings/export-pdf"
+          label={t("settings:pdfExport.menuLabel")}
+          description={t("settings:pageInfo.pdfExport.description")}
+        />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/about" label={t("settings:about")} />
         <div className="mx-5 h-px bg-white/[0.06]" />

@@ -85,6 +85,12 @@ function FounderContent({
     ["firstSession", dashboard.activation.firstWorkSessionCreated]
   ] as const;
 
+  const acquisition = [
+    ["landing", dashboard.acquisition.landingVisitorsLast30Days],
+    ["started", dashboard.acquisition.registrationStartsLast30Days],
+    ["registered", dashboard.acquisition.registrationsLast30Days]
+  ] as const;
+
   const usage = [
     ["timeUsers", dashboard.usage.timeTrackingUsers],
     ["earningsUsers", dashboard.usage.earningsTrackingUsers],
@@ -110,6 +116,28 @@ function FounderContent({
             </Card>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <p className="hairline-text">{t("settings:founder.acquisition")}</p>
+        <Card className="space-y-4 p-5">
+          {acquisition.map(([key, value]) => {
+            const percent = dashboard.acquisition.landingVisitorsLast30Days
+              ? Math.round((value / dashboard.acquisition.landingVisitorsLast30Days) * 100)
+              : 0;
+            return (
+              <div key={key}>
+                <div className="mb-2 flex items-center justify-between gap-4 text-sm">
+                  <span className="text-white/72">{t(`settings:founder.acquisitionFunnel.${key}`)}</span>
+                  <span className="font-semibold text-white">{value} <span className="text-white/35">· {percent}%</span></span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="h-full rounded-full bg-amber-300/80" style={{ width: `${Math.min(percent, 100)}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </Card>
       </section>
 
       <section className="space-y-2">

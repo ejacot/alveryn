@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -18,6 +18,7 @@ import {
 } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
+import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
@@ -164,6 +165,9 @@ export function SettingsAbsencePage() {
         } : undefined}
       />
 
+      <SettingsSuccessMessage message={!editorOpen ? successMessage : null} />
+      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.absences.description")}</p>
+
       <section className="space-y-4">
         {absenceTypes.length ? absenceTypes.map((type) => (
           <Card
@@ -189,6 +193,7 @@ export function SettingsAbsencePage() {
         )) : (
           <SettingsEmptyState
             title={t("settings:absenceSettings.emptyTitle")}
+            description={t("settings:absenceSettings.emptyDescription")}
             actionLabel={t("settings:absenceSettings.addType")}
             onAction={openCreate}
           />
@@ -226,14 +231,6 @@ export function SettingsAbsencePage() {
         }}
       />
       {dialog}
-      {successMessage && !editorOpen ? (
-        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
-            <Check className="h-6 w-6" />
-          </div>
-          <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </Card>
-      ) : null}
     </div>
   );
 }
@@ -337,6 +334,7 @@ function AbsenceTypeDialog({
                 });
               }}
             />
+            <p className="text-xs leading-5 text-white/42">{t("settings:absenceSettings.paidHelp")}</p>
             {form.watch("paid") ? (
               <Input
                 label={t("settings:absenceSettings.fields.paidHours")}

@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -16,12 +15,12 @@ import {
   updateHourlyRate
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
+import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { SettingsContextCard } from "../components/settings/settings-context-card";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
-import { Card } from "../components/ui/card";
 import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
 import { ModalPanel } from "../components/ui/modal-panel";
 import { ModalActions } from "../components/ui/modal-actions";
@@ -280,14 +279,7 @@ export function HourlyRateEditorPage() {
         onConfirm={() => void deleteMutation.mutateAsync()}
       />
       {dialog}
-      {successMessage ? (
-        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
-            <Check className="h-6 w-6" />
-          </div>
-          <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </Card>
-      ) : null}
+      <SettingsSuccessMessage message={successMessage} />
     </LockedModalViewport>
   );
 }

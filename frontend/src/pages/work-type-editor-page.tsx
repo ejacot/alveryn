@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Clock3, Coins, Ruler } from "lucide-react";
+import { Clock3, Coins, Ruler } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,7 @@ import {
 } from "../api/endpoints";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
-import { SettingsFormActions } from "../components/settings/settings-form-actions";
+import { SettingsFormActions, SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
 import { SettingsSection } from "../components/settings/settings-section";
@@ -942,14 +942,7 @@ export function WorkTypeEditorPage() {
         }
       />
       {dialog}
-      {successMessage ? (
-        <Card variant="panel" className="fixed inset-x-6 top-24 z-[80] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
-            <Check className="h-6 w-6" />
-          </div>
-          <p className="mt-3 text-base font-semibold text-white">{successMessage}</p>
-        </Card>
-      ) : null}
+      <SettingsSuccessMessage message={successMessage} />
     </WorkTypeEditorShell>
   );
 }

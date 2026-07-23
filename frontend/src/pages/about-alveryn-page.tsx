@@ -17,8 +17,8 @@ export function AboutAlverynPage() {
       </SettingsSection>
       <SettingsSection title="Data and privacy">
         <div className="space-y-3 text-sm leading-6 text-white/58">
-          <p>Alveryn records one activity marker per day and successful PDF exports to understand whether the product is useful.</p>
-          <p>No page history, IP address, work notes, earnings or work-line content is included in product analytics.</p>
+          <p>Alveryn records one activity marker per day, successful PDF exports and anonymous Welcome conversion events to understand whether the product is useful.</p>
+          <p>Welcome analytics use a temporary random session identifier. No page history, persistent marketing identifier, IP address, email, work notes, earnings or work-line content is included in product analytics.</p>
         </div>
       </SettingsSection>
     </div>

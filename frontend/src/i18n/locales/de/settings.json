@@ -3,7 +3,8 @@
   "founder": {
     "title": "Founder", "menuLabel": "Founder-Dashboard", "refresh": "Dashboard aktualisieren",
     "error": "Die Founder-Daten konnten nicht geladen werden. Versuche es erneut.",
-    "overview": "Übersicht", "registrations": "Registrierungen · letzte 30 Tage", "activation": "Aktivierung", "usage": "Produktnutzung", "users": "Benutzer",
+    "overview": "Übersicht", "acquisition": "Akquisition · letzte 30 Tage", "registrations": "Registrierungen · letzte 30 Tage", "activation": "Aktivierung", "usage": "Produktnutzung", "users": "Benutzer",
+    "acquisitionFunnel": { "landing": "Welcome-Sitzungen", "started": "Registrierung gestartet", "registered": "Konten erstellt" },
     "noUsers": "Noch keine Benutzerkonten.", "verified": "Verifiziert", "unverified": "Ausstehend",
     "joined": "Registriert {{date}}", "lastActive": "Zuletzt aktiv {{date}}", "userCounts": "{{employments}} Jobs · {{types}} Typen · {{sessions}} Tage",
     "metrics": { "totalUsers": "Benutzer gesamt", "activeToday": "Heute aktiv", "active7": "Aktiv · 7 Tage", "active30": "Aktiv · 30 Tage", "newToday": "Heute neu", "new7": "Neu · 7 Tage" },
@@ -13,7 +14,7 @@
   "pdfExport": {
     "title": "PDF exportieren", "menuLabel": "PDF exportieren", "employment": "Enthaltene Beschäftigung",
     "scopeHint": "Der Bericht verwendet die in den Einstellungen ausgewählte Beschäftigung. Mit Alle werden sämtliche Beschäftigungen kombiniert.",
-    "period": "Zeitraum", "from": "Von", "to": "Bis", "include": "Im Bericht anzeigen",
+    "period": "Zeitraum", "periodHint": "Nur Arbeit und Abwesenheiten innerhalb dieser Daten werden berücksichtigt.", "from": "Von", "to": "Bis", "include": "Im Bericht anzeigen", "includeHint": "Wähle die Details, die der Empfänger sehen soll.",
     "singlePageHint": "Die chronologische Liste wird automatisch verdichtet, damit der vollständige Bericht auf einer A4-Seite bleibt.",
     "generate": "PDF erstellen", "generating": "PDF wird erstellt…",
     "fields": { "date": "Datum", "activity": "Aktivität", "intervals": "Arbeitsintervalle", "hours": "Arbeitsstunden", "quantity": "Erledigte Menge", "extra": "Extra-Prozentsatz", "earnings": "Verdienst", "notes": "Notizen" },
@@ -28,6 +29,7 @@
     "hourlyRates": { "title": "Passende Sätze für jeden Zeitraum", "description": "Füge datierte Stundensätze hinzu, damit jeder Arbeitstag den richtigen Wert nutzt." },
     "hourlyRateEditor": { "title": "Zeitraum für einen Satz", "description": "Gib Stundenbetrag, Währung und den gültigen Zeitraum ein." },
     "workTypes": { "title": "Erstelle deine eigene Arbeitskonfiguration", "description": "Du startest ohne Vorgaben und ergänzt nur Tätigkeiten und Berechnungen, die du nutzt." },
+    "pdfExport": { "title": "Arbeitsbericht erstellen", "description": "Wähle Zeitraum und Arbeitsdetails aus, die du teilen möchtest." },
     "about": { "title": "Über diese App", "description": "Sieh die installierte Version und Informationen zu Alveryn." },
     "help": { "title": "Brauchst du Hilfe?", "description": "Kontaktiere den Support, wenn etwas unklar ist oder nicht funktioniert." }
   },
@@ -52,6 +54,9 @@
     "choose": "Beschäftigung auswählen",
     "settingsTitle": "Beschäftigungseinstellungen",
     "contractPeriod": "Erfassung",
+    "dashboardFocus": "Dashboard-Schwerpunkt",
+    "enabled": "An",
+    "disabled": "Aus",
     "current": "Aktuell",
     "unavailableTitle": "Beschäftigung nicht verfügbar",
     "unavailableDescription": "Diese Beschäftigung wurde nicht gefunden.",
@@ -96,8 +101,17 @@
       "tracking": "Was möchtest du erfassen?",
       "period": "Vertragszeitraum",
       "hourBalance": "Arbeitszeit",
+      "overview": "Dashboard",
+      "timeEntry": "Zeiterfassung",
+      "hourBalanceAccount": "Stundenkonto",
       "fixedSalary": "Festgehalt und Stundenkonto",
       "availability": "Verfügbarkeit"
+    },
+    "sectionHelp": {
+      "overview": "Ändert nur, was das Dashboard hervorhebt; gespeicherte Arbeits- und Zahlungsdaten bleiben verfügbar.",
+      "timeEntry": "Wähle, ob du für diese Beschäftigung einen laufenden Check-in-Timer brauchst.",
+      "hourBalanceAccount": "Optional, wenn du gearbeitete Stunden mit einem vereinbarten Soll vergleichst.",
+      "rules": "Verwalte Sätze, Tätigkeiten und Abwesenheitsregeln dieser Beschäftigung."
     },
     "fields": {
       "name": "Name der Beschäftigung",
@@ -112,6 +126,8 @@
       "targetPeriod": "Sollzeitraum",
       "validityMonths": "Gültigkeit des Stundenkontos",
       "hourBalance": "Mein Stundenkonto berechnen",
+      "hourBalanceAccount": "Stundenkonto",
+      "timer": "Check-in-Timer",
       "active": "Aktive Beschäftigung"
     },
     "help": {
@@ -119,6 +135,8 @@
       "targetHours": "Erwartete Stunden für die ausgewählte Woche oder den Monat.",
       "validityMonths": "Wie viele Monate Stundendifferenzen im laufenden Saldo bleiben.",
       "hourBalance": "Vergleicht deine Arbeitszeit mit dem Soll und überträgt positive oder negative Stunden.",
+      "dashboardFocus": "Wähle, ob das Dashboard Arbeitszeit oder Einnahmen hervorhebt. Andere Funktionen bleiben verfügbar.",
+      "timer": "Zeigt Check-in und Check-out im Dashboard. Manuelle Einträge bleiben verfügbar.",
       "active": "Inaktive Beschäftigungen bleiben im Verlauf, können aber keine neuen Einträge erhalten."
     },
     "compensation": {
@@ -145,6 +163,7 @@
   },
   "workSetup": {
     "title": "Arbeits-Setup",
+    "emptyTitle": "Noch keine Arbeitsarten",
     "description": "Konfiguriere die Aktivitaten, die zu einem Job hinzugefugt werden konnen. Ein Job kann mehrere Arbeitszeilen enthalten, und jede Zeile behalt ihre eigene Formel.",
     "addWorkType": "Arbeitsart hinzufugen",
     "emptyDescription": "Erstelle die erste Formel fur deine Arbeit: Stunden, Einheiten in Stunden oder direkte Bezahlung pro Einheit.",
@@ -294,7 +313,10 @@
   "preferences": "Einstellungen",
   "absenceSettings": {
     "title": "Abwesenheiten",
+    "description": "Lege Urlaub, Krankheit und andere freie Tage fest und bestimme, ob sie als bezahlte Zeit zählen.",
     "emptyTitle": "Noch keine Abwesenheitsarten",
+    "emptyDescription": "Erstelle zuerst eine Abwesenheitsart, bevor du einen arbeitsfreien Tag markierst.",
+    "paidHelp": "Wenn aktiviert, erscheinen diese Stunden in Summen und Berichten als bezahlte Abwesenheit.",
     "normalDay": "Normaler Tag",
     "paidTypes": "Bezahlte Abwesenheiten",
     "types": "Abwesenheitstypen",
@@ -454,6 +476,10 @@
     }
   },
   "hourlyRates": "Stundensätze",
+  "hourlyRateList": {
+    "emptyTitle": "Noch keine Stundensätze",
+    "emptyDescription": "Füge Satz und Startdatum hinzu, damit Einnahmen für jeden Arbeitstag korrekt berechnet werden."
+  },
   "hourlyRateEditor": {
     "addTitle": "Stundensatz hinzufügen",
     "editTitle": "Stundensatz bearbeiten",

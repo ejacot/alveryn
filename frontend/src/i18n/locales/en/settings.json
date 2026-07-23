@@ -3,7 +3,8 @@
   "founder": {
     "title": "Founder", "menuLabel": "Founder dashboard", "refresh": "Refresh dashboard",
     "error": "Founder data could not be loaded. Try again in a moment.",
-    "overview": "Overview", "registrations": "Registrations · last 30 days", "activation": "Activation funnel", "usage": "Product usage", "users": "Users",
+    "overview": "Overview", "acquisition": "Acquisition · last 30 days", "registrations": "Registrations · last 30 days", "activation": "Activation funnel", "usage": "Product usage", "users": "Users",
+    "acquisitionFunnel": { "landing": "Welcome sessions", "started": "Registration started", "registered": "Accounts created" },
     "noUsers": "No customer accounts yet.", "verified": "Verified", "unverified": "Pending",
     "joined": "Joined {{date}}", "lastActive": "Last active {{date}}", "userCounts": "{{employments}} jobs · {{types}} types · {{sessions}} days",
     "metrics": { "totalUsers": "Total users", "activeToday": "Active today", "active7": "Active · 7 days", "active30": "Active · 30 days", "newToday": "New today", "new7": "New · 7 days" },
@@ -13,7 +14,7 @@
   "pdfExport": {
     "title": "Export PDF", "menuLabel": "Export PDF", "employment": "Employment included",
     "scopeHint": "The report follows the employment selected in Settings. Select All to combine every employment.",
-    "period": "Period", "from": "From", "to": "To", "include": "Include in report",
+    "period": "Period", "periodHint": "Only work and absences inside these dates will be included.", "from": "From", "to": "To", "include": "Include in report", "includeHint": "Choose the details you want the recipient to see.",
     "singlePageHint": "The layout automatically compacts the chronological list so the complete report stays on one A4 page.",
     "generate": "Generate PDF", "generating": "Generating PDF…",
     "fields": { "date": "Date", "activity": "Activity", "intervals": "Work intervals", "hours": "Worked hours", "quantity": "Completed quantity", "extra": "Extra percentage", "earnings": "Earnings", "notes": "Notes" },
@@ -28,6 +29,7 @@
     "hourlyRates": { "title": "Rates that follow your history", "description": "Add dated hourly rates so every workday uses the correct value." },
     "hourlyRateEditor": { "title": "Add a rate period", "description": "Enter the hourly amount, currency and the dates when it applies." },
     "workTypes": { "title": "Build your own work setup", "description": "Start empty and add only the activities and calculations you actually use." },
+    "pdfExport": { "title": "Create a work report", "description": "Choose a period and export the work details you want to share." },
     "about": { "title": "About this app", "description": "See the installed Alveryn version and product information." },
     "help": { "title": "Need help?", "description": "Contact support directly when something is unclear or does not work." }
   },
@@ -52,6 +54,9 @@
     "choose": "Choose employment",
     "settingsTitle": "Employment settings",
     "contractPeriod": "Tracking",
+    "dashboardFocus": "Dashboard focus",
+    "enabled": "On",
+    "disabled": "Off",
     "current": "Current",
     "unavailableTitle": "Employment is unavailable",
     "unavailableDescription": "This employment could not be found.",
@@ -96,8 +101,17 @@
       "tracking": "What do you want to track?",
       "period": "Contract period",
       "hourBalance": "Working time",
+      "overview": "Dashboard",
+      "timeEntry": "Time entry",
+      "hourBalanceAccount": "Hours balance",
       "fixedSalary": "Fixed salary and hour balance",
       "availability": "Availability"
+    },
+    "sectionHelp": {
+      "overview": "This only changes what the dashboard emphasizes; your saved work and payment data stay available.",
+      "timeEntry": "Choose whether this employment needs a live check-in timer.",
+      "hourBalanceAccount": "Optional for people who compare worked hours with an agreed target.",
+      "rules": "Manage the rates, activities and absence rules that belong to this employment."
     },
     "fields": {
       "name": "Employment name",
@@ -112,6 +126,8 @@
       "targetPeriod": "Target period",
       "validityMonths": "Hour balance validity",
       "hourBalance": "Calculate my hour balance",
+      "hourBalanceAccount": "Hours balance account",
+      "timer": "Check-in timer",
       "active": "Active employment"
     },
     "help": {
@@ -119,6 +135,8 @@
       "targetHours": "Expected hours for the selected week or month.",
       "validityMonths": "How many months worked-hour differences remain in the carried balance.",
       "hourBalance": "Compare worked hours with your target and carry positive or negative hours forward.",
+      "dashboardFocus": "Choose whether the dashboard highlights worked time or earnings. This does not disable other features.",
+      "timer": "Show check-in and check-out on the dashboard. Manual entries remain available.",
       "active": "Inactive employments remain in history but cannot receive new entries."
     },
     "compensation": {
@@ -145,6 +163,7 @@
   },
   "workSetup": {
     "title": "Work setup",
+    "emptyTitle": "No work types yet",
     "description": "Configure the activities that can be added to a job. A job can contain several work lines, and every line keeps its own formula.",
     "addWorkType": "Add work type",
     "emptyDescription": "Create the first formula you use at work: hours, units converted to hours, or direct per-unit pay.",
@@ -294,7 +313,10 @@
   "preferences": "Preferences",
   "absenceSettings": {
     "title": "Absences",
+    "description": "Define vacation, sick leave and other days away, including whether they count as paid time.",
     "emptyTitle": "No absence types yet",
+    "emptyDescription": "Create your first absence type before marking a day away from work.",
+    "paidHelp": "When enabled, these hours are included in summaries and reports as paid absence.",
     "normalDay": "Normal day",
     "paidTypes": "Paid absence types",
     "types": "Absence types",
@@ -454,6 +476,10 @@
     }
   },
   "hourlyRates": "Hourly rates",
+  "hourlyRateList": {
+    "emptyTitle": "No hourly rates yet",
+    "emptyDescription": "Add the rate and start date so earnings are calculated correctly for every workday."
+  },
   "hourlyRateEditor": {
     "addTitle": "Add hourly rate",
     "editTitle": "Edit hourly rate",

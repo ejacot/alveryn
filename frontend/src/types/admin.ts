@@ -24,6 +24,11 @@ export type FounderUser = {
 
 export type FounderDashboard = {
   overview: FounderOverview;
+  acquisition: {
+    landingVisitorsLast30Days: number;
+    registrationStartsLast30Days: number;
+    registrationsLast30Days: number;
+  };
   activation: {
     registered: number;
     verified: number;

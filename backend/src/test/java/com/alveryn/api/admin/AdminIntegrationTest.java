@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -33,6 +34,7 @@ class AdminIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    jdbc.update("DELETE FROM product_events");
     preferences.deleteAll();
     users.deleteAll();
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
@@ -40,6 +42,7 @@ class AdminIntegrationTest {
 
   @AfterEach
   void tearDown() {
+    jdbc.update("DELETE FROM product_events");
     preferences.deleteAll();
     users.deleteAll();
   }
@@ -77,6 +80,29 @@ class AdminIntegrationTest {
         customer.getId());
     org.assertj.core.api.Assertions.assertThat(activityDays).isEqualTo(1);
     org.assertj.core.api.Assertions.assertThat(exports).isEqualTo(1);
+  }
+
+  @Test
+  void anonymousAcquisitionEventsArePublicAndDeduplicatedPerDay() throws Exception {
+    String visitorId = "2afab16a-9e26-4dc0-9951-85ba16f624ee";
+    String event = """
+        {"eventType":"LANDING_VIEW","anonymousId":"%s"}
+        """.formatted(visitorId);
+
+    mvc.perform(post("/api/analytics/public-event")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(event))
+        .andExpect(status().isCreated());
+    mvc.perform(post("/api/analytics/public-event")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(event))
+        .andExpect(status().isCreated());
+
+    Integer views = jdbc.queryForObject(
+        "SELECT COUNT(*) FROM product_events WHERE anonymous_id = ?::uuid AND event_type = 'LANDING_VIEW'",
+        Integer.class,
+        visitorId);
+    org.assertj.core.api.Assertions.assertThat(views).isEqualTo(1);
   }
 
   private UserAccount verified(String email) {

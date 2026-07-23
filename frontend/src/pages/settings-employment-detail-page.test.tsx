@@ -18,6 +18,7 @@ vi.mock("../api/endpoints", () => ({
     compensationType: "HOURLY",
     trackingFocus: "TIME",
     hourBalanceEnabled: false,
+    timerEnabled: true,
     termsValidFrom: "2026-01-01",
     startDate: "2026-01-01",
     endDate: null,
@@ -66,12 +67,13 @@ describe("SettingsEmploymentDetailPage", () => {
     expect(within(periodDialog).getByRole("button", { name: "Save" })).toBeDisabled();
     await user.click(within(periodDialog).getByText("Cancel"));
     expect(screen.queryByRole("link", { name: /employment name/i })).not.toBeInTheDocument();
-    const trackingSelect = screen.getByRole("combobox", { name: "Tracking" });
+    const trackingSelect = screen.getByRole("combobox", { name: "Dashboard focus" });
     expect(trackingSelect).toHaveValue("TIME");
     await user.selectOptions(trackingSelect, "EARNINGS");
     await waitFor(() => expect(trackingSelect).toHaveValue("EARNINGS"));
-    await user.selectOptions(trackingSelect, "TIME");
-    const trackingDialog = screen.getByRole("dialog", { name: "Time tracking" });
+    expect(screen.getByRole("switch", { name: /check-in timer/i })).toHaveAttribute("aria-checked", "true");
+    await user.click(screen.getByRole("button", { name: /hours balance account/i }));
+    const trackingDialog = screen.getByRole("dialog", { name: "Hours balance account" });
     expect(within(trackingDialog).getByRole("switch", { name: /calculate my hour balance/i })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("link", { name: "Hourly rates" })).toHaveAttribute("href", "/settings/hourly-rates?employmentId=employment-1");
     expect(screen.getByRole("link", { name: "Work types" })).toHaveAttribute("href", "/settings/work-types?employmentId=employment-1");

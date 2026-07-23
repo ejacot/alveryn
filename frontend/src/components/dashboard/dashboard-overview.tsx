@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
@@ -29,6 +30,7 @@ type Props = {
   onRhythmDaySelect?: (date: string) => void;
   onWeekSwipe?: (direction: -1 | 1) => void;
   onCreateAbsence: (absenceTypeId: string) => void;
+  onConfigureAbsences?: () => void;
   onDeleteAbsence?: (activityId: string) => void;
   absencePending?: boolean;
   absenceError?: string | null;
@@ -50,6 +52,7 @@ export function DashboardOverview({
   onRhythmDaySelect,
   onWeekSwipe,
   onCreateAbsence,
+  onConfigureAbsences,
   onDeleteAbsence,
   absencePending = false,
   absenceError = null,
@@ -77,6 +80,7 @@ export function DashboardOverview({
         onQuickAdd={onQuickAdd}
         onDaySwipe={onDaySwipe}
         onCreateAbsence={onCreateAbsence}
+        onConfigureAbsences={onConfigureAbsences}
         onDeleteAbsence={onDeleteAbsence}
         absencePending={absencePending}
         absenceError={absenceError}
@@ -108,6 +112,7 @@ function SelectedDayPanel({
   onQuickAdd,
   onDaySwipe,
   onCreateAbsence,
+  onConfigureAbsences,
   onDeleteAbsence,
   absencePending,
   absenceError
@@ -118,6 +123,7 @@ function SelectedDayPanel({
   onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
   onCreateAbsence: (absenceTypeId: string) => void;
+  onConfigureAbsences?: () => void;
   onDeleteAbsence?: (activityId: string) => void;
   absencePending: boolean;
   absenceError: string | null;
@@ -172,6 +178,12 @@ function SelectedDayPanel({
           pending={absencePending}
           onClose={() => setAbsenceOpen(false)}
           onSelect={handleAbsence}
+          onConfigure={onConfigureAbsences
+            ? () => {
+                setAbsenceOpen(false);
+                onConfigureAbsences();
+              }
+            : undefined}
           absenceTypes={absenceTypes}
         />
       </motion.section>
@@ -211,12 +223,14 @@ function AbsenceChooser({
   pending,
   onClose,
   onSelect,
+  onConfigure,
   absenceTypes
 }: {
   open: boolean;
   pending: boolean;
   onClose: () => void;
   onSelect: (absenceTypeId: string) => void;
+  onConfigure?: () => void;
   absenceTypes: AbsenceTypeSetting[];
 }) {
   const { t } = useTranslation("dashboard");
@@ -253,8 +267,9 @@ function AbsenceChooser({
           </button>
         </div>
 
-        <div className="space-y-2">
-          {absenceTypes.map((option) => (
+        {absenceTypes.length ? (
+          <div className="space-y-2">
+            {absenceTypes.map((option) => (
             <Card
               as="button"
               key={option.id}
@@ -266,8 +281,27 @@ function AbsenceChooser({
               <span className="font-name font-semibold tracking-[-0.03em] text-white">{option.name}</span>
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: option.color }} aria-hidden="true" />
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[1.5rem] border border-dashed border-white/[0.14] bg-white/[0.025] px-5 py-6 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white">
+              <Plus className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <p className="mt-4 font-semibold text-white">{t("absence.emptyTitle")}</p>
+            <p className="mt-2 text-sm leading-6 text-white/52">{t("absence.emptyDescription")}</p>
+            {onConfigure ? (
+              <button
+                type="button"
+                onClick={onConfigure}
+                className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black transition active:scale-[0.985]"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {t("absence.configure")}
+              </button>
+            ) : null}
+          </div>
+        )}
       </ModalPanel>
     </LockedModalViewport>
   );

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record AdminDashboardResponse(
     Overview overview,
+    AcquisitionFunnel acquisition,
     ActivationFunnel activation,
     ProductUsage usage,
     List<RegistrationPoint> registrations,
@@ -21,6 +22,11 @@ public record AdminDashboardResponse(
       long activeToday,
       long activeLast7Days,
       long activeLast30Days) {}
+
+  public record AcquisitionFunnel(
+      long landingVisitorsLast30Days,
+      long registrationStartsLast30Days,
+      long registrationsLast30Days) {}
 
   public record ActivationFunnel(
       long registered,

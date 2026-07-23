@@ -5,22 +5,27 @@ import { Card } from "../ui/card";
 
 type SettingsGroupProps = {
   title: string;
+  description?: string;
   children: React.ReactNode;
 };
 
 type SettingsRowProps = {
   to?: string;
   label: string;
+  description?: string;
   value?: string | null;
   destructive?: boolean;
   onClick?: () => void;
   showChevron?: boolean;
 };
 
-export function SettingsGroup({ title, children }: SettingsGroupProps) {
+export function SettingsGroup({ title, description, children }: SettingsGroupProps) {
   return (
     <section className="space-y-2">
-      <p className="hairline-text">{title}</p>
+      <div className="space-y-1">
+        <p className="hairline-text">{title}</p>
+        {description ? <p className="text-sm leading-5 text-white/42">{description}</p> : null}
+      </div>
       <Card className="overflow-hidden">
         {children}
       </Card>
@@ -31,6 +36,7 @@ export function SettingsGroup({ title, children }: SettingsGroupProps) {
 export function SettingsRow({
   to,
   label,
+  description,
   value,
   destructive = false,
   onClick,
@@ -41,13 +47,16 @@ export function SettingsRow({
 
   const content = (
     <>
-      <span
-        className={cn(
-          "text-[1rem] tracking-[-0.02em]",
-          destructive ? "text-white" : "text-white"
-        )}
-      >
-        {label}
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block text-[1rem] tracking-[-0.02em]",
+            destructive ? "text-white" : "text-white"
+          )}
+        >
+          {label}
+        </span>
+        {description ? <span className="mt-1 block text-xs leading-5 text-white/42">{description}</span> : null}
       </span>
       <span className="flex items-center gap-3">
         {value ? <span className="text-sm text-white/48">{value}</span> : null}
@@ -58,14 +67,14 @@ export function SettingsRow({
 
   if (to) {
     return (
-      <Link to={to} className={classes}>
+      <Link to={to} className={classes} aria-label={label}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button type="button" onClick={onClick} className={classes}>
+    <button type="button" onClick={onClick} className={classes} aria-label={label}>
       {content}
     </button>
   );

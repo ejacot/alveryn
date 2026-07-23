@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Plus } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { listHourlyRates } from "../api/endpoints";
@@ -13,6 +14,7 @@ import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { parseLocalIsoDate, todayLocalIsoDate } from "../utils/date";
 
 export function HourlyRatesPage() {
+  const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const employmentId = searchParams.get("employmentId");
@@ -33,7 +35,7 @@ export function HourlyRatesPage() {
   const rates = [...(ratesQuery.data ?? [])]
     .filter((rate) => !employmentId || rate.employmentId === employmentId)
     .sort(compareRates);
-  const title = "Hourly rates";
+  const title = t("settings:hourlyRates");
   const newRatePath = employmentId
     ? `/settings/hourly-rates/new?employmentId=${employmentId}`
     : "/settings/hourly-rates/new";
@@ -42,18 +44,20 @@ export function HourlyRatesPage() {
     <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
       <SettingsNavigationHeader
         title={title}
-        backLabel="Back"
+        backLabel={t("common:actions.back")}
         onBack={safeBack}
         action={rates.length > 0 ? {
-          label: "Add hourly rate",
+          label: t("settings:hourlyRateEditor.addTitle"),
           icon: <Plus className="h-5 w-5" aria-hidden="true" />,
           onClick: () => navigate(newRatePath)
         } : undefined}
       />
+      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.hourlyRates.description")}</p>
       {rates.length === 0 ? (
         <SettingsEmptyState
-          title="No hourly rates yet"
-          actionLabel="Add hourly rate"
+          title={t("settings:hourlyRateList.emptyTitle")}
+          description={t("settings:hourlyRateList.emptyDescription")}
+          actionLabel={t("settings:hourlyRateEditor.addTitle")}
           onAction={() => navigate(newRatePath)}
         />
       ) : (

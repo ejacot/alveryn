@@ -143,6 +143,7 @@ export function PdfExportPage() {
 
       <section className="space-y-2">
         <p className="hairline-text">{t("settings:pdfExport.period")}</p>
+        <p className="text-sm leading-5 text-white/42">{t("settings:pdfExport.periodHint")}</p>
         <Card className="grid grid-cols-2 gap-3 p-5">
           <Input label={t("settings:pdfExport.from")} type="date" value={from} onChange={(event) => setFrom(event.currentTarget.value)} />
           <Input label={t("settings:pdfExport.to")} type="date" value={to} onChange={(event) => setTo(event.currentTarget.value)} />
@@ -151,6 +152,7 @@ export function PdfExportPage() {
 
       <section className="space-y-2">
         <p className="hairline-text">{t("settings:pdfExport.include")}</p>
+        <p className="text-sm leading-5 text-white/42">{t("settings:pdfExport.includeHint")}</p>
         <Card className="grid grid-cols-2 overflow-hidden">
           {exportFields.map((field, index) => (
             <label

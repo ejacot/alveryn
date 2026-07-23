@@ -32,6 +32,7 @@ export function SettingsEmploymentDetailPage() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [periodEditorOpen, setPeriodEditorOpen] = useState(false);
   const [trackingEditorOpen, setTrackingEditorOpen] = useState(false);
+  const [timerEnabled, setTimerEnabled] = useState(false);
   const [hourBalanceEnabled, setHourBalanceEnabled] = useState(false);
   const [targetHours, setTargetHours] = useState("160");
   const [targetPeriod, setTargetPeriod] = useState<TargetPeriod>("MONTHLY");
@@ -50,6 +51,11 @@ export function SettingsEmploymentDetailPage() {
       setName(employmentQuery.data.name);
       setStartDate(employmentQuery.data.startDate ?? "");
       setEndDate(employmentQuery.data.endDate ?? "");
+      setTimerEnabled(employmentQuery.data.timerEnabled ?? employmentQuery.data.trackingFocus === "TIME");
+      setHourBalanceEnabled(employmentQuery.data.hourBalanceEnabled);
+      setTargetHours(employmentQuery.data.targetMinutes ? String(employmentQuery.data.targetMinutes / 60) : "160");
+      setTargetPeriod(employmentQuery.data.targetPeriod ?? "MONTHLY");
+      setValidityMonths(String(employmentQuery.data.hourBalanceValidityMonths ?? 12));
     }
   }, [employmentQuery.data]);
 
@@ -89,12 +95,21 @@ export function SettingsEmploymentDetailPage() {
     }
   });
   const trackingMutation = useMutation({
-    mutationFn: (trackingFocus: TrackingFocus) => updateEmployment(
+    mutationFn: ({
+      trackingFocus,
+      nextTimerEnabled = timerEnabled,
+      nextHourBalanceEnabled = hourBalanceEnabled
+    }: {
+      trackingFocus: TrackingFocus;
+      nextTimerEnabled?: boolean;
+      nextHourBalanceEnabled?: boolean;
+    }) => updateEmployment(
       employmentId,
       trackingPayload(
         employmentQuery.data!,
         trackingFocus,
-        trackingFocus === "TIME" && hourBalanceEnabled,
+        nextTimerEnabled,
+        nextHourBalanceEnabled,
         targetHours,
         targetPeriod,
         validityMonths
@@ -103,6 +118,8 @@ export function SettingsEmploymentDetailPage() {
     onSuccess: async (employment) => {
       queryClient.setQueryData(queryKeys.employments.detail(employment.id), employment);
       await queryClient.invalidateQueries({ queryKey: queryKeys.employments.all(), exact: true });
+      setTimerEnabled(employment.timerEnabled ?? false);
+      setHourBalanceEnabled(employment.hourBalanceEnabled);
       setTrackingEditorOpen(false);
     }
   });
@@ -185,26 +202,20 @@ export function SettingsEmploymentDetailPage() {
         </Card>
       </section>
 
-      <SettingsGroup title={t("settings:employment.settingsTitle")}>
+      <SettingsGroup title={t("settings:employment.sections.overview")} description={t("settings:employment.sectionHelp.overview")}>
         <label className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3">
-          <span className="min-w-0 text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.contractPeriod")}</span>
+          <span className="min-w-0">
+            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.dashboardFocus")}</span>
+            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.dashboardFocus")}</span>
+          </span>
           <span className="flex min-w-0 max-w-[62%] items-center gap-3">
             <select
-              aria-label={t("settings:employment.contractPeriod")}
+              aria-label={t("settings:employment.dashboardFocus")}
               value={employment.trackingFocus}
               disabled={trackingMutation.isPending}
               onChange={(event) => {
                 const nextFocus = event.currentTarget.value as TrackingFocus;
-                if (nextFocus === "EARNINGS") {
-                  setHourBalanceEnabled(false);
-                  trackingMutation.mutate("EARNINGS");
-                  return;
-                }
-                setHourBalanceEnabled(employment.hourBalanceEnabled);
-                setTargetHours(employment.targetMinutes ? String(employment.targetMinutes / 60) : "160");
-                setTargetPeriod(employment.targetPeriod ?? "MONTHLY");
-                setValidityMonths(String(employment.hourBalanceValidityMonths ?? 12));
-                setTrackingEditorOpen(true);
+                trackingMutation.mutate({ trackingFocus: nextFocus });
               }}
               style={{ textAlignLast: "right" }}
               className="min-w-0 flex-1 cursor-pointer appearance-none truncate border-0 bg-transparent py-2 text-right text-sm text-white/48 outline-none transition focus:text-white focus:ring-2 focus:ring-white/24 disabled:cursor-wait disabled:opacity-55"
@@ -216,20 +227,62 @@ export function SettingsEmploymentDetailPage() {
           </span>
         </label>
         {trackingMutation.error ? <p className="px-5 pb-3 text-sm text-red-300">{getApiError(trackingMutation.error).message}</p> : null}
-        <div className="mx-5 h-px bg-white/[0.06]" />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings:employment.sections.timeEntry")} description={t("settings:employment.sectionHelp.timeEntry")}>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={timerEnabled}
+          disabled={trackingMutation.isPending}
+          onClick={() => trackingMutation.mutate({
+            trackingFocus: employment.trackingFocus,
+            nextTimerEnabled: !timerEnabled
+          })}
+          className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-3 text-left disabled:opacity-55"
+        >
+          <span className="min-w-0">
+            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.fields.timer")}</span>
+            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.timer")}</span>
+          </span>
+          <ToggleIndicator enabled={timerEnabled} />
+        </button>
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")} description={t("settings:employment.sectionHelp.hourBalanceAccount")}>
+        <button
+          type="button"
+          onClick={() => setTrackingEditorOpen(true)}
+          className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-3 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.fields.hourBalanceAccount")}</span>
+            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.hourBalance")}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-2 text-sm text-white/48">
+            {t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+            <ChevronRight className="h-4 w-4 text-white/24" aria-hidden="true" />
+          </span>
+        </button>
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings:employment.settingsTitle")} description={t("settings:employment.sectionHelp.rules")}>
         <SettingsRow
           to={`/settings/hourly-rates?${suffix}`}
           label={t("settings:employment.hourlyRates")}
+          description={t("settings:employment.hourlyRatesDescription")}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/work-types?${suffix}`}
           label={t("settings:workTypes")}
+          description={t("settings:workSetup.description")}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/absences?${suffix}`}
           label={t("settings:absenceSettings.title")}
+          description={t("settings:absenceSettings.description")}
         />
       </SettingsGroup>
 
@@ -390,11 +443,13 @@ export function SettingsEmploymentDetailPage() {
             className="max-w-sm space-y-5"
             onSubmit={(event) => {
               event.preventDefault();
-              if (timeConfigurationValid) trackingMutation.mutate("TIME");
+              if (timeConfigurationValid) trackingMutation.mutate({
+                trackingFocus: employment.trackingFocus
+              });
             }}
           >
             <h2 id="employment-time-tracking-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
-              {t("settings:employment.tracking.TIME.summaryTitle")}
+              {t("settings:employment.fields.hourBalanceAccount")}
             </h2>
             <button
               type="button"
@@ -458,14 +513,15 @@ function employmentPayload(
   return {
     name,
     employmentType: null,
-    compensationType: null,
+    compensationType: employment.compensationType,
     trackingFocus: employment.trackingFocus,
     hourBalanceEnabled: employment.hourBalanceEnabled,
+    timerEnabled: employment.timerEnabled,
     termsValidFrom: employment.termsValidFrom,
     startDate,
     endDate,
-    fixedSalaryAmount: null,
-    currency: null,
+    fixedSalaryAmount: employment.fixedSalaryAmount ? Number(employment.fixedSalaryAmount) : null,
+    currency: employment.currency,
     targetMinutes: employment.targetMinutes,
     targetPeriod: employment.targetPeriod,
     hourBalanceValidityMonths: employment.hourBalanceValidityMonths,
@@ -477,6 +533,7 @@ function employmentPayload(
 function trackingPayload(
   employment: Employment,
   trackingFocus: TrackingFocus,
+  timerEnabled: boolean,
   hourBalanceEnabled: boolean,
   targetHours: string,
   targetPeriod: TargetPeriod,
@@ -485,10 +542,19 @@ function trackingPayload(
   return {
     ...employmentPayload(employment, employment.name),
     trackingFocus,
+    timerEnabled,
     hourBalanceEnabled,
     termsValidFrom: todayLocalIsoDate(),
     targetMinutes: hourBalanceEnabled ? Math.round(Number(targetHours) * 60) : null,
     targetPeriod: hourBalanceEnabled ? targetPeriod : null,
     hourBalanceValidityMonths: hourBalanceEnabled ? Number(validityMonths) : null
   };
+}
+
+function ToggleIndicator({ enabled }: { enabled: boolean }) {
+  return (
+    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? "bg-white" : "bg-white/[0.12]"}`} aria-hidden="true">
+      <span className={`absolute top-1 h-5 w-5 rounded-full transition ${enabled ? "left-6 bg-black" : "left-1 bg-white/55"}`} />
+    </span>
+  );
 }

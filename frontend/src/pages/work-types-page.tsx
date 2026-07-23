@@ -97,9 +97,12 @@ export function WorkTypesPage() {
         } : undefined}
       />
 
+      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.workTypes.description")}</p>
+
       {!parentItems.length ? (
         <SettingsEmptyState
-          title="No work types yet"
+          title={t("settings:workSetup.emptyTitle")}
+          description={t("settings:workSetup.emptyDescription")}
           actionLabel={t("settings:workSetup.addWorkType")}
           onAction={() => setAddDialogOpen(true)}
         />
@@ -190,7 +193,7 @@ function AddWorkTypeDialog({
             <button
               key={option.mode}
               type="button"
-              className="min-h-[9.4rem] rounded-[26px] border border-white/[0.08] bg-white/[0.045] px-3.5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-white/24 sm:min-h-[10rem] sm:px-4"
+              className="min-h-[12rem] rounded-[26px] border border-white/[0.08] bg-white/[0.045] px-3.5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-white/24 sm:px-4"
               onClick={() => onSelect(option)}
             >
               <span className="flex h-full flex-col justify-between gap-3">
@@ -200,6 +203,9 @@ function AddWorkTypeDialog({
                 <span className="min-w-0 space-y-2">
                   <span className="block text-[1rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[1.05rem]">
                     {option.title}
+                  </span>
+                  <span className="block text-xs leading-4 text-white/48">
+                    {option.description}
                   </span>
                   <span className="block min-h-8 text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.11em] text-white/34">
                     {option.formula}

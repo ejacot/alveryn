@@ -325,6 +325,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         onRhythmDaySelect={(date) => outletContext?.setSelectedDate?.(parseLocalIsoDate(date))}
         onWeekSwipe={(direction) => outletContext?.setSelectedDate?.(addWeeks(selectedDate, direction))}
         onCreateAbsence={(absenceTypeId) => absenceMutation.mutate({ absenceTypeId, date: selectedDateKey })}
+        onConfigureAbsences={() => navigate("/settings/absences")}
         onDeleteAbsence={(activityId) => deleteAbsenceMutation.mutate({
           id: activityId.slice("absence-".length),
           date: selectedDateKey

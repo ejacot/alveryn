@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ChevronRight, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
+import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -684,14 +685,7 @@ export function WorkRecordEditorPage() {
       </div>
       {deleteMutation.error ? <p className="text-sm text-red-300">{getApiError(deleteMutation.error).message}</p> : null}
 
-      {success ? (
-        <Card variant="panel" className="fixed inset-x-6 top-24 z-[70] mx-auto max-w-sm rounded-[28px] px-5 py-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
-            <Check className="h-6 w-6" />
-          </div>
-          <p className="mt-3 text-base font-semibold text-white">{t("records:job.savedToast")}</p>
-        </Card>
-      ) : null}
+      <SettingsSuccessMessage message={success ? t("records:job.savedToast") : null} />
       {workTypePickerOpen ? (
         <WorkTypePickerDialog
           workTypes={workTypes}
