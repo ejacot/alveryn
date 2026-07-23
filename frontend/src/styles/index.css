@@ -147,6 +147,66 @@ h3,
     padding-bottom: max(10rem, calc(env(safe-area-inset-bottom) + 8rem));
   }
 
+  .desktop-app-shell {
+    min-height: 100dvh;
+  }
+
+  .desktop-content {
+    min-height: 100dvh;
+  }
+
+  .desktop-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 45;
+    width: 17rem;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.075);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.055), transparent 34%),
+      rgba(8, 8, 8, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  html[data-theme="light"] .desktop-sidebar {
+    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(248, 248, 245, 0.94);
+  }
+
+  @media (min-width: 1024px) {
+    .desktop-content {
+      margin-left: 17rem;
+    }
+
+    .screen-shell {
+      max-width: none;
+      padding: 2rem clamp(2rem, 4vw, 4.5rem) 4rem;
+      overflow: visible;
+    }
+
+    .desktop-content .screen-shell > :not(.mobile-workspace-switcher) {
+      width: 100%;
+      max-width: 1180px !important;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mobile-workspace-switcher,
+    .floating-nav {
+      display: none !important;
+    }
+
+    .settings-sticky-header {
+      display: none;
+    }
+
+    .desktop-content .screen-shell [class*="pb-28"],
+    .desktop-content .screen-shell [class*="pb-40"] {
+      padding-bottom: 2.5rem;
+    }
+  }
+
   .floating-nav {
     bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }

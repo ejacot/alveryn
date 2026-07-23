@@ -52,7 +52,7 @@ export function CalendarMonthGrid({
         : "flex min-h-[34px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[38px]";
 
   return (
-    <section className="mx-auto w-full max-w-[28rem] space-y-2.5 overflow-hidden sm:max-w-[32rem]" aria-label="Monthly calendar">
+    <section className="mx-auto w-full max-w-[28rem] space-y-2.5 overflow-hidden sm:max-w-[32rem] lg:max-w-none lg:space-y-5" aria-label="Monthly calendar">
       <div className="flex items-end justify-between">
         <div>
           <h2 className="hairline-text">

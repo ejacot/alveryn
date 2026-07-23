@@ -188,21 +188,23 @@ export function ProfilePage() {
         {t("settings:title")}
       </h1>
 
-      <SettingsProfileCard
-        initials={initials}
-        fullName={fullName}
-        email={user?.account.email ?? ""}
-        ariaLabel={t("settings:profile")}
-        employmentLabel={employmentLabel}
-        employmentValue={employmentValue}
-        employmentOptions={activeEmployments.map(({ id, name }) => ({ id, name }))}
-        selectedEmploymentId={selectedEmploymentId}
-        allEmploymentsLabel={t("settings:employment.all")}
-        chooseEmploymentLabel={t("settings:employment.choose")}
-        onEmploymentChange={setEmploymentScope}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,.75fr)] lg:items-start">
+        <div className="space-y-6">
+          <SettingsProfileCard
+            initials={initials}
+            fullName={fullName}
+            email={user?.account.email ?? ""}
+            ariaLabel={t("settings:profile")}
+            employmentLabel={employmentLabel}
+            employmentValue={employmentValue}
+            employmentOptions={activeEmployments.map(({ id, name }) => ({ id, name }))}
+            selectedEmploymentId={selectedEmploymentId}
+            allEmploymentsLabel={t("settings:employment.all")}
+            chooseEmploymentLabel={t("settings:employment.choose")}
+            onEmploymentChange={setEmploymentScope}
+          />
 
-      <SettingsGroup title={t("settings:preferences")}>
+          <SettingsGroup title={t("settings:preferences")}>
         <InlinePreferenceRow
           label={t("settings:preferencesFields.language")}
           value={preferences?.language ?? "en"}
@@ -272,14 +274,15 @@ export function ProfilePage() {
             { value: "DARK", label: t("settings:preferencesOptions.darkTheme") }
           ]}
         />
-      </SettingsGroup>
+          </SettingsGroup>
+        </div>
+        <div className="space-y-6 lg:sticky lg:top-8">
+          <SettingsGroup title="Business">
+            <SettingsRow to="/settings/business" label="Company & team"
+              description="Create a company, invite members and manage access." />
+          </SettingsGroup>
 
-      <SettingsGroup title="Business">
-        <SettingsRow to="/settings/business" label="Company & team"
-          description="Create a company, invite members and manage access." />
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settings:app")}>
+          <SettingsGroup title={t("settings:app")}>
         <SettingsRow
           to="/settings/export-pdf"
           label={t("settings:pdfExport.menuLabel")}
@@ -289,15 +292,17 @@ export function ProfilePage() {
         <SettingsRow to="/settings/about" label={t("settings:about")} />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow to="/settings/help" label={t("settings:help")} />
-      </SettingsGroup>
+          </SettingsGroup>
 
-      <SettingsGroup title={t("settings:account")}>
-        <SettingsRow
-          label={t("settings:logout")}
-          onClick={() => void logout()}
-          destructive
-        />
-      </SettingsGroup>
+          <SettingsGroup title={t("settings:account")}>
+            <SettingsRow
+              label={t("settings:logout")}
+              onClick={() => void logout()}
+              destructive
+            />
+          </SettingsGroup>
+        </div>
+      </div>
     </div>
   );
 }

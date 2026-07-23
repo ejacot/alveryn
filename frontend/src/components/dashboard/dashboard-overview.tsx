@@ -73,34 +73,40 @@ export function DashboardOverview({
           <p className="text-sm leading-6 text-white/46">{t("heading.previewDescription")}</p>
         </div>
       ) : null}
-      <SelectedDayPanel
-        selectedDay={selectedDay}
-        absenceTypes={absenceTypes}
-        onEntrySelect={onEntrySelect}
-        onQuickAdd={onQuickAdd}
-        onDaySwipe={onDaySwipe}
-        onCreateAbsence={onCreateAbsence}
-        onConfigureAbsences={onConfigureAbsences}
-        onDeleteAbsence={onDeleteAbsence}
-        absencePending={absencePending}
-        absenceError={absenceError}
-      />
-      {timeTracker}
-      <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
-      <WeeklyHoursCard
-        variant="flow"
-        days={weeklyDays}
-        previousWeekAverageGross={previousWeekAverageGross}
-        flowCurrency={flowCurrency}
-        onDaySelect={onRhythmDaySelect}
-        onWeekSwipe={onWeekSwipe}
-      />
-      <WeeklyHoursCard
-        days={weeklyDays}
-        previousWeekAverageMinutes={previousWeekAverageMinutes}
-        onDaySelect={onRhythmDaySelect}
-        onWeekSwipe={onWeekSwipe}
-      />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)] lg:items-start">
+        <div className="space-y-8">
+          <SelectedDayPanel
+            selectedDay={selectedDay}
+            absenceTypes={absenceTypes}
+            onEntrySelect={onEntrySelect}
+            onQuickAdd={onQuickAdd}
+            onDaySwipe={onDaySwipe}
+            onCreateAbsence={onCreateAbsence}
+            onConfigureAbsences={onConfigureAbsences}
+            onDeleteAbsence={onDeleteAbsence}
+            absencePending={absencePending}
+            absenceError={absenceError}
+          />
+          {timeTracker}
+          <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
+        </div>
+        <div className="space-y-8 lg:sticky lg:top-8">
+          <WeeklyHoursCard
+            variant="flow"
+            days={weeklyDays}
+            previousWeekAverageGross={previousWeekAverageGross}
+            flowCurrency={flowCurrency}
+            onDaySelect={onRhythmDaySelect}
+            onWeekSwipe={onWeekSwipe}
+          />
+          <WeeklyHoursCard
+            days={weeklyDays}
+            previousWeekAverageMinutes={previousWeekAverageMinutes}
+            onDaySelect={onRhythmDaySelect}
+            onWeekSwipe={onWeekSwipe}
+          />
+        </div>
+      </div>
     </div>
   );
 }

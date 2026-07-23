@@ -376,6 +376,8 @@ export function CalendarPage() {
         {t("title")}
       </h1>
 
+      <div className="grid gap-8 lg:grid-cols-[minmax(520px,1.25fr)_minmax(360px,.75fr)] lg:items-start">
+        <div className="space-y-6">
       <section className="space-y-4">
         <div className="hidden items-center justify-end gap-2 md:flex">
           <Button
@@ -434,9 +436,11 @@ export function CalendarPage() {
       </section>
 
       <CalendarMonthSummary {...summary} />
+        </div>
 
+        <aside className="space-y-6 lg:sticky lg:top-8">
       {selectedDate ? (
-        <div className="pt-5">
+        <div>
           <CalendarSelectedDayPanel
             title={formatSelectedDate(selectedDate)}
             records={selectedRecords}
@@ -476,7 +480,8 @@ export function CalendarPage() {
           outletContext?.setSelectedDate?.(parsed);
         }}
       />
-
+        </aside>
+      </div>
     </div>
   );
 }
