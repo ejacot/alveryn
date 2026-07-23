@@ -40,4 +40,19 @@ public class OrganizationMembership extends BaseEntity {
     this.status = MembershipStatus.ACTIVE;
     this.joinedAt = OffsetDateTime.now();
   }
+
+  public void changeRole(MembershipRole role) {
+    if (this.role == MembershipRole.OWNER) throw new IllegalStateException("owner role cannot be changed");
+    if (role == MembershipRole.OWNER) throw new IllegalArgumentException("owner role cannot be assigned");
+    this.role = Objects.requireNonNull(role);
+  }
+
+  public void suspend() {
+    if (role == MembershipRole.OWNER) throw new IllegalStateException("owner cannot be suspended");
+    status = MembershipStatus.SUSPENDED;
+  }
+
+  public void activate() {
+    status = MembershipStatus.ACTIVE;
+  }
 }

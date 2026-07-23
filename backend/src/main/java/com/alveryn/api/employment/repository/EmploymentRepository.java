@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EmploymentRepository extends JpaRepository<Employment, UUID> {
   List<Employment> findAllByUserIdOrderByDisplayOrderAscNameAsc(UUID userId);
+  List<Employment> findAllByOrganizationIdOrderByDisplayOrderAscNameAsc(UUID organizationId);
+  List<Employment> findAllByOrganizationIdAndUserIdOrderByDisplayOrderAscNameAsc(UUID organizationId, UUID userId);
   Optional<Employment> findByIdAndUserId(UUID id, UUID userId);
   Optional<Employment> findFirstByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(UUID userId);
   boolean existsByUserIdAndActiveTrue(UUID userId);

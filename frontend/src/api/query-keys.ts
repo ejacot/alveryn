@@ -34,6 +34,11 @@ export const queryKeys = {
   founderDashboard: () => ["founder-dashboard"] as const,
   profile: () => ["profile"] as const,
   preferences: () => ["preferences"] as const,
+  organizations: {
+    all: () => ["organizations"] as const,
+    members: (id: string) => ["organizations", id, "members"] as const,
+    invitations: (id: string) => ["organizations", id, "invitations"] as const
+  },
   addresses: {
     all: () => ["addresses"] as const
   },

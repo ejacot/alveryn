@@ -27,11 +27,25 @@ public class Organization extends BaseEntity {
 
   @Column(nullable = false, length = 60)
   private String timezone;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "business_status", nullable = false, length = 20)
+  private BusinessStatus businessStatus = BusinessStatus.ACTIVE;
 
   public Organization(UserAccount owner, String name, String timezone) {
     this.personalOwner = Objects.requireNonNull(owner, "owner is required");
     this.name = required(name, "name");
     this.organizationType = OrganizationType.PERSONAL;
+    this.timezone = validTimezone(timezone);
+  }
+
+  public Organization(String name, String timezone) {
+    this.name = required(name, "name");
+    this.organizationType = OrganizationType.BUSINESS;
+    this.timezone = validTimezone(timezone);
+  }
+
+  public void update(String name, String timezone) {
+    this.name = required(name, "name");
     this.timezone = validTimezone(timezone);
   }
 

@@ -12,6 +12,8 @@ import com.alveryn.api.employment.entity.EmploymentTerm;
 import com.alveryn.api.employment.entity.TrackingFocus;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.organization.service.PersonalWorkspaceService;
+import com.alveryn.api.organization.service.OrganizationAccessService;
+import com.alveryn.api.organization.repository.OrganizationMembershipRepository;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
@@ -32,6 +34,8 @@ public class EmploymentService {
   private final WorkTypeRepository workTypes;
   private final EmploymentTermRepository terms;
   private final PersonalWorkspaceService personalWorkspaces;
+  private final OrganizationAccessService organizationAccess;
+  private final OrganizationMembershipRepository organizationMemberships;
 
   @Transactional(readOnly = true) public List<EmploymentResponse> list() {
     return repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(authenticatedUserAccessor.requireUserId()).stream().map(this::response).toList();
@@ -44,6 +48,30 @@ public class EmploymentService {
     var entity = new Employment(workspace.organization(), user, request.name());
     configure(entity, request, repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId).size());
     Employment saved = repository.save(entity);
+    LocalDate validFrom = request.termsValidFrom() != null ? request.termsValidFrom()
+        : request.startDate() != null ? request.startDate() : LocalDate.now();
+    terms.save(new EmploymentTerm(saved, validFrom, compensationType(request), fixedSalaryAmount(request),
+        currency(request), targetMinutes(request), targetPeriod(request)));
+    return response(saved);
+  }
+  @Transactional(readOnly = true)
+  public List<EmploymentResponse> listForOrganization(UUID organizationId) {
+    organizationAccess.requireManager(organizationId);
+    return repository.findAllByOrganizationIdOrderByDisplayOrderAscNameAsc(organizationId)
+        .stream().map(this::response).toList();
+  }
+  @Transactional
+  public EmploymentResponse createForMember(UUID organizationId, UUID membershipId, EmploymentRequest request) {
+    var manager = organizationAccess.requireManager(organizationId);
+    var member = organizationMemberships.findById(membershipId)
+        .filter(value -> value.getOrganization().getId().equals(organizationId))
+        .filter(value -> value.getStatus() == com.alveryn.api.organization.entity.MembershipStatus.ACTIVE)
+        .orElseThrow(() -> new NotFoundException("Membership", membershipId));
+    int order = repository.findAllByOrganizationIdAndUserIdOrderByDisplayOrderAscNameAsc(
+        organizationId, member.getUser().getId()).size();
+    var entity = new Employment(manager.getOrganization(), member.getUser(), request.name());
+    configure(entity, request, order);
+    var saved = repository.save(entity);
     LocalDate validFrom = request.termsValidFrom() != null ? request.termsValidFrom()
         : request.startDate() != null ? request.startDate() : LocalDate.now();
     terms.save(new EmploymentTerm(saved, validFrom, compensationType(request), fixedSalaryAmount(request),

@@ -21,11 +21,41 @@ import type {
   WeeklySchedulePayload
 } from "../types/schedule";
 import { http } from "./http";
+import type { MembershipRole, Organization, OrganizationInvitation, OrganizationMember } from "../types/organization";
 
 export type Credentials = {
   email: string;
   password: string;
 };
+
+export async function listOrganizations() {
+  return (await http.get<ApiResponse<Organization[]>>("/api/organizations")).data.data;
+}
+export async function createOrganization(payload: { name: string; timezone: string }) {
+  return (await http.post<ApiResponse<Organization>>("/api/organizations", payload)).data.data;
+}
+export async function listOrganizationMembers(id: string) {
+  return (await http.get<ApiResponse<OrganizationMember[]>>(`/api/organizations/${id}/members`)).data.data;
+}
+export async function changeOrganizationMemberRole(id: string, membershipId: string, role: MembershipRole) {
+  return (await http.put<ApiResponse<OrganizationMember>>(
+    `/api/organizations/${id}/members/${membershipId}/role`, { role })).data.data;
+}
+export async function suspendOrganizationMember(id: string, membershipId: string) {
+  return (await http.delete<ApiResponse<OrganizationMember>>(
+    `/api/organizations/${id}/members/${membershipId}`)).data.data;
+}
+export async function listOrganizationInvitations(id: string) {
+  return (await http.get<ApiResponse<OrganizationInvitation[]>>(
+    `/api/organizations/${id}/invitations`)).data.data;
+}
+export async function inviteOrganizationMember(id: string, email: string, role: MembershipRole) {
+  return (await http.post<ApiResponse<OrganizationInvitation>>(
+    `/api/organizations/${id}/invitations`, { email, role })).data.data;
+}
+export async function acceptOrganizationInvitation(token: string) {
+  return (await http.post<ApiResponse<Organization>>("/api/organizations/invitations/accept", { token })).data.data;
+}
 
 export type ResetPasswordPayload = {
   email: string;

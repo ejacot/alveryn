@@ -70,6 +70,12 @@ const SettingsSchedulePage = lazy(() =>
     default: module.SettingsSchedulePage
   }))
 );
+const SettingsBusinessPage = lazy(() =>
+  import("../pages/settings-business-page").then((module) => ({ default: module.SettingsBusinessPage }))
+);
+const AcceptInvitationPage = lazy(() =>
+  import("../pages/accept-invitation-page").then((module) => ({ default: module.AcceptInvitationPage }))
+);
 const HourlyRatesPage = lazy(() =>
   import("../pages/hourly-rates-page").then((module) => ({
     default: module.HourlyRatesPage
@@ -200,6 +206,8 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
+            { path: "/settings/business", element: withSuspense(<SettingsBusinessPage />) },
+            { path: "/accept-invitation", element: withSuspense(<AcceptInvitationPage />) },
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
             { path: "/settings/employment/:employmentId", element: withSuspense(<SettingsEmploymentDetailPage />) },

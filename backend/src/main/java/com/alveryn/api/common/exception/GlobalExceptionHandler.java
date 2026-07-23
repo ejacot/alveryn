@@ -35,6 +35,11 @@ public class GlobalExceptionHandler {
     return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, e.getErrors());
   }
 
+  @ExceptionHandler(ForbiddenException.class)
+  ResponseEntity<ApiErrorResponse> handleForbidden(ForbiddenException e, HttpServletRequest r) {
+    return response(HttpStatus.FORBIDDEN, e.getMessage(), e.getCode(), r, List.of());
+  }
+
   @ExceptionHandler({
     ValidationException.class,
     IllegalArgumentException.class,

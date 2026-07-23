@@ -274,6 +274,11 @@ export function ProfilePage() {
         />
       </SettingsGroup>
 
+      <SettingsGroup title="Business">
+        <SettingsRow to="/settings/business" label="Company & team"
+          description="Create a company, invite members and manage access." />
+      </SettingsGroup>
+
       <SettingsGroup title={t("settings:app")}>
         <SettingsRow
           to="/settings/export-pdf"
