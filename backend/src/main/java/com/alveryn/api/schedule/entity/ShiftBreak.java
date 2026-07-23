@@ -23,4 +23,9 @@ public class ShiftBreak extends BaseEntity {
     this.plannedMinutes = plannedMinutes;
     this.paid = paid;
   }
+
+  public void changePlannedMinutes(int plannedMinutes) {
+    if (plannedMinutes < 0) throw new IllegalArgumentException("plannedMinutes must be non-negative");
+    this.plannedMinutes = plannedMinutes;
+  }
 }

@@ -28,4 +28,37 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
       """)
   List<ShiftAssignment> findRange(@Param("employmentId") UUID employmentId,
       @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
+
+  @Query("""
+      select a from ShiftAssignment a join fetch a.shift s join fetch a.worker w join fetch a.employment e
+      where s.organization.id = :organizationId and s.startsAt < :to and s.endsAt > :from
+      order by s.startsAt
+      """)
+  List<ShiftAssignment> findOrganizationRange(@Param("organizationId") UUID organizationId,
+      @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
+
+  @Query("""
+      select count(a) > 0 from ShiftAssignment a join a.shift s
+      where a.worker.id = :membershipId and s.status <> com.alveryn.api.schedule.entity.ShiftStatus.CANCELLED
+        and s.startsAt < :end and s.endsAt > :start
+      """)
+  boolean hasOverlap(@Param("membershipId") UUID membershipId, @Param("start") OffsetDateTime start,
+      @Param("end") OffsetDateTime end);
+
+  @Query("""
+      select count(a) > 0 from ShiftAssignment a join a.shift s
+      where a.worker.id = :membershipId and a.id <> :assignmentId
+        and s.status <> com.alveryn.api.schedule.entity.ShiftStatus.CANCELLED
+        and s.startsAt < :end and s.endsAt > :start
+      """)
+  boolean hasOverlapExcluding(@Param("membershipId") UUID membershipId,
+      @Param("assignmentId") UUID assignmentId, @Param("start") OffsetDateTime start,
+      @Param("end") OffsetDateTime end);
+
+  @Query("""
+      select a from ShiftAssignment a join fetch a.shift s join fetch a.worker w join fetch a.employment e
+      where a.id = :assignmentId and s.organization.id = :organizationId
+      """)
+  java.util.Optional<ShiftAssignment> findByIdAndOrganizationId(@Param("assignmentId") UUID assignmentId,
+      @Param("organizationId") UUID organizationId);
 }

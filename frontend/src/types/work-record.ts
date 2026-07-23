@@ -20,6 +20,7 @@ export type WorkRecordRequest = {
   addressId?: string | null;
   teamSize?: number | null;
   notes?: string | null;
+  shiftAssignmentId?: string | null;
   lines: WorkRecordLineRequest[];
 };
 
@@ -59,6 +60,7 @@ export type WorkRecord = {
   id: string;
   entryKind?: "WORK_SESSION" | "WORK_RECORD";
   employmentId?: string | null;
+  shiftAssignmentId?: string | null;
   projectId?: string | null;
   projectTitle?: string | null;
   workDate: string;

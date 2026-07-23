@@ -22,6 +22,7 @@ import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
+import com.alveryn.api.schedule.repository.ShiftAssignmentRepository;
 import com.alveryn.api.workproject.entity.WorkProject;
 import com.alveryn.api.workrecord.entity.WorkEntryKind;
 import jakarta.validation.Valid;
@@ -46,6 +47,7 @@ public class WorkRecordService {
   private final UserAccountRepository users;
   private final AddressRepository addresses;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
+  private final ShiftAssignmentRepository shiftAssignments;
 
   @Transactional
   public WorkRecordResponse create(@Valid WorkRecordRequest request) {
@@ -73,6 +75,7 @@ public class WorkRecordService {
     WorkRecord record = new WorkRecord(user, resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
+    record.linkPlannedShift(resolveShiftAssignment(userId, request.shiftAssignmentId(), record));
     if (project != null) {
       if (record.getEmployment() == null || !project.getEmployment().getId().equals(record.getEmployment().getId()))
         throw new ValidationException("All work lines must use the project's employment");
@@ -118,6 +121,7 @@ public class WorkRecordService {
     record.update(resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
+    record.linkPlannedShift(resolveShiftAssignment(userId, request.shiftAssignmentId(), record));
     persistLines(userId, record, request);
     return toResponse(record);
   }
@@ -170,6 +174,19 @@ public class WorkRecordService {
         .map(WorkType::getEmployment).filter(java.util.Objects::nonNull).distinct().toList();
     if (employments.size() > 1) throw new ValidationException("A work record cannot mix different employments");
     return employments.isEmpty() ? null : employments.getFirst();
+  }
+
+  private com.alveryn.api.schedule.entity.ShiftAssignment resolveShiftAssignment(
+      UUID userId, UUID assignmentId, WorkRecord record) {
+    if (assignmentId == null) return null;
+    var assignment = shiftAssignments.findOwned(assignmentId, userId)
+        .orElseThrow(() -> new NotFoundException("ShiftAssignment", assignmentId));
+    if (assignment.getShift().getStatus() == com.alveryn.api.schedule.entity.ShiftStatus.CANCELLED)
+      throw new ValidationException("A cancelled shift cannot receive worked time");
+    if (record.getEmployment() == null
+        || !assignment.getEmployment().getId().equals(record.getEmployment().getId()))
+      throw new ValidationException("The work record must use the shift employment");
+    return assignment;
   }
 
   private void validateDateRange(WorkRecordRequest request) {
@@ -361,6 +378,7 @@ public class WorkRecordService {
         record.getId(),
         record.getEntryKind(),
         record.getEmployment() == null ? null : record.getEmployment().getId(),
+        record.getShiftAssignment() == null ? null : record.getShiftAssignment().getId(),
         record.getProject() == null ? null : record.getProject().getId(),
         record.getProject() == null ? null : record.getProject().getTitle(),
         record.getWorkDate(),

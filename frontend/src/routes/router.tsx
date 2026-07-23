@@ -73,6 +73,9 @@ const SettingsSchedulePage = lazy(() =>
 const SettingsBusinessPage = lazy(() =>
   import("../pages/settings-business-page").then((module) => ({ default: module.SettingsBusinessPage }))
 );
+const BusinessPage = lazy(() =>
+  import("../pages/business-page").then((module) => ({ default: module.BusinessPage }))
+);
 const AcceptInvitationPage = lazy(() =>
   import("../pages/accept-invitation-page").then((module) => ({ default: module.AcceptInvitationPage }))
 );
@@ -207,6 +210,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
             { path: "/settings/business", element: withSuspense(<SettingsBusinessPage />) },
+            { path: "/business", element: withSuspense(<BusinessPage />) },
             { path: "/accept-invitation", element: withSuspense(<AcceptInvitationPage />) },
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },

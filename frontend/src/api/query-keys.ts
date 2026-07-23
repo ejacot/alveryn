@@ -37,7 +37,13 @@ export const queryKeys = {
   organizations: {
     all: () => ["organizations"] as const,
     members: (id: string) => ["organizations", id, "members"] as const,
-    invitations: (id: string) => ["organizations", id, "invitations"] as const
+    invitations: (id: string) => ["organizations", id, "invitations"] as const,
+    activities: (id: string) => ["organizations", id, "activities"] as const,
+    memberEmployments: (id: string, memberId: string) =>
+      ["organizations", id, "members", memberId, "employments"] as const,
+    shifts: (id: string, from: string, to: string) =>
+      ["organizations", id, "shifts", from, to] as const,
+    requests: (id: string) => ["organizations", id, "shift-requests"] as const
   },
   addresses: {
     all: () => ["addresses"] as const

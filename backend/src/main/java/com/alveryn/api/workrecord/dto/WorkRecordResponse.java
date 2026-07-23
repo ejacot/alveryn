@@ -13,6 +13,7 @@ public record WorkRecordResponse(
     UUID id,
     WorkEntryKind entryKind,
     UUID employmentId,
+    UUID shiftAssignmentId,
     UUID projectId,
     String projectTitle,
     LocalDate workDate,

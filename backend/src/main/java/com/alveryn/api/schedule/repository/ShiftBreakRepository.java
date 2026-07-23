@@ -4,4 +4,6 @@ import com.alveryn.api.schedule.entity.ShiftBreak;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ShiftBreakRepository extends JpaRepository<ShiftBreak, UUID> {}
+public interface ShiftBreakRepository extends JpaRepository<ShiftBreak, UUID> {
+  java.util.Optional<ShiftBreak> findFirstByShiftId(UUID shiftId);
+}

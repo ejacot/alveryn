@@ -37,4 +37,5 @@ public class ShiftAssignment extends BaseEntity {
     this.worker = Objects.requireNonNull(worker);
     this.assignedBy = Objects.requireNonNull(assignedBy);
   }
+  public void cancel() { status = AssignmentStatus.CANCELLED; }
 }

@@ -38,6 +38,13 @@ public interface WorkRecordLineRepository extends JpaRepository<WorkRecordLine, 
   BigDecimal sumTimeOnlyMinutes(@Param("employmentId") UUID employmentId,
       @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 
+  @Query("""
+      select coalesce(sum(line.workedMinutes), 0)
+      from WorkRecordLine line
+      where line.workRecord.shiftAssignment.id = :assignmentId
+      """)
+  BigDecimal sumWorkedMinutesByAssignmentId(@Param("assignmentId") UUID assignmentId);
+
   @Query(
       """
       select line

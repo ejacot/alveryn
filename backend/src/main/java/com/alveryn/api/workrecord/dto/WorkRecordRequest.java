@@ -15,4 +15,10 @@ public record WorkRecordRequest(
     UUID addressId,
     @Positive Integer teamSize,
     @Size(max = 500) String notes,
-    @NotEmpty List<@Valid WorkRecordLineRequest> lines) {}
+    UUID shiftAssignmentId,
+    @NotEmpty List<@Valid WorkRecordLineRequest> lines) {
+  public WorkRecordRequest(LocalDate workDate, LocalDate workEndDate, UUID addressId,
+      Integer teamSize, String notes, List<WorkRecordLineRequest> lines) {
+    this(workDate, workEndDate, addressId, teamSize, notes, null, lines);
+  }
+}

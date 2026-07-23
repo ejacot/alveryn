@@ -375,6 +375,7 @@ export function WorkRecordEditorPage() {
       addressId: resolvedAddressId,
       teamSize,
       notes,
+      shiftAssignmentId: searchParams.get("shiftAssignmentId") ?? recordQuery.data?.shiftAssignmentId ?? null,
       lines,
       workTypes
     });
@@ -1278,6 +1279,7 @@ function buildPayload({
   addressId,
   teamSize,
   notes,
+  shiftAssignmentId,
   lines,
   workTypes
 }: {
@@ -1287,6 +1289,7 @@ function buildPayload({
   addressId: string;
   teamSize: string;
   notes: string;
+  shiftAssignmentId: string | null;
   lines: JobLineState[];
   workTypes: WorkType[];
 }): { payload: WorkRecordRequest } | { error: string } {
@@ -1386,6 +1389,7 @@ function buildPayload({
       addressId: emptyToNull(addressId),
       teamSize: hasTeamworkLine ? normalizedTeamSize : null,
       notes: emptyToNull(notes),
+      shiftAssignmentId,
       lines: payloadLines
     }
   };

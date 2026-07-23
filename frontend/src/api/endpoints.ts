@@ -21,7 +21,8 @@ import type {
   WeeklySchedulePayload
 } from "../types/schedule";
 import { http } from "./http";
-import type { MembershipRole, Organization, OrganizationInvitation, OrganizationMember } from "../types/organization";
+import type { BusinessShift, MembershipRole, Organization, OrganizationActivity,
+  OrganizationInvitation, OrganizationMember, ShiftChangeRequest } from "../types/organization";
 
 export type Credentials = {
   email: string;
@@ -55,6 +56,54 @@ export async function inviteOrganizationMember(id: string, email: string, role: 
 }
 export async function acceptOrganizationInvitation(token: string) {
   return (await http.post<ApiResponse<Organization>>("/api/organizations/invitations/accept", { token })).data.data;
+}
+export async function listOrganizationActivities(id: string) {
+  return (await http.get<ApiResponse<OrganizationActivity[]>>(
+    `/api/organizations/${id}/activities`)).data.data;
+}
+export async function createOrganizationActivity(id: string, payload: {
+  name: string; color: string; defaultBreakMinutes: number; active: boolean; displayOrder: number;
+}) {
+  return (await http.post<ApiResponse<OrganizationActivity>>(
+    `/api/organizations/${id}/activities`, payload)).data.data;
+}
+export async function listMemberEmployments(id: string, memberId: string) {
+  return (await http.get<ApiResponse<Employment[]>>(
+    `/api/organizations/${id}/members/${memberId}/employments`)).data.data;
+}
+export async function createMemberEmployment(id: string, memberId: string, payload: EmploymentPayload) {
+  return (await http.post<ApiResponse<Employment>>(
+    `/api/organizations/${id}/members/${memberId}/employments`, payload)).data.data;
+}
+export type BusinessShiftPayload = {
+  membershipId: string; employmentId: string; activityId: string; date: string;
+  startTime: string; endTime: string; breakMinutes: number;
+};
+export async function listBusinessShifts(id: string, from: string, to: string) {
+  return (await http.get<ApiResponse<BusinessShift[]>>(`/api/organizations/${id}/shifts`,
+    { params: { from, to } })).data.data;
+}
+export async function createBusinessShift(id: string, payload: BusinessShiftPayload) {
+  return (await http.post<ApiResponse<BusinessShift>>(
+    `/api/organizations/${id}/shifts`, payload)).data.data;
+}
+export async function cancelBusinessShift(id: string, assignmentId: string) {
+  await http.delete(`/api/organizations/${id}/shifts/${assignmentId}`);
+}
+export async function listShiftChangeRequests(id: string) {
+  return (await http.get<ApiResponse<ShiftChangeRequest[]>>(
+    `/api/organizations/${id}/shift-requests`)).data.data;
+}
+export async function decideShiftChangeRequest(id: string, requestId: string, approved: boolean) {
+  return (await http.put<ApiResponse<ShiftChangeRequest>>(
+    `/api/organizations/${id}/shift-requests/${requestId}/decision`, { approved })).data.data;
+}
+export async function createShiftChangeRequest(id: string, assignmentId: string, payload: {
+  type: "TIME_CHANGE" | "DROP" | "ABSENCE"; date?: string; startTime?: string;
+  endTime?: string; reason?: string;
+}) {
+  return (await http.post<ApiResponse<ShiftChangeRequest>>(
+    `/api/organizations/${id}/shift-requests/assignments/${assignmentId}`, payload)).data.data;
 }
 
 export type ResetPasswordPayload = {

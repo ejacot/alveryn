@@ -18,6 +18,7 @@ public class OrganizationController {
   private final OrganizationService organizations;
   private final OrganizationInvitationService invitations;
   private final EmploymentService employments;
+  private final OrganizationActivityService activities;
 
   @GetMapping public ApiResponse<List<OrganizationResponse>> list() {
     return ApiResponse.of(organizations.list());
@@ -70,5 +71,24 @@ public class OrganizationController {
   public ApiResponse<EmploymentResponse> createEmployment(@PathVariable UUID id,
       @PathVariable UUID membershipId, @Valid @RequestBody EmploymentRequest request) {
     return ApiResponse.of(employments.createForMember(id, membershipId, request));
+  }
+  @GetMapping("/{id}/members/{membershipId}/employments")
+  public ApiResponse<List<EmploymentResponse>> memberEmployments(@PathVariable UUID id,
+      @PathVariable UUID membershipId) {
+    return ApiResponse.of(employments.listForMember(id, membershipId));
+  }
+  @GetMapping("/{id}/activities")
+  public ApiResponse<List<OrganizationActivityResponse>> activities(@PathVariable UUID id) {
+    return ApiResponse.of(activities.list(id));
+  }
+  @PostMapping("/{id}/activities") @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<OrganizationActivityResponse> createActivity(@PathVariable UUID id,
+      @Valid @RequestBody OrganizationActivityRequest request) {
+    return ApiResponse.of(activities.create(id, request));
+  }
+  @PutMapping("/{id}/activities/{activityId}")
+  public ApiResponse<OrganizationActivityResponse> updateActivity(@PathVariable UUID id,
+      @PathVariable UUID activityId, @Valid @RequestBody OrganizationActivityRequest request) {
+    return ApiResponse.of(activities.update(id, activityId, request));
   }
 }

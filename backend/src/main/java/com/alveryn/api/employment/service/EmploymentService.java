@@ -60,6 +60,20 @@ public class EmploymentService {
     return repository.findAllByOrganizationIdOrderByDisplayOrderAscNameAsc(organizationId)
         .stream().map(this::response).toList();
   }
+  @Transactional(readOnly = true)
+  public List<EmploymentResponse> listForMember(UUID organizationId, UUID membershipId) {
+    var viewer = organizationAccess.requireMember(organizationId);
+    var member = organizationMemberships.findById(membershipId)
+        .filter(value -> value.getOrganization().getId().equals(organizationId))
+        .filter(value -> value.getStatus() == com.alveryn.api.organization.entity.MembershipStatus.ACTIVE)
+        .orElseThrow(() -> new NotFoundException("Membership", membershipId));
+    if (viewer.getRole() == com.alveryn.api.organization.entity.MembershipRole.EMPLOYEE
+        && !viewer.getId().equals(member.getId()))
+      throw new com.alveryn.api.common.exception.ForbiddenException(
+          "Employees can only view their own employment");
+    return repository.findAllByOrganizationIdAndUserIdOrderByDisplayOrderAscNameAsc(
+        organizationId, member.getUser().getId()).stream().map(this::response).toList();
+  }
   @Transactional
   public EmploymentResponse createForMember(UUID organizationId, UUID membershipId, EmploymentRequest request) {
     var manager = organizationAccess.requireManager(organizationId);

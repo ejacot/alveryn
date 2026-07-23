@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.absence.entity.AbsenceTypeSetting;
+import com.alveryn.api.organization.entity.OrganizationActivity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,10 @@ public class ScheduledShift extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "work_type_id")
   private WorkType workType;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "organization_activity_id")
+  private OrganizationActivity organizationActivity;
+  @Column(name = "activity_name_snapshot", length = 100) private String activityNameSnapshot;
+  @Column(name = "activity_color_snapshot", length = 7) private String activityColorSnapshot;
   @Enumerated(EnumType.STRING) @Column(name = "item_type", nullable = false, length = 20)
   private ScheduleItemType itemType;
   @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "absence_type_id")
@@ -73,6 +78,25 @@ public class ScheduledShift extends BaseEntity {
     this.publishedAt = OffsetDateTime.now();
   }
 
+  public ScheduledShift(Organization organization, OrganizationActivity activity, OffsetDateTime startsAt,
+      OffsetDateTime endsAt, String timezone, OrganizationMembership createdBy) {
+    this.organization = Objects.requireNonNull(organization);
+    this.organizationActivity = Objects.requireNonNull(activity);
+    if (!activity.getOrganization().getId().equals(organization.getId()))
+      throw new IllegalArgumentException("activity belongs to another organization");
+    this.activityNameSnapshot = activity.getName();
+    this.activityColorSnapshot = activity.getColor();
+    this.itemType = ScheduleItemType.ACTIVITY;
+    this.startsAt = Objects.requireNonNull(startsAt);
+    this.endsAt = Objects.requireNonNull(endsAt);
+    if (!endsAt.isAfter(startsAt)) throw new IllegalArgumentException("shift end must be after start");
+    this.timezone = Objects.requireNonNull(timezone);
+    this.createdBy = Objects.requireNonNull(createdBy);
+    this.source = ShiftSource.MANUAL;
+    this.status = ShiftStatus.PUBLISHED;
+    this.publishedAt = OffsetDateTime.now();
+  }
+
   public void override(OffsetDateTime nextStart, OffsetDateTime nextEnd) {
     if (!nextEnd.isAfter(nextStart)) throw new IllegalArgumentException("shift end must be after start");
     startsAt = Objects.requireNonNull(nextStart);
@@ -80,4 +104,5 @@ public class ScheduledShift extends BaseEntity {
     manuallyOverridden = true;
     version++;
   }
+  public void cancel() { status = ShiftStatus.CANCELLED; version++; }
 }

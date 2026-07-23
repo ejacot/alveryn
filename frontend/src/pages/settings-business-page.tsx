@@ -10,6 +10,7 @@ import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import type { MembershipRole } from "../types/organization";
+import { setWorkspaceScope } from "../features/organization/workspace-scope";
 
 export function SettingsBusinessPage() {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ export function SettingsBusinessPage() {
     mutationFn: () => createOrganization({ name, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
     onSuccess: async (organization) => {
       setName(""); setSelectedId(organization.id);
+      setWorkspaceScope(organization.id);
       await client.invalidateQueries({ queryKey: queryKeys.organizations.all() });
     }
   });
@@ -72,6 +74,9 @@ export function SettingsBusinessPage() {
       )}
       {active ? (
         <>
+          <Button className="w-full" onClick={() => {
+            setWorkspaceScope(active.id); navigate("/business");
+          }}>Open {active.name}</Button>
           <section className="space-y-2">
             <p className="hairline-text">Team</p>
             <Card className="divide-y divide-white/[0.06] overflow-hidden">
