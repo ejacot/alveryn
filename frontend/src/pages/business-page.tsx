@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarDays, Check, Clock3, Plus, Users } from "lucide-react";
+import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Plus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   cancelBusinessShift, createBusinessShift, createMemberEmployment,
@@ -17,14 +17,19 @@ import { useWorkspaceScope } from "../features/organization/workspace-scope";
 import type { BusinessShift, Organization } from "../types/organization";
 
 type Tab = "overview" | "schedule" | "requests" | "setup";
-const iso = (value: Date) => value.toISOString().slice(0, 10);
-function weekRange() {
-  const now = new Date();
+const iso = (value: Date) =>
+  `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+function addDays(value: string, amount: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + amount);
+  return iso(date);
+}
+function weekStart(value = new Date()) {
+  const now = new Date(value);
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { from: iso(monday), to: iso(sunday) };
+  return iso(monday);
 }
 function minutes(value: number) {
   const hours = Math.floor(value / 60);
@@ -65,7 +70,8 @@ function BusinessWorkspace({ organization, client }: {
   organization: Organization; client: ReturnType<typeof useQueryClient>;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
-  const range = useMemo(weekRange, []);
+  const [from, setFrom] = useState(() => weekStart());
+  const range = useMemo(() => ({ from, to: addDays(from, 6) }), [from]);
   const canManage = organization.role !== "EMPLOYEE";
   const shifts = useQuery({ queryKey: queryKeys.organizations.shifts(organization.id, range.from, range.to),
     queryFn: () => listBusinessShifts(organization.id, range.from, range.to) });
@@ -82,10 +88,20 @@ function BusinessWorkspace({ organization, client }: {
     ]);
   };
   return <div className="mx-auto w-full max-w-4xl space-y-5 pb-12 pt-4">
-    <header>
-      <p className="hairline-text">Business workspace</p>
-      <h1 className="mt-1 text-2xl font-semibold text-white">{organization.name}</h1>
-      <p className="mt-1 text-sm text-white/45">{organization.role} · {range.from} — {range.to}</p>
+    <header className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="hairline-text">Business workspace</p>
+        <h1 className="mt-1 text-2xl font-semibold text-white">{organization.name}</h1>
+        <p className="mt-1 text-sm text-white/45">{organization.role} · {range.from} — {range.to}</p>
+      </div>
+      <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
+        <button aria-label="Previous week" className="rounded-full p-2 text-white/55 hover:bg-white/[0.08] hover:text-white"
+          onClick={() => setFrom((value) => addDays(value, -7))}><ChevronLeft className="h-4 w-4" /></button>
+        <button className="min-h-9 px-3 text-xs font-semibold text-white/65 hover:text-white"
+          onClick={() => setFrom(weekStart())}>This week</button>
+        <button aria-label="Next week" className="rounded-full p-2 text-white/55 hover:bg-white/[0.08] hover:text-white"
+          onClick={() => setFrom((value) => addDays(value, 7))}><ChevronRight className="h-4 w-4" /></button>
+      </div>
     </header>
     <nav className="flex gap-1 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
       {(["overview", "schedule", "requests", "setup"] as Tab[]).map((value) =>
@@ -149,6 +165,7 @@ function Schedule({ organization, shifts, from, to, canManage, refresh }: {
   const employments = useQuery({ queryKey: queryKeys.organizations.memberEmployments(organization.id, activeMember),
     queryFn: () => listMemberEmployments(organization.id, activeMember), enabled: Boolean(activeMember) });
   const [date, setDate] = useState(from);
+  useEffect(() => setDate(from), [from]);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [activityId, setActivityId] = useState("");
@@ -162,18 +179,74 @@ function Schedule({ organization, shifts, from, to, canManage, refresh }: {
   });
   const cancel = useMutation({ mutationFn: (id: string) => cancelBusinessShift(organization.id, id),
     onSuccess: refresh });
-  return <div className="grid gap-5 md:grid-cols-[1.35fr_.9fr]">
-    <section className="space-y-3">
-      <div><h2 className="font-semibold text-white">Team schedule</h2>
-        <p className="text-xs text-white/42">{from} — {to}</p></div>
-      {!shifts.length ? <Card className="p-5 text-sm text-white/45">No assignments in this week.</Card> :
-        <Card className="divide-y divide-white/[0.06] overflow-hidden">{shifts.map((item) =>
-          <div key={item.assignmentId}><ShiftRow shift={item} />
-            {canManage && item.status !== "CANCELLED" ? <button className="px-5 pb-4 text-xs text-red-300"
-              onClick={() => cancel.mutate(item.assignmentId)}>Cancel shift</button> : null}</div>)}</Card>}
+  const team = (members.data ?? []).filter((item) => item.status === "ACTIVE" && item.role !== "OWNER");
+  const days = Array.from({ length: 7 }, (_, index) => addDays(from, index));
+  return <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section className="min-w-0 space-y-3">
+      <div><h2 className="font-semibold text-white">Weekly team planner</h2>
+        <p className="text-xs text-white/42">Employees are rows. Select a day to assign a job.</p></div>
+      {!team.length ? <Card className="p-5 text-sm text-white/45">No active employees. Invite a team member first.</Card> :
+        <Card className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <div className="min-w-[980px]">
+              <div className="grid grid-cols-[180px_repeat(7,minmax(112px,1fr))] border-b border-white/[0.08] bg-white/[0.025]">
+                <div className="p-3 text-xs font-semibold uppercase tracking-[0.12em] text-white/35">Employee</div>
+                {days.map((day) => {
+                  const parsed = new Date(`${day}T12:00:00`);
+                  const today = day === iso(new Date());
+                  return <div key={day} className={`border-l border-white/[0.06] p-3 text-center ${today ? "bg-blue-400/[0.07]" : ""}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/38">
+                      {new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(parsed)}
+                    </p>
+                    <p className={`mt-1 text-sm font-semibold ${today ? "text-blue-200" : "text-white/75"}`}>
+                      {new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short" }).format(parsed)}
+                    </p>
+                  </div>;
+                })}
+              </div>
+              {team.map((member) => <div key={member.membershipId}
+                className="grid min-h-28 grid-cols-[180px_repeat(7,minmax(112px,1fr))] border-b border-white/[0.06] last:border-b-0">
+                <div className="min-w-0 p-3">
+                  <p className="truncate text-sm font-medium text-white">{member.email.split("@")[0]}</p>
+                  <p className="mt-1 truncate text-[11px] text-white/35">{member.email}</p>
+                </div>
+                {days.map((day) => {
+                  const assignments = shifts.filter((shift) => shift.membershipId === member.membershipId
+                    && shift.startsAt.slice(0, 10) === day && shift.status !== "CANCELLED");
+                  return <div key={day} role={canManage ? "button" : undefined}
+                    tabIndex={canManage ? 0 : undefined}
+                    onClick={() => { if (canManage) { setMemberId(member.membershipId); setDate(day); } }}
+                    onKeyDown={(event) => {
+                      if (canManage && (event.key === "Enter" || event.key === " ")) {
+                        setMemberId(member.membershipId); setDate(day);
+                      }
+                    }}
+                    className="group min-h-28 space-y-2 border-l border-white/[0.06] p-2 text-left transition hover:bg-white/[0.035]">
+                    {assignments.map((shift) => <span key={shift.assignmentId}
+                      className="block rounded-xl border border-white/[0.08] bg-white/[0.055] p-2"
+                      style={{ borderLeftColor: shift.activityColor, borderLeftWidth: 3 }}>
+                      <span className="block truncate text-xs font-semibold text-white">{shift.activityName}</span>
+                      <span className="mt-1 block text-[10px] text-white/45">
+                        {shift.startsAt.slice(11, 16)}–{shift.endsAt.slice(11, 16)}
+                      </span>
+                      {canManage ? <button type="button"
+                        className="mt-1 block text-[10px] text-red-300/65 hover:text-red-200"
+                        onClick={(event) => { event.stopPropagation(); cancel.mutate(shift.assignmentId); }}>
+                        Cancel
+                      </button> : null}
+                    </span>)}
+                    {canManage ? <span className="flex items-center gap-1 text-[10px] font-medium text-white/0 transition group-hover:text-white/40">
+                      <Plus className="h-3 w-3" />Assign job
+                    </span> : null}
+                  </div>;
+                })}
+              </div>)}
+            </div>
+          </div>
+        </Card>}
     </section>
     {canManage ? <Card className="h-fit space-y-4 p-5">
-      <div><h2 className="font-semibold text-white">Plan a shift</h2>
+      <div><h2 className="font-semibold text-white">Assign a job</h2>
         <p className="mt-1 text-xs leading-5 text-white/42">Assignments become visible to the employee immediately.</p></div>
       <Select label="Employee" value={activeMember} onChange={setMemberId}
         options={(members.data ?? []).filter((item) => item.status === "ACTIVE" && item.role !== "OWNER")
@@ -193,7 +266,7 @@ function Schedule({ organization, shifts, from, to, canManage, refresh }: {
       </div>
       {create.error ? <p className="text-sm text-red-300">{getApiError(create.error).message}</p> : null}
       <Button className="w-full" disabled={!activeMember || !employmentId || !selectedActivity || create.isPending}
-        onClick={() => create.mutate()}>Publish shift</Button>
+        onClick={() => create.mutate()}>Assign job</Button>
     </Card> : null}
   </div>;
 }
