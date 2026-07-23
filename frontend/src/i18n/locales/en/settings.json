@@ -475,6 +475,39 @@
       "employmentEndBeforeStart": "Employment end cannot be before employment start"
     }
   },
+  "schedule": {
+    "title": "Usual work schedule",
+    "description": "Build a recurring weekly plan from your work activities.",
+    "defaultName": "Usual week",
+    "introTitle": "Plan once, adjust only exceptions",
+    "introDescription": "Choose one or more work activities for each day and set the interval for every activity. Individual days can be adjusted later.",
+    "weekTitle": "Working days",
+    "applyTitle": "Apply schedule",
+    "validFrom": "Use this schedule from",
+    "validTo": "Use this schedule until (optional)",
+    "start": "Start",
+    "end": "End",
+    "break": "Break (min)",
+    "activity": "Work activity",
+    "absence": "Absence",
+    "noPlan": "No planned absence",
+    "addActivity": "Add another activity",
+    "weeklyTotal": "Planned weekly time",
+    "exceptionsTitle": "Upcoming days",
+    "exceptionsHelp": "Changing a day here does not alter your usual week.",
+    "adjustDay": "Adjust",
+    "date": "Date",
+    "saveThisDay": "Save this day",
+    "days": {
+      "MONDAY": "Monday",
+      "TUESDAY": "Tuesday",
+      "WEDNESDAY": "Wednesday",
+      "THURSDAY": "Thursday",
+      "FRIDAY": "Friday",
+      "SATURDAY": "Saturday",
+      "SUNDAY": "Sunday"
+    }
+  },
   "hourlyRates": "Hourly rates",
   "hourlyRateList": {
     "emptyTitle": "No hourly rates yet",

@@ -11,6 +11,7 @@ import com.alveryn.api.employment.repository.EmploymentTermRepository;
 import com.alveryn.api.employment.entity.EmploymentTerm;
 import com.alveryn.api.employment.entity.TrackingFocus;
 import com.alveryn.api.user.repository.UserAccountRepository;
+import com.alveryn.api.organization.service.PersonalWorkspaceService;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
@@ -30,6 +31,7 @@ public class EmploymentService {
   private final AbsenceRepository absences;
   private final WorkTypeRepository workTypes;
   private final EmploymentTermRepository terms;
+  private final PersonalWorkspaceService personalWorkspaces;
 
   @Transactional(readOnly = true) public List<EmploymentResponse> list() {
     return repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(authenticatedUserAccessor.requireUserId()).stream().map(this::response).toList();
@@ -38,7 +40,8 @@ public class EmploymentService {
   @Transactional public EmploymentResponse create(EmploymentRequest request) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     var user = users.findById(userId).orElseThrow(() -> new NotFoundException("UserAccount", userId));
-    var entity = new Employment(user, request.name());
+    var workspace = personalWorkspaces.requireOrCreate(user);
+    var entity = new Employment(workspace.organization(), user, request.name());
     configure(entity, request, repository.findAllByUserIdOrderByDisplayOrderAscNameAsc(userId).size());
     Employment saved = repository.save(entity);
     LocalDate validFrom = request.termsValidFrom() != null ? request.termsValidFrom()

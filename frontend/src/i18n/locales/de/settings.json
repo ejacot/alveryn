@@ -475,6 +475,39 @@
       "employmentEndBeforeStart": "Das Beschäftigungsende darf nicht vor dem Beginn liegen"
     }
   },
+  "schedule": {
+    "title": "Üblicher Arbeitsplan",
+    "description": "Erstelle einen wiederkehrenden Wochenplan aus deinen Arbeitsaktivitäten.",
+    "defaultName": "Standardwoche",
+    "introTitle": "Einmal planen, nur Ausnahmen ändern",
+    "introDescription": "Wähle pro Tag eine oder mehrere Arbeitsaktivitäten und lege für jede den Zeitraum fest. Einzelne Tage können später angepasst werden.",
+    "weekTitle": "Arbeitstage",
+    "applyTitle": "Arbeitsplan anwenden",
+    "validFrom": "Diesen Arbeitsplan verwenden ab",
+    "validTo": "Diesen Arbeitsplan verwenden bis (optional)",
+    "start": "Beginn",
+    "end": "Ende",
+    "break": "Pause (Min.)",
+    "activity": "Arbeitsaktivität",
+    "absence": "Abwesenheit",
+    "noPlan": "Keine Abwesenheit geplant",
+    "addActivity": "Weitere Aktivität hinzufügen",
+    "weeklyTotal": "Geplante Wochenzeit",
+    "exceptionsTitle": "Kommende Tage",
+    "exceptionsHelp": "Eine Änderung hier verändert deine Standardwoche nicht.",
+    "adjustDay": "Anpassen",
+    "date": "Datum",
+    "saveThisDay": "Nur diesen Tag speichern",
+    "days": {
+      "MONDAY": "Montag",
+      "TUESDAY": "Dienstag",
+      "WEDNESDAY": "Mittwoch",
+      "THURSDAY": "Donnerstag",
+      "FRIDAY": "Freitag",
+      "SATURDAY": "Samstag",
+      "SUNDAY": "Sonntag"
+    }
+  },
   "hourlyRates": "Stundensätze",
   "hourlyRateList": {
     "emptyTitle": "Noch keine Stundensätze",

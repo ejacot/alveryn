@@ -475,6 +475,39 @@
       "employmentEndBeforeStart": "Sfârșitul angajării nu poate fi înainte de început"
     }
   },
+  "schedule": {
+    "title": "Program obișnuit de lucru",
+    "description": "Construiește un plan săptămânal recurent din activitățile tale.",
+    "defaultName": "Săptămâna obișnuită",
+    "introTitle": "Planifică o dată, modifică doar excepțiile",
+    "introDescription": "Alege una sau mai multe activități pentru fiecare zi și stabilește intervalul fiecăreia. Zilele individuale pot fi ajustate ulterior.",
+    "weekTitle": "Zile lucrătoare",
+    "applyTitle": "Aplicarea programului",
+    "validFrom": "Folosește acest program începând cu",
+    "validTo": "Folosește acest program până la (opțional)",
+    "start": "Început",
+    "end": "Sfârșit",
+    "break": "Pauză (min.)",
+    "activity": "Activitate de lucru",
+    "absence": "Absență",
+    "noPlan": "Nicio absență planificată",
+    "addActivity": "Adaugă încă o activitate",
+    "weeklyTotal": "Timp săptămânal planificat",
+    "exceptionsTitle": "Zilele următoare",
+    "exceptionsHelp": "Modificarea unei zile aici nu schimbă săptămâna obișnuită.",
+    "adjustDay": "Ajustează",
+    "date": "Data",
+    "saveThisDay": "Salvează doar această zi",
+    "days": {
+      "MONDAY": "Luni",
+      "TUESDAY": "Marți",
+      "WEDNESDAY": "Miercuri",
+      "THURSDAY": "Joi",
+      "FRIDAY": "Vineri",
+      "SATURDAY": "Sâmbătă",
+      "SUNDAY": "Duminică"
+    }
+  },
   "hourlyRates": "Tarife orare",
   "hourlyRateList": {
     "emptyTitle": "Nu există încă tarife orare",

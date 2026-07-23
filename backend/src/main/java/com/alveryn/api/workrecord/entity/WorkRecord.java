@@ -5,6 +5,7 @@ import com.alveryn.api.common.persistence.BaseEntity;
 import com.alveryn.api.employment.entity.Employment;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.workproject.entity.WorkProject;
+import com.alveryn.api.schedule.entity.ShiftAssignment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -34,6 +35,10 @@ public class WorkRecord extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "employment_id")
   private Employment employment;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "shift_assignment_id")
+  private ShiftAssignment shiftAssignment;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
@@ -66,6 +71,14 @@ public class WorkRecord extends BaseEntity {
   public void assignEmployment(Employment value) {
     if (value != null && !value.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("employment must belong to record user");
     employment = value;
+  }
+
+  public void linkPlannedShift(ShiftAssignment value) {
+    if (value != null && employment != null
+        && !value.getEmployment().getId().equals(employment.getId())) {
+      throw new IllegalArgumentException("planned shift and work record must use the same employment");
+    }
+    shiftAssignment = value;
   }
 
   public void classifyAs(WorkEntryKind value) {

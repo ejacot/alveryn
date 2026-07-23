@@ -41,6 +41,11 @@ export const queryKeys = {
     all: () => ["employments"] as const,
     detail: (id: string) => ["employments", "detail", id] as const
   },
+  schedules: {
+    employment: (employmentId: string) => ["schedules", "employment", employmentId] as const,
+    shifts: (employmentId: string, from: string, to: string) =>
+      ["schedules", "shifts", employmentId, from, to] as const
+  },
   onboardingStatus: () => ["onboarding-status"] as const,
   trackingSetupStatus: () => ["tracking-setup-status"] as const,
   dashboard: () => ["dashboard"] as const,
