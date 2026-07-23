@@ -8,12 +8,13 @@ public record RegisterRequest(
     @NotBlank @Size(min = 8, max = 128) String password,
     RegistrationAccountType accountType,
     @Size(max = 160) String companyName,
-    @Size(max = 60) String timezone) {
+    @Size(max = 60) String timezone,
+    @Size(max = 512) String invitationToken) {
   public RegisterRequest {
     accountType = accountType == null ? RegistrationAccountType.PERSONAL : accountType;
   }
 
   public RegisterRequest(String email, String password) {
-    this(email, password, RegistrationAccountType.PERSONAL, null, null);
+    this(email, password, RegistrationAccountType.PERSONAL, null, null, null);
   }
 }

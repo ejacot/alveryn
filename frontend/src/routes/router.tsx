@@ -173,7 +173,10 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
     {
       element: <AuthLayout />,
       errorElement: <RouteErrorPage />,
-      children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]
+      children: [
+        { path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) },
+        { path: "/accept-invitation", element: withSuspense(<AcceptInvitationPage />) }
+      ]
     },
     {
       element: <GuestRoute />,
@@ -211,7 +214,6 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
             { path: "/settings/business", element: withSuspense(<SettingsBusinessPage />) },
             { path: "/business", element: withSuspense(<BusinessPage />) },
-            { path: "/accept-invitation", element: withSuspense(<AcceptInvitationPage />) },
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
             { path: "/settings/employment/:employmentId", element: withSuspense(<SettingsEmploymentDetailPage />) },

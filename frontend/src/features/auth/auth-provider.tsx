@@ -78,13 +78,15 @@ export function AuthProvider({ children }: Props) {
   }
 
   async function registerWithPassword(email: string, password: string,
-      accountType: "PERSONAL" | "BUSINESS" = "PERSONAL", companyName?: string | null) {
+      accountType: "PERSONAL" | "BUSINESS" = "PERSONAL", companyName?: string | null,
+      invitationToken?: string | null) {
     await register({
       email,
       password,
       accountType,
       companyName: accountType === "BUSINESS" ? companyName : null,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      invitationToken
     });
   }
 

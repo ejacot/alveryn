@@ -11,6 +11,7 @@ import com.alveryn.api.auth.exception.UnauthorizedException;
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.auth.util.AuthTokenGenerator;
+import com.alveryn.api.auth.util.TokenHashingService;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.user.entity.UserAccount;
@@ -53,6 +54,8 @@ public class AuthService {
   private final FounderProperties founderProperties;
   private final OrganizationRepository organizations;
   private final OrganizationMembershipRepository memberships;
+  private final OrganizationInvitationRepository invitations;
+  private final TokenHashingService tokenHashing;
 
   @Transactional
   public AuthUserResponse register(RegisterRequest request) {
@@ -68,23 +71,39 @@ public class AuthService {
         passwordEncoder.encode(verificationCode), now.plus(properties.emailVerificationCodeLifetime()));
     UserAccount saved = users.save(user);
     UserPreferences userPreferences = new UserPreferences(saved);
-    AccountMode mode = request.accountType() == RegistrationAccountType.BUSINESS
+    OrganizationInvitation invitation = resolveInvitation(request.invitationToken(), email, now);
+    AccountMode mode = invitation != null || request.accountType() == RegistrationAccountType.BUSINESS
         ? AccountMode.BUSINESS : AccountMode.PERSONAL;
     userPreferences.chooseAccountMode(mode);
     String timezone = validTimezone(request.timezone());
     userPreferences.changeTimezone(timezone);
     preferences.save(userPreferences);
     Organization organization;
-    if (mode == AccountMode.BUSINESS) {
+    if (invitation != null) {
+      organization = null;
+    } else if (mode == AccountMode.BUSINESS) {
       if (request.companyName() == null || request.companyName().isBlank())
         throw new ValidationException("Company name is required for a business account");
       organization = organizations.save(new Organization(request.companyName(), timezone));
     } else {
       organization = organizations.save(new Organization(saved, saved.getEmail(), timezone));
     }
-    memberships.save(new OrganizationMembership(organization, saved, MembershipRole.OWNER));
+    if (organization != null) {
+      memberships.save(new OrganizationMembership(organization, saved, MembershipRole.OWNER));
+    }
     emailService.sendVerificationCode(saved, verificationCode);
     return toAuthUserResponse(saved);
+  }
+
+  private OrganizationInvitation resolveInvitation(String token, String email, OffsetDateTime now) {
+    if (token == null || token.isBlank()) return null;
+    var invitation = invitations.findByTokenHash(tokenHashing.sha256Hex(token.trim()))
+        .orElseThrow(() -> new ValidationException("Invitation is invalid or expired"));
+    if (!invitation.canAccept(now)
+        || !invitation.getNormalizedEmail().equals(email.toLowerCase(Locale.ROOT))) {
+      throw new ValidationException("Invitation is invalid, expired, or belongs to another email");
+    }
+    return invitation;
   }
 
   private String validTimezone(String value) {

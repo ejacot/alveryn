@@ -2,7 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
@@ -15,11 +15,15 @@ import { useAuth } from "../features/auth/use-auth";
 import { Building2, Check, UserRound } from "lucide-react";
 
 const PENDING_VERIFICATION_EMAIL_KEY = "alveryn.pendingVerificationEmail";
+const PENDING_INVITATION_TOKEN_KEY = "alveryn.pendingInvitationToken";
 
 export function RegisterPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { registerWithPassword } = useAuth();
+  const invitationToken = searchParams.get("invitation");
+  const invitedRegistration = Boolean(invitationToken);
   const [serverError, setServerError] = useState("");
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -34,11 +38,16 @@ export function RegisterPage() {
   async function onSubmit(values: RegisterValues) {
     try {
       setServerError("");
-      await registerWithPassword(values.email, values.password, values.accountType, values.companyName);
+      await registerWithPassword(values.email, values.password, values.accountType,
+        values.companyName, invitationToken);
       window.sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, values.email);
+      if (invitationToken) {
+        window.sessionStorage.setItem(PENDING_INVITATION_TOKEN_KEY, invitationToken);
+      }
       navigate("/verify-email", {
         state: {
-          email: values.email
+          email: values.email,
+          invitationToken
         }
       });
     } catch (error) {
@@ -59,15 +68,27 @@ export function RegisterPage() {
       footer={
         <span>
           {t("auth:register.footer")}{" "}
-          <Link to="/login" className="text-white transition hover:text-white/70">
+          <Link to="/login"
+            state={invitationToken ? { from: { pathname: "/accept-invitation",
+              search: `?token=${encodeURIComponent(invitationToken)}` } } : undefined}
+            className="text-white transition hover:text-white/70">
             {t("auth:register.footerLink")}
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: t("auth:register.backToLogin") }}
+      backLink={{ to: invitationToken
+        ? `/accept-invitation?token=${encodeURIComponent(invitationToken)}` : "/login",
+        label: t("auth:register.backToLogin") }}
     >
       <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
-        <fieldset className="space-y-2">
+        {invitedRegistration ? (
+          <div className="rounded-2xl border border-white/[0.09] bg-white/[0.04] p-4">
+            <p className="text-sm font-semibold text-white">Create your team account</p>
+            <p className="mt-1 text-xs leading-5 text-white/48">
+              Your company and work settings are managed by the person who invited you.
+            </p>
+          </div>
+        ) : <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-white/78">
             {t("auth:register.accountTypeLabel")}
           </legend>
@@ -92,8 +113,8 @@ export function RegisterPage() {
               </label>;
             })}
           </div>
-        </fieldset>
-        {form.watch("accountType") === "BUSINESS" ? (
+        </fieldset>}
+        {!invitedRegistration && form.watch("accountType") === "BUSINESS" ? (
           <Input
             label={t("auth:register.companyName")}
             autoComplete="organization"

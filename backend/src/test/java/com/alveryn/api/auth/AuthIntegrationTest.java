@@ -15,6 +15,7 @@ import com.alveryn.api.auth.repository.PasswordResetTokenRepository;
 import com.alveryn.api.auth.repository.RefreshTokenRepository;
 import com.alveryn.api.auth.repository.UserOAuthIdentityRepository;
 import com.alveryn.api.auth.service.GoogleOAuthClient;
+import com.alveryn.api.auth.util.TokenHashingService;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.organization.entity.*;
@@ -54,6 +55,8 @@ class AuthIntegrationTest {
   @Autowired UserPreferencesRepository preferences;
   @Autowired OrganizationRepository organizations;
   @Autowired OrganizationMembershipRepository memberships;
+  @Autowired OrganizationInvitationRepository invitations;
+  @Autowired TokenHashingService tokenHashing;
   @Autowired RefreshTokenRepository refreshTokens;
   @Autowired UserOAuthIdentityRepository oauthIdentities;
   @Autowired PasswordResetTokenRepository passwordResetTokens;
@@ -125,6 +128,40 @@ class AuthIntegrationTest {
     assertThat(organization.getName()).isEqualTo("Northstar Logistics");
     assertThat(organization.getOrganizationType()).isEqualTo(OrganizationType.BUSINESS);
     assertThat(organizations.findByPersonalOwnerId(user.getId())).isEmpty();
+  }
+
+  @Test
+  void invitationRegistrationCreatesOnlyTheInvitedBusinessIdentity() throws Exception {
+    mockMvc.perform(post("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"email":"owner@example.com","password":"super-secret",
+                 "accountType":"BUSINESS","companyName":"Northstar","timezone":"Europe/Berlin"}
+                """))
+        .andExpect(status().isCreated());
+    var owner = users.findByEmailIgnoreCase("owner@example.com").orElseThrow();
+    var ownerMembership = memberships.findAllByUserIdAndStatusOrderByJoinedAtAsc(
+        owner.getId(), MembershipStatus.ACTIVE).getFirst();
+    var plainToken = "invitation-token";
+    invitations.save(new OrganizationInvitation(
+        ownerMembership.getOrganization(), "worker@example.com", MembershipRole.EMPLOYEE,
+        tokenHashing.sha256Hex(plainToken), ownerMembership, OffsetDateTime.now().plusDays(1)));
+
+    mockMvc.perform(post("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"email":"worker@example.com","password":"super-secret",
+                 "accountType":"PERSONAL","timezone":"Europe/Berlin",
+                 "invitationToken":"invitation-token"}
+                """))
+        .andExpect(status().isCreated());
+
+    var worker = users.findByEmailIgnoreCase("worker@example.com").orElseThrow();
+    assertThat(preferences.findByUserId(worker.getId()).orElseThrow().getAccountMode())
+        .isEqualTo(com.alveryn.api.user.entity.AccountMode.BUSINESS);
+    assertThat(organizations.findByPersonalOwnerId(worker.getId())).isEmpty();
+    assertThat(memberships.findAllByUserIdAndStatusOrderByJoinedAtAsc(
+        worker.getId(), MembershipStatus.ACTIVE)).isEmpty();
   }
 
   @Test

@@ -32,6 +32,7 @@ export type RegistrationPayload = Credentials & {
   accountType: "PERSONAL" | "BUSINESS";
   companyName?: string | null;
   timezone: string;
+  invitationToken?: string | null;
 };
 
 export async function listOrganizations() {

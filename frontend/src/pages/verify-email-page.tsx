@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../features/auth/use-auth";
 
 const PENDING_VERIFICATION_EMAIL_KEY = "alveryn.pendingVerificationEmail";
+const PENDING_INVITATION_TOKEN_KEY = "alveryn.pendingInvitationToken";
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export function VerifyEmailPage() {
@@ -45,7 +46,13 @@ export function VerifyEmailPage() {
       const result = await verifyEmail(values);
       const currentUser = await completeEmailVerification(result);
       window.sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
-      navigate(currentUser.preferences?.accountMode === "BUSINESS" ? "/business" : "/onboarding",
+      const invitationToken =
+        (location.state as { invitationToken?: string } | null)?.invitationToken ??
+        window.sessionStorage.getItem(PENDING_INVITATION_TOKEN_KEY);
+      window.sessionStorage.removeItem(PENDING_INVITATION_TOKEN_KEY);
+      navigate(invitationToken
+        ? `/accept-invitation?token=${encodeURIComponent(invitationToken)}`
+        : currentUser.preferences?.accountMode === "BUSINESS" ? "/business" : "/onboarding",
         { replace: true });
     } catch (error) {
       const apiError = getApiError(error);
