@@ -24,24 +24,23 @@ export function AuthCard({
   const { t } = useTranslation(["auth"]);
 
   return (
-    <div className="mx-auto flex h-screen h-[100dvh] w-full max-w-[560px] items-start justify-center overflow-hidden overscroll-none px-5 pb-5 pt-[max(1.75rem,calc(env(safe-area-inset-top)+1rem))]">
-      <div className="w-full pt-[clamp(0.5rem,5dvh,3rem)]">
+    <div className="mx-auto flex h-screen h-[100dvh] w-full max-w-[520px] items-center justify-center overflow-hidden overscroll-none px-5 py-[max(1.25rem,env(safe-area-inset-top))]">
+      <div className="w-full">
         <div className="mb-7 flex justify-center">
           <AppLogo />
         </div>
-        <Card variant="auth" className="p-5 sm:p-6">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/20" />
-        <div className="space-y-1">
-          <h1 className="text-[1.9rem] font-semibold leading-none tracking-[-0.055em] text-white">
+        <Card variant="auth" className="rounded-2xl border-white/[0.1] bg-[#171717] p-5 shadow-[0_24px_80px_rgba(0,0,0,.35)] sm:p-6">
+        <div className="space-y-1.5 text-center">
+          <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.045em] text-white">
             {title}
           </h1>
           {subtitle ? (
-            <p className="max-w-sm text-[0.82rem] leading-5 text-white/46">{subtitle}</p>
+            <p className="mx-auto max-w-sm text-[0.82rem] leading-5 text-white/48">{subtitle}</p>
           ) : null}
         </div>
-        <div className="mt-5">{children}</div>
+        <div className="mt-6">{children}</div>
         {footer ? (
-          <div className="mt-4 border-t border-white/[0.07] pt-4 text-center text-sm text-white/48">
+          <div className="mt-5 border-t border-white/[0.07] pt-4 text-center text-sm text-white/48">
             {footer}
           </div>
         ) : null}

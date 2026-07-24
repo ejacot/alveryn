@@ -433,6 +433,69 @@ html[data-theme="light"] .landing-page [class*="bg-black/"] {
   background-color: #030303 !important;
 }
 
+.auth-shell {
+  color-scheme: dark;
+  background: #0d0d0d !important;
+  color: #ffffff;
+}
+
+.auth-shell .universal-glass-card {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+  background: #171717 !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="light"] .auth-shell {
+  color-scheme: light;
+  background: #f5f5f2 !important;
+  color: #151515;
+}
+
+html[data-theme="light"] .auth-shell .universal-glass-card {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+  background: #ffffff !important;
+  box-shadow: 0 20px 60px rgba(25, 25, 20, 0.09);
+}
+
+html[data-theme="light"] .auth-shell [class~="text-white"] {
+  color: #151515 !important;
+}
+
+html[data-theme="light"] .auth-shell [class*="text-white/"] {
+  color: rgba(21, 21, 21, 0.54) !important;
+}
+
+html[data-theme="light"] .auth-shell [class~="bg-white"] {
+  background: #151515 !important;
+}
+
+html[data-theme="light"] .auth-shell [class~="text-black"] {
+  color: #ffffff !important;
+}
+
+.auth-shell input {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: #ffffff !important;
+}
+
+.auth-shell input:focus {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+html[data-theme="light"] .auth-shell input {
+  border-color: rgba(0, 0, 0, 0.11) !important;
+  background: #f7f7f5 !important;
+  color: #151515 !important;
+}
+
+html[data-theme="light"] .auth-shell input:focus {
+  border-color: rgba(0, 0, 0, 0.28) !important;
+  background: #ffffff !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

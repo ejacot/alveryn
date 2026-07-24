@@ -156,10 +156,16 @@ public class AuthService {
   }
 
   @Transactional
-  public GenericSuccessResponse resetPassword(ResetPasswordRequest request) {
-    passwordResetService.resetPassword(
+  public GenericSuccessResponse verifyPasswordResetCode(VerifyPasswordResetCodeRequest request) {
+    passwordResetService.verifyResetCode(request.email(), request.code());
+    return new GenericSuccessResponse("Password reset code is valid");
+  }
+
+  @Transactional
+  public IssuedAuthSession resetPassword(ResetPasswordRequest request) {
+    UserAccount user = passwordResetService.resetPassword(
         request.email(), request.code(), passwordEncoder.encode(request.newPassword()));
-    return new GenericSuccessResponse("Password reset successfully");
+    return issueVerifiedSession(user);
   }
 
   @Transactional

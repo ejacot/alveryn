@@ -17,7 +17,7 @@ public class AuthTokenGenerator {
   }
 
   public String generatePasswordResetToken() {
-    return generateOpaqueToken(32);
+    return generateVerificationCode();
   }
 
   public String generateOpaqueToken() {

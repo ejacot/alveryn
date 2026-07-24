@@ -41,7 +41,33 @@ public class PasswordResetService {
   }
 
   @Transactional
-  public void resetPassword(String email, String plainToken, String newPasswordHash) {
+  public void verifyResetCode(String email, String plainToken) {
+    requireValidToken(email, plainToken);
+  }
+
+  @Transactional
+  public UserAccount resetPassword(String email, String plainToken, String newPasswordHash) {
+    ValidResetToken validReset = requireValidToken(email, plainToken);
+    UserAccount user = validReset.user();
+    PasswordResetToken token = validReset.token();
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    token.markUsed(now);
+    tokens.save(token);
+    user.updatePasswordHash(newPasswordHash);
+    if (!user.isEmailVerified()) {
+      user.verifyEmail();
+    }
+    user.resetFailedLoginAttempts();
+    if (user.getStatus() == UserStatus.LOCKED) {
+      user.unlock();
+    }
+    users.save(user);
+    refreshTokenService.revokeAllActiveForUser(user);
+    tokens.markAllActiveAsUsed(user.getId(), now);
+    return user;
+  }
+
+  private ValidResetToken requireValidToken(String email, String plainToken) {
     UserAccount user =
         users
             .findByEmailIgnoreCase(normalizeEmail(email))
@@ -58,19 +84,7 @@ public class PasswordResetService {
     if (token.getUsedAt() != null) {
       throw new AuthenticationFailureException("Invalid password reset code");
     }
-    token.markUsed(now);
-    tokens.save(token);
-    user.updatePasswordHash(newPasswordHash);
-    if (!user.isEmailVerified()) {
-      user.verifyEmail();
-    }
-    user.resetFailedLoginAttempts();
-    if (user.getStatus() == UserStatus.LOCKED) {
-      user.unlock();
-    }
-    users.save(user);
-    refreshTokenService.revokeAllActiveForUser(user);
-    tokens.markAllActiveAsUsed(user.getId(), now);
+    return new ValidResetToken(user, token);
   }
 
   private void issueResetToken(UserAccount user) {
@@ -93,4 +107,6 @@ public class PasswordResetService {
     }
     return normalized;
   }
+
+  private record ValidResetToken(UserAccount user, PasswordResetToken token) {}
 }

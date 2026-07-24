@@ -480,6 +480,18 @@ class AuthIntegrationTest {
         .andExpect(status().isOk());
 
     String resetCode = emailService.resetCodeFor("reset@example.com");
+    assertThat(resetCode).matches("\\d{6}");
+    mockMvc
+        .perform(
+            post("/api/auth/verify-password-reset-code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"email":"reset@example.com","code":"%s"}
+                    """
+                        .formatted(resetCode)))
+        .andExpect(status().isOk());
+
     mockMvc
         .perform(
             post("/api/auth/reset-password")
@@ -489,7 +501,12 @@ class AuthIntegrationTest {
                     {"email":"reset@example.com","code":"%s","newPassword":"new-secret-pass"}
                     """
                         .formatted(resetCode)))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+        .andExpect(
+            result ->
+                assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+                    .contains(refreshCookieProperties.name() + "="));
 
     mockMvc
         .perform(
@@ -610,7 +627,7 @@ class AuthIntegrationTest {
                     """
                     {"email":"expired-reset@example.com","code":"invalid-token","newPassword":"another-pass"}
                     """))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isBadRequest());
 
     var token =
         passwordResetTokens.findAll().stream()

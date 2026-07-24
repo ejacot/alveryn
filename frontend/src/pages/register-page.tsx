@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const { registerWithPassword } = useAuth();
   const [serverError, setServerError] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -72,8 +74,19 @@ export function RegisterPage() {
         />
         <Input
           label={t("common:labels.password")}
-          type="password"
+          type={passwordVisible ? "text" : "password"}
+          autoComplete="new-password"
           error={form.formState.errors.password?.message}
+          endAdornment={
+            <button
+              type="button"
+              onClick={() => setPasswordVisible((visible) => !visible)}
+              className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
+              aria-label={passwordVisible ? "Hide password" : "Show password"}
+            >
+              {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          }
           {...form.register("password")}
         />
         {serverError ? <p className="text-sm text-red-300">{serverError}</p> : null}

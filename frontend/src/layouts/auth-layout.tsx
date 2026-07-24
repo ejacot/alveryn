@@ -22,7 +22,7 @@ export function AuthLayout() {
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden overscroll-none bg-black">
+    <div className="auth-shell fixed inset-0 overflow-hidden overscroll-none bg-[#0D0D0D] text-white">
       <Outlet />
     </div>
   );

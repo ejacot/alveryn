@@ -2,7 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { forgotPassword } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
@@ -15,6 +15,7 @@ import {
 
 export function ForgotPasswordPage() {
   const { t } = useTranslation(["auth", "common"]);
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -24,7 +25,10 @@ export function ForgotPasswordPage() {
   async function onSubmit(values: ForgotPasswordValues) {
     try {
       const result = await forgotPassword(values.email);
-      setMessage(result.message);
+      window.sessionStorage.setItem("alveryn.passwordResetEmail", values.email.trim().toLowerCase());
+      navigate("/reset-password", {
+        state: { email: values.email.trim().toLowerCase(), message: result.message }
+      });
     } catch (error) {
       const apiError = getApiError(error);
       setMessage(apiError.message);

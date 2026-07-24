@@ -14,8 +14,12 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   email: z.string().email(i18n.t("auth:validation.email")),
-  code: z.string().min(6, i18n.t("auth:validation.codeLength")),
-  newPassword: z.string().min(8, i18n.t("auth:validation.passwordMin"))
+  code: z.string().regex(/^\d{6}$/, i18n.t("auth:validation.codeLength")),
+  newPassword: z.string().min(8, i18n.t("auth:validation.passwordMin")),
+  confirmPassword: z.string().min(8, i18n.t("auth:validation.passwordMin"))
+}).refine((values) => values.newPassword === values.confirmPassword, {
+  path: ["confirmPassword"],
+  message: i18n.t("auth:validation.passwordsMatch")
 });
 
 export const verifyEmailSchema = z.object({

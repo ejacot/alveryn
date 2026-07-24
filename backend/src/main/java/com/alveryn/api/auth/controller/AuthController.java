@@ -237,11 +237,20 @@ public class AuthController {
   @Operation(
       summary = "Reset password",
       description = "Validates the reset code, updates the password hash and revokes the user's active refresh tokens.")
-  public ApiResponse<GenericSuccessResponse> resetPassword(
+  public ApiResponse<AuthResponse> resetPassword(
       @Valid @RequestBody ResetPasswordRequest request, HttpServletResponse response) {
-    GenericSuccessResponse result = authService.resetPassword(request);
-    refreshTokenCookieService.clearRefreshToken(response);
-    return ApiResponse.of(result);
+    IssuedAuthSession session = authService.resetPassword(request);
+    refreshTokenCookieService.writeRefreshToken(response, session.refreshToken());
+    return ApiResponse.of(session.response());
+  }
+
+  @PostMapping("/verify-password-reset-code")
+  @Operation(
+      summary = "Verify password reset code",
+      description = "Validates a six-digit reset code without consuming it.")
+  public ApiResponse<GenericSuccessResponse> verifyPasswordResetCode(
+      @Valid @RequestBody VerifyPasswordResetCodeRequest request) {
+    return ApiResponse.of(authService.verifyPasswordResetCode(request));
   }
 
   @PostMapping("/change-password")

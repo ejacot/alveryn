@@ -276,7 +276,7 @@ function NewAccountSetup() {
             <>
               <SetupHeader title={t("setup.workplace.title")} description={t("setup.workplace.description")} />
               <Input label={t("setup.workplace.name")} value={employmentName} autoComplete="organization" placeholder={t("setup.workplace.placeholder")} onChange={(event) => setEmploymentName(event.currentTarget.value)} />
-              <Input label={t("setup.workplace.startDate")} type="date" value={startDate} onChange={(event) => setStartDate(event.currentTarget.value)} />
+              <Input label={t("setup.workplace.startDate")} type="date" compactDate={false} value={startDate} onChange={(event) => setStartDate(event.currentTarget.value)} />
               <p className="text-xs leading-5 text-white/45">{t("setup.workplace.startDateHint")}</p>
             </>
           ) : null}

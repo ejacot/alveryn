@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record ResetPasswordRequest(
+public record VerifyPasswordResetCodeRequest(
     @NotBlank @Size(max = 255) String email,
-    @NotBlank @Pattern(regexp = "\\d{6}", message = "must contain exactly 6 digits") String code,
-    @NotBlank @Size(min = 8, max = 128) String newPassword) {}
+    @NotBlank @Pattern(regexp = "\\d{6}", message = "must contain exactly 6 digits") String code) {}

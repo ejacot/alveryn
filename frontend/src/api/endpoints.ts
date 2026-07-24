@@ -188,8 +188,16 @@ export async function forgotPassword(email: string) {
 }
 
 export async function resetPassword(payload: ResetPasswordPayload) {
-  const response = await http.post<ApiResponse<ApiMessage>>(
+  const response = await http.post<ApiResponse<AuthTokens>>(
     "/api/auth/reset-password",
+    payload
+  );
+  return response.data.data;
+}
+
+export async function verifyPasswordResetCode(payload: Pick<ResetPasswordPayload, "email" | "code">) {
+  const response = await http.post<ApiResponse<ApiMessage>>(
+    "/api/auth/verify-password-reset-code",
     payload
   );
   return response.data.data;

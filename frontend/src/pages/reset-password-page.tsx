@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
-import { resetPassword } from "../api/endpoints";
+import { forgotPassword, resetPassword, verifyPasswordResetCode } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -12,28 +13,58 @@ import {
   resetPasswordSchema,
   type ResetPasswordValues
 } from "../features/auth/auth-schemas";
+import { useAuth } from "../features/auth/use-auth";
+import { APP_HOME_PATH } from "../routes/app-paths";
 
 export function ResetPasswordPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { completeEmailVerification: completePasswordReset } = useAuth();
+  const email = useMemo(() => {
+    const stateEmail = (location.state as { email?: string } | null)?.email;
+    return stateEmail ?? window.sessionStorage.getItem("alveryn.passwordResetEmail") ?? "";
+  }, [location.state]);
+  const [step, setStep] = useState<"code" | "password">("code");
   const [message, setMessage] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      email: "",
+      email,
       code: "",
-      newPassword: ""
+      newPassword: "",
+      confirmPassword: ""
     }
   });
+
+  useEffect(() => {
+    if (!email) navigate("/forgot-password", { replace: true });
+  }, [email, navigate]);
+
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = form.getValues("code");
+    if (!/^\d{6}$/.test(code)) {
+      form.setError("code", { message: t("auth:validation.codeLength") });
+      return;
+    }
+    try {
+      setMessage("");
+      await verifyPasswordResetCode({ email, code });
+      setStep("password");
+    } catch (error) {
+      setMessage(getApiError(error).message);
+    }
+  }
 
   async function onSubmit(values: ResetPasswordValues) {
     try {
       const result = await resetPassword(values);
-      setMessage(result.message);
-      navigate("/login", {
-        replace: true,
-        state: { message: t("auth:resetPassword.successNavigate") }
-      });
+      await completePasswordReset(result);
+      window.sessionStorage.removeItem("alveryn.passwordResetEmail");
+      navigate(APP_HOME_PATH, { replace: true });
     } catch (error) {
       const apiError = getApiError(error);
       if (apiError.fieldErrors.email) {
@@ -51,8 +82,8 @@ export function ResetPasswordPage() {
 
   return (
     <AuthCard
-      title={t("auth:resetPassword.title")}
-      subtitle={t("auth:resetPassword.subtitle")}
+      title={t(step === "code" ? "auth:resetPassword.codeTitle" : "auth:resetPassword.title")}
+      subtitle={t(step === "code" ? "auth:resetPassword.codeSubtitle" : "auth:resetPassword.subtitle", { email })}
       footer={
         <span>
           {t("auth:resetPassword.footer")}{" "}
@@ -66,29 +97,75 @@ export function ResetPasswordPage() {
       }
       backLink={{ to: "/login", label: t("auth:resetPassword.backToLogin") }}
     >
-      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        <Input
-          label={t("common:labels.email")}
-          type="email"
-          error={form.formState.errors.email?.message}
-          {...form.register("email")}
-        />
-        <Input
-          label={t("common:labels.verificationCode")}
-          error={form.formState.errors.code?.message}
-          {...form.register("code")}
-        />
-        <Input
-          label={t("common:labels.newPassword")}
-          type="password"
-          error={form.formState.errors.newPassword?.message}
-          {...form.register("newPassword")}
-        />
+      <form className="space-y-4" onSubmit={step === "code" ? verifyCode : form.handleSubmit(onSubmit)}>
+        <input type="hidden" {...form.register("email")} />
+        {step === "code" ? (
+          <>
+            <Input
+              label={t("common:labels.verificationCode")}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className="text-center text-xl tracking-[0.35em]"
+              error={form.formState.errors.code?.message}
+              {...form.register("code", {
+                onChange: (event) => {
+                  event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
+                }
+              })}
+            />
+            <button
+              type="button"
+              className="w-full text-center text-sm text-white/52 transition hover:text-white"
+              onClick={async () => {
+                try {
+                  const result = await forgotPassword(email);
+                  setMessage(result.message);
+                } catch (error) {
+                  setMessage(getApiError(error).message);
+                }
+              }}
+            >
+              {t("auth:resetPassword.resend")}
+            </button>
+          </>
+        ) : (
+          <>
+            <Input
+              label={t("common:labels.newPassword")}
+              type={passwordVisible ? "text" : "password"}
+              autoComplete="new-password"
+              error={form.formState.errors.newPassword?.message}
+              endAdornment={<PasswordVisibilityButton visible={passwordVisible} onClick={() => setPasswordVisible((value) => !value)} />}
+              {...form.register("newPassword")}
+            />
+            <Input
+              label={t("auth:resetPassword.confirmPassword")}
+              type={confirmVisible ? "text" : "password"}
+              autoComplete="new-password"
+              error={form.formState.errors.confirmPassword?.message}
+              endAdornment={<PasswordVisibilityButton visible={confirmVisible} onClick={() => setConfirmVisible((value) => !value)} />}
+              {...form.register("confirmPassword")}
+            />
+          </>
+        )}
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? t("auth:resetPassword.submitting") : t("auth:resetPassword.submit")}
+          {form.formState.isSubmitting
+            ? t("auth:resetPassword.submitting")
+            : t(step === "code" ? "auth:resetPassword.verifyCode" : "auth:resetPassword.submit")}
         </Button>
       </form>
     </AuthCard>
+  );
+}
+
+function PasswordVisibilityButton({ visible, onClick }: { visible: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
+      aria-label={visible ? "Hide password" : "Show password"}>
+      {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
   );
 }
