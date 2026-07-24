@@ -37,9 +37,9 @@ test("creates a grouped job with multiple work lines through the real UI", async
 
   await page.getByRole("button", { name: "Add another activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /control/i }).click();
-  await page.locator("label", { hasText: "Start" }).last().locator("input").fill("08:00");
-  await page.locator("label", { hasText: "End" }).last().locator("input").fill("16:00");
-  await page.locator("label", { hasText: "Break (minutes)" }).last().locator("input").fill("0");
+  await page.getByLabel("Start", { exact: true }).last().fill("08:00");
+  await page.getByLabel("End", { exact: true }).last().fill("16:00");
+  await page.getByLabel("Break (minutes)", { exact: true }).last().fill("0");
 
   await page.getByRole("button", { name: "Save job" }).click();
   await expect(page.getByText("Job saved")).toBeVisible();
