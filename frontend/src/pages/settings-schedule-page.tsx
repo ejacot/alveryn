@@ -14,6 +14,7 @@ import {
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { EmploymentFeatureGuide } from "../components/settings/employment-feature-guide";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -201,10 +202,7 @@ export function SettingsSchedulePage() {
         onBack={() => navigate(`/settings/employment/${employmentId}`)}
       />
 
-      <Card className="space-y-2 p-5">
-        <p className="text-sm font-medium text-white">{t("settings:schedule.introTitle")}</p>
-        <p className="text-sm leading-6 text-white/48">{t("settings:schedule.introDescription")}</p>
-      </Card>
+      <EmploymentFeatureGuide feature="schedule" />
 
       <section className="space-y-2">
         <p className="hairline-text">{t("settings:schedule.weekTitle")}</p>

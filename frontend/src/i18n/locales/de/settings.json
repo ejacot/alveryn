@@ -33,6 +33,36 @@
     "about": { "title": "Über diese App", "description": "Sieh die installierte Version und Informationen zu Alveryn." },
     "help": { "title": "Brauchst du Hilfe?", "description": "Kontaktiere den Support, wenn etwas unklar ist oder nicht funktioniert." }
   },
+  "employmentFeatureGuides": {
+    "schedule": {
+      "title": "So funktioniert dein Zeitplan",
+      "description": "Lege eine normale Woche einmal fest und ändere nur abweichende Tage.",
+      "steps": { "plan": "Planen", "repeat": "Wiederholen", "adjust": "Anpassen" },
+      "values": { "plan": "Deine Woche", "repeat": "Automatisch", "adjust": "Jeder Tag" },
+      "example": { "title": "Montag · Reinigung", "detail": "08:00–17:00 · 30 Min. Pause", "result": "Geplant" }
+    },
+    "hourlyRates": {
+      "title": "So funktionieren Stundensätze",
+      "description": "Alveryn nutzt den Satz, der am Arbeitstag gültig war.",
+      "steps": { "hours": "Gearbeitet", "rate": "Satz", "earnings": "Verdienst" },
+      "values": { "hours": "8 Std.", "rate": "20 €/Std.", "earnings": "160 €" },
+      "example": { "title": "Aktueller Stundensatz", "detail": "Ab 1. Juli 2026", "result": "20 €/Std." }
+    },
+    "workTypes": {
+      "title": "So funktionieren Arbeitstypen",
+      "description": "Erstelle deine Tätigkeiten und wähle, wie jede davon gemessen wird.",
+      "steps": { "activity": "Tätigkeit", "method": "Gemessen in", "result": "Erfasst als" },
+      "values": { "activity": "Reinigung", "method": "Zeit", "result": "8 Std." },
+      "example": { "title": "Reinigung", "detail": "Zeitbasierte Tätigkeit", "result": "8 Std." }
+    },
+    "absences": {
+      "title": "So funktionieren Abwesenheiten",
+      "description": "Definiere jede Abwesenheit einmal und wähle sie später für freie Tage aus.",
+      "steps": { "type": "Art", "date": "Datum", "impact": "Tageswert" },
+      "values": { "type": "Urlaub", "date": "27. Juli", "impact": "8 Std. bezahlt" },
+      "example": { "title": "Urlaub", "detail": "Montag, 27. Juli", "result": "8 Std. bezahlt" }
+    }
+  },
   "status": {
     "active": "Aktiv",
     "inactive": "Inaktiv"

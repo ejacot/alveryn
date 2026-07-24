@@ -22,6 +22,7 @@ import { SettingsSuccessMessage } from "../components/settings/settings-form-act
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { EmploymentFeatureGuide } from "../components/settings/employment-feature-guide";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
@@ -166,7 +167,6 @@ export function SettingsAbsencePage() {
       />
 
       <SettingsSuccessMessage message={!editorOpen ? successMessage : null} />
-      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.absences.description")}</p>
 
       <section className="space-y-4">
         {absenceTypes.length ? absenceTypes.map((type) => (
@@ -199,6 +199,8 @@ export function SettingsAbsencePage() {
           />
         )}
       </section>
+
+      <EmploymentFeatureGuide feature="absences" />
 
       <AbsenceTypeDialog
         open={editorOpen}

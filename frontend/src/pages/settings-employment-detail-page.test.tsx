@@ -66,6 +66,11 @@ describe("SettingsEmploymentDetailPage", () => {
     expect(within(periodDialog).getByLabelText("End date")).toHaveValue("");
     expect(within(periodDialog).getByRole("button", { name: "Save" })).toBeDisabled();
     await user.click(within(periodDialog).getByText("Cancel"));
+    const settingsHeading = screen.getByText("Employment settings");
+    const timeEntryHeading = screen.getByText("Time entry");
+    expect(settingsHeading.compareDocumentPosition(timeEntryHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText("Manage the rates, activities and absence rules that belong to this employment.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage the dated rates used by this employment.")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /employment name/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Dashboard focus")).not.toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "Time tracking" })).not.toBeInTheDocument();

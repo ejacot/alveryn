@@ -33,6 +33,36 @@
     "about": { "title": "Despre aplicație", "description": "Vezi versiunea instalată și informațiile despre Alveryn." },
     "help": { "title": "Ai nevoie de ajutor?", "description": "Contactează suportul când ceva nu este clar sau nu funcționează." }
   },
+  "employmentFeatureGuides": {
+    "schedule": {
+      "title": "Cum funcționează programul",
+      "description": "Setezi o săptămână normală o singură dată, apoi modifici doar zilele diferite.",
+      "steps": { "plan": "Planifici", "repeat": "Se repetă", "adjust": "Modifici" },
+      "values": { "plan": "Săptămâna", "repeat": "Automat", "adjust": "Orice zi" },
+      "example": { "title": "Luni · Curățenie", "detail": "08:00–17:00 · pauză 30 min", "result": "Planificat" }
+    },
+    "hourlyRates": {
+      "title": "Cum funcționează tarifele",
+      "description": "Alveryn folosește tariful valabil în ziua în care ai lucrat.",
+      "steps": { "hours": "Lucrat", "rate": "Tarif", "earnings": "Câștig" },
+      "values": { "hours": "8 h", "rate": "20 €/h", "earnings": "160 €" },
+      "example": { "title": "Tariful actual", "detail": "Din 1 iulie 2026", "result": "20 €/h" }
+    },
+    "workTypes": {
+      "title": "Cum funcționează activitățile",
+      "description": "Creezi activitățile tale și alegi cum este măsurată fiecare.",
+      "steps": { "activity": "Activitate", "method": "Măsurată în", "result": "Înregistrată ca" },
+      "values": { "activity": "Curățenie", "method": "Timp", "result": "8 h" },
+      "example": { "title": "Curățenie", "detail": "Activitate calculată după timp", "result": "8 h" }
+    },
+    "absences": {
+      "title": "Cum funcționează absențele",
+      "description": "Definești fiecare absență o dată, apoi o selectezi când adaugi o zi liberă.",
+      "steps": { "type": "Tip", "date": "Dată", "impact": "Valoarea zilei" },
+      "values": { "type": "Concediu", "date": "27 iul.", "impact": "8 h plătite" },
+      "example": { "title": "Concediu", "detail": "Luni, 27 iulie", "result": "8 h plătite" }
+    }
+  },
   "status": {
     "active": "Activ",
     "inactive": "Inactiv"

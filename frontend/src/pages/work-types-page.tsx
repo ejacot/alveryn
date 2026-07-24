@@ -10,6 +10,7 @@ import { listWorkTypes } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { EmploymentFeatureGuide } from "../components/settings/employment-feature-guide";
 import { Card } from "../components/ui/card";
 import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
 import { ModalPanel } from "../components/ui/modal-panel";
@@ -97,8 +98,6 @@ export function WorkTypesPage() {
         } : undefined}
       />
 
-      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.workTypes.description")}</p>
-
       {!parentItems.length ? (
         <SettingsEmptyState
           title={t("settings:workSetup.emptyTitle")}
@@ -117,6 +116,8 @@ export function WorkTypesPage() {
           inactiveLabel={t("settings:status.inactive")}
         />
       )}
+
+      <EmploymentFeatureGuide feature="workTypes" />
 
       <AddWorkTypeDialog
         open={addDialogOpen}

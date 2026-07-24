@@ -33,6 +33,36 @@
     "about": { "title": "About this app", "description": "See the installed Alveryn version and product information." },
     "help": { "title": "Need help?", "description": "Contact support directly when something is unclear or does not work." }
   },
+  "employmentFeatureGuides": {
+    "schedule": {
+      "title": "How your schedule works",
+      "description": "Set a normal week once, then adjust only the days that change.",
+      "steps": { "plan": "Plan", "repeat": "Repeat", "adjust": "Adjust" },
+      "values": { "plan": "Your week", "repeat": "Automatic", "adjust": "Any day" },
+      "example": { "title": "Monday · Cleaning", "detail": "08:00–17:00 · 30 min break", "result": "Planned" }
+    },
+    "hourlyRates": {
+      "title": "How hourly rates work",
+      "description": "Alveryn uses the rate active on the date you worked.",
+      "steps": { "hours": "Worked", "rate": "Rate", "earnings": "Earnings" },
+      "values": { "hours": "8 h", "rate": "€20/h", "earnings": "€160" },
+      "example": { "title": "Current hourly rate", "detail": "From 1 July 2026", "result": "€20/h" }
+    },
+    "workTypes": {
+      "title": "How work types work",
+      "description": "Create the activities you perform and choose how each one is measured.",
+      "steps": { "activity": "Activity", "method": "Measured by", "result": "Recorded as" },
+      "values": { "activity": "Cleaning", "method": "Time", "result": "8 h" },
+      "example": { "title": "Cleaning", "detail": "Time-based activity", "result": "8 h" }
+    },
+    "absences": {
+      "title": "How absences work",
+      "description": "Define each absence once, then select it when adding a day away.",
+      "steps": { "type": "Type", "date": "Date", "impact": "Day value" },
+      "values": { "type": "Vacation", "date": "27 Jul", "impact": "8 h paid" },
+      "example": { "title": "Vacation", "detail": "Monday, 27 July", "result": "8 h paid" }
+    }
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive"

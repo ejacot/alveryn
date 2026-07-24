@@ -155,47 +155,41 @@ export function SettingsEmploymentDetailPage() {
         </Card>
       </section>
 
-      <SettingsGroup title={t("settings:employment.sections.timeEntry")} description={t("settings:employment.sectionHelp.timeEntry")}>
-        <SettingsRow
-          to={`/settings/employment/${employment.id}/check-in-timer`}
-          label={t("settings:employment.fields.timer")}
-          description={t("settings:employment.help.timer")}
-          value={t(timerEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")} description={t("settings:employment.sectionHelp.hourBalanceAccount")}>
-        <SettingsRow
-          to={`/settings/employment/${employment.id}/hours-balance`}
-          label={t("settings:employment.fields.hourBalanceAccount")}
-          description={t("settings:employment.help.hourBalance")}
-          value={t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settings:employment.settingsTitle")} description={t("settings:employment.sectionHelp.rules")}>
+      <SettingsGroup title={t("settings:employment.settingsTitle")}>
         <SettingsRow
           to={`/settings/employment/${employment.id}/schedule`}
           label={t("settings:schedule.title")}
-          description={t("settings:schedule.description")}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/hourly-rates?${suffix}`}
           label={t("settings:employment.hourlyRates")}
-          description={t("settings:employment.hourlyRatesDescription")}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/work-types?${suffix}`}
           label={t("settings:workTypes")}
-          description={t("settings:workSetup.description")}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/absences?${suffix}`}
           label={t("settings:absenceSettings.title")}
-          description={t("settings:absenceSettings.description")}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings:employment.sections.timeEntry")}>
+        <SettingsRow
+          to={`/settings/employment/${employment.id}/check-in-timer`}
+          label={t("settings:employment.fields.timer")}
+          value={t(timerEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")}>
+        <SettingsRow
+          to={`/settings/employment/${employment.id}/hours-balance`}
+          label={t("settings:employment.fields.hourBalanceAccount")}
+          value={t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
         />
       </SettingsGroup>
 

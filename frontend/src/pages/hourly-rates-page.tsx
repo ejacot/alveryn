@@ -8,6 +8,7 @@ import { listHourlyRates } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
+import { EmploymentFeatureGuide } from "../components/settings/employment-feature-guide";
 import { Card } from "../components/ui/card";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -52,7 +53,6 @@ export function HourlyRatesPage() {
           onClick: () => navigate(newRatePath)
         } : undefined}
       />
-      <p className="text-sm leading-6 text-white/46">{t("settings:pageInfo.hourlyRates.description")}</p>
       {rates.length === 0 ? (
         <SettingsEmptyState
           title={t("settings:hourlyRateList.emptyTitle")}
@@ -86,6 +86,7 @@ export function HourlyRatesPage() {
           ))}
         </section>
       )}
+      <EmploymentFeatureGuide feature="hourlyRates" />
     </div>
   );
 }
