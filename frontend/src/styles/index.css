@@ -85,6 +85,18 @@ h3,
   font-family: Sora, Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+.app-logo-mark {
+  transition: filter 180ms ease;
+}
+
+html[data-theme="light"] .app-logo-mark {
+  filter: brightness(0.08) saturate(0);
+}
+
+html[data-theme="light"] .app-logo-wordmark {
+  color: #151515;
+}
+
 *::selection {
   background: rgba(255, 255, 255, 0.22);
 }

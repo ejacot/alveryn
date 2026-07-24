@@ -22,7 +22,7 @@ export function HomePage() {
       >
         <div className="relative top-16 z-10 flex h-9 items-center px-5">
           <span className="hairline-text whitespace-nowrap">{monthLabel}</span>
-          <AppLogo className="absolute left-1/2 -translate-x-1/2" />
+          <AppLogo wordmark className="absolute left-1/2 -translate-x-1/2" />
         </div>
       </div>
       <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
