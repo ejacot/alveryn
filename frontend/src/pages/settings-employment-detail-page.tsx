@@ -376,12 +376,3 @@ function employmentPayload(
     displayOrder: employment.displayOrder
   };
 }
-
-
-function ToggleIndicator({ enabled }: { enabled: boolean }) {
-  return (
-    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? "bg-white" : "bg-white/[0.12]"}`} aria-hidden="true">
-      <span className={`absolute top-1 h-5 w-5 rounded-full transition ${enabled ? "left-6 bg-black" : "left-1 bg-white/55"}`} />
-    </span>
-  );
-}
