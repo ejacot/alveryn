@@ -74,6 +74,7 @@
     "title": "Mark absence",
     "emptyTitle": "No absence types configured",
     "emptyDescription": "Create your first absence type before marking vacation, sick leave, or another day off.",
+    "selectEmployment": "Select an employment before adding an absence.",
     "configure": "Create absence type",
     "free": "Free",
     "sick": "Sick",

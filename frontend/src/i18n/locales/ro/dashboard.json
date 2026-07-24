@@ -80,6 +80,7 @@
     "title": "Marchează absența",
     "emptyTitle": "Nu ai configurat încă absențe",
     "emptyDescription": "Creează mai întâi un tip de absență pentru a putea marca un concediu, medical sau altă zi liberă.",
+    "selectEmployment": "Selectează un employment înainte să adaugi o absență.",
     "configure": "Creează tip de absență",
     "free": "Liber",
     "sick": "Medical",

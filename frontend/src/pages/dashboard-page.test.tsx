@@ -8,6 +8,27 @@ const routeState = {
   selectedDate: new Date("2026-07-13T00:00:00")
 };
 
+const employment = {
+  id: "employment-1",
+  name: "Main contract",
+  employmentType: null,
+  compensationType: "HOURLY" as const,
+  trackingFocus: "TIME" as const,
+  hourBalanceEnabled: false,
+  timerEnabled: false,
+  termsValidFrom: "2026-01-01",
+  startDate: "2026-01-01",
+  endDate: null,
+  fixedSalaryAmount: null,
+  currency: "EUR",
+  targetMinutes: null,
+  targetPeriod: null,
+  hourBalanceValidityMonths: null,
+  active: true,
+  displayOrder: 0,
+  deletable: false
+};
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>(
     "react-router-dom"
@@ -155,6 +176,7 @@ describe("DashboardPage", () => {
   beforeEach(() => {
     routeState.selectedDate = new Date("2026-07-13T00:00:00");
     navigateMock.mockReset();
+    vi.mocked(createAbsence).mockClear();
     vi.mocked(createAbsence).mockResolvedValue({
       id: "absence-1",
       absenceTypeId: "absence-vacation-type",
@@ -168,7 +190,7 @@ describe("DashboardPage", () => {
     });
     vi.mocked(getAbsences).mockResolvedValue(emptyAbsencePage());
     vi.mocked(getCurrentWorkSession).mockResolvedValue(null);
-    vi.mocked(listEmployments).mockResolvedValue([]);
+    vi.mocked(listEmployments).mockResolvedValue([employment]);
     vi.mocked(listWorkTypes).mockResolvedValue([]);
     vi.mocked(getPreferences).mockResolvedValue({
       id: "pref-1",
@@ -240,11 +262,29 @@ describe("DashboardPage", () => {
     await user.click(screen.getByRole("button", { name: "Vacation" }));
 
     expect(createAbsence).toHaveBeenCalledWith({
+      employmentId: "employment-1",
       absenceTypeId: "absence-vacation-type",
       startDate: "2026-07-13",
       endDate: "2026-07-13",
       notes: null
     });
+  });
+
+  it("requires a selected employment when multiple employments are active", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(listEmployments).mockResolvedValue([
+      employment,
+      { ...employment, id: "employment-2", name: "Second contract", displayOrder: 1 }
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("button", { name: "Absence" });
+    await user.click(screen.getByRole("button", { name: "Absence" }));
+    await user.click(screen.getByRole("button", { name: "Vacation" }));
+
+    expect(createAbsence).not.toHaveBeenCalled();
+    expect(await screen.findByText("Select an employment before adding an absence.")).toBeInTheDocument();
   });
 
   it("renders existing absence as selected-day activity", async () => {

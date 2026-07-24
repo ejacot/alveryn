@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
@@ -8,6 +8,7 @@ import {
   getAbsences,
   getPreferences,
   listAbsenceTypes,
+  listEmployments,
   listHourlyRates,
   listWorkRecordsInRange
 } from "../api/endpoints";
@@ -43,6 +44,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const selectedEmploymentId = useEmploymentScope();
+  const [absenceScopeError, setAbsenceScopeError] = useState<string | null>(null);
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = useMemo(
     () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
@@ -72,6 +74,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     queryKey: queryKeys.preferences(),
     queryFn: getPreferences
   });
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments
+  });
   const hourlyRatesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
@@ -85,15 +91,16 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     queryFn: () => getAbsences({ from: previousWeekStartKey, to: weekEndKey })
   });
   const absenceMutation = useMutation({
-    mutationFn: ({ absenceTypeId, date }: { absenceTypeId: string; date: string }) =>
+    mutationFn: ({ absenceTypeId, date, employmentId }: { absenceTypeId: string; date: string; employmentId: string }) =>
       createAbsence({
-        ...(selectedEmploymentId ? { employmentId: selectedEmploymentId } : {}),
+        employmentId,
         absenceTypeId,
         startDate: date,
         endDate: date,
         notes: null
       }),
     onSuccess: async (_, variables) => {
+      setAbsenceScopeError(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.absences.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
@@ -117,12 +124,14 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const isLoading =
     rhythmRecordsQuery.isLoading ||
     preferencesQuery.isLoading ||
+    employmentsQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
     absenceTypesQuery.isLoading ||
     weeklyAbsencesQuery.isLoading;
   const errorQuery =
     (rhythmRecordsQuery.error ? rhythmRecordsQuery : null) ??
     (preferencesQuery.error ? preferencesQuery : null) ??
+    (employmentsQuery.error ? employmentsQuery : null) ??
     (hourlyRatesQuery.error ? hourlyRatesQuery : null) ??
     (absenceTypesQuery.error ? absenceTypesQuery : null) ??
     (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null);
@@ -144,6 +153,9 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     [selectedDateKey, weeklyRecords]
   );
   const preferences = preferencesQuery.data ?? null;
+  const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
+  const absenceEmploymentId = selectedEmploymentId
+    ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
   const hourlyRates = useMemo(
     () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
     [hourlyRatesQuery.data, selectedEmploymentId]
@@ -294,6 +306,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         onRetry={() => {
           void rhythmRecordsQuery.refetch();
           void preferencesQuery.refetch();
+          void employmentsQuery.refetch();
           void hourlyRatesQuery.refetch();
           void absenceTypesQuery.refetch();
           void weeklyAbsencesQuery.refetch();
@@ -324,18 +337,29 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         onDaySwipe={(direction) => outletContext?.setSelectedDate?.(addDays(selectedDate, direction))}
         onRhythmDaySelect={(date) => outletContext?.setSelectedDate?.(parseLocalIsoDate(date))}
         onWeekSwipe={(direction) => outletContext?.setSelectedDate?.(addWeeks(selectedDate, direction))}
-        onCreateAbsence={(absenceTypeId) => absenceMutation.mutate({ absenceTypeId, date: selectedDateKey })}
+        onCreateAbsence={(absenceTypeId) => {
+          if (!absenceEmploymentId) {
+            setAbsenceScopeError(t("dashboard:absence.selectEmployment"));
+            return;
+          }
+          setAbsenceScopeError(null);
+          absenceMutation.mutate({
+            absenceTypeId,
+            date: selectedDateKey,
+            employmentId: absenceEmploymentId
+          });
+        }}
         onConfigureAbsences={() => navigate("/settings/absences")}
         onDeleteAbsence={(activityId) => deleteAbsenceMutation.mutate({
           id: activityId.slice("absence-".length),
           date: selectedDateKey
         })}
         absencePending={absenceMutation.isPending || deleteAbsenceMutation.isPending || Boolean(selectedAbsence)}
-        absenceError={absenceMutation.error
+        absenceError={absenceScopeError ?? (absenceMutation.error
           ? getApiError(absenceMutation.error).message
           : deleteAbsenceMutation.error
             ? getApiError(deleteAbsenceMutation.error).message
-            : null}
+            : null)}
         onEntrySelect={(entryId) =>
           navigate(`/records/${entryId.slice("record:".length)}?returnDate=${selectedDateKey}`)
         }
