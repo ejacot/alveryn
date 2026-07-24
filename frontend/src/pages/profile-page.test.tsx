@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import * as React from "react";
 import { ProfilePage } from "./profile-page";
@@ -153,37 +152,26 @@ describe("ProfilePage", () => {
     expect(screen.getByText("alveryn000app@gmail.com")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /^profile$/i })).toHaveLength(1);
     expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/settings/profile");
-    expect(await screen.findByRole("link", { name: /employment main contract/i })).toHaveAttribute("href", "/settings/employment");
-    expect(screen.queryByText("Absences")).not.toBeInTheDocument();
-    expect(screen.getByText("Language")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "Employment settings" })).toHaveAttribute("href", "/settings/employment/employment-1");
+    });
+    expect(screen.queryByRole("link", { name: "Absences" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Language & region" })).toHaveAttribute("href", "/settings/preferences?section=region");
     expect(screen.getByText("English")).toBeInTheDocument();
-    expect(screen.getByText("Timezone")).toBeInTheDocument();
-    expect(screen.getByText("Europe/Berlin")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Date & time" })).toHaveAttribute("href", "/settings/preferences?section=date-time");
+    expect(screen.getByRole("link", { name: "Appearance" })).toHaveAttribute("href", "/settings/preferences?section=appearance");
     expect(screen.getByRole("link", { name: "Export PDF" })).toHaveAttribute("href", "/settings/export-pdf");
     expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
   });
 
-  it("updates preferences directly from the settings menu", async () => {
-    const user = userEvent.setup();
-    updatePreferencesMock.mockImplementationOnce(async (payload) => ({
-      id: "pref-1",
-      onboardingCompleted: true,
-      ...payload
-    }));
+  it("opens preference categories from the settings menu", () => {
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText("Currency"), "RON");
-
-    await waitFor(() => {
-      expect(updatePreferencesMock).toHaveBeenCalledWith(
-        expect.objectContaining({ currency: "RON", language: "en" }),
-        expect.anything()
-      );
-    });
+    expect(screen.getByRole("link", { name: "Language & region" })).toHaveAttribute("href", "/settings/preferences?section=region");
+    expect(screen.queryByLabelText("Currency")).not.toBeInTheDocument();
   });
 
-  it("uses the native employment selector when more than one employment is active", async () => {
-    const user = userEvent.setup();
+  it("opens the employment list when more than one employment is active", async () => {
     vi.mocked(listEmployments).mockResolvedValueOnce([
       {
         id: "employment-1",
@@ -226,11 +214,8 @@ describe("ProfilePage", () => {
     ]);
     renderPage();
 
-    const selector = await screen.findByRole("combobox", { name: "Choose employment" });
-    expect(selector).toHaveValue("");
-    await user.selectOptions(selector, "employment-2");
-
-    expect(selector).toHaveValue("employment-2");
-    expect(window.localStorage.getItem("alveryn.employment-scope")).toBe("employment-2");
+    expect(await screen.findByText("2 employments")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Employment settings" })).toHaveAttribute("href", "/settings/employment");
+    expect(screen.queryByRole("combobox", { name: "Choose employment" })).not.toBeInTheDocument();
   });
 });

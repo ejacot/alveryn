@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -44,6 +45,19 @@ export function SettingsPreferencesPage() {
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const section = searchParams.get("section");
+  const showRegion = !section || section === "region";
+  const showDateTime = !section || section === "date-time";
+  const showAppearance = !section || section === "appearance";
+  const pageTitle =
+    section === "region"
+      ? t("settings:preferencesSections.region")
+      : section === "date-time"
+        ? t("settings:preferencesSections.dateTime")
+        : section === "appearance"
+          ? t("settings:preferencesSections.appearance")
+          : t("settings:preferences");
   const safeBack = useSafeBackNavigation({ fallback: "/profile" });
   const detectedTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const supportedTimezones = useMemo(getSupportedTimezones, []);
@@ -93,7 +107,7 @@ export function SettingsPreferencesPage() {
   return (
     <div className="space-y-6 pb-10 pt-4">
       <SettingsPageHeader
-        title={t("settings:preferences")}
+        title={pageTitle}
         fallbackHref="/profile"
         onBack={() => confirmOrRun(safeBack)}
       />
@@ -117,59 +131,69 @@ export function SettingsPreferencesPage() {
           });
         })}
       >
-        <Card as="section" className="overflow-hidden">
-          <PreferenceRow label={t("settings:preferencesFields.language")} error={form.formState.errors.language?.message}>
-            <select aria-label={t("settings:preferencesFields.language")} {...form.register("language")}>
-              {["en", "de", "ro"].map((language) => (
-                <option key={language} value={language}>
-                  {getNativeLanguageName(normalizeLanguage(language))}
-                </option>
-              ))}
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.timezone")} error={form.formState.errors.timezone?.message}>
-            <select aria-label={t("settings:preferencesFields.timezone")} {...form.register("timezone")}>
-              {supportedTimezones.map((timezone) => (
-                <option key={timezone} value={timezone}>
-                  {timezone}
-                </option>
-              ))}
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.currency")} error={form.formState.errors.currency?.message}>
-            <select aria-label={t("settings:preferencesFields.currency")} {...form.register("currency")}>
-              {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
-                <option key={currency} value={currency}>{currency}</option>
-              ))}
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.firstDayOfWeek")} error={form.formState.errors.firstDayOfWeek?.message}>
-            <select aria-label={t("settings:preferencesFields.firstDayOfWeek")} {...form.register("firstDayOfWeek")}>
-              <option value="MONDAY">{t("settings:preferencesOptions.monday")}</option>
-              <option value="SUNDAY">{t("settings:preferencesOptions.sunday")}</option>
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.timeFormat")} error={form.formState.errors.timeFormat?.message}>
-            <select aria-label={t("settings:preferencesFields.timeFormat")} {...form.register("timeFormat")}>
-              <option value="H24">{t("settings:preferencesOptions.time24")}</option>
-              <option value="H12">{t("settings:preferencesOptions.time12")}</option>
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.dateFormat")} error={form.formState.errors.dateFormat?.message}>
-            <select aria-label={t("settings:preferencesFields.dateFormat")} {...form.register("dateFormat")}>
-              <option value="DD.MM.YYYY">31.12.2026</option>
-              <option value="MM/DD/YYYY">12/31/2026</option>
-              <option value="YYYY-MM-DD">2026-12-31</option>
-            </select>
-          </PreferenceRow>
-          <PreferenceRow label={t("settings:preferencesFields.theme")} error={form.formState.errors.theme?.message} last>
-            <select aria-label={t("settings:preferencesFields.theme")} {...form.register("theme")}>
-              <option value="SYSTEM">{t("settings:preferencesOptions.systemTheme")}</option>
-              <option value="LIGHT">{t("settings:preferencesOptions.lightTheme")}</option>
-              <option value="DARK">{t("settings:preferencesOptions.darkTheme")}</option>
-            </select>
-          </PreferenceRow>
-        </Card>
+        {showRegion ? (
+          <Card as="section" className="overflow-hidden">
+            <PreferenceRow label={t("settings:preferencesFields.language")} error={form.formState.errors.language?.message}>
+              <select aria-label={t("settings:preferencesFields.language")} {...form.register("language")}>
+                {["en", "de", "ro"].map((language) => (
+                  <option key={language} value={language}>
+                    {getNativeLanguageName(normalizeLanguage(language))}
+                  </option>
+                ))}
+              </select>
+            </PreferenceRow>
+            <PreferenceRow label={t("settings:preferencesFields.timezone")} error={form.formState.errors.timezone?.message}>
+              <select aria-label={t("settings:preferencesFields.timezone")} {...form.register("timezone")}>
+                {supportedTimezones.map((timezone) => (
+                  <option key={timezone} value={timezone}>{timezone}</option>
+                ))}
+              </select>
+            </PreferenceRow>
+            <PreferenceRow label={t("settings:preferencesFields.currency")} error={form.formState.errors.currency?.message} last>
+              <select aria-label={t("settings:preferencesFields.currency")} {...form.register("currency")}>
+                {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
+                  <option key={currency} value={currency}>{currency}</option>
+                ))}
+              </select>
+            </PreferenceRow>
+          </Card>
+        ) : null}
+
+        {showDateTime ? (
+          <Card as="section" className="overflow-hidden">
+            <PreferenceRow label={t("settings:preferencesFields.firstDayOfWeek")} error={form.formState.errors.firstDayOfWeek?.message}>
+              <select aria-label={t("settings:preferencesFields.firstDayOfWeek")} {...form.register("firstDayOfWeek")}>
+                <option value="MONDAY">{t("settings:preferencesOptions.monday")}</option>
+                <option value="SUNDAY">{t("settings:preferencesOptions.sunday")}</option>
+              </select>
+            </PreferenceRow>
+            <PreferenceRow label={t("settings:preferencesFields.timeFormat")} error={form.formState.errors.timeFormat?.message}>
+              <select aria-label={t("settings:preferencesFields.timeFormat")} {...form.register("timeFormat")}>
+                <option value="H24">{t("settings:preferencesOptions.time24")}</option>
+                <option value="H12">{t("settings:preferencesOptions.time12")}</option>
+              </select>
+            </PreferenceRow>
+            <PreferenceRow label={t("settings:preferencesFields.dateFormat")} error={form.formState.errors.dateFormat?.message} last>
+              <select aria-label={t("settings:preferencesFields.dateFormat")} {...form.register("dateFormat")}>
+                <option value="DD.MM.YYYY">31.12.2026</option>
+                <option value="MM/DD/YYYY">12/31/2026</option>
+                <option value="YYYY-MM-DD">2026-12-31</option>
+              </select>
+            </PreferenceRow>
+          </Card>
+        ) : null}
+
+        {showAppearance ? (
+          <Card as="section" className="overflow-hidden">
+            <PreferenceRow label={t("settings:preferencesFields.theme")} error={form.formState.errors.theme?.message} last>
+              <select aria-label={t("settings:preferencesFields.theme")} {...form.register("theme")}>
+                <option value="SYSTEM">{t("settings:preferencesOptions.systemTheme")}</option>
+                <option value="LIGHT">{t("settings:preferencesOptions.lightTheme")}</option>
+                <option value="DARK">{t("settings:preferencesOptions.darkTheme")}</option>
+              </select>
+            </PreferenceRow>
+          </Card>
+        ) : null}
 
         <SettingsFormActions submitting={mutation.isPending} successMessage={successMessage} />
         {!successMessage && mutation.error ? (

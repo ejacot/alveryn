@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SettingsEmploymentDetailPage } from "./settings-employment-detail-page";
@@ -67,14 +67,17 @@ describe("SettingsEmploymentDetailPage", () => {
     expect(within(periodDialog).getByRole("button", { name: "Save" })).toBeDisabled();
     await user.click(within(periodDialog).getByText("Cancel"));
     expect(screen.queryByRole("link", { name: /employment name/i })).not.toBeInTheDocument();
-    const trackingSelect = screen.getByRole("combobox", { name: "Dashboard focus" });
-    expect(trackingSelect).toHaveValue("TIME");
-    await user.selectOptions(trackingSelect, "EARNINGS");
-    await waitFor(() => expect(trackingSelect).toHaveValue("EARNINGS"));
-    expect(screen.getByRole("switch", { name: /check-in timer/i })).toHaveAttribute("aria-checked", "true");
-    await user.click(screen.getByRole("button", { name: /hours balance account/i }));
-    const trackingDialog = screen.getByRole("dialog", { name: "Hours balance account" });
-    expect(within(trackingDialog).getByRole("switch", { name: /calculate my hour balance/i })).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText("Dashboard focus")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Time tracking" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Earnings tracking" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Check-in timer" })).toHaveAttribute(
+      "href",
+      "/settings/employment/employment-1/check-in-timer"
+    );
+    expect(screen.getByRole("link", { name: "Hours balance account" })).toHaveAttribute(
+      "href",
+      "/settings/employment/employment-1/hours-balance"
+    );
     expect(screen.getByRole("link", { name: "Hourly rates" })).toHaveAttribute("href", "/settings/hourly-rates?employmentId=employment-1");
     expect(screen.getByRole("link", { name: "Work types" })).toHaveAttribute("href", "/settings/work-types?employmentId=employment-1");
     expect(screen.getByRole("link", { name: "Absences" })).toHaveAttribute("href", "/settings/absences?employmentId=employment-1");

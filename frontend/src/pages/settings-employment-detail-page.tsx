@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronRight, ChevronsUpDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getApiError } from "../api/api-errors";
 import { deleteEmployment, getEmployment, updateEmployment, type EmploymentPayload } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
@@ -13,13 +13,11 @@ import { ScreenMessage } from "../components/ui/screen-message";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Select } from "../components/ui/select";
-import type { Employment, TargetPeriod, TrackingFocus } from "../types/configuration";
+import type { Employment } from "../types/configuration";
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
 import { ModalPanel } from "../components/ui/modal-panel";
-import { todayLocalIsoDate } from "../utils/date";
 
 export function SettingsEmploymentDetailPage() {
   const { employmentId = "" } = useParams();
@@ -31,12 +29,8 @@ export function SettingsEmploymentDetailPage() {
   const [nameEditorOpen, setNameEditorOpen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [periodEditorOpen, setPeriodEditorOpen] = useState(false);
-  const [trackingEditorOpen, setTrackingEditorOpen] = useState(false);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [hourBalanceEnabled, setHourBalanceEnabled] = useState(false);
-  const [targetHours, setTargetHours] = useState("160");
-  const [targetPeriod, setTargetPeriod] = useState<TargetPeriod>("MONTHLY");
-  const [validityMonths, setValidityMonths] = useState("12");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -53,9 +47,6 @@ export function SettingsEmploymentDetailPage() {
       setEndDate(employmentQuery.data.endDate ?? "");
       setTimerEnabled(employmentQuery.data.timerEnabled ?? employmentQuery.data.trackingFocus === "TIME");
       setHourBalanceEnabled(employmentQuery.data.hourBalanceEnabled);
-      setTargetHours(employmentQuery.data.targetMinutes ? String(employmentQuery.data.targetMinutes / 60) : "160");
-      setTargetPeriod(employmentQuery.data.targetPeriod ?? "MONTHLY");
-      setValidityMonths(String(employmentQuery.data.hourBalanceValidityMonths ?? 12));
     }
   }, [employmentQuery.data]);
 
@@ -94,35 +85,6 @@ export function SettingsEmploymentDetailPage() {
       setPeriodEditorOpen(false);
     }
   });
-  const trackingMutation = useMutation({
-    mutationFn: ({
-      trackingFocus,
-      nextTimerEnabled = timerEnabled,
-      nextHourBalanceEnabled = hourBalanceEnabled
-    }: {
-      trackingFocus: TrackingFocus;
-      nextTimerEnabled?: boolean;
-      nextHourBalanceEnabled?: boolean;
-    }) => updateEmployment(
-      employmentId,
-      trackingPayload(
-        employmentQuery.data!,
-        trackingFocus,
-        nextTimerEnabled,
-        nextHourBalanceEnabled,
-        targetHours,
-        targetPeriod,
-        validityMonths
-      )
-    ),
-    onSuccess: async (employment) => {
-      queryClient.setQueryData(queryKeys.employments.detail(employment.id), employment);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.employments.all(), exact: true });
-      setTimerEnabled(employment.timerEnabled ?? false);
-      setHourBalanceEnabled(employment.hourBalanceEnabled);
-      setTrackingEditorOpen(false);
-    }
-  });
   const removeMutation = useMutation({
     mutationFn: () => deleteEmployment(employmentId),
     onSuccess: async () => {
@@ -143,15 +105,6 @@ export function SettingsEmploymentDetailPage() {
 
   const employment = employmentQuery.data;
   const suffix = `employmentId=${encodeURIComponent(employment.id)}`;
-  const normalizedTargetHours = Number(targetHours);
-  const normalizedValidityMonths = Number(validityMonths);
-  const timeConfigurationValid = !hourBalanceEnabled || (
-    Number.isFinite(normalizedTargetHours)
-    && normalizedTargetHours > 0
-    && Number.isInteger(normalizedValidityMonths)
-    && normalizedValidityMonths > 0
-  );
-
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
       <SettingsNavigationHeader
@@ -202,68 +155,22 @@ export function SettingsEmploymentDetailPage() {
         </Card>
       </section>
 
-      <SettingsGroup title={t("settings:employment.sections.overview")} description={t("settings:employment.sectionHelp.overview")}>
-        <label className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3">
-          <span className="min-w-0">
-            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.dashboardFocus")}</span>
-            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.dashboardFocus")}</span>
-          </span>
-          <span className="flex min-w-0 max-w-[62%] items-center gap-3">
-            <select
-              aria-label={t("settings:employment.dashboardFocus")}
-              value={employment.trackingFocus}
-              disabled={trackingMutation.isPending}
-              onChange={(event) => {
-                const nextFocus = event.currentTarget.value as TrackingFocus;
-                trackingMutation.mutate({ trackingFocus: nextFocus });
-              }}
-              style={{ textAlignLast: "right" }}
-              className="min-w-0 flex-1 cursor-pointer appearance-none truncate border-0 bg-transparent py-2 text-right text-sm text-white/48 outline-none transition focus:text-white focus:ring-2 focus:ring-white/24 disabled:cursor-wait disabled:opacity-55"
-            >
-              <option value="TIME">{t("settings:employment.tracking.TIME.summaryTitle")}</option>
-              <option value="EARNINGS">{t("settings:employment.tracking.EARNINGS.summaryTitle")}</option>
-            </select>
-            <ChevronsUpDown className="pointer-events-none h-4 w-4 shrink-0 text-white/24" aria-hidden="true" />
-          </span>
-        </label>
-        {trackingMutation.error ? <p className="px-5 pb-3 text-sm text-red-300">{getApiError(trackingMutation.error).message}</p> : null}
-      </SettingsGroup>
-
       <SettingsGroup title={t("settings:employment.sections.timeEntry")} description={t("settings:employment.sectionHelp.timeEntry")}>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={timerEnabled}
-          disabled={trackingMutation.isPending}
-          onClick={() => trackingMutation.mutate({
-            trackingFocus: employment.trackingFocus,
-            nextTimerEnabled: !timerEnabled
-          })}
-          className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-3 text-left disabled:opacity-55"
-        >
-          <span className="min-w-0">
-            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.fields.timer")}</span>
-            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.timer")}</span>
-          </span>
-          <ToggleIndicator enabled={timerEnabled} />
-        </button>
+        <SettingsRow
+          to={`/settings/employment/${employment.id}/check-in-timer`}
+          label={t("settings:employment.fields.timer")}
+          description={t("settings:employment.help.timer")}
+          value={t(timerEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+        />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")} description={t("settings:employment.sectionHelp.hourBalanceAccount")}>
-        <button
-          type="button"
-          onClick={() => setTrackingEditorOpen(true)}
-          className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-3 text-left"
-        >
-          <span className="min-w-0">
-            <span className="block text-[1rem] tracking-[-0.02em] text-white">{t("settings:employment.fields.hourBalanceAccount")}</span>
-            <span className="mt-1 block text-xs leading-5 text-white/42">{t("settings:employment.help.hourBalance")}</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-2 text-sm text-white/48">
-            {t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
-            <ChevronRight className="h-4 w-4 text-white/24" aria-hidden="true" />
-          </span>
-        </button>
+        <SettingsRow
+          to={`/settings/employment/${employment.id}/hours-balance`}
+          label={t("settings:employment.fields.hourBalanceAccount")}
+          description={t("settings:employment.help.hourBalance")}
+          value={t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+        />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:employment.settingsTitle")} description={t("settings:employment.sectionHelp.rules")}>
@@ -430,72 +337,6 @@ export function SettingsEmploymentDetailPage() {
         </LockedModalViewport>
       ) : null}
 
-      {trackingEditorOpen ? (
-        <LockedModalViewport
-          className="bg-black/50 px-4 py-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="employment-time-tracking-dialog-title"
-        >
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label={t("common:actions.cancel")}
-            className="absolute inset-0 h-full w-full cursor-default"
-            onClick={() => setTrackingEditorOpen(false)}
-          />
-          <ModalPanel
-            as="form"
-            className="max-w-sm space-y-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (timeConfigurationValid) trackingMutation.mutate({
-                trackingFocus: employment.trackingFocus
-              });
-            }}
-          >
-            <h2 id="employment-time-tracking-dialog-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
-              {t("settings:employment.fields.hourBalanceAccount")}
-            </h2>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={hourBalanceEnabled}
-              onClick={() => setHourBalanceEnabled((enabled) => !enabled)}
-              className="flex w-full items-center justify-between gap-4 text-left"
-            >
-              <span>
-                <span className="block font-medium text-white">{t("settings:employment.fields.hourBalance")}</span>
-                <span className="mt-1 block text-sm leading-5 text-white/46">{t("settings:employment.help.hourBalance")}</span>
-              </span>
-              <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${hourBalanceEnabled ? "bg-white" : "bg-white/[0.12]"}`}>
-                <span className={`absolute top-1 h-5 w-5 rounded-full transition ${hourBalanceEnabled ? "left-6 bg-black" : "left-1 bg-white/55"}`} />
-              </span>
-            </button>
-            {hourBalanceEnabled ? (
-              <div className="space-y-4 border-t border-white/[0.08] pt-4">
-                <Input type="number" min="0.01" step="0.01" label={t("settings:employment.fields.targetHours")} helperText={t("settings:employment.help.targetHours")} value={targetHours} onChange={(event) => setTargetHours(event.currentTarget.value)} />
-                <Select label={t("settings:employment.fields.targetPeriod")} value={targetPeriod} onChange={(event) => setTargetPeriod(event.currentTarget.value as TargetPeriod)}>
-                  <option value="WEEKLY">{t("settings:employment.targetPeriods.WEEKLY")}</option>
-                  <option value="MONTHLY">{t("settings:employment.targetPeriods.MONTHLY")}</option>
-                </Select>
-                <Input type="number" min="1" step="1" label={t("settings:employment.fields.validityMonths")} helperText={t("settings:employment.help.validityMonths")} value={validityMonths} onChange={(event) => setValidityMonths(event.currentTarget.value)} />
-                {!timeConfigurationValid ? <p className="text-sm text-red-300">{t("settings:employment.validation.timeConfiguration")}</p> : null}
-              </div>
-            ) : null}
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" disabled={trackingMutation.isPending} onClick={() => setTrackingEditorOpen(false)}>
-                {t("common:actions.cancel")}
-              </Button>
-              <Button type="submit" disabled={trackingMutation.isPending || !timeConfigurationValid} className="min-w-24 bg-white text-black hover:bg-white/90">
-                {trackingMutation.isPending ? t("common:actions.working") : t("common:actions.save")}
-              </Button>
-            </div>
-            {trackingMutation.error ? <p className="text-sm text-red-300">{getApiError(trackingMutation.error).message}</p> : null}
-          </ModalPanel>
-        </LockedModalViewport>
-      ) : null}
-
       <SettingsConfirmDialog
         open={deleteDialogOpen}
         title={t(employment.deletable ? "settings:employment.deleteTitle" : "settings:employment.deactivateTitle")}
@@ -536,26 +377,6 @@ function employmentPayload(
   };
 }
 
-function trackingPayload(
-  employment: Employment,
-  trackingFocus: TrackingFocus,
-  timerEnabled: boolean,
-  hourBalanceEnabled: boolean,
-  targetHours: string,
-  targetPeriod: TargetPeriod,
-  validityMonths: string
-): EmploymentPayload {
-  return {
-    ...employmentPayload(employment, employment.name),
-    trackingFocus,
-    timerEnabled,
-    hourBalanceEnabled,
-    termsValidFrom: todayLocalIsoDate(),
-    targetMinutes: hourBalanceEnabled ? Math.round(Number(targetHours) * 60) : null,
-    targetPeriod: hourBalanceEnabled ? targetPeriod : null,
-    hourBalanceValidityMonths: hourBalanceEnabled ? Number(validityMonths) : null
-  };
-}
 
 function ToggleIndicator({ enabled }: { enabled: boolean }) {
   return (

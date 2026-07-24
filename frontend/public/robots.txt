@@ -1,0 +1,22 @@
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /calendar
+Disallow: /records/
+Disallow: /statistics
+Disallow: /profile
+Disallow: /settings/
+Disallow: /onboarding
+Disallow: /tracking-setup
+Disallow: /auth/
+
+Sitemap: https://alveryn.com/sitemap.xml

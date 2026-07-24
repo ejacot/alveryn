@@ -139,6 +139,26 @@
       "timer": "Show check-in and check-out on the dashboard. Manual entries remain available.",
       "active": "Inactive employments remain in history but cannot receive new entries."
     },
+    "timerPreview": {
+      "label": "How the check-in timer works",
+      "checkIn": "Check in",
+      "tracking": "Time runs",
+      "checkOut": "Check out",
+      "description": "Start when you begin work and stop when you finish. Alveryn saves the worked time automatically.",
+      "demoLabel": "Try the dashboard card",
+      "demoActivity": "Cleaning",
+      "recording": "Recording worked time"
+    },
+    "balancePreview": {
+      "label": "How the hours balance works",
+      "description": "Alveryn compares your worked hours with your target. The difference is carried forward as a positive or negative balance.",
+      "cardLabel": "What your balance looks like",
+      "target": "Target",
+      "worked": "Worked",
+      "balance": "Balance",
+      "currentBalance": "Hours balance",
+      "ahead": "Ahead"
+    },
     "compensation": {
       "FIXED_SALARY": "Fixed salary",
       "HOURLY": "Paid hourly",
@@ -310,7 +330,14 @@
   },
   "account": "Account",
   "work": "Work",
+  "data": "Data",
+  "support": "Support",
   "preferences": "Preferences",
+  "preferencesSections": {
+    "region": "Language & region",
+    "dateTime": "Date & time",
+    "appearance": "Appearance"
+  },
   "absenceSettings": {
     "title": "Absences",
     "description": "Define vacation, sick leave and other days away, including whether they count as paid time.",
@@ -420,7 +447,7 @@
       "password": "Password change will be available here.",
       "security": "Sign-in and security settings will live here.",
       "payment": "Payment and shipping details will live here.",
-      "subscriptions": "Subscription details will live here."
+      "subscriptions": "Enjoy Alveryn while it is free. Subscription options will appear here before paid plans are introduced."
     },
     "addresses": {
       "title": "Saved addresses",

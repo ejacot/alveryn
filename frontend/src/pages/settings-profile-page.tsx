@@ -73,7 +73,7 @@ function createPasswordSchema(t: (key: string) => string) {
 }
 
 type PasswordFormValues = z.infer<ReturnType<typeof createPasswordSchema>>;
-type ProfileSection = "overview" | "personal" | "security" | "email" | "phone" | "password" | "payment" | "subscriptions";
+type ProfileSection = "overview" | "personal" | "security" | "email" | "phone" | "password" | "subscriptions";
 
 export function SettingsProfilePage() {
   const { t } = useTranslation("settings");
@@ -198,9 +198,7 @@ export function SettingsProfilePage() {
           ? t("profileEditor.menu.phoneNumber")
           : activeSection === "password"
             ? t("profileEditor.menu.changePassword")
-        : activeSection === "payment"
-          ? t("profileEditor.menu.paymentShipping")
-          : activeSection === "subscriptions"
+        : activeSection === "subscriptions"
             ? t("profileEditor.menu.subscriptions")
             : t("profileEditor.title");
   const handleBack = () => {
@@ -289,13 +287,6 @@ export function SettingsProfilePage() {
             <SettingsRow
               label={t("profileEditor.menu.signInSecurity")}
               onClick={() => setActiveSection("security")}
-              showChevron
-            />
-            <div className="mx-5 h-px bg-white/[0.06]" />
-            <SettingsRow
-              label={t("profileEditor.menu.paymentShipping")}
-              value={t("profileEditor.menu.notSet")}
-              onClick={() => setActiveSection("payment")}
               showChevron
             />
             <div className="mx-5 h-px bg-white/[0.06]" />

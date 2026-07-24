@@ -139,6 +139,26 @@
       "timer": "Afișează check-in și check-out în dashboard. Înregistrările manuale rămân disponibile.",
       "active": "Employmenturile inactive rămân în istoric, dar nu primesc înregistrări noi."
     },
+    "timerPreview": {
+      "label": "Cum funcționează cronometrul check-in",
+      "checkIn": "Check in",
+      "tracking": "Timpul rulează",
+      "checkOut": "Check out",
+      "description": "Pornești când începi lucrul și oprești când termini. Alveryn salvează automat timpul lucrat.",
+      "demoLabel": "Încearcă cardul din dashboard",
+      "demoActivity": "Curățenie",
+      "recording": "Timpul lucrat se înregistrează"
+    },
+    "balancePreview": {
+      "label": "Cum funcționează soldul de ore",
+      "description": "Alveryn compară orele lucrate cu norma ta. Diferența este transferată ca sold pozitiv sau negativ.",
+      "cardLabel": "Cum va arăta soldul tău",
+      "target": "Normă",
+      "worked": "Lucrat",
+      "balance": "Sold",
+      "currentBalance": "Sold de ore",
+      "ahead": "Pe plus"
+    },
     "compensation": {
       "FIXED_SALARY": "Salariu fix",
       "HOURLY": "Plătit la oră",
@@ -310,7 +330,14 @@
   },
   "account": "Cont",
   "work": "Muncă",
+  "data": "Date",
+  "support": "Asistență",
   "preferences": "Preferințe",
+  "preferencesSections": {
+    "region": "Limbă și regiune",
+    "dateTime": "Dată și oră",
+    "appearance": "Aspect"
+  },
   "absenceSettings": {
     "title": "Absențe",
     "description": "Definește concediul, medicalul și alte zile libere și stabilește dacă sunt considerate timp plătit.",
@@ -420,7 +447,7 @@
       "password": "Schimbarea parolei va fi disponibilă aici.",
       "security": "Setările de autentificare și securitate vor fi aici.",
       "payment": "Detaliile de plată și livrare vor fi aici.",
-      "subscriptions": "Detaliile abonamentelor vor fi aici."
+      "subscriptions": "Bucură-te de Alveryn cât timp este gratuit. Opțiunile de abonament vor apărea aici înainte de introducerea planurilor plătite."
     },
     "addresses": {
       "title": "Adrese salvate",

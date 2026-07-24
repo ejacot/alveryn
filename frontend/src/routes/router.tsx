@@ -65,6 +65,16 @@ const SettingsEmploymentDetailPage = lazy(() =>
     default: module.SettingsEmploymentDetailPage
   }))
 );
+const SettingsCheckInTimerPage = lazy(() =>
+  import("../pages/settings-check-in-timer-page").then((module) => ({
+    default: module.SettingsCheckInTimerPage
+  }))
+);
+const SettingsHoursBalancePage = lazy(() =>
+  import("../pages/settings-hours-balance-page").then((module) => ({
+    default: module.SettingsHoursBalancePage
+  }))
+);
 const SettingsSchedulePage = lazy(() =>
   import("../pages/settings-schedule-page").then((module) => ({
     default: module.SettingsSchedulePage
@@ -203,6 +213,8 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/absences", element: withSuspense(<SettingsAbsencePage />) },
             { path: "/settings/employment", element: withSuspense(<SettingsEmploymentPage />) },
             { path: "/settings/employment/:employmentId", element: withSuspense(<SettingsEmploymentDetailPage />) },
+            { path: "/settings/employment/:employmentId/check-in-timer", element: withSuspense(<SettingsCheckInTimerPage />) },
+            { path: "/settings/employment/:employmentId/hours-balance", element: withSuspense(<SettingsHoursBalancePage />) },
             { path: "/settings/employment/:employmentId/schedule", element: withSuspense(<SettingsSchedulePage />) },
             { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
             { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },

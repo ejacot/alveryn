@@ -1,0 +1,23 @@
+# Alveryn
+
+Alveryn is a web application for people whose working hours, activities, payment methods, and absences vary.
+
+Official website: https://alveryn.com/
+
+## What Alveryn does
+
+- Tracks working time with check-in/check-out or manual entries.
+- Records hourly work, output paid per unit, and fixed-price jobs.
+- Keeps multiple employments, work types, rates, and payment rules separate.
+- Organizes workdays, earnings, leave, sickness, and other absences.
+- Shows daily, weekly, and monthly work history and statistics.
+- Supports an optional hours balance account that compares worked hours with a target.
+
+## Intended users
+
+Alveryn is intended for hourly workers, people with multiple jobs, shift workers, and people whose pay depends on completed units or jobs.
+
+## Access
+
+Alveryn currently offers free account creation at https://alveryn.com/register.
+Existing users can sign in at https://alveryn.com/login.

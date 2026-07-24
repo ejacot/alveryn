@@ -103,6 +103,115 @@ h3,
   }
 }
 
+@keyframes check-in-preview-line {
+  0%,
+  12% {
+    transform: scaleX(0);
+  }
+
+  70%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes check-in-preview-dot {
+  0%,
+  12% {
+    left: 0%;
+  }
+
+  42% {
+    left: 50%;
+  }
+
+  70%,
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes check-in-preview-step {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #111;
+    color: rgba(255, 255, 255, 0.45);
+    box-shadow: none;
+  }
+
+  10%,
+  27% {
+    border-color: rgba(52, 211, 153, 0.65);
+    background: rgba(52, 211, 153, 0.12);
+    color: rgb(110, 231, 183);
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.16);
+  }
+}
+
+.check-in-preview-line {
+  animation: check-in-preview-line 4.5s ease-in-out infinite;
+}
+
+.check-in-preview-dot {
+  animation: check-in-preview-dot 4.5s ease-in-out infinite;
+}
+
+.check-in-preview-step {
+  animation: check-in-preview-step 4.5s ease-in-out infinite;
+}
+
+.check-in-preview-step-2 {
+  animation-delay: 1.45s;
+}
+
+.check-in-preview-step-3 {
+  animation-delay: 2.9s;
+}
+
+@keyframes balance-preview-step {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #111;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  12%,
+  32% {
+    border-color: rgba(52, 211, 153, 0.65);
+    background: rgba(52, 211, 153, 0.12);
+    color: rgb(110, 231, 183);
+  }
+}
+
+@keyframes balance-preview-bar {
+  0% {
+    width: 0;
+  }
+
+  65%,
+  100% {
+    width: 100%;
+  }
+}
+
+.balance-preview-step {
+  animation: balance-preview-step 4.8s ease-in-out infinite;
+}
+
+.balance-preview-step-2 {
+  animation-delay: 1.55s;
+}
+
+.balance-preview-step-3 {
+  animation-delay: 3.1s;
+}
+
+.balance-preview-bar {
+  animation: balance-preview-bar 4.8s ease-in-out infinite;
+}
+
 @layer components {
   .app-background {
     position: fixed;

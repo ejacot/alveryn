@@ -14,6 +14,7 @@
     <meta name="apple-mobile-web-app-title" content="Alveryn" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta
       name="description"
       content="Track hours, completed work, rates, earnings and absences in one reliable record — even when every workday is different."
@@ -50,6 +51,17 @@
         "operatingSystem": "Web",
         "url": "https://alveryn.com/",
         "description": "Track hours, completed work, rates, earnings and absences in one reliable record.",
+        "featureList": [
+          "Check-in and check-out time tracking",
+          "Manual work entries",
+          "Hourly, per-unit and fixed-price work",
+          "Multiple employments and work types",
+          "Earnings calculation",
+          "Leave and absence tracking",
+          "Hours balance account",
+          "Daily, weekly and monthly statistics"
+        ],
+        "inLanguage": ["en", "de", "ro"],
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -57,10 +69,103 @@
         }
       }
     </script>
+    <style>
+      .seo-shell {
+        min-height: 100vh;
+        background: #050505;
+        color: #f7f7f5;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        padding: 2rem 1.25rem 4rem;
+      }
+
+      .seo-shell__content {
+        width: min(100%, 72rem);
+        margin: 0 auto;
+      }
+
+      .seo-shell h1 {
+        max-width: 52rem;
+        margin: 5rem 0 1.25rem;
+        font-size: clamp(2.5rem, 7vw, 5.5rem);
+        line-height: 0.98;
+        letter-spacing: -0.065em;
+      }
+
+      .seo-shell p {
+        max-width: 44rem;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+
+      .seo-shell ul {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: 1rem;
+        padding: 0;
+        margin: 3rem 0;
+        list-style: none;
+      }
+
+      .seo-shell li {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.25rem;
+        padding: 1.25rem;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .seo-shell a {
+        display: inline-block;
+        margin: 0.75rem 0.75rem 0 0;
+        border-radius: 999px;
+        padding: 0.85rem 1.2rem;
+        background: #f7f7f5;
+        color: #080808;
+        font-weight: 700;
+        text-decoration: none;
+      }
+    </style>
     <title>Alveryn — Work hours, earnings and absences</title>
   </head>
   <body class="bg-ink">
-    <div id="root"></div>
+    <div id="root">
+      <main class="seo-shell">
+        <div class="seo-shell__content">
+          <header>
+            <strong>Alveryn</strong>
+            <h1>Track the work. Know the hours. Understand the money.</h1>
+            <p>
+              Alveryn keeps working hours, completed activities, payment rates,
+              calculated earnings and absences in one reliable record—even when
+              every workday is different.
+            </p>
+            <a href="/register">Create a free account</a>
+            <a href="/login">Sign in</a>
+          </header>
+          <section aria-labelledby="alveryn-features">
+            <h2 id="alveryn-features">Work tracking built for real working days</h2>
+            <ul>
+              <li>Check in and check out with a live work timer.</li>
+              <li>Enter working time manually when needed.</li>
+              <li>Track hourly, per-unit and fixed-price work.</li>
+              <li>Keep multiple jobs, activities and rates organized.</li>
+              <li>Calculate and review estimated earnings.</li>
+              <li>Record vacation, sickness and other absences.</li>
+              <li>Compare worked hours with a weekly or monthly target.</li>
+              <li>Review daily, weekly and monthly history and statistics.</li>
+            </ul>
+          </section>
+          <section aria-labelledby="alveryn-audience">
+            <h2 id="alveryn-audience">Who Alveryn is for</h2>
+            <p>
+              Alveryn is designed for hourly workers, shift workers, people with
+              multiple jobs and anyone whose pay depends on completed rooms,
+              deliveries, pieces, kilometres or other units of work.
+            </p>
+          </section>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

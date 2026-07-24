@@ -139,6 +139,26 @@
       "timer": "Zeigt Check-in und Check-out im Dashboard. Manuelle Einträge bleiben verfügbar.",
       "active": "Inaktive Beschäftigungen bleiben im Verlauf, können aber keine neuen Einträge erhalten."
     },
+    "timerPreview": {
+      "label": "So funktioniert der Check-in-Timer",
+      "checkIn": "Einchecken",
+      "tracking": "Zeit läuft",
+      "checkOut": "Auschecken",
+      "description": "Starte bei Arbeitsbeginn und stoppe am Ende. Alveryn speichert die Arbeitszeit automatisch.",
+      "demoLabel": "Dashboard-Karte ausprobieren",
+      "demoActivity": "Reinigung",
+      "recording": "Arbeitszeit wird erfasst"
+    },
+    "balancePreview": {
+      "label": "So funktioniert das Stundenkonto",
+      "description": "Alveryn vergleicht deine Arbeitszeit mit deinem Soll. Die Differenz wird als positives oder negatives Guthaben übertragen.",
+      "cardLabel": "So sieht dein Stundenkonto aus",
+      "target": "Soll",
+      "worked": "Gearbeitet",
+      "balance": "Saldo",
+      "currentBalance": "Stundenkonto",
+      "ahead": "Im Plus"
+    },
     "compensation": {
       "FIXED_SALARY": "Festgehalt",
       "HOURLY": "Stundenlohn",
@@ -310,7 +330,14 @@
   },
   "account": "Konto",
   "work": "Arbeit",
+  "data": "Daten",
+  "support": "Support",
   "preferences": "Einstellungen",
+  "preferencesSections": {
+    "region": "Sprache & Region",
+    "dateTime": "Datum & Uhrzeit",
+    "appearance": "Darstellung"
+  },
   "absenceSettings": {
     "title": "Abwesenheiten",
     "description": "Lege Urlaub, Krankheit und andere freie Tage fest und bestimme, ob sie als bezahlte Zeit zählen.",
@@ -420,7 +447,7 @@
       "password": "Die Passwortänderung wird hier verfügbar sein.",
       "security": "Anmelde- und Sicherheitseinstellungen werden hier verwaltet.",
       "payment": "Zahlungs- und Versanddetails werden hier verwaltet.",
-      "subscriptions": "Abonnementdetails werden hier verwaltet."
+      "subscriptions": "Nutze Alveryn, solange es kostenlos ist. Bevor kostenpflichtige Pläne starten, findest du die Abonnementoptionen hier."
     },
     "addresses": {
       "title": "Gespeicherte Adressen",
