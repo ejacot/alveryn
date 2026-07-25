@@ -272,6 +272,172 @@ html[data-theme="light"] .app-logo-wordmark {
     bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }
 
+  .settings-master-pane {
+    display: none;
+  }
+
+  @media (min-width: 700px) and (max-width: 899px) and (orientation: portrait) {
+    .screen-shell {
+      max-width: 720px;
+      padding-inline: 2rem;
+    }
+
+    .screen-shell [class~="max-w-[560px]"],
+    body > [class~="max-w-[560px]"] {
+      max-width: 680px !important;
+    }
+
+    .settings-sticky-header {
+      max-width: 720px !important;
+    }
+
+    .floating-nav {
+      width: min(520px, calc(100% - 3rem));
+      max-width: 520px;
+    }
+  }
+
+  @media (min-width: 900px) and (orientation: landscape) {
+    .dashboard-header-wordmark {
+      display: none !important;
+    }
+
+    .screen-shell {
+      width: calc(100% - 220px) !important;
+      max-width: 980px !important;
+      margin-left: 220px !important;
+      margin-right: auto !important;
+      padding-inline: clamp(2rem, 4vw, 4rem);
+      padding-bottom: 4rem;
+    }
+
+    .screen-shell [class~="max-w-[560px]"] {
+      max-width: 760px !important;
+    }
+
+    .settings-sticky-header {
+      left: 220px !important;
+      right: 0 !important;
+      max-width: 760px !important;
+    }
+
+    .floating-nav {
+      inset: 1rem auto 1rem 1rem !important;
+      left: 1rem !important;
+      right: auto !important;
+      width: 188px !important;
+      max-width: 188px !important;
+      height: auto;
+      margin: 0 !important;
+      padding: 1rem 0.75rem !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
+      gap: 0.35rem !important;
+      border-radius: 28px;
+      transform: none !important;
+      transform-origin: left center;
+    }
+
+    .desktop-nav-brand {
+      display: flex !important;
+      align-items: center;
+      min-height: 48px;
+      margin: 0 0.35rem 1.35rem;
+      padding: 0 0.55rem;
+    }
+
+    .desktop-nav-link {
+      flex: 0 0 auto !important;
+      width: 100% !important;
+      justify-content: flex-start !important;
+    }
+
+    .desktop-nav-item {
+      width: 100% !important;
+      height: 48px !important;
+      min-height: 48px;
+      justify-content: flex-start;
+      gap: 0.8rem;
+      padding: 0 0.9rem;
+      border-radius: 16px !important;
+      box-shadow: none;
+    }
+
+    .desktop-nav-link[aria-current="page"] .desktop-nav-item,
+    .desktop-nav-link:has([aria-current="page"]) .desktop-nav-item {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .desktop-nav-label {
+      display: inline !important;
+      overflow: hidden;
+      color: currentColor;
+      font-size: 0.86rem;
+      font-weight: 600;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bottom-nav-primary-action {
+      margin-top: 0.4rem;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .settings-master-pane {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 45;
+      display: block;
+      width: 25%;
+      overflow-y: auto;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(9, 9, 9, 0.88);
+      box-shadow: 18px 0 54px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(24px) saturate(130%);
+      -webkit-backdrop-filter: blur(24px) saturate(130%);
+      padding-top: max(0.4rem, env(safe-area-inset-top));
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .settings-split-view .screen-shell {
+      width: 75% !important;
+      max-width: none;
+      margin-left: 25% !important;
+      margin-right: 0 !important;
+      padding-inline: clamp(2rem, 4vw, 4.5rem);
+      padding-bottom: 3rem;
+    }
+
+    .settings-split-view .screen-shell [class~="max-w-[560px]"] {
+      max-width: 780px !important;
+    }
+
+    .settings-split-view .settings-sticky-header {
+      left: 25% !important;
+      max-width: 780px !important;
+    }
+
+    .settings-split-view > .floating-nav {
+      display: none;
+    }
+
+    .settings-master-content .universal-glass-card {
+      border-radius: 18px;
+    }
+
+    .settings-master-content .hairline-text {
+      padding-left: 0.25rem;
+    }
+
+    html[data-theme="light"] .settings-master-pane {
+      border-right-color: rgba(0, 0, 0, 0.1);
+      background: rgba(239, 238, 233, 0.9);
+      box-shadow: 18px 0 54px rgba(55, 50, 35, 0.08);
+    }
+  }
+
   .ios-glass-nav {
     position: relative;
     overflow: hidden;

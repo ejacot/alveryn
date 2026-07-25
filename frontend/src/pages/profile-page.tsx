@@ -11,7 +11,11 @@ import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { APP_HOME_PATH } from "../routes/app-paths";
 
-export function ProfilePage() {
+type ProfilePageProps = {
+  embedded?: boolean;
+};
+
+export function ProfilePage({ embedded = false }: ProfilePageProps) {
   const { t } = useTranslation(["settings", "common"]);
   const { user, logout } = useAuth();
   const safeBack = useSafeBackNavigation({ fallback: APP_HOME_PATH });
@@ -99,8 +103,29 @@ export function ProfilePage() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
+    <div
+      className={
+        embedded
+          ? "settings-master-content w-full space-y-5 px-5 pb-10 pt-5"
+          : "mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8"
+      }
+    >
+      {embedded ? (
+        <header className="flex min-h-12 items-center gap-3">
+          <button
+            type="button"
+            onClick={safeBack}
+            aria-label={t("common:actions.back")}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/64 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <h1 className="text-[1.55rem] font-semibold tracking-[-0.055em] text-white">
+            {t("settings:title")}
+          </h1>
+        </header>
+      ) : (
+        <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"
@@ -119,16 +144,19 @@ export function ProfilePage() {
         >
           {t("settings:title")}
         </div>
-      </header>
+        </header>
+      )}
 
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {t("settings:title")}
-      </h1>
+      {!embedded ? (
+        <h1
+          ref={largeTitleRef}
+          className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
+            compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
+          }`}
+        >
+          {t("settings:title")}
+        </h1>
+      ) : null}
 
       <SettingsProfileCard
         initials={initials}
