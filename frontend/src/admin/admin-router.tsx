@@ -5,6 +5,8 @@ import { RouteErrorPage } from "../components/ui/route-error-page";
 import { useAuth } from "../features/auth/use-auth";
 import { AdminLoginPage } from "./pages/admin-login-page";
 import { FounderDashboardPage } from "../pages/founder-dashboard-page";
+import { ForgotPasswordPage } from "../pages/forgot-password-page";
+import { ResetPasswordPage } from "../pages/reset-password-page";
 import { applyAppTheme } from "../utils/theme";
 
 function AdminRoute() {
@@ -29,6 +31,8 @@ function AdminGuestRoute() {
 export function createAdminRouter() {
   return createBrowserRouter([
     { path: "/login", element: <AdminGuestRoute />, errorElement: <RouteErrorPage /> },
+    { path: "/forgot-password", element: <ForgotPasswordPage />, errorElement: <RouteErrorPage /> },
+    { path: "/reset-password", element: <ResetPasswordPage />, errorElement: <RouteErrorPage /> },
     {
       element: <AdminRoute />,
       errorElement: <RouteErrorPage />,

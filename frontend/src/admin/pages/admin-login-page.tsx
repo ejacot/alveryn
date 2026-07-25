@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../../api/api-errors";
 import { AuthCard } from "../../components/auth/auth-card";
 import { Button } from "../../components/ui/button";
@@ -18,10 +19,12 @@ export function AdminLoginPage() {
       ? "This account does not have administrator access."
       : ""
   );
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" }
   });
+  const password = form.watch("password");
 
   async function onSubmit(values: LoginValues) {
     try {
@@ -51,9 +54,30 @@ export function AdminLoginPage() {
           />
           <Input
             label="Password"
-            type="password"
+            type={passwordVisible ? "text" : "password"}
             autoComplete="current-password"
             error={form.formState.errors.password?.message}
+            endAdornment={password ? (
+              <button
+                type="button"
+                onClick={() => setPasswordVisible((visible) => !visible)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+              >
+                {passwordVisible ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              <Link
+                to="/forgot-password"
+                className="px-1 text-xs font-semibold text-white/58 transition hover:text-white"
+              >
+                Forgot?
+              </Link>
+            )}
             {...form.register("password")}
           />
           {serverError ? <p className="text-sm text-red-300">{serverError}</p> : null}

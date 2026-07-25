@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, Boxes, Check, Clock3, PencilLine, Receipt, Timer, WalletCards } from "lucide-react";
+import { Banknote, Boxes, Check, Clock3, PencilLine, Play, Receipt, Timer, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -282,19 +282,25 @@ function NewAccountSetup() {
             <>
               <SetupHeader title={t("setup.workplace.title")} description={t("setup.workplace.description")} />
               <Input label={t("setup.workplace.name")} value={employmentName} autoComplete="organization" placeholder={t("setup.workplace.placeholder")} onChange={(event) => setEmploymentName(event.currentTarget.value)} />
-              <Input label={t("setup.workplace.startDate")} type="date" compactDate={false} value={startDate} onChange={(event) => setStartDate(event.currentTarget.value)} />
+              <Input
+                label={t("setup.workplace.startDate")}
+                type="date"
+                wrapperClassName="mx-auto w-full max-w-[15rem]"
+                value={startDate}
+                onChange={(event) => setStartDate(event.currentTarget.value)}
+              />
               <p className="text-xs leading-5 text-white/45">{t("setup.workplace.startDateHint")}</p>
             </>
           ) : null}
 
           {step === 3 ? (
             <>
-              <SetupHeader title={t("setup.payment.title")} description={t("setup.payment.description")} />
+              <SetupHeader title={t("setup.payment.title")} />
               <div className="grid grid-cols-2 gap-3">
-                <ChoiceCard selected={compensationType === "HOURLY"} icon={Clock3} title={t("setup.payment.hourly.title")} description={t("setup.payment.hourly.description")} onClick={() => setCompensationType("HOURLY")} />
-                <ChoiceCard selected={compensationType === "FIXED_SALARY"} icon={Banknote} title={t("setup.payment.fixed.title")} description={t("setup.payment.fixed.description")} onClick={() => setCompensationType("FIXED_SALARY")} />
-                <ChoiceCard selected={compensationType === "PER_UNIT"} icon={Boxes} title={t("setup.payment.perUnit.title")} description={t("setup.payment.perUnit.description")} onClick={() => setCompensationType("PER_UNIT")} />
-                <ChoiceCard selected={compensationType === "FIXED_AMOUNT"} icon={Receipt} title={t("setup.payment.fixedAmount.title")} description={t("setup.payment.fixedAmount.description")} onClick={() => setCompensationType("FIXED_AMOUNT")} />
+                <ChoiceCard compact selected={compensationType === "HOURLY"} icon={Clock3} title={t("setup.payment.hourly.title")} description={t("setup.payment.hourly.description")} onClick={() => setCompensationType("HOURLY")} />
+                <ChoiceCard compact selected={compensationType === "FIXED_SALARY"} icon={Banknote} title={t("setup.payment.fixed.title")} description={t("setup.payment.fixed.description")} onClick={() => setCompensationType("FIXED_SALARY")} />
+                <ChoiceCard compact selected={compensationType === "PER_UNIT"} icon={Boxes} title={t("setup.payment.perUnit.title")} description={t("setup.payment.perUnit.description")} onClick={() => setCompensationType("PER_UNIT")} />
+                <ChoiceCard compact selected={compensationType === "FIXED_AMOUNT"} icon={Receipt} title={t("setup.payment.fixedAmount.title")} description={t("setup.payment.fixedAmount.description")} onClick={() => setCompensationType("FIXED_AMOUNT")} />
               </div>
               {compensationType === "HOURLY" ? (
                 <div className="grid grid-cols-[1fr_6.5rem] gap-3">
@@ -315,9 +321,23 @@ function NewAccountSetup() {
             <>
               <SetupHeader title={t("setup.timeEntry.title")} description={t("setup.timeEntry.description")} />
               {supportsTimeTracking ? (
-                <div className="space-y-3">
-                  <ChoiceCard horizontal selected={timeEntryMode === "TIMER_AND_MANUAL"} icon={Timer} title={t("setup.timeEntry.timer.title")} description={t("setup.timeEntry.timer.description")} onClick={() => setTimeEntryMode("TIMER_AND_MANUAL")} />
-                  <ChoiceCard horizontal selected={timeEntryMode === "MANUAL"} icon={PencilLine} title={t("setup.timeEntry.manual.title")} description={t("setup.timeEntry.manual.description")} onClick={() => setTimeEntryMode("MANUAL")} />
+                <div className="grid grid-cols-2 gap-3">
+                  <TimeEntryChoiceCard
+                    mode="TIMER_AND_MANUAL"
+                    selected={timeEntryMode === "TIMER_AND_MANUAL"}
+                    title={t("setup.timeEntry.timer.title")}
+                    description={t("setup.timeEntry.timer.description")}
+                    onClick={() => setTimeEntryMode("TIMER_AND_MANUAL")}
+                    t={t}
+                  />
+                  <TimeEntryChoiceCard
+                    mode="MANUAL"
+                    selected={timeEntryMode === "MANUAL"}
+                    title={t("setup.timeEntry.manual.title")}
+                    description={t("setup.timeEntry.manual.description")}
+                    onClick={() => setTimeEntryMode("MANUAL")}
+                    t={t}
+                  />
                 </div>
               ) : (
                 <ChoiceCard horizontal selected icon={PencilLine} title={t("setup.timeEntry.job.title")} description={t("setup.timeEntry.job.description")} onClick={() => setTimeEntryMode("MANUAL")} />
@@ -329,10 +349,13 @@ function NewAccountSetup() {
             <>
               <SetupHeader title={t("setup.balance.title")} description={t("setup.balance.description")} />
               {supportsTimeTracking ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <ChoiceCard selected={!hourBalanceEnabled && compensationType !== "FIXED_SALARY"} title={t("setup.balance.no.title")} description={t("setup.balance.no.description")} onClick={() => setHourBalanceEnabled(false)} />
-                  <ChoiceCard selected={hourBalanceEnabled || compensationType === "FIXED_SALARY"} title={t("setup.balance.yes.title")} description={t("setup.balance.yes.description")} onClick={() => setHourBalanceEnabled(true)} />
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <ChoiceCard compact selected={!hourBalanceEnabled && compensationType !== "FIXED_SALARY"} title={t("setup.balance.no.title")} description={t("setup.balance.no.description")} onClick={() => setHourBalanceEnabled(false)} />
+                    <ChoiceCard compact selected={hourBalanceEnabled || compensationType === "FIXED_SALARY"} title={t("setup.balance.yes.title")} description={t("setup.balance.yes.description")} onClick={() => setHourBalanceEnabled(true)} />
+                  </div>
+                  <HoursBalancePreview t={t} />
+                </>
               ) : (
                 <ChoiceCard horizontal selected title={t("setup.balance.notNeeded.title")} description={t("setup.balance.notNeeded.description")} onClick={() => setHourBalanceEnabled(false)} />
               )}
@@ -406,26 +429,27 @@ function NewAccountSetup() {
   );
 }
 
-function SetupHeader({ title, description }: { title: string; description: string }) {
-  return <div className="space-y-2"><h1 className="font-title text-[1.75rem] font-semibold leading-tight text-white">{title}</h1><p className="text-sm leading-6 text-white/56">{description}</p></div>;
+function SetupHeader({ title, description }: { title: string; description?: string }) {
+  return <div className="space-y-2"><h1 className="font-title text-[1.75rem] font-semibold leading-tight text-white">{title}</h1>{description ? <p className="text-sm leading-6 text-white/56">{description}</p> : null}</div>;
 }
 
-function ChoiceCard({ selected, icon: Icon, title, description, onClick, horizontal = false }: {
+function ChoiceCard({ selected, icon: Icon, title, description, onClick, horizontal = false, compact = false }: {
   selected: boolean;
   icon?: typeof Clock3;
   title: string;
   description: string;
   onClick: () => void;
   horizontal?: boolean;
+  compact?: boolean;
 }) {
   return (
-    <button type="button" role="radio" aria-checked={selected} onClick={onClick} className={`relative rounded-[1.35rem] border p-4 text-left transition active:scale-[0.985] ${horizontal ? "min-h-[6.5rem] w-full" : "min-h-[9rem]"} ${selected ? "border-white/55 bg-white/[0.12]" : "border-white/10 bg-white/[0.025]"}`}>
+    <button type="button" role="radio" aria-checked={selected} onClick={onClick} className={`relative rounded-[1.35rem] border text-left transition active:scale-[0.985] ${compact ? "min-h-[7.25rem] p-3.5" : horizontal ? "min-h-[6.5rem] w-full p-4" : "min-h-[9rem] p-4"} ${selected ? "border-white/55 bg-white/[0.12]" : "border-white/10 bg-white/[0.025]"}`}>
       <span className="flex items-center justify-between gap-3">
         {Icon ? <Icon className="h-5 w-5 text-white/72" aria-hidden="true" /> : <span />}
         <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${selected ? "border-white bg-white text-black" : "border-white/25"}`}>{selected ? <Check className="h-3.5 w-3.5" /> : null}</span>
       </span>
-      <span className="mt-3 block font-semibold text-white">{title}</span>
-      <span className="mt-1 block text-xs leading-5 text-white/48">{description}</span>
+      <span className={`${compact ? "mt-2 text-sm" : "mt-3"} block font-semibold text-white`}>{title}</span>
+      <span className={`mt-1 block text-xs text-white/48 ${compact ? "leading-4" : "leading-5"}`}>{description}</span>
     </button>
   );
 }
@@ -463,6 +487,131 @@ function PaidAbsenceChoice({
         ))}
       </div>
     </section>
+  );
+}
+
+function TimeEntryChoiceCard({
+  mode,
+  selected,
+  title,
+  description,
+  onClick,
+  t
+}: {
+  mode: TimeEntryMode;
+  selected: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+  t: (key: string) => string;
+}) {
+  const timer = mode === "TIMER_AND_MANUAL";
+
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={`min-w-0 rounded-[1.35rem] border p-3 text-left transition active:scale-[0.985] ${
+        selected
+          ? "border-white/55 bg-white/[0.12]"
+          : "border-white/10 bg-white/[0.025]"
+      }`}
+    >
+      <span className="flex items-center justify-between gap-2">
+        {timer ? (
+          <Timer className="h-4 w-4 text-white/72" aria-hidden="true" />
+        ) : (
+          <PencilLine className="h-4 w-4 text-white/72" aria-hidden="true" />
+        )}
+        <span
+          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+            selected ? "border-white bg-white text-black" : "border-white/25"
+          }`}
+        >
+          {selected ? <Check className="h-3.5 w-3.5" /> : null}
+        </span>
+      </span>
+
+      <span className="mt-2 block text-sm font-semibold leading-5 text-white">{title}</span>
+      <span className="mt-1 block text-[0.68rem] leading-4 text-white/46">{description}</span>
+
+      {timer ? (
+        <span className="mt-3 block rounded-2xl border border-white/[0.09] bg-black/25 p-2.5">
+          <span className="block truncate text-[0.65rem] font-semibold text-white/65">
+            {t("setup.timeEntry.preview.activity")}
+          </span>
+          <span className="mt-1.5 block text-center text-lg font-semibold tabular-nums tracking-[-0.04em] text-white">
+            00:00:00
+          </span>
+          <span className="mt-2 flex h-8 items-center justify-center gap-1.5 rounded-full bg-white text-[0.68rem] font-semibold text-black">
+            <Play className="h-3 w-3 fill-current" aria-hidden="true" />
+            {t("setup.timeEntry.preview.checkIn")}
+          </span>
+        </span>
+      ) : (
+        <span className="mt-3 block rounded-2xl border border-white/[0.09] bg-black/25 p-2.5">
+          <span className="block text-[0.58rem] uppercase tracking-[0.12em] text-white/38">
+            {t("setup.timeEntry.preview.shift")}
+          </span>
+          <span className="mt-1 flex h-7 items-center rounded-lg border border-white/[0.09] bg-white/[0.05] px-2 text-[0.65rem] font-semibold text-white/72">
+            {t("setup.timeEntry.preview.regularShift")}
+          </span>
+          <span className="mt-2 grid grid-cols-2 gap-1.5">
+            <span>
+              <span className="block text-[0.55rem] text-white/38">
+                {t("setup.timeEntry.preview.start")}
+              </span>
+              <span className="mt-1 flex h-7 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.05] text-[0.68rem] font-semibold tabular-nums text-white">
+                08:00
+              </span>
+            </span>
+            <span>
+              <span className="block text-[0.55rem] text-white/38">
+                {t("setup.timeEntry.preview.end")}
+              </span>
+              <span className="mt-1 flex h-7 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.05] text-[0.68rem] font-semibold tabular-nums text-white">
+                16:30
+              </span>
+            </span>
+          </span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+function HoursBalancePreview({ t }: { t: (key: string) => string }) {
+  return (
+    <Card className="overflow-hidden p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white/40">
+            {t("setup.balance.preview.current")}
+          </p>
+          <p className="mt-1.5 text-2xl font-semibold leading-none tracking-[-0.05em] text-emerald-400">
+            +2 h 30 min
+          </p>
+        </div>
+        <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[0.65rem] font-semibold text-emerald-400">
+          {t("setup.balance.preview.ahead")}
+        </span>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+        <span className="block h-full w-[78%] rounded-full bg-emerald-400" />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[0.65rem] text-white/40">{t("setup.balance.preview.worked")}</p>
+          <p className="mt-0.5 text-sm font-semibold text-white">42 h 30 min</p>
+        </div>
+        <div>
+          <p className="text-[0.65rem] text-white/40">{t("setup.balance.preview.target")}</p>
+          <p className="mt-0.5 text-sm font-semibold text-white">40 h</p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
