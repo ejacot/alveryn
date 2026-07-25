@@ -111,8 +111,6 @@ services:
       - key: MAIL_PORT
         value: 587
       - key: MAIL_USERNAME
-        value: admin@alveryn.com
-      - key: MAIL_FROM
         value: no-reply@alveryn.com
       - key: MAIL_PASSWORD
         sync: false
