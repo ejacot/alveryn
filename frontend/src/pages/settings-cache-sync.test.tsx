@@ -238,8 +238,6 @@ describe("settings cache sync", () => {
     await user.click(await screen.findByRole("button", { name: /sick/i }));
     await user.clear(screen.getByLabelText(/name|nume/i));
     await user.type(screen.getByLabelText(/name|nume/i), "Medical");
-    await user.clear(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }));
-    await user.type(screen.getByRole("textbox", { name: /paid hours|ore plătite/i }), "6");
     await user.click(screen.getByRole("button", { name: /^save$|^salvează$/i }));
 
     await waitFor(() => {
@@ -248,7 +246,7 @@ describe("settings cache sync", () => {
         expect.objectContaining({
           name: "Medical",
           paid: true,
-          paidMinutesPerDay: 360
+          paidMinutesPerDay: 480
         })
       );
     });

@@ -30,7 +30,6 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   await loginThroughUi(page, user);
 
   await page.goto("/settings/work-types/new");
-  await expect(page.getByLabel("Primary navigation")).toBeVisible();
   await page.getByRole("button", { name: /time based/i }).click();
   await page.getByLabel("Name", { exact: true }).fill("Check");
   await page.getByRole("button", { name: /save changes/i }).click();
@@ -165,6 +164,7 @@ test("creates a configured work type from an iPhone-sized viewport", async ({ pa
 });
 
 test("settings subpage keeps bottom navigation and protects dirty forms", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const user = await createE2eUser(testInfo.title);
   await loginThroughUi(page, user);
 

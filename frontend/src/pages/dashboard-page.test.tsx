@@ -49,8 +49,11 @@ vi.mock("../api/endpoints", () => ({
   listAbsenceTypes: vi.fn(),
   listEmployments: vi.fn(),
   listHourlyRates: vi.fn(),
+  listRestDays: vi.fn(),
   listWorkTypes: vi.fn(),
-  listWorkRecordsInRange: vi.fn()
+  listWorkRecordsInRange: vi.fn(),
+  markRestDay: vi.fn(),
+  removeRestDay: vi.fn()
 }));
 
 import {
@@ -61,6 +64,7 @@ import {
   listAbsenceTypes,
   listEmployments,
   listHourlyRates,
+  listRestDays,
   listWorkTypes,
   listWorkRecordsInRange
 } from "../api/endpoints";
@@ -191,6 +195,7 @@ describe("DashboardPage", () => {
     vi.mocked(getAbsences).mockResolvedValue(emptyAbsencePage());
     vi.mocked(getCurrentWorkSession).mockResolvedValue(null);
     vi.mocked(listEmployments).mockResolvedValue([employment]);
+    vi.mocked(listRestDays).mockResolvedValue([]);
     vi.mocked(listWorkTypes).mockResolvedValue([]);
     vi.mocked(getPreferences).mockResolvedValue({
       id: "pref-1",
