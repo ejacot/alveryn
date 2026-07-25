@@ -44,7 +44,7 @@ class DefaultAuthenticationEmailServiceTest {
   }
 
   @Test
-  void templateEscapesDynamicContentAndDoesNotDependOnExternalImages() {
+  void templateEscapesDynamicContentAndUsesOfficialBranding() {
     String html =
         AlverynEmailTemplate.render(
             "Subject", "Verify <email>", "Use A & B", "123456", "Don't share it.");
@@ -53,8 +53,8 @@ class DefaultAuthenticationEmailServiceTest {
         .contains("Verify &lt;email&gt;")
         .contains("Use A &amp; B")
         .contains("Don&#39;t share it.")
-        .doesNotContain("<img")
-        .doesNotContain("http://")
-        .doesNotContain("https://");
+        .contains("https://alveryn.com/brand/alveryn-mark.png")
+        .contains("font-family:Sora")
+        .contains(">ALVERYN</");
   }
 }

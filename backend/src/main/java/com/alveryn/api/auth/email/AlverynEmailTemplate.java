@@ -23,8 +23,10 @@ final class AlverynEmailTemplate {
                       <td style="padding:0 4px 24px;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                           <tr>
-                            <td align="center" valign="middle" style="width:38px;height:38px;border-radius:12px;background:#111311;color:#ffffff;font-size:21px;font-weight:800;line-height:38px;">A</td>
-                            <td style="padding-left:11px;color:#151715;font-size:21px;font-weight:700;letter-spacing:-0.5px;">Alveryn</td>
+                            <td align="center" valign="middle" style="width:38px;height:38px;border-radius:12px;background:#111311;">
+                              <img src="https://alveryn.com/brand/alveryn-mark.png" width="28" height="28" alt="" style="display:block;width:28px;height:28px;margin:5px;border:0;object-fit:contain;">
+                            </td>
+                            <td style="padding-left:11px;color:#151515;font-family:Sora,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12.5px;font-weight:600;line-height:1;letter-spacing:3.5px;text-transform:uppercase;">ALVERYN</td>
                           </tr>
                         </table>
                       </td>
@@ -47,7 +49,7 @@ final class AlverynEmailTemplate {
                     </tr>
                     <tr>
                       <td align="center" style="padding:24px 20px 0;color:#8a8f8a;font-size:12px;line-height:1.6;">
-                        <span style="color:#555a55;font-weight:600;">Alveryn</span> &nbsp;·&nbsp; Work, clearly.<br>
+                        <span style="color:#555a55;font-family:Sora,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:600;letter-spacing:2.3px;text-transform:uppercase;">ALVERYN</span> &nbsp;·&nbsp; Work, clearly.<br>
                         This is an automated message. Please do not reply.
                       </td>
                     </tr>
