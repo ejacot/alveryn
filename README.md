@@ -32,6 +32,15 @@ The project is organized as a Spring Boot backend plus a Vite/React frontend, wi
 - Deployment notes: [docs/deployment.md](docs/deployment.md)
 - Architecture notes: [docs/architecture.md](docs/architecture.md)
 - API notes: [docs/api.md](docs/api.md)
+- Release process: [docs/releasing.md](docs/releasing.md)
+
+## Versioning and releases
+
+Alveryn uses Semantic Versioning with `VERSION` as the canonical version shared
+by the frontend and backend. Development is integrated through `develop`,
+production is deployed from `main`, and official versions are published as
+immutable `v*` Git tags and GitHub Releases. See the
+[release guide](docs/releasing.md) and [changelog](CHANGELOG.md).
 
 ## Local development
 

@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.alveryn</groupId>
 	<artifactId>alveryn-api</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-beta.1</version>
 	<name>alveryn-api</name>
 	<description>Alveryn backend API</description>
 	<url/>
