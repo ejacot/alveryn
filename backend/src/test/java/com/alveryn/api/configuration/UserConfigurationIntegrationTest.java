@@ -101,8 +101,10 @@ class UserConfigurationIntegrationTest {
                       "theme":"SYSTEM",
                       "defaultBreakMinutes":15,
                       "preferredDailyMinutes":480,
-                      "paidSickLeave":false,
-                      "paidVacation":false,
+                      "paidSickLeave":true,
+                      "sickLeavePaidMinutesPerDay":420,
+                      "paidVacation":true,
+                      "vacationPaidMinutesPerDay":480,
                       "employmentName":"Mia's Cleaning",
                       "startDate":"2026-07-01",
                       "compensationType":"HOURLY",
@@ -137,6 +139,18 @@ class UserConfigurationIntegrationTest {
         .satisfies(workType -> {
           assertThat(workType.getName()).isEqualTo("Standard cleaning");
           assertThat(workType.getCalculationMethod()).isEqualTo(CalculationMethod.TIME_BASED);
+        });
+    assertThat(absenceTypes.findByUserIdAndCode(user.getId(), AbsenceType.SICK_LEAVE))
+        .get()
+        .satisfies(setting -> {
+          assertThat(setting.isPaid()).isTrue();
+          assertThat(setting.getPaidMinutesPerDay()).isEqualTo(420);
+        });
+    assertThat(absenceTypes.findByUserIdAndCode(user.getId(), AbsenceType.VACATION))
+        .get()
+        .satisfies(setting -> {
+          assertThat(setting.isPaid()).isTrue();
+          assertThat(setting.getPaidMinutesPerDay()).isEqualTo(480);
         });
   }
 

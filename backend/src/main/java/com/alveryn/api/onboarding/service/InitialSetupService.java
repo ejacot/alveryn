@@ -57,8 +57,9 @@ public class InitialSetupService {
         null, null, null, null, null, null, null, null));
     absenceTypes.ensurePersonalDefaults(
         request.paidSickLeave(),
+        request.sickLeavePaidMinutesPerDay(),
         request.paidVacation(),
-        request.preferredDailyMinutes());
+        request.vacationPaidMinutesPerDay());
 
     boolean fixedSalary = request.compensationType() == CompensationType.FIXED_SALARY;
     boolean balanceEnabled = fixedSalary || request.hourBalanceEnabled();
@@ -89,6 +90,12 @@ public class InitialSetupService {
   }
 
   private void validateConditionalFields(InitialSetupRequest request) {
+    if (request.paidSickLeave() && request.sickLeavePaidMinutesPerDay() <= 0) {
+      throw new IllegalArgumentException("sickLeavePaidMinutesPerDay is required for paid sick leave");
+    }
+    if (request.paidVacation() && request.vacationPaidMinutesPerDay() <= 0) {
+      throw new IllegalArgumentException("vacationPaidMinutesPerDay is required for paid vacation");
+    }
     if (request.compensationType() == CompensationType.HOURLY && request.hourlyRate() == null) {
       throw new IllegalArgumentException("hourlyRate is required for hourly work");
     }

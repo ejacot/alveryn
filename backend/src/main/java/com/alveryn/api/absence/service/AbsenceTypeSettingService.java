@@ -61,7 +61,10 @@ public class AbsenceTypeSettingService {
 
   @Transactional
   public void ensurePersonalDefaults(
-      boolean paidSickLeave, boolean paidVacation, int preferredDailyMinutes) {
+      boolean paidSickLeave,
+      int sickLeavePaidMinutesPerDay,
+      boolean paidVacation,
+      int vacationPaidMinutesPerDay) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     UserAccount user = users.findById(userId)
         .orElseThrow(() -> new NotFoundException("UserAccount", userId));
@@ -70,7 +73,7 @@ public class AbsenceTypeSettingService {
         AbsenceType.SICK_LEAVE,
         "Sick leave",
         paidSickLeave,
-        preferredDailyMinutes,
+        sickLeavePaidMinutesPerDay,
         "#EF4444",
         0);
     ensureDefault(
@@ -78,7 +81,7 @@ public class AbsenceTypeSettingService {
         AbsenceType.VACATION,
         "Vacation",
         paidVacation,
-        preferredDailyMinutes,
+        vacationPaidMinutesPerDay,
         "#10B981",
         1);
   }
@@ -138,7 +141,7 @@ public class AbsenceTypeSettingService {
       AbsenceType code,
       String name,
       boolean paid,
-      int preferredDailyMinutes,
+      int paidMinutesPerDay,
       String color,
       int displayOrder) {
     repository.findByUserIdAndCode(user.getId(), code).ifPresentOrElse(
@@ -146,7 +149,7 @@ public class AbsenceTypeSettingService {
             existing.getName(),
             code,
             paid,
-            paid ? preferredDailyMinutes : 0,
+            paid ? paidMinutesPerDay : 0,
             existing.getColor(),
             true,
             existing.getDisplayOrder()),
@@ -155,7 +158,7 @@ public class AbsenceTypeSettingService {
             name,
             code,
             paid,
-            paid ? preferredDailyMinutes : 0,
+            paid ? paidMinutesPerDay : 0,
             color,
             displayOrder)));
   }

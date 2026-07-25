@@ -134,7 +134,9 @@ describe("TrackingSetupPage", () => {
       workTypeName: "Standard cleaning",
       timerEnabled: true,
       paidSickLeave: true,
-      paidVacation: true
+      sickLeavePaidMinutesPerDay: 480,
+      paidVacation: true,
+      vacationPaidMinutesPerDay: 480
     }));
     expect(await screen.findByText("Application")).toBeInTheDocument();
   });

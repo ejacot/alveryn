@@ -90,7 +90,9 @@ export type InitialSetupPayload = {
   defaultBreakMinutes: number;
   preferredDailyMinutes: number;
   paidSickLeave: boolean;
+  sickLeavePaidMinutesPerDay: number;
   paidVacation: boolean;
+  vacationPaidMinutesPerDay: number;
   employmentName: string;
   startDate: string;
   compensationType: Employment["compensationType"];

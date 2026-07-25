@@ -182,8 +182,14 @@ function NewAccountSetup() {
   const [paidSickLeave, setPaidSickLeave] = useState(
     user?.preferences?.paidSickLeave ?? true
   );
+  const [sickLeavePaidHours, setSickLeavePaidHours] = useState(
+    String((user?.preferences?.preferredDailyMinutes ?? 480) / 60)
+  );
   const [paidVacation, setPaidVacation] = useState(
     user?.preferences?.paidVacation ?? true
+  );
+  const [vacationPaidHours, setVacationPaidHours] = useState(
+    String((user?.preferences?.preferredDailyMinutes ?? 480) / 60)
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const supportsTimeTracking = compensationType === "HOURLY" || compensationType === "FIXED_SALARY";
@@ -206,7 +212,13 @@ function NewAccountSetup() {
         defaultBreakMinutes: preferences.defaultBreakMinutes,
         preferredDailyMinutes: preferences.preferredDailyMinutes ?? 480,
         paidSickLeave,
+        sickLeavePaidMinutesPerDay: paidSickLeave
+          ? Math.round(parseNumber(sickLeavePaidHours) * 60)
+          : 0,
         paidVacation,
+        vacationPaidMinutesPerDay: paidVacation
+          ? Math.round(parseNumber(vacationPaidHours) * 60)
+          : 0,
         employmentName: employmentName.trim(),
         startDate,
         compensationType,
@@ -252,7 +264,11 @@ function NewAccountSetup() {
       validityMonths,
       workTypeName,
       unitLabel,
-      ratePerUnit
+      ratePerUnit,
+      paidSickLeave,
+      sickLeavePaidHours,
+      paidVacation,
+      vacationPaidHours
     }, t);
     setValidationError(error);
     if (!error) setStep((current) => Math.min(7, current + 1));
@@ -378,12 +394,16 @@ function NewAccountSetup() {
                 title={t("setup.absences.sick")}
                 paid={paidSickLeave}
                 onChange={setPaidSickLeave}
+                paidHours={sickLeavePaidHours}
+                onPaidHoursChange={setSickLeavePaidHours}
                 t={t}
               />
               <PaidAbsenceChoice
                 title={t("setup.absences.vacation")}
                 paid={paidVacation}
                 onChange={setPaidVacation}
+                paidHours={vacationPaidHours}
+                onPaidHoursChange={setVacationPaidHours}
                 t={t}
               />
               <p className="text-xs leading-5 text-white/42">
@@ -458,11 +478,15 @@ function PaidAbsenceChoice({
   title,
   paid,
   onChange,
+  paidHours,
+  onPaidHoursChange,
   t
 }: {
   title: string;
   paid: boolean;
   onChange: (paid: boolean) => void;
+  paidHours: string;
+  onPaidHoursChange: (hours: string) => void;
   t: (key: string) => string;
 }) {
   return (
@@ -486,6 +510,19 @@ function PaidAbsenceChoice({
           </button>
         ))}
       </div>
+      {paid ? (
+        <Input
+          label={t("setup.absences.paidHours")}
+          type="number"
+          inputMode="decimal"
+          min="0.25"
+          max="24"
+          step="0.25"
+          value={paidHours}
+          onChange={(event) => onPaidHoursChange(event.currentTarget.value)}
+          helperText={t("setup.absences.paidHoursHint")}
+        />
+      ) : null}
     </section>
   );
 }
@@ -619,6 +656,7 @@ function validateSetupStep(step: number, values: {
   firstName: string; lastName: string; employmentName: string; startDate: string;
   compensationType: CompensationType; hourlyRate: string; fixedSalaryAmount: string; hourBalanceEnabled: boolean;
   targetHours: string; validityMonths: string; workTypeName: string; unitLabel: string; ratePerUnit: string;
+  paidSickLeave: boolean; sickLeavePaidHours: string; paidVacation: boolean; vacationPaidHours: string;
 }, t: (key: string) => string) {
   if (step === 1 && (!values.firstName.trim() || !values.lastName.trim())) return t("setup.errors.name");
   if (step === 2 && (!values.employmentName.trim() || !values.startDate)) return t("setup.errors.workplace");
@@ -627,6 +665,8 @@ function validateSetupStep(step: number, values: {
   const supportsTimeTracking = values.compensationType === "HOURLY" || values.compensationType === "FIXED_SALARY";
   if (step === 5 && supportsTimeTracking && (values.hourBalanceEnabled || values.compensationType === "FIXED_SALARY") && !(Number(values.targetHours) > 0)) return t("setup.errors.target");
   if (step === 5 && supportsTimeTracking && values.hourBalanceEnabled && !(Number(values.validityMonths) > 0)) return t("setup.errors.validity");
+  if (step === 6 && values.paidSickLeave && !validPaidHours(values.sickLeavePaidHours)) return t("setup.errors.paidHours");
+  if (step === 6 && values.paidVacation && !validPaidHours(values.vacationPaidHours)) return t("setup.errors.paidHours");
   if (step === 7 && !values.workTypeName.trim()) return t("setup.errors.workType");
   if (step === 7 && values.compensationType === "PER_UNIT" && (!values.unitLabel.trim() || !(parseNumber(values.ratePerUnit) > 0))) return t("setup.errors.perUnit");
   return null;
@@ -634,6 +674,11 @@ function validateSetupStep(step: number, values: {
 
 function parseNumber(value: string) {
   return Number(value.replace(",", "."));
+}
+
+function validPaidHours(value: string) {
+  const hours = parseNumber(value);
+  return hours > 0 && hours <= 24;
 }
 
 function TrackingChoices({

@@ -4,6 +4,8 @@ import com.alveryn.api.employment.entity.CompensationType;
 import com.alveryn.api.user.entity.FirstDayOfWeek;
 import com.alveryn.api.user.entity.ThemePreference;
 import com.alveryn.api.user.entity.TimeFormat;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -26,7 +28,9 @@ public record InitialSetupRequest(
     @PositiveOrZero int defaultBreakMinutes,
     @Positive int preferredDailyMinutes,
     boolean paidSickLeave,
+    @Min(0) @Max(1440) int sickLeavePaidMinutesPerDay,
     boolean paidVacation,
+    @Min(0) @Max(1440) int vacationPaidMinutesPerDay,
     @NotBlank @Size(max = 120) String employmentName,
     @NotNull LocalDate startDate,
     @NotNull CompensationType compensationType,
