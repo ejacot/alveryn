@@ -95,6 +95,7 @@ public class EmploymentService {
         ? employment.getEndDate() : month.atEndOfMonth();
     long monthlyTarget = monthFrom.isAfter(monthTo) ? 0 : targetMinutesBetween(id, monthFrom, monthTo);
     long monthWorked = workRecordLines.sumTimeOnlyMinutes(id, month.atDay(1), month.atEndOfMonth()).longValue();
+    long monthCoveredAbsence = paidAbsenceMinutesBetween(id, monthFrom, monthTo);
     LocalDate employmentFrom = employment.getStartDate() == null ? first.atDay(1) : employment.getStartDate();
     int validityMonths = Objects.requireNonNullElse(employment.getHourBalanceValidityMonths(), 12);
     LocalDate validityFrom = month.atDay(1).minusMonths(validityMonths - 1L);
@@ -102,9 +103,11 @@ public class EmploymentService {
     LocalDate balanceTo = employment.getEndDate() != null && employment.getEndDate().isBefore(month.atEndOfMonth())
         ? employment.getEndDate() : month.atEndOfMonth();
     long workedToMonth = workRecordLines.sumTimeOnlyMinutes(id, balanceFrom, balanceTo).longValue();
+    long coveredAbsenceToMonth = paidAbsenceMinutesBetween(id, balanceFrom, balanceTo);
     long targetToMonth = balanceFrom.isAfter(balanceTo) ? 0 : targetMinutesBetween(id, balanceFrom, balanceTo);
-    long carried = workedToMonth - targetToMonth;
-    return new EmploymentHourBalanceResponse(id, month, monthWorked, monthlyTarget, monthWorked - monthlyTarget,
+    long carried = workedToMonth + coveredAbsenceToMonth - targetToMonth;
+    return new EmploymentHourBalanceResponse(id, month, monthWorked + monthCoveredAbsence, monthlyTarget,
+        monthWorked + monthCoveredAbsence - monthlyTarget,
         carried, balanceFrom, validityMonths);
   }
   private void configure(Employment e, EmploymentRequest r, int fallbackOrder) {
@@ -175,6 +178,20 @@ public class EmploymentService {
           : term.getTargetMinutes() / (double) date.lengthOfMonth();
     }
     return Math.round(total);
+  }
+  private long paidAbsenceMinutesBetween(UUID employmentId, LocalDate from, LocalDate to) {
+    if (from.isAfter(to)) return 0;
+    return absences
+        .findAllByEmploymentIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            employmentId, to, from)
+        .stream()
+        .filter(com.alveryn.api.absence.entity.Absence::isPaidSnapshot)
+        .mapToLong(absence -> {
+          LocalDate overlapFrom = absence.getStartDate().isAfter(from) ? absence.getStartDate() : from;
+          LocalDate overlapTo = absence.getEndDate().isBefore(to) ? absence.getEndDate() : to;
+          return targetMinutesBetween(employmentId, overlapFrom, overlapTo);
+        })
+        .sum();
   }
   private EmploymentResponse response(Employment e) {
     EmploymentTerm current = terms.findFirstByEmploymentIdOrderByValidFromDesc(e.getId()).orElse(null);

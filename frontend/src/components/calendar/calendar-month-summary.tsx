@@ -8,6 +8,10 @@ type Props = {
   hasWorkedTime: boolean;
   workedDays: number;
   absenceDays: number;
+  restDays: number;
+  missingDays: number;
+  classifiedDays: number;
+  totalDays: number;
 };
 
 export function CalendarMonthSummary({
@@ -17,7 +21,11 @@ export function CalendarMonthSummary({
   paidAbsenceGrossAmount,
   hasWorkedTime,
   workedDays,
-  absenceDays
+  absenceDays,
+  restDays,
+  missingDays,
+  classifiedDays,
+  totalDays
 }: Props) {
   const { t } = useTranslation("calendar");
 
@@ -56,6 +64,28 @@ export function CalendarMonthSummary({
             </p>
           </article>
         ) : null}
+        {restDays > 0 ? (
+          <article className="space-y-2">
+            <p className="hairline-text">{t("monthlySummary.restDays")}</p>
+            <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
+              {restDays}
+            </p>
+          </article>
+        ) : null}
+        {missingDays > 0 ? (
+          <article className="space-y-2">
+            <p className="hairline-text">{t("monthlySummary.missingDays")}</p>
+            <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-amber-300">
+              {missingDays}
+            </p>
+          </article>
+        ) : null}
+        <article className="space-y-2">
+          <p className="hairline-text">{t("monthlySummary.classifiedDays")}</p>
+          <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
+            {classifiedDays}/{totalDays}
+          </p>
+        </article>
         {paidAbsenceHours !== "0h 00m" ? (
           <article className="col-span-3 min-w-0 space-y-2">
             <p className="hairline-text">{t("monthlySummary.paidAbsence")}</p>

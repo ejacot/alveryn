@@ -20,6 +20,7 @@ import type {
   WeeklySchedule,
   WeeklySchedulePayload
 } from "../types/schedule";
+import type { EmploymentRestDay } from "../types/rest-day";
 import { http } from "./http";
 
 export type Credentials = {
@@ -324,6 +325,26 @@ export async function overrideScheduledShift(
     payload
   );
   return response.data.data;
+}
+
+export async function listRestDays(employmentId: string, from: string, to: string) {
+  const response = await http.get<ApiResponse<EmploymentRestDay[]>>(
+    `/api/employments/${employmentId}/rest-days`,
+    { params: { from, to } }
+  );
+  return response.data.data;
+}
+
+export async function markRestDay(employmentId: string, date: string, notes: string | null = null) {
+  const response = await http.put<ApiResponse<EmploymentRestDay>>(
+    `/api/employments/${employmentId}/rest-days/${date}`,
+    { notes }
+  );
+  return response.data.data;
+}
+
+export async function removeRestDay(employmentId: string, date: string) {
+  await http.delete(`/api/employments/${employmentId}/rest-days/${date}`);
 }
 
 export async function getPreferences() {

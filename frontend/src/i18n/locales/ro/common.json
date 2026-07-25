@@ -56,6 +56,7 @@
       "metric": "Metrică",
       "workType": "Tip de muncă",
       "calculationMethod": "Calcul",
+      "more": "Mai multe filtre",
       "all": "Toate",
       "selectedCount": "{{count}} selectate"
     },
@@ -103,7 +104,28 @@
       "HIGH": "Încredere ridicată"
     },
     "trend": {
-      "title": "Tendință",
+      "eyebrow": "Evoluție",
+      "title": "Cum evoluează munca ta",
+      "latest": "Ultima perioadă",
+      "average": "Media perioadei",
+      "previousBucket": "Față de precedenta",
+      "newActivity": "Activitate nouă",
+      "change": "{{value}}%",
+      "hint": "Selectează o bară pentru a vedea înregistrările din spatele ei.",
+      "fromPrevious": "față de precedenta",
+      "noComparison": "Fără punct anterior",
+      "averageShort": "Medie",
+      "periodTotal": "Total perioadă",
+      "periodAverage": "Media perioadei",
+      "comparisonTitle": "Perioada curentă vs. precedenta",
+      "current": "Curentă",
+      "previous": "Precedentă",
+      "changeLabel": "Diferență",
+      "periodTitle": "Perioada selectată",
+      "modes": {
+        "trend": "Evoluție",
+        "compare": "Compară"
+      },
       "ariaLabel": "Grafic tendință statistici",
       "pointAriaLabel": "Deschide detalii pentru {{from}} - {{to}}"
     },

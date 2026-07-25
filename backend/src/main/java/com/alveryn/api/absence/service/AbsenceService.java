@@ -14,6 +14,7 @@ import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.common.util.InputSanitizer;
 import com.alveryn.api.employment.entity.Employment;
 import com.alveryn.api.employment.service.EmploymentService;
+import com.alveryn.api.restday.repository.EmploymentRestDayRepository;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -41,6 +42,7 @@ public class AbsenceService {
   private final UserAccountRepository users;
   private final WorkRecordRepository workRecords;
   private final EmploymentService employments;
+  private final EmploymentRestDayRepository restDays;
 
   @Transactional
   public AbsenceResponse create(@Valid AbsenceRequest request) {
@@ -49,6 +51,7 @@ public class AbsenceService {
     validateRange(request.startDate(), request.endDate());
     ensureNoAbsenceOverlap(userId, employment.getId(), request.startDate(), request.endDate(), null);
     ensureNoWorkRecordOverlap(userId, employment.getId(), request.startDate(), request.endDate());
+    ensureNoRestDayOverlap(employment.getId(), request.startDate(), request.endDate());
     AbsenceTypeSetting type = resolveType(userId, request);
     Absence absence =
         new Absence(
@@ -94,6 +97,7 @@ public class AbsenceService {
     validateRange(request.startDate(), request.endDate());
     ensureNoAbsenceOverlap(userId, employment.getId(), request.startDate(), request.endDate(), id);
     ensureNoWorkRecordOverlap(userId, employment.getId(), request.startDate(), request.endDate());
+    ensureNoRestDayOverlap(employment.getId(), request.startDate(), request.endDate());
     AbsenceTypeSetting type = resolveType(userId, request);
     absence.update(
         type,
@@ -129,6 +133,12 @@ public class AbsenceService {
   private void ensureNoWorkRecordOverlap(UUID userId, UUID employmentId, LocalDate startDate, LocalDate endDate) {
     if (workRecords.existsByUserIdAndEmploymentIdAndWorkDateBetween(userId, employmentId, startDate, endDate)) {
       throw new ConflictException("Absence range overlaps existing work records");
+    }
+  }
+
+  private void ensureNoRestDayOverlap(UUID employmentId, LocalDate startDate, LocalDate endDate) {
+    if (restDays.existsByEmploymentIdAndDateBetween(employmentId, startDate, endDate)) {
+      throw new ConflictException("Absence range overlaps a rest day");
     }
   }
 

@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getCalendarActivityRange,
   getPreferences,
+  getScheduledShifts,
+  getWeeklySchedule,
   listAbsenceTypes,
   listAbsencesInRange,
+  listEmployments,
   listHourlyRates,
-  listWorkRecordsInRange
+  listRestDays,
+  listWorkRecordsInRange,
+  markRestDay,
+  removeRestDay
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -27,7 +33,6 @@ import {
   addDays,
   absenceOverlapsDate,
   buildMonthGrid,
-  countMonthOverlapDays,
   formatMonthLabel,
   formatSelectedDate,
   getNextMonthDate,
@@ -39,6 +44,7 @@ import {
 } from "../features/calendar/calendar-utils";
 import type { Absence, AbsenceTypeSetting } from "../types/absence";
 import type { WorkRecord } from "../types/work-record";
+import type { EmploymentRestDay } from "../types/rest-day";
 import { parseLocalIsoDate } from "../utils/date";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
 import { calculatePaidAbsenceDays } from "../utils/paid-absence";
@@ -69,6 +75,13 @@ export function CalendarPage() {
   const month = activeMonth.getMonth() + 1;
   const monthStartKey = toIsoDate(startOfMonth(activeMonth));
   const monthEndKey = toIsoDate(addDays(getNextMonthDate(activeMonth), -1));
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments
+  });
+  const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
+  const effectiveEmploymentId =
+    selectedEmploymentId ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
 
   const workRecordsQuery = useQuery({
     queryKey: queryKeys.workRecords.range({ from: monthStartKey, to: monthEndKey }),
@@ -112,6 +125,49 @@ export function CalendarPage() {
   const hourlyRatesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
+  });
+  const restDaysQuery = useQuery({
+    queryKey: queryKeys.restDays.range(effectiveEmploymentId ?? "none", monthStartKey, monthEndKey),
+    queryFn: () => listRestDays(effectiveEmploymentId!, monthStartKey, monthEndKey),
+    enabled: Boolean(effectiveEmploymentId)
+  });
+  const scheduleQuery = useQuery({
+    queryKey: queryKeys.schedules.employment(effectiveEmploymentId ?? "none"),
+    queryFn: () => getWeeklySchedule(effectiveEmploymentId!),
+    enabled: Boolean(effectiveEmploymentId)
+  });
+  const scheduledShiftsQuery = useQuery({
+    queryKey: queryKeys.schedules.shifts(
+      effectiveEmploymentId ?? "none",
+      monthStartKey,
+      monthEndKey
+    ),
+    queryFn: () => getScheduledShifts(effectiveEmploymentId!, monthStartKey, monthEndKey),
+    enabled: Boolean(effectiveEmploymentId && scheduleQuery.data)
+  });
+  const markRestDayMutation = useMutation({
+    mutationFn: (date: string) => markRestDay(effectiveEmploymentId!, date),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.restDays.range(
+          effectiveEmploymentId ?? "none",
+          monthStartKey,
+          monthEndKey
+        )
+      });
+    }
+  });
+  const removeRestDayMutation = useMutation({
+    mutationFn: (date: string) => removeRestDay(effectiveEmploymentId!, date),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.restDays.range(
+          effectiveEmploymentId ?? "none",
+          monthStartKey,
+          monthEndKey
+        )
+      });
+    }
   });
   useEffect(() => {
     const previousMonth = getPreviousMonthDate(activeMonth);
@@ -176,6 +232,7 @@ export function CalendarPage() {
   }, []);
 
   const isLoading =
+    employmentsQuery.isLoading ||
     workRecordsQuery.isLoading ||
     previousWorkRecordsQuery.isLoading ||
     absencesQuery.isLoading ||
@@ -183,7 +240,13 @@ export function CalendarPage() {
     previousAbsencesQuery.isLoading ||
     preferencesQuery.isLoading ||
     hourlyRatesQuery.isLoading;
+  const classificationLoading = Boolean(effectiveEmploymentId) && (
+    restDaysQuery.isLoading ||
+    scheduleQuery.isLoading ||
+    (Boolean(scheduleQuery.data) && scheduledShiftsQuery.isLoading)
+  );
   const error =
+    employmentsQuery.error ??
     workRecordsQuery.error ??
     previousWorkRecordsQuery.error ??
     absencesQuery.error ??
@@ -191,13 +254,15 @@ export function CalendarPage() {
     previousAbsencesQuery.error ??
     preferencesQuery.error ??
     hourlyRatesQuery.error;
+  const classificationError =
+    restDaysQuery.error ?? scheduleQuery.error ?? scheduledShiftsQuery.error;
   const records = useMemo(
-    () => (workRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
-    [selectedEmploymentId, workRecordsQuery.data]
+    () => (workRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, effectiveEmploymentId)),
+    [effectiveEmploymentId, workRecordsQuery.data]
   );
   const absences = useMemo(
-    () => (absencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
-    [absencesQuery.data, selectedEmploymentId]
+    () => (absencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, effectiveEmploymentId)),
+    [absencesQuery.data, effectiveEmploymentId]
   );
   const absenceTypes = absenceTypesQuery.data ?? EMPTY_ABSENCE_TYPES;
   const absenceTypeById = useMemo(
@@ -205,17 +270,17 @@ export function CalendarPage() {
     [absenceTypes]
   );
   const previousRecords = useMemo(
-    () => (previousWorkRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
-    [previousWorkRecordsQuery.data, selectedEmploymentId]
+    () => (previousWorkRecordsQuery.data ?? EMPTY_WORK_RECORDS).filter((record) => matchesEmployment(record.employmentId, effectiveEmploymentId)),
+    [effectiveEmploymentId, previousWorkRecordsQuery.data]
   );
   const previousAbsences = useMemo(
-    () => (previousAbsencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
-    [previousAbsencesQuery.data, selectedEmploymentId]
+    () => (previousAbsencesQuery.data ?? EMPTY_ABSENCES).filter((absence) => matchesEmployment(absence.employmentId, effectiveEmploymentId)),
+    [effectiveEmploymentId, previousAbsencesQuery.data]
   );
   const preferences = preferencesQuery.data ?? null;
   const hourlyRates = useMemo(
-    () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
-    [hourlyRatesQuery.data, selectedEmploymentId]
+    () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, effectiveEmploymentId)),
+    [effectiveEmploymentId, hourlyRatesQuery.data]
   );
   const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
   const todayIso = toIsoDate(today);
@@ -252,6 +317,62 @@ export function CalendarPage() {
     return grouped;
   }, [absences, monthGrid]);
 
+  const manualRestDayByDate = useMemo(
+    () => new Map((restDaysQuery.data ?? []).map((restDay) => [restDay.date, restDay])),
+    [restDaysQuery.data]
+  );
+  const scheduledDates = useMemo(
+    () => new Set((scheduledShiftsQuery.data ?? []).map((shift) => shift.startsAt.slice(0, 10))),
+    [scheduledShiftsQuery.data]
+  );
+  const automaticRestDates = useMemo(() => {
+    const schedule = scheduleQuery.data;
+    if (!schedule) return new Set<string>();
+
+    return new Set(
+      monthGrid
+        .filter((day) => {
+          if (!day.inActiveMonth || day.key > todayIso) return false;
+          if (day.key < schedule.validFrom || (schedule.validTo && day.key > schedule.validTo)) {
+            return false;
+          }
+          return (
+            !scheduledDates.has(day.key) &&
+            !recordsByDate.has(day.key) &&
+            !absenceByDate.has(day.key)
+          );
+        })
+        .map((day) => day.key)
+    );
+  }, [absenceByDate, monthGrid, recordsByDate, scheduleQuery.data, scheduledDates, todayIso]);
+  const restDates = useMemo(
+    () => new Set([...manualRestDayByDate.keys(), ...automaticRestDates]),
+    [automaticRestDates, manualRestDayByDate]
+  );
+  const missingDates = useMemo(() => {
+    if (!scheduleQuery.data) return new Set<string>();
+    return new Set(
+      [...scheduledDates].filter(
+        (date) =>
+          date <= todayIso &&
+          date >= monthStartKey &&
+          date <= monthEndKey &&
+          !recordsByDate.has(date) &&
+          !absenceByDate.has(date) &&
+          !restDates.has(date)
+      )
+    );
+  }, [
+    absenceByDate,
+    monthEndKey,
+    monthStartKey,
+    recordsByDate,
+    restDates,
+    scheduleQuery.data,
+    scheduledDates,
+    todayIso
+  ]);
+
   useEffect(() => {
     if (selectedDate !== null && !isSameMonth(selectedDate, activeMonth)) {
       setSelectedDate(null);
@@ -263,6 +384,13 @@ export function CalendarPage() {
   const selectedAbsence = useMemo(
     () => (selectedDate ? absenceByDate.get(toIsoDate(selectedDate)) ?? null : null),
     [absenceByDate, selectedDate]
+  );
+  const selectedDateKey = selectedDate ? toIsoDate(selectedDate) : null;
+  const selectedManualRestDay: EmploymentRestDay | null = selectedDateKey
+    ? manualRestDayByDate.get(selectedDateKey) ?? null
+    : null;
+  const selectedAutomaticRestDay = Boolean(
+    selectedDateKey && automaticRestDates.has(selectedDateKey)
   );
 
   const selectedPaidAbsenceMinutes = useMemo(() => {
@@ -295,11 +423,33 @@ export function CalendarPage() {
     const paidAbsenceMinutes = paidAbsences.reduce((total, absence) => total + absence.minutes, 0);
     const paidAbsenceGrossAmount = paidAbsences.reduce((total, absence) => total + absence.grossAmount, 0);
     const extraPaid = calculateExtraPaidInRange(records, absences, monthStartKey, monthEndKey);
-    const absenceDays = absences.reduce(
-      (total, absence) => total + countMonthOverlapDays(absence, activeMonth),
-      0
+    const workedDateKeys = new Set(
+      monthlyMetricDays
+        .filter((day) => day.minutes > 0 || day.amount > 0)
+        .map((day) => day.key)
     );
-    const workedDays = monthlyMetricDays.filter((day) => day.minutes > 0 || day.amount > 0).length;
+    const absenceDateKeys = new Set(
+      monthGrid
+        .filter((day) =>
+          day.inActiveMonth &&
+          absenceByDate.has(day.key) &&
+          !workedDateKeys.has(day.key)
+        )
+        .map((day) => day.key)
+    );
+    const absenceDays = absenceDateKeys.size;
+    const workedDays = workedDateKeys.size;
+    const classifiableDates = monthGrid
+      .filter((day) => day.inActiveMonth && day.key <= todayIso)
+      .map((day) => day.key);
+    const classifiedDates = new Set(
+      classifiableDates.filter(
+        (date) =>
+          recordsByDate.has(date) ||
+          absenceByDate.has(date) ||
+          restDates.has(date)
+      )
+    );
     const currencies = new Set([
       ...records.map((record) => record.currency).filter(Boolean)
     ]);
@@ -323,9 +473,28 @@ export function CalendarPage() {
         : formatCurrency(String(paidAbsenceGrossAmount + extraPaid.grossAmount), paidAbsences[0]?.currency ?? currency),
       hasWorkedTime: workedMinutes > 0,
       workedDays,
-      absenceDays
+      absenceDays,
+      restDays: classifiableDates.filter((date) => restDates.has(date)).length,
+      missingDays: classifiableDates.filter((date) => missingDates.has(date)).length,
+      classifiedDays: classifiedDates.size,
+      totalDays: classifiableDates.length
     };
-  }, [absences, activeMonth, hourlyRates, monthEndKey, monthlyMetricDays, monthStartKey, preferences, records, t]);
+  }, [
+    absenceByDate,
+    absences,
+    hourlyRates,
+    missingDates,
+    monthEndKey,
+    monthGrid,
+    monthlyMetricDays,
+    monthStartKey,
+    preferences,
+    records,
+    recordsByDate,
+    restDates,
+    t,
+    todayIso
+  ]);
 
   function changeMonth(direction: -1 | 1) {
     const nextMonth = direction === -1 ? getPreviousMonthDate(activeMonth) : getNextMonthDate(activeMonth);
@@ -334,21 +503,25 @@ export function CalendarPage() {
     setSelectedDate(null);
   }
 
-  if (isLoading) {
+  if (isLoading || classificationLoading) {
     return <CalendarSkeleton />;
   }
 
-  if (error) {
+  if (error || classificationError) {
     return (
       <CalendarErrorState
-        message={getApiError(error).message}
+        message={getApiError(error ?? classificationError).message}
         onRetry={() => {
           void workRecordsQuery.refetch();
+          void employmentsQuery.refetch();
           void previousWorkRecordsQuery.refetch();
           void absencesQuery.refetch();
           void previousAbsencesQuery.refetch();
           void preferencesQuery.refetch();
           void hourlyRatesQuery.refetch();
+          void restDaysQuery.refetch();
+          void scheduleQuery.refetch();
+          void scheduledShiftsQuery.refetch();
         }}
       />
     );
@@ -411,14 +584,20 @@ export function CalendarPage() {
             const configuredType = absence?.absenceTypeId
               ? absenceTypeById.get(absence.absenceTypeId)
               : null;
-            const marker = absence ? {
-              label: configuredType?.name || absence.absenceTypeName,
-              color: configuredType?.color || defaultAbsenceColor(absence.absenceType)
-            } : null;
+            const marker = absence
+              ? {
+                  label: configuredType?.name || absence.absenceTypeName,
+                  color: configuredType?.color || defaultAbsenceColor(absence.absenceType)
+                }
+              : restDates.has(isoDate)
+                ? { label: t("restDay.title"), color: "rgba(255,255,255,0.34)" }
+                : null;
             return {
               entriesCount: recordsCount,
               marker,
-              noActivityInTrackedRange: inTrackedRange && recordsCount === 0 && !marker
+              noActivityInTrackedRange:
+                missingDates.has(isoDate) ||
+                (inTrackedRange && recordsCount === 0 && !marker && !scheduleQuery.data)
             };
           }}
           onSelect={(date) => {
@@ -445,6 +624,24 @@ export function CalendarPage() {
               ? absenceTypeById.get(selectedAbsence.absenceTypeId)?.color
               : undefined}
             paidAbsenceMinutes={selectedPaidAbsenceMinutes}
+            restDay={Boolean(
+              selectedDateKey &&
+              (selectedManualRestDay || selectedAutomaticRestDay)
+            )}
+            automaticRestDay={selectedAutomaticRestDay && !selectedManualRestDay}
+            restDayPending={
+              markRestDayMutation.isPending || removeRestDayMutation.isPending
+            }
+            onMarkRestDay={
+              effectiveEmploymentId && !selectedRecords.length && !selectedAbsence && selectedDateKey
+                ? () => markRestDayMutation.mutate(selectedDateKey)
+                : undefined
+            }
+            onRemoveRestDay={
+              selectedManualRestDay && selectedDateKey
+                ? () => removeRestDayMutation.mutate(selectedDateKey)
+                : undefined
+            }
             onEntrySelect={(entryId) =>
               navigate(`/records/${entryId.slice("record:".length)}`, {
                 state: { returnTo: "/calendar" }

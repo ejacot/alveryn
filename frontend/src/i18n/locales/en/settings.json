@@ -373,7 +373,7 @@
     "description": "Define vacation, sick leave and other days away, including whether they count as paid time.",
     "emptyTitle": "No absence types yet",
     "emptyDescription": "Create your first absence type before marking a day away from work.",
-    "paidHelp": "When enabled, these hours are included in summaries and reports as paid absence.",
+    "paidHelp": "Paid absence covers the expected hours and does not reduce your hour balance.",
     "normalDay": "Normal day",
     "paidTypes": "Paid absence types",
     "types": "Absence types",
@@ -388,7 +388,7 @@
     "deleteDescription": "This absence type has not been used and can be deleted permanently.",
     "deactivateTitle": "Deactivate absence type?",
     "deactivateDescription": "This absence type is used in your history, so it will be hidden without deleting past absences.",
-    "paidSummary": "Paid {{hours}} per day",
+    "paidSummary": "Paid",
     "unpaidSummary": "Unpaid",
     "fields": {
       "name": "Name",

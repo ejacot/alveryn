@@ -42,13 +42,13 @@ export function StatisticsPrimarySummary({ overview }: Props) {
               {overview.grossByCurrency.length > 1 ? (
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/38">{amount.currency}</p>
               ) : null}
-              <p className="text-[4.5rem] font-semibold leading-none tracking-[-0.09em] text-white">
+              <p className="text-[clamp(3rem,11vw,5.5rem)] font-semibold leading-[0.92] tracking-[-0.09em] text-white">
                 {formatCurrency(amount, i18n.language)}
               </p>
             </div>
           ))
         ) : (
-          <p className="text-[4.5rem] font-semibold leading-none tracking-[-0.09em] text-white">0</p>
+          <p className="text-[clamp(3rem,11vw,5.5rem)] font-semibold leading-[0.92] tracking-[-0.09em] text-white">0</p>
         )}
       </div>
       <p className="text-sm font-medium text-white/52">
@@ -79,12 +79,17 @@ export function StatisticsSummaryCards({ overview }: Props) {
   ];
 
   return (
-    <section aria-label={t("statistics.cards.label")} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+    <section aria-label={t("statistics.cards.label")} className="flex h-full flex-col gap-3">
+      <div className="grid flex-1 grid-cols-2 gap-3">
         {cards.map((card) => (
-          <Card as="article" variant="muted" key={card.label} className="p-4">
+          <Card
+            as="article"
+            variant="muted"
+            key={card.label}
+            className="flex min-h-28 flex-col justify-between p-4 sm:p-5"
+          >
             <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-white/38">{card.label}</h2>
-            <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">{card.value}</p>
+            <p className="mt-3 text-[1.75rem] font-semibold tracking-[-0.06em] text-white">{card.value}</p>
           </Card>
         ))}
       </div>

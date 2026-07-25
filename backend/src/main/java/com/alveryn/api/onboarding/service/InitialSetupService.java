@@ -1,6 +1,7 @@
 package com.alveryn.api.onboarding.service;
 
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
+import com.alveryn.api.absence.service.AbsenceTypeSettingService;
 import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.employment.dto.EmploymentRequest;
 import com.alveryn.api.employment.entity.CompensationType;
@@ -37,6 +38,7 @@ public class InitialSetupService {
   private final HourlyRatePeriodService hourlyRates;
   private final WorkTypeService workTypes;
   private final OnboardingService onboarding;
+  private final AbsenceTypeSettingService absenceTypes;
 
   @Transactional
   public InitialSetupResponse complete(InitialSetupRequest request) {
@@ -53,6 +55,10 @@ public class InitialSetupService {
     profiles.update(new UserProfileRequest(
         request.firstName(), request.lastName(), null, null, null, null, null, null,
         null, null, null, null, null, null, null, null));
+    absenceTypes.ensurePersonalDefaults(
+        request.paidSickLeave(),
+        request.paidVacation(),
+        request.preferredDailyMinutes());
 
     boolean fixedSalary = request.compensationType() == CompensationType.FIXED_SALARY;
     boolean balanceEnabled = fixedSalary || request.hourBalanceEnabled();

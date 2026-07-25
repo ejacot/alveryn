@@ -15,6 +15,9 @@
     "grossPay": "Brutto",
     "workedDays": "Tage",
     "absenceDays": "Abwesenheit",
+    "restDays": "Ruhetage",
+    "missingDays": "Fehlend",
+    "classifiedDays": "Klassifiziert",
     "mixedCurrencies": "Gemischt",
     "paidAbsence": "Bezahlt",
     "paidAbsenceDetail": "Abwesenheit {{duration}}"
@@ -37,6 +40,14 @@
     "days": "Tage"
   },
   "emptyDay": "Keine Aktivitäten.",
+  "restDay": {
+    "title": "Ruhetag",
+    "emptyDescription": "Für dieses Datum wurde keine Arbeit oder Abwesenheit erfasst.",
+    "mark": "Als Ruhetag markieren",
+    "remove": "Ruhetag entfernen",
+    "manual": "Manuell bestätigt",
+    "automatic": "Aus deinem Arbeitsplan ermittelt"
+  },
   "job": "Job",
   "jobLines_one": "{{count}} Arbeitszeile",
   "jobLines_other": "{{count}} Arbeitszeilen",

@@ -373,7 +373,7 @@
     "description": "Definește concediul, medicalul și alte zile libere și stabilește dacă sunt considerate timp plătit.",
     "emptyTitle": "Nu există încă tipuri de absență",
     "emptyDescription": "Creează primul tip de absență înainte de a marca o zi în care nu lucrezi.",
-    "paidHelp": "Dacă activezi opțiunea, aceste ore apar în totaluri și rapoarte ca absență plătită.",
+    "paidHelp": "Absența plătită acoperă orele așteptate și nu reduce soldul de ore.",
     "normalDay": "Zi normală",
     "paidTypes": "Tipuri de absențe plătite",
     "types": "Tipuri de absență",
@@ -388,7 +388,7 @@
     "deleteDescription": "Acest tip de absență nu a fost utilizat și poate fi șters definitiv.",
     "deactivateTitle": "Dezactivezi tipul de absență?",
     "deactivateDescription": "Acest tip este utilizat în istoric, așa că va fi ascuns fără a șterge absențele anterioare.",
-    "paidSummary": "Plătit {{hours}} pe zi",
+    "paidSummary": "Plătită",
     "unpaidSummary": "Neplătit",
     "fields": {
       "name": "Nume",

@@ -70,19 +70,31 @@ vi.mock("react-router-dom", async () => {
 vi.mock("../api/endpoints", () => ({
   getCalendarActivityRange: vi.fn(),
   getPreferences: vi.fn(),
+  getScheduledShifts: vi.fn(),
+  getWeeklySchedule: vi.fn(),
   listAbsenceTypes: vi.fn(),
+  listEmployments: vi.fn(),
   listHourlyRates: vi.fn(),
+  listRestDays: vi.fn(),
   listWorkRecordsInRange: vi.fn(),
-  listAbsencesInRange: vi.fn()
+  listAbsencesInRange: vi.fn(),
+  markRestDay: vi.fn(),
+  removeRestDay: vi.fn()
 }));
 
 import {
   getCalendarActivityRange,
   getPreferences,
+  getScheduledShifts,
+  getWeeklySchedule,
   listAbsenceTypes,
   listAbsencesInRange,
+  listEmployments,
   listHourlyRates,
-  listWorkRecordsInRange
+  listRestDays,
+  listWorkRecordsInRange,
+  markRestDay,
+  removeRestDay
 } from "../api/endpoints";
 
 const julyRecords = [
@@ -244,6 +256,18 @@ describe("CalendarPage", () => {
     navigateMock.mockReset();
     setSelectedDateMock.mockReset();
     vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-15" });
+    vi.mocked(listEmployments).mockResolvedValue([]);
+    vi.mocked(listRestDays).mockResolvedValue([]);
+    vi.mocked(getWeeklySchedule).mockResolvedValue(null);
+    vi.mocked(getScheduledShifts).mockResolvedValue([]);
+    vi.mocked(markRestDay).mockResolvedValue({
+      id: "rest-day-1",
+      employmentId: "employment-1",
+      date: "2026-07-15",
+      source: "MANUAL",
+      notes: null
+    });
+    vi.mocked(removeRestDay).mockResolvedValue(undefined);
     vi.mocked(listAbsenceTypes).mockResolvedValue([
       {
         id: "absence-vacation-type",
@@ -470,6 +494,27 @@ describe("CalendarPage", () => {
     await user.click(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today/i }));
 
     expect(await screen.findByText("No activity.")).toBeInTheDocument();
+  });
+
+  it("lets a user explicitly classify an empty day as a rest day", async () => {
+    vi.mocked(listEmployments).mockResolvedValue([
+      {
+        id: "employment-1",
+        name: "Primary job",
+        active: true
+      }
+    ] as never);
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(listAbsencesInRange).mockResolvedValue([]);
+
+    renderPage();
+
+    const user = userEvent.setup();
+    await screen.findByText("July 2026");
+    await user.click(screen.getByRole("gridcell", { name: /wednesday, july 15, 2026, today/i }));
+    await user.click(screen.getByRole("button", { name: "Mark as rest day" }));
+
+    expect(markRestDay).toHaveBeenCalledWith("employment-1", "2026-07-15");
   });
 
   it("opens edit on activity tap without rendering an add action", async () => {

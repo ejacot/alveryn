@@ -46,6 +46,10 @@ export const queryKeys = {
     shifts: (employmentId: string, from: string, to: string) =>
       ["schedules", "shifts", employmentId, from, to] as const
   },
+  restDays: {
+    range: (employmentId: string, from: string, to: string) =>
+      ["rest-days", employmentId, from, to] as const
+  },
   onboardingStatus: () => ["onboarding-status"] as const,
   trackingSetupStatus: () => ["tracking-setup-status"] as const,
   dashboard: () => ["dashboard"] as const,

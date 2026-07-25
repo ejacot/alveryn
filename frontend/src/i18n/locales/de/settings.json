@@ -373,7 +373,7 @@
     "description": "Lege Urlaub, Krankheit und andere freie Tage fest und bestimme, ob sie als bezahlte Zeit zählen.",
     "emptyTitle": "Noch keine Abwesenheitsarten",
     "emptyDescription": "Erstelle zuerst eine Abwesenheitsart, bevor du einen arbeitsfreien Tag markierst.",
-    "paidHelp": "Wenn aktiviert, erscheinen diese Stunden in Summen und Berichten als bezahlte Abwesenheit.",
+    "paidHelp": "Bezahlte Abwesenheit deckt die erwarteten Stunden ab und reduziert das Stundenkonto nicht.",
     "normalDay": "Normaler Tag",
     "paidTypes": "Bezahlte Abwesenheiten",
     "types": "Abwesenheitstypen",
@@ -388,7 +388,7 @@
     "deleteDescription": "Dieser Abwesenheitstyp wurde noch nicht verwendet und kann dauerhaft gelöscht werden.",
     "deactivateTitle": "Abwesenheitstyp deaktivieren?",
     "deactivateDescription": "Dieser Abwesenheitstyp wird im Verlauf verwendet und wird deshalb ausgeblendet, ohne frühere Abwesenheiten zu löschen.",
-    "paidSummary": "Bezahlt {{hours}} pro Tag",
+    "paidSummary": "Bezahlt",
     "unpaidSummary": "Unbezahlt",
     "fields": {
       "name": "Name",

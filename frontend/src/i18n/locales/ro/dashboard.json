@@ -89,6 +89,13 @@
     "noWork": "Fără muncă planificată",
     "cancel": "Anulează"
   },
+  "restDay": {
+    "title": "Zi liberă",
+    "description": "Confirmată ca zi fără muncă.",
+    "cta": "Zi liberă",
+    "remove": "Elimină",
+    "selectEmployment": "Selectează un loc de muncă înainte de a marca o zi liberă."
+  },
   "timeTracking": {
     "title": "Pontaj",
     "workType": "Tip de muncă",
@@ -117,11 +124,15 @@
     "dailyEarningsAverage": "Media zilnică",
     "fromLastWeek": "față de săptămâna trecută",
     "workedHours": "Lucrat",
+    "workedHoursDescription": "Ore efectiv lucrate",
     "extraHours": "Extra",
+    "extraHoursDescription": "Echivalent în ore din extra pay",
     "totalHours": "Total",
     "workedMoney": "Lucrat",
     "extraMoney": "Extra",
+    "extraMoneyDescription": "Doar câștigul suplimentar",
     "totalMoney": "Total",
+    "totalMoneyDescription": "Lucrat + extra",
     "title": "Orele săptămânii",
     "empty": "Activitatea săptămânii va apărea după ce salvezi lucru în această săptămână.",
     "description": "{{total}} săptămâna aceasta.",

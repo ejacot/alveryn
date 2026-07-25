@@ -83,6 +83,13 @@
     "noWork": "Keine Arbeit geplant",
     "cancel": "Abbrechen"
   },
+  "restDay": {
+    "title": "Ruhetag",
+    "description": "Als arbeitsfreier Tag bestätigt.",
+    "cta": "Ruhetag",
+    "remove": "Entfernen",
+    "selectEmployment": "Wähle eine Beschäftigung aus, bevor du einen Ruhetag markierst."
+  },
   "timeTracking": {
     "title": "Zeiterfassung",
     "workType": "Arbeitsart",
@@ -111,11 +118,15 @@
     "dailyEarningsAverage": "Tagesdurchschnitt",
     "fromLastWeek": "zur Vorwoche",
     "workedHours": "Gearbeitet",
+    "workedHoursDescription": "Tatsächlich gearbeitete Stunden",
     "extraHours": "Extra",
+    "extraHoursDescription": "Extra-Vergütung als Stundenwert",
     "totalHours": "Gesamt",
     "workedMoney": "Gearbeitet",
     "extraMoney": "Extra",
+    "extraMoneyDescription": "Nur zusätzlicher Verdienst",
     "totalMoney": "Gesamt",
+    "totalMoneyDescription": "Gearbeitet + Extra",
     "title": "Wochenstunden",
     "empty": "Die Wochenaktivität erscheint, sobald du diese Woche Arbeit speicherst.",
     "description": "{{total}} diese Woche.",

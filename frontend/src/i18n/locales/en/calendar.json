@@ -15,6 +15,9 @@
     "grossPay": "Gross",
     "workedDays": "Days",
     "absenceDays": "Absence",
+    "restDays": "Rest",
+    "missingDays": "Missing",
+    "classifiedDays": "Classified",
     "mixedCurrencies": "Mixed",
     "paidAbsence": "Paid",
     "paidAbsenceDetail": "Absence {{duration}}"
@@ -37,6 +40,14 @@
     "days": "days"
   },
   "emptyDay": "No activity.",
+  "restDay": {
+    "title": "Rest day",
+    "emptyDescription": "No work or absence is recorded for this date.",
+    "mark": "Mark as rest day",
+    "remove": "Remove rest day",
+    "manual": "Confirmed manually",
+    "automatic": "Determined from your work schedule"
+  },
   "job": "Job",
   "jobLines_one": "{{count}} work line",
   "jobLines_other": "{{count}} work lines",

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
@@ -25,6 +25,10 @@ type Props = {
   previousWeekAverageGross?: number;
   flowCurrency?: string;
   absenceTypes?: AbsenceTypeSetting[];
+  restDay?: boolean;
+  onMarkRestDay?: () => void;
+  onRemoveRestDay?: () => void;
+  restDayPending?: boolean;
   onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
   onRhythmDaySelect?: (date: string) => void;
@@ -47,6 +51,10 @@ export function DashboardOverview({
   previousWeekAverageGross,
   flowCurrency,
   absenceTypes = [],
+  restDay = false,
+  onMarkRestDay,
+  onRemoveRestDay,
+  restDayPending = false,
   onQuickAdd,
   onDaySwipe,
   onRhythmDaySelect,
@@ -76,6 +84,10 @@ export function DashboardOverview({
       <SelectedDayPanel
         selectedDay={selectedDay}
         absenceTypes={absenceTypes}
+        restDay={restDay}
+        onMarkRestDay={onMarkRestDay}
+        onRemoveRestDay={onRemoveRestDay}
+        restDayPending={restDayPending}
         onEntrySelect={onEntrySelect}
         onQuickAdd={onQuickAdd}
         onDaySwipe={onDaySwipe}
@@ -108,6 +120,10 @@ export function DashboardOverview({
 function SelectedDayPanel({
   selectedDay,
   absenceTypes,
+  restDay,
+  onMarkRestDay,
+  onRemoveRestDay,
+  restDayPending,
   onEntrySelect,
   onQuickAdd,
   onDaySwipe,
@@ -119,6 +135,10 @@ function SelectedDayPanel({
 }: {
   selectedDay: SelectedDayOverview;
   absenceTypes: AbsenceTypeSetting[];
+  restDay: boolean;
+  onMarkRestDay?: () => void;
+  onRemoveRestDay?: () => void;
+  restDayPending: boolean;
   onEntrySelect?: (entryId: string) => void;
   onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
@@ -149,19 +169,45 @@ function SelectedDayPanel({
     }
   };
 
+  if (restDay) {
+    return (
+      <motion.section {...swipeProps} className="touch-pan-y">
+        <Card variant="muted" className="flex min-h-[72px] items-center gap-3 px-4 py-3">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full bg-white/35"
+            aria-hidden="true"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold tracking-[-0.03em] text-white">
+              {t("restDay.title")}
+            </p>
+            <p className="mt-0.5 truncate text-sm text-white/42">
+              {t("restDay.description")}
+            </p>
+          </div>
+          {onRemoveRestDay ? (
+            <button
+              type="button"
+              disabled={restDayPending}
+              onClick={onRemoveRestDay}
+              aria-label={t("restDay.remove")}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/38 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </Card>
+        {absenceError ? <p className="mt-3 px-2 text-sm text-red-200/90">{absenceError}</p> : null}
+      </motion.section>
+    );
+  }
+
   if (!selectedDay.entriesCount) {
     return (
       <motion.section {...swipeProps} className="space-y-3 touch-pan-y">
-        <Card variant="muted" className="flex w-full items-center justify-between px-5 py-4 text-left">
-          <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setAbsenceOpen(true)}
-              className="rounded-full border border-white/[0.08] bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12]"
-            >
-              {t("absence.cta")}
-            </button>
+        <Card variant="muted" className="overflow-hidden p-0 text-left">
+          <div className="flex min-h-[68px] items-center justify-between gap-4 px-5 py-3.5">
+            <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
             <button
               type="button"
               onClick={onQuickAdd}
@@ -170,6 +216,25 @@ function SelectedDayPanel({
             >
               {t("quickAdd.cta")}
             </button>
+          </div>
+          <div className="grid grid-cols-2 border-t border-white/[0.06]">
+            <button
+              type="button"
+              onClick={() => setAbsenceOpen(true)}
+              className="min-h-11 border-r border-white/[0.06] px-4 text-sm font-semibold text-white/52 transition hover:bg-white/[0.035] hover:text-white"
+            >
+              {t("absence.cta")}
+            </button>
+            {onMarkRestDay ? (
+              <button
+                type="button"
+                onClick={onMarkRestDay}
+                disabled={restDayPending}
+                className="min-h-11 px-4 text-sm font-semibold text-white/52 transition hover:bg-white/[0.035] hover:text-white disabled:opacity-50"
+              >
+                {t("restDay.cta")}
+              </button>
+            ) : null}
           </div>
         </Card>
         {absenceError ? <p className="px-2 text-sm text-red-200/90">{absenceError}</p> : null}

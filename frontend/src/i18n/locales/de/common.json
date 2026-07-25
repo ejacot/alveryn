@@ -56,6 +56,7 @@
       "metric": "Kennzahl",
       "workType": "Arbeitstyp",
       "calculationMethod": "Berechnung",
+      "more": "Weitere Filter",
       "all": "Alle",
       "selectedCount": "{{count}} ausgewählt"
     },
@@ -103,7 +104,28 @@
       "HIGH": "Hohe Sicherheit"
     },
     "trend": {
-      "title": "Trend",
+      "eyebrow": "Entwicklung",
+      "title": "So entwickelt sich deine Arbeit",
+      "latest": "Letzter Zeitraum",
+      "average": "Durchschnitt",
+      "previousBucket": "Zum vorherigen",
+      "newActivity": "Neue Aktivität",
+      "change": "{{value}} %",
+      "hint": "Wähle einen Balken, um die zugehörigen Einträge zu sehen.",
+      "fromPrevious": "zum vorherigen",
+      "noComparison": "Kein vorheriger Wert",
+      "averageShort": "Ø",
+      "periodTotal": "Gesamt im Zeitraum",
+      "periodAverage": "Durchschnitt",
+      "comparisonTitle": "Aktueller vs. vorheriger Zeitraum",
+      "current": "Aktuell",
+      "previous": "Vorher",
+      "changeLabel": "Veränderung",
+      "periodTitle": "Ausgewählter Zeitraum",
+      "modes": {
+        "trend": "Trend",
+        "compare": "Vergleichen"
+      },
       "ariaLabel": "Statistik-Trenddiagramm",
       "pointAriaLabel": "Details für {{from}} bis {{to}} öffnen"
     },

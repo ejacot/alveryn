@@ -10,6 +10,9 @@ import {
   listAbsenceTypes,
   listEmployments,
   listHourlyRates,
+  listRestDays,
+  markRestDay,
+  removeRestDay,
   listWorkRecordsInRange
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
@@ -90,6 +93,18 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     queryKey: queryKeys.absences.list({ from: previousWeekStartKey, to: weekEndKey }),
     queryFn: () => getAbsences({ from: previousWeekStartKey, to: weekEndKey })
   });
+  const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
+  const effectiveEmploymentId = selectedEmploymentId
+    ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
+  const restDaysQuery = useQuery({
+    queryKey: queryKeys.restDays.range(
+      effectiveEmploymentId ?? "none",
+      selectedDateKey,
+      selectedDateKey
+    ),
+    queryFn: () => listRestDays(effectiveEmploymentId!, selectedDateKey, selectedDateKey),
+    enabled: Boolean(effectiveEmploymentId)
+  });
   const absenceMutation = useMutation({
     mutationFn: ({ absenceTypeId, date, employmentId }: { absenceTypeId: string; date: string; employmentId: string }) =>
       createAbsence({
@@ -120,6 +135,21 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       outletContext?.setSelectedDate?.(parseLocalIsoDate(variables.date));
     }
   });
+  const markRestDayMutation = useMutation({
+    mutationFn: ({ employmentId, date }: { employmentId: string; date: string }) =>
+      markRestDay(employmentId, date),
+    onSuccess: async (_, variables) => {
+      setAbsenceScopeError(null);
+      await queryClient.invalidateQueries({ queryKey: ["rest-days", variables.employmentId] });
+    }
+  });
+  const removeRestDayMutation = useMutation({
+    mutationFn: ({ employmentId, date }: { employmentId: string; date: string }) =>
+      removeRestDay(employmentId, date),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["rest-days", variables.employmentId] });
+    }
+  });
 
   const isLoading =
     rhythmRecordsQuery.isLoading ||
@@ -127,14 +157,16 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     employmentsQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
     absenceTypesQuery.isLoading ||
-    weeklyAbsencesQuery.isLoading;
+    weeklyAbsencesQuery.isLoading ||
+    (Boolean(effectiveEmploymentId) && restDaysQuery.isLoading);
   const errorQuery =
     (rhythmRecordsQuery.error ? rhythmRecordsQuery : null) ??
     (preferencesQuery.error ? preferencesQuery : null) ??
     (employmentsQuery.error ? employmentsQuery : null) ??
     (hourlyRatesQuery.error ? hourlyRatesQuery : null) ??
     (absenceTypesQuery.error ? absenceTypesQuery : null) ??
-    (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null);
+    (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null) ??
+    (restDaysQuery.error ? restDaysQuery : null);
 
   const rhythmRecords = useMemo(
     () => (rhythmRecordsQuery.data ?? []).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
@@ -153,9 +185,11 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     [selectedDateKey, weeklyRecords]
   );
   const preferences = preferencesQuery.data ?? null;
-  const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
   const absenceEmploymentId = selectedEmploymentId
     ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
+  const selectedRestDay = (restDaysQuery.data ?? []).find(
+    (restDay) => restDay.date === selectedDateKey
+  ) ?? null;
   const hourlyRates = useMemo(
     () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
     [hourlyRatesQuery.data, selectedEmploymentId]
@@ -310,6 +344,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
           void hourlyRatesQuery.refetch();
           void absenceTypesQuery.refetch();
           void weeklyAbsencesQuery.refetch();
+          void restDaysQuery.refetch();
         }}
       />
     );
@@ -333,6 +368,27 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         )}
         flowCurrency={weeklyRecords[0]?.currency ?? preferences?.currency ?? "EUR"}
         absenceTypes={absenceTypesQuery.data ?? []}
+        restDay={Boolean(selectedRestDay)}
+        onMarkRestDay={() => {
+          if (!effectiveEmploymentId) {
+            setAbsenceScopeError(t("dashboard:restDay.selectEmployment"));
+            return;
+          }
+          setAbsenceScopeError(null);
+          markRestDayMutation.mutate({
+            employmentId: effectiveEmploymentId,
+            date: selectedDateKey
+          });
+        }}
+        onRemoveRestDay={() => {
+          if (effectiveEmploymentId) {
+            removeRestDayMutation.mutate({
+              employmentId: effectiveEmploymentId,
+              date: selectedDateKey
+            });
+          }
+        }}
+        restDayPending={markRestDayMutation.isPending || removeRestDayMutation.isPending}
         onQuickAdd={() => navigate(`/records/new?date=${selectedDateKey}`)}
         onDaySwipe={(direction) => outletContext?.setSelectedDate?.(addDays(selectedDate, direction))}
         onRhythmDaySelect={(date) => outletContext?.setSelectedDate?.(parseLocalIsoDate(date))}
@@ -359,6 +415,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
           ? getApiError(absenceMutation.error).message
           : deleteAbsenceMutation.error
             ? getApiError(deleteAbsenceMutation.error).message
+            : markRestDayMutation.error
+              ? getApiError(markRestDayMutation.error).message
+              : removeRestDayMutation.error
+                ? getApiError(removeRestDayMutation.error).message
             : null)}
         onEntrySelect={(entryId) =>
           navigate(`/records/${entryId.slice("record:".length)}?returnDate=${selectedDateKey}`)

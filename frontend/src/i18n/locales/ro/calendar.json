@@ -15,7 +15,10 @@
     "worked": "Ore",
     "grossPay": "Brut",
     "workedDays": "Zile",
-    "absenceDays": "Libere",
+    "absenceDays": "Absență",
+    "restDays": "Repaus",
+    "missingDays": "Lipsă",
+    "classifiedDays": "Clasificate",
     "mixedCurrencies": "Mixt",
     "paidAbsence": "Plătit",
     "paidAbsenceDetail": "Absențe {{duration}}"
@@ -38,6 +41,14 @@
     "days": "zile"
   },
   "emptyDay": "Nicio activitate.",
+  "restDay": {
+    "title": "Zi de repaus",
+    "emptyDescription": "Nu există activitate sau absență pentru această dată.",
+    "mark": "Marchează ca zi de repaus",
+    "remove": "Elimină ziua de repaus",
+    "manual": "Confirmată manual",
+    "automatic": "Determinată din programul de lucru"
+  },
   "job": "Job",
   "jobLines_one": "{{count}} linie de lucru",
   "jobLines_few": "{{count}} linii de lucru",

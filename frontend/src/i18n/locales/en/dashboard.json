@@ -83,6 +83,13 @@
     "noWork": "No work planned",
     "cancel": "Cancel"
   },
+  "restDay": {
+    "title": "Rest day",
+    "description": "Confirmed as a day without work.",
+    "cta": "Rest day",
+    "remove": "Remove",
+    "selectEmployment": "Select an employment before marking a rest day."
+  },
   "timeTracking": {
     "title": "Time tracking",
     "workType": "Work type",
@@ -111,11 +118,15 @@
     "dailyEarningsAverage": "Daily average",
     "fromLastWeek": "from last week",
     "workedHours": "Worked",
+    "workedHoursDescription": "Hours actually worked",
     "extraHours": "Extra",
+    "extraHoursDescription": "Extra-pay equivalent hours",
     "totalHours": "Total",
     "workedMoney": "Worked",
     "extraMoney": "Extra",
+    "extraMoneyDescription": "Additional earnings only",
     "totalMoney": "Total",
+    "totalMoneyDescription": "Worked + extra",
     "title": "Weekly hours",
     "empty": "Weekly activity will appear after you save work this week.",
     "description": "{{total}} this week.",

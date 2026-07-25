@@ -34,18 +34,10 @@ import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import type { AbsenceTypeSetting } from "../types/absence";
 
-function decimalHours(value: unknown) {
-  if (typeof value === "string") {
-    const normalized = value.trim().replace(",", ".");
-    return normalized === "" ? 0 : Number(normalized);
-  }
-  return value;
-}
-
 const schema = z.object({
   name: z.string().trim().min(1, "Required").max(80, "Too long"),
   paid: z.boolean(),
-  paidHours: z.preprocess(decimalHours, z.number().min(0).max(24)),
+  paidMinutes: z.number().int().min(0).max(1440),
   color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use #RRGGBB"),
   active: z.boolean(),
   displayOrder: z.coerce.number().int().min(0).max(999)
@@ -183,7 +175,7 @@ export function SettingsAbsencePage() {
               </span>
               <span className="mt-1 block truncate text-sm text-white/48">
                 {type.paid
-                  ? t("settings:absenceSettings.paidSummary", { hours: formatPaidHours(type.paidMinutesPerDay) })
+                  ? t("settings:absenceSettings.paidSummary")
                   : t("settings:absenceSettings.unpaidSummary")}
                 {!type.active ? ` · ${t("settings:status.inactive")}` : ""}
               </span>
@@ -242,7 +234,7 @@ function toFormValues(type: AbsenceTypeSetting | null, count: number): FormValue
   return {
     name: type?.name ?? "",
     paid: type?.paid ?? false,
-    paidHours: paidMinutes / 60,
+    paidMinutes: paidMinutes || 480,
     color: type?.color ?? "#f97316",
     active: type?.active ?? true,
     displayOrder: type?.displayOrder ?? count + 1
@@ -330,24 +322,9 @@ function AbsenceTypeDialog({
               checked={form.watch("paid")}
               onChange={(checked) => {
                 form.setValue("paid", checked, { shouldDirty: true, shouldValidate: true });
-                form.setValue("paidHours", checked ? "" : 0, {
-                  shouldDirty: true,
-                  shouldValidate: false
-                });
               }}
             />
             <p className="text-xs leading-5 text-white/42">{t("settings:absenceSettings.paidHelp")}</p>
-            {form.watch("paid") ? (
-              <Input
-                label={t("settings:absenceSettings.fields.paidHours")}
-                type="text"
-                inputMode="decimal"
-                min={0}
-                max={24}
-                error={form.formState.errors.paidHours?.message}
-                {...form.register("paidHours")}
-              />
-            ) : null}
           </div>
         </div>
 
@@ -384,17 +361,11 @@ function toPayload(values: FormValues): AbsenceTypePayload {
     name: values.name.trim(),
     code: null,
     paid: values.paid,
-    paidMinutesPerDay: values.paid ? Math.round(values.paidHours * 60) : 0,
+    paidMinutesPerDay: values.paid ? values.paidMinutes : 0,
     color: values.color,
     active: values.active,
     displayOrder: values.displayOrder
   };
-}
-
-function formatPaidHours(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  return remaining ? `${hours}h ${remaining}m` : `${hours}h`;
 }
 
 function AbsenceToggle({

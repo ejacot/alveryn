@@ -13,6 +13,9 @@ public interface AbsenceRepository extends JpaRepository<Absence, UUID>, JpaSpec
   List<Absence> findAllByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
       UUID userId, LocalDate rangeEnd, LocalDate rangeStart);
 
+  List<Absence> findAllByEmploymentIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+      UUID employmentId, LocalDate rangeEnd, LocalDate rangeStart);
+
   Optional<Absence> findByIdAndUserId(UUID id, UUID userId);
 
   boolean existsByEmploymentId(UUID employmentId);

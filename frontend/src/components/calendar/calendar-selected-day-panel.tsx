@@ -7,6 +7,7 @@ import { SelectedDayActivityCard } from "../dashboard/selected-day-activity-card
 import { daysBetweenInclusive, parseLocalIsoDate } from "../../utils/date";
 import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 import { Card } from "../ui/card";
+import { Button } from "../ui/button";
 
 type Props = {
   title: string;
@@ -14,6 +15,11 @@ type Props = {
   absence: Absence | null;
   paidAbsenceMinutes?: number;
   absenceColor?: string;
+  restDay?: boolean;
+  automaticRestDay?: boolean;
+  restDayPending?: boolean;
+  onMarkRestDay?: () => void;
+  onRemoveRestDay?: () => void;
   onEntrySelect: (entryId: string) => void;
 };
 
@@ -23,10 +29,15 @@ export function CalendarSelectedDayPanel({
   absence,
   paidAbsenceMinutes = 0,
   absenceColor,
+  restDay = false,
+  automaticRestDay = false,
+  restDayPending = false,
+  onMarkRestDay,
+  onRemoveRestDay,
   onEntrySelect
 }: Props) {
   const { t } = useTranslation("calendar");
-  const hasContent = records.length > 0 || absence;
+  const hasContent = records.length > 0 || absence || restDay;
   const titleEyebrow = title.replace(",", "").toUpperCase();
   const activities = buildCalendarActivities(records, t);
 
@@ -66,6 +77,54 @@ export function CalendarSelectedDayPanel({
             className="px-5 py-4"
           >
             <p className="font-semibold tracking-[-0.03em] text-white">{t("emptyDay")}</p>
+            <p className="mt-1 text-sm leading-6 text-white/48">
+              {t("restDay.emptyDescription")}
+            </p>
+            {onMarkRestDay ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-4 w-full"
+                disabled={restDayPending}
+                onClick={onMarkRestDay}
+              >
+                {t("restDay.mark")}
+              </Button>
+            ) : null}
+          </Card>
+        ) : null}
+
+        {restDay ? (
+          <Card
+            as={motion.div}
+            key={`rest-${title}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="px-5 py-4"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-name font-semibold tracking-[-0.03em] text-white">
+                  {t("restDay.title")}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-white/48">
+                  {t(automaticRestDay ? "restDay.automatic" : "restDay.manual")}
+                </p>
+              </div>
+              <span className="mt-1 h-2.5 w-2.5 rounded-full bg-white/35" aria-hidden="true" />
+            </div>
+            {!automaticRestDay && onRemoveRestDay ? (
+              <button
+                type="button"
+                disabled={restDayPending}
+                onClick={onRemoveRestDay}
+                className="mt-4 text-sm font-semibold text-white/58 transition hover:text-white disabled:opacity-50"
+              >
+                {t("restDay.remove")}
+              </button>
+            ) : null}
           </Card>
         ) : null}
 

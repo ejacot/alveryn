@@ -45,14 +45,28 @@ export function WeeklyHoursCard({
   const weeklyExtraAmount = days.reduce((total, day) => total + (day.extraAmount ?? 0), 0);
   const weeklySummary = variant === "flow"
     ? [
-        [t("weeklyHours.workedMoney"), formatCurrency(String(weeklyBaseAmount), flowCurrency)],
-        [t("weeklyHours.extraMoney"), formatCurrency(String(weeklyExtraAmount), flowCurrency)],
-        [t("weeklyHours.totalMoney"), formatCurrency(String(weeklyBaseAmount + weeklyExtraAmount), flowCurrency)]
+        {
+          label: t("weeklyHours.totalMoney"),
+          description: t("weeklyHours.totalMoneyDescription"),
+          value: formatCurrency(String(weeklyBaseAmount + weeklyExtraAmount), flowCurrency)
+        },
+        {
+          label: t("weeklyHours.extraMoney"),
+          description: t("weeklyHours.extraMoneyDescription"),
+          value: formatCurrency(String(weeklyExtraAmount), flowCurrency)
+        }
       ]
     : [
-        [t("weeklyHours.workedHours"), formatMinutesAsDuration(weeklyWorkedMinutes)],
-        [t("weeklyHours.extraHours"), formatMinutesAsDuration(weeklyExtraMinutes)],
-        [t("weeklyHours.totalHours"), formatMinutesAsDuration(weeklyWorkedMinutes + weeklyExtraMinutes)]
+        {
+          label: t("weeklyHours.workedHours"),
+          description: t("weeklyHours.workedHoursDescription"),
+          value: formatMinutesAsDuration(weeklyWorkedMinutes)
+        },
+        {
+          label: t("weeklyHours.extraHours"),
+          description: t("weeklyHours.extraHoursDescription"),
+          value: formatMinutesAsDuration(weeklyExtraMinutes)
+        }
       ];
   const workedDays = days.filter((day, index) => metricValues[index] > 0 && day.status !== "absence").length;
   const dailyAverage = workedDays > 0 ? currentWeekValue / workedDays : 0;
@@ -306,14 +320,22 @@ export function WeeklyHoursCard({
             </AnimatePresence>
           </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 border-t border-black/10 px-5 py-4 dark:border-white/10">
-            {weeklySummary.map(([label, value]) => (
-              <div key={label} className="min-w-0">
-                <p className="truncate text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-neutral-500 dark:text-white/40">
-                  {label}
+          <div
+            className={cn(
+              "grid gap-3 border-t border-black/10 px-5 py-4 dark:border-white/10",
+              "grid-cols-2"
+            )}
+          >
+            {weeklySummary.map((item) => (
+              <div key={item.label} className="min-w-0">
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-neutral-500 dark:text-white/40">
+                  {item.label}
                 </p>
-                <p className="mt-1 break-words text-sm font-semibold tabular-nums text-neutral-950 dark:text-white">
-                  {value}
+                <p className="mt-1 text-[0.68rem] leading-4 text-neutral-500 dark:text-white/45">
+                  {item.description}
+                </p>
+                <p className="mt-2 break-words text-base font-semibold tabular-nums text-neutral-950 dark:text-white">
+                  {item.value}
                 </p>
               </div>
             ))}

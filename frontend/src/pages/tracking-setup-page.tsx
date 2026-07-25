@@ -179,6 +179,12 @@ function NewAccountSetup() {
   const [unitLabel, setUnitLabel] = useState("");
   const [unitSymbol, setUnitSymbol] = useState("");
   const [ratePerUnit, setRatePerUnit] = useState("");
+  const [paidSickLeave, setPaidSickLeave] = useState(
+    user?.preferences?.paidSickLeave ?? true
+  );
+  const [paidVacation, setPaidVacation] = useState(
+    user?.preferences?.paidVacation ?? true
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
   const supportsTimeTracking = compensationType === "HOURLY" || compensationType === "FIXED_SALARY";
 
@@ -199,8 +205,8 @@ function NewAccountSetup() {
         theme: preferences.theme,
         defaultBreakMinutes: preferences.defaultBreakMinutes,
         preferredDailyMinutes: preferences.preferredDailyMinutes ?? 480,
-        paidSickLeave: preferences.paidSickLeave,
-        paidVacation: preferences.paidVacation,
+        paidSickLeave,
+        paidVacation,
         employmentName: employmentName.trim(),
         startDate,
         compensationType,
@@ -249,7 +255,7 @@ function NewAccountSetup() {
       ratePerUnit
     }, t);
     setValidationError(error);
-    if (!error) setStep((current) => Math.min(6, current + 1));
+    if (!error) setStep((current) => Math.min(7, current + 1));
   };
 
   return (
@@ -257,10 +263,10 @@ function NewAccountSetup() {
       <div className="mx-auto max-w-md space-y-5">
         <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
           <span>{t("setup.label")}</span>
-          <span>{step} / 6</span>
+          <span>{step} / 7</span>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${step / 6 * 100}%` }} />
+          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${step / 7 * 100}%` }} />
         </div>
 
         <Card variant="section" className="space-y-5 rounded-[2rem] p-6">
@@ -341,6 +347,30 @@ function NewAccountSetup() {
 
           {step === 6 ? (
             <>
+              <SetupHeader
+                title={t("setup.absences.title")}
+                description={t("setup.absences.description")}
+              />
+              <PaidAbsenceChoice
+                title={t("setup.absences.sick")}
+                paid={paidSickLeave}
+                onChange={setPaidSickLeave}
+                t={t}
+              />
+              <PaidAbsenceChoice
+                title={t("setup.absences.vacation")}
+                paid={paidVacation}
+                onChange={setPaidVacation}
+                t={t}
+              />
+              <p className="text-xs leading-5 text-white/42">
+                {t("setup.absences.hint")}
+              </p>
+            </>
+          ) : null}
+
+          {step === 7 ? (
+            <>
               <SetupHeader title={t("setup.workType.title")} description={t("setup.workType.description")} />
               <Input label={t("setup.workType.name")} value={workTypeName} placeholder={t("setup.workType.placeholder")} onChange={(event) => setWorkTypeName(event.currentTarget.value)} />
               {compensationType === "PER_UNIT" ? (
@@ -366,8 +396,8 @@ function NewAccountSetup() {
 
           <div className={`grid gap-3 ${step > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
             {step > 1 ? <Button variant="ghost" onClick={() => { setValidationError(null); setStep((current) => current - 1); }}>{t("setup.actions.back")}</Button> : null}
-            <Button disabled={finishMutation.isPending} onClick={() => step === 6 ? finishMutation.mutate() : next()}>
-              {finishMutation.isPending ? t("setup.actions.saving") : step === 6 ? t("setup.actions.finish") : t("setup.actions.continue")}
+            <Button disabled={finishMutation.isPending} onClick={() => step === 7 ? finishMutation.mutate() : next()}>
+              {finishMutation.isPending ? t("setup.actions.saving") : step === 7 ? t("setup.actions.finish") : t("setup.actions.continue")}
             </Button>
           </div>
         </Card>
@@ -400,6 +430,42 @@ function ChoiceCard({ selected, icon: Icon, title, description, onClick, horizon
   );
 }
 
+function PaidAbsenceChoice({
+  title,
+  paid,
+  onChange,
+  t
+}: {
+  title: string;
+  paid: boolean;
+  onChange: (paid: boolean) => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <section className="space-y-2.5 rounded-[1.35rem] border border-white/[0.08] bg-white/[0.025] p-4">
+      <p className="font-semibold text-white">{title}</p>
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={title}>
+        {([true, false] as const).map((value) => (
+          <button
+            key={String(value)}
+            type="button"
+            role="radio"
+            aria-checked={paid === value}
+            onClick={() => onChange(value)}
+            className={`min-h-11 rounded-xl border px-3 text-sm font-semibold transition ${
+              paid === value
+                ? "border-white/45 bg-white/[0.12] text-white"
+                : "border-white/[0.07] text-white/46"
+            }`}
+          >
+            {t(value ? "setup.absences.paid" : "setup.absences.unpaid")}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function validateSetupStep(step: number, values: {
   firstName: string; lastName: string; employmentName: string; startDate: string;
   compensationType: CompensationType; hourlyRate: string; fixedSalaryAmount: string; hourBalanceEnabled: boolean;
@@ -412,8 +478,8 @@ function validateSetupStep(step: number, values: {
   const supportsTimeTracking = values.compensationType === "HOURLY" || values.compensationType === "FIXED_SALARY";
   if (step === 5 && supportsTimeTracking && (values.hourBalanceEnabled || values.compensationType === "FIXED_SALARY") && !(Number(values.targetHours) > 0)) return t("setup.errors.target");
   if (step === 5 && supportsTimeTracking && values.hourBalanceEnabled && !(Number(values.validityMonths) > 0)) return t("setup.errors.validity");
-  if (step === 6 && !values.workTypeName.trim()) return t("setup.errors.workType");
-  if (step === 6 && values.compensationType === "PER_UNIT" && (!values.unitLabel.trim() || !(parseNumber(values.ratePerUnit) > 0))) return t("setup.errors.perUnit");
+  if (step === 7 && !values.workTypeName.trim()) return t("setup.errors.workType");
+  if (step === 7 && values.compensationType === "PER_UNIT" && (!values.unitLabel.trim() || !(parseNumber(values.ratePerUnit) > 0))) return t("setup.errors.perUnit");
   return null;
 }
 

@@ -120,6 +120,8 @@ describe("TrackingSetupPage", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(await screen.findAllByRole("radio", { name: "Paid", checked: true })).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: /continue/i }));
     await user.type(screen.getByLabelText(/service or work type/i), "Standard cleaning");
     await user.click(screen.getByRole("button", { name: /finish setup/i }));
 
@@ -130,7 +132,9 @@ describe("TrackingSetupPage", () => {
       compensationType: "HOURLY",
       hourlyRate: 35,
       workTypeName: "Standard cleaning",
-      timerEnabled: true
+      timerEnabled: true,
+      paidSickLeave: true,
+      paidVacation: true
     }));
     expect(await screen.findByText("Application")).toBeInTheDocument();
   });

@@ -3,6 +3,7 @@ package com.alveryn.api.absence.service;
 import com.alveryn.api.absence.dto.AbsenceTypeSettingRequest;
 import com.alveryn.api.absence.dto.AbsenceTypeSettingResponse;
 import com.alveryn.api.absence.entity.AbsenceTypeSetting;
+import com.alveryn.api.absence.entity.AbsenceType;
 import com.alveryn.api.absence.repository.AbsenceTypeSettingRepository;
 import com.alveryn.api.absence.repository.AbsenceRepository;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
@@ -59,6 +60,30 @@ public class AbsenceTypeSettingService {
   }
 
   @Transactional
+  public void ensurePersonalDefaults(
+      boolean paidSickLeave, boolean paidVacation, int preferredDailyMinutes) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
+    UserAccount user = users.findById(userId)
+        .orElseThrow(() -> new NotFoundException("UserAccount", userId));
+    ensureDefault(
+        user,
+        AbsenceType.SICK_LEAVE,
+        "Sick leave",
+        paidSickLeave,
+        preferredDailyMinutes,
+        "#EF4444",
+        0);
+    ensureDefault(
+        user,
+        AbsenceType.VACATION,
+        "Vacation",
+        paidVacation,
+        preferredDailyMinutes,
+        "#10B981",
+        1);
+  }
+
+  @Transactional
   public AbsenceTypeSettingResponse update(UUID id, @Valid AbsenceTypeSettingRequest request) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     AbsenceTypeSetting setting = findOwned(id, userId);
@@ -106,6 +131,33 @@ public class AbsenceTypeSettingService {
             .max()
             .orElse(-1)
         + 1;
+  }
+
+  private void ensureDefault(
+      UserAccount user,
+      AbsenceType code,
+      String name,
+      boolean paid,
+      int preferredDailyMinutes,
+      String color,
+      int displayOrder) {
+    repository.findByUserIdAndCode(user.getId(), code).ifPresentOrElse(
+        existing -> existing.update(
+            existing.getName(),
+            code,
+            paid,
+            paid ? preferredDailyMinutes : 0,
+            existing.getColor(),
+            true,
+            existing.getDisplayOrder()),
+        () -> repository.save(new AbsenceTypeSetting(
+            user,
+            name,
+            code,
+            paid,
+            paid ? preferredDailyMinutes : 0,
+            color,
+            displayOrder)));
   }
 
   public AbsenceTypeSettingResponse toResponse(AbsenceTypeSetting setting) {

@@ -5,7 +5,9 @@ import com.alveryn.api.address.repository.AddressRepository;
 import com.alveryn.api.address.service.AddressService;
 import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
 import com.alveryn.api.common.exception.NotFoundException;
+import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.ValidationException;
+import com.alveryn.api.restday.repository.EmploymentRestDayRepository;
 import com.alveryn.api.salary.service.SalaryCalculationService;
 import com.alveryn.api.employment.entity.TrackingFocus;
 import com.alveryn.api.time.TimeCalculator;
@@ -46,6 +48,7 @@ public class WorkRecordService {
   private final UserAccountRepository users;
   private final AddressRepository addresses;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
+  private final EmploymentRestDayRepository restDays;
 
   @Transactional
   public WorkRecordResponse create(@Valid WorkRecordRequest request) {
@@ -73,6 +76,7 @@ public class WorkRecordService {
     WorkRecord record = new WorkRecord(user, resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
+    ensureNoRestDayOverlap(record, request);
     if (project != null) {
       if (record.getEmployment() == null || !project.getEmployment().getId().equals(record.getEmployment().getId()))
         throw new ValidationException("All work lines must use the project's employment");
@@ -118,12 +122,24 @@ public class WorkRecordService {
     record.update(resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
+    ensureNoRestDayOverlap(record, request);
     persistLines(userId, record, request);
     return toResponse(record);
   }
 
   private WorkEntryKind inferEntryKind(WorkRecordRequest request) {
     return request.workEndDate() == null ? WorkEntryKind.WORK_SESSION : WorkEntryKind.WORK_RECORD;
+  }
+
+  private void ensureNoRestDayOverlap(WorkRecord record, WorkRecordRequest request) {
+    if (record.getEmployment() == null) {
+      return;
+    }
+    LocalDate endDate = request.workEndDate() == null ? request.workDate() : request.workEndDate();
+    if (restDays.existsByEmploymentIdAndDateBetween(
+        record.getEmployment().getId(), request.workDate(), endDate)) {
+      throw new ConflictException("Work range overlaps a rest day");
+    }
   }
 
   @Transactional

@@ -56,6 +56,7 @@
       "metric": "Metric",
       "workType": "Work type",
       "calculationMethod": "Calculation method",
+      "more": "More filters",
       "all": "All",
       "selectedCount": "{{count}} selected"
     },
@@ -103,7 +104,28 @@
       "HIGH": "High confidence"
     },
     "trend": {
-      "title": "Trend",
+      "eyebrow": "Trend",
+      "title": "How your work changes",
+      "latest": "Latest period",
+      "average": "Period average",
+      "previousBucket": "Vs. previous",
+      "newActivity": "New activity",
+      "change": "{{value}}%",
+      "hint": "Select a bar to see the records behind it.",
+      "fromPrevious": "from previous",
+      "noComparison": "No previous point",
+      "averageShort": "Avg.",
+      "periodTotal": "Period total",
+      "periodAverage": "Period average",
+      "comparisonTitle": "Current vs. previous period",
+      "current": "Current",
+      "previous": "Previous",
+      "changeLabel": "Change",
+      "periodTitle": "Selected period",
+      "modes": {
+        "trend": "Trend",
+        "compare": "Compare"
+      },
       "ariaLabel": "Statistics trend chart",
       "pointAriaLabel": "Open details for {{from}} to {{to}}"
     },

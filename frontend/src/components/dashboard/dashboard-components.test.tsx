@@ -162,6 +162,41 @@ describe("dashboard components", () => {
     expect(onCreateAbsence).toHaveBeenCalledWith("absence-sick-type");
   });
 
+  it("marks and removes a rest day from the selected day panel", async () => {
+    const onMarkRestDay = vi.fn();
+    const onRemoveRestDay = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={baseSelectedDay}
+        weeklyDays={[]}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+        onMarkRestDay={onMarkRestDay}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Rest day" }));
+    expect(onMarkRestDay).toHaveBeenCalledOnce();
+
+    rerender(
+      <DashboardOverview
+        summary={baseSummary}
+        selectedDay={baseSelectedDay}
+        weeklyDays={[]}
+        restDay
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+        onRemoveRestDay={onRemoveRestDay}
+      />
+    );
+
+    expect(screen.getByText("Confirmed as a day without work.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(onRemoveRestDay).toHaveBeenCalledOnce();
+  });
+
   it("explains how to configure absences when a new account has no absence types", async () => {
     const onConfigureAbsences = vi.fn();
     const user = userEvent.setup();
@@ -371,7 +406,7 @@ describe("dashboard components", () => {
     expect(screen.getByText("EUR 640.00")).toBeInTheDocument();
   });
 
-  it("shows worked, extra, and total weekly values in rhythm and flow", () => {
+  it("shows only worked for rhythm, then total including extra and extra for flow", () => {
     const summaryDays = weeklyDays.map((day) =>
       day.key === "2026-07-15"
         ? { ...day, extraMinutes: 60, baseAmount: 150, extraAmount: 20 }
@@ -380,19 +415,23 @@ describe("dashboard components", () => {
     const { rerender } = render(<WeeklyHoursCard days={summaryDays} />);
 
     expect(screen.getByText("Worked")).toBeInTheDocument();
+    expect(screen.getByText("Hours actually worked")).toBeInTheDocument();
     expect(screen.getByText("Extra")).toBeInTheDocument();
-    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("Extra-pay equivalent hours")).toBeInTheDocument();
+    expect(screen.queryByText("Total")).not.toBeInTheDocument();
     expect(screen.getByText("12h 30m")).toBeInTheDocument();
     expect(screen.getByText("1h 00m")).toBeInTheDocument();
-    expect(screen.getByText("13h 30m")).toBeInTheDocument();
+    expect(screen.queryByText("13h 30m")).not.toBeInTheDocument();
     expect(screen.getByText("+50%")).toBeInTheDocument();
 
     rerender(<WeeklyHoursCard variant="flow" days={summaryDays} flowCurrency="EUR" />);
 
-    expect(screen.getByText("Worked")).toBeInTheDocument();
     expect(screen.getByText("Extra")).toBeInTheDocument();
     expect(screen.getByText("Total")).toBeInTheDocument();
-    expect(screen.getByText("€230.00")).toBeInTheDocument();
+    expect(screen.getByText("Worked + extra")).toBeInTheDocument();
+    expect(screen.getByText("Additional earnings only")).toBeInTheDocument();
+    expect(screen.queryByText("Worked")).not.toBeInTheDocument();
+    expect(screen.queryByText("€230.00")).not.toBeInTheDocument();
     expect(screen.getByText("€20.00")).toBeInTheDocument();
     expect(screen.getByText("€250.00")).toBeInTheDocument();
     expect(screen.getByText("+50%")).toBeInTheDocument();

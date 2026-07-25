@@ -8,13 +8,12 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AbsenceTypeSettingRepository extends JpaRepository<AbsenceTypeSetting, UUID> {
+  Optional<AbsenceTypeSetting> findByUserIdAndCode(UUID userId, AbsenceType code);
   List<AbsenceTypeSetting> findAllByUserIdOrderByDisplayOrderAscNameAsc(UUID userId);
 
   List<AbsenceTypeSetting> findAllByUserIdAndActiveTrueOrderByDisplayOrderAscNameAsc(UUID userId);
 
   Optional<AbsenceTypeSetting> findByIdAndUserId(UUID id, UUID userId);
-
-  Optional<AbsenceTypeSetting> findByUserIdAndCode(UUID userId, AbsenceType code);
 
   boolean existsByUserIdAndNormalizedNameAndIdNot(UUID userId, String normalizedName, UUID id);
 
