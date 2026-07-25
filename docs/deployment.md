@@ -28,7 +28,7 @@ Use these production hostnames:
    - `alveryn-api`
    - `alveryn-db`
 4. When Render asks for unsynced secret values, set:
-   - `MAIL_PASSWORD`
+   - `MAIL_PASSWORD` to an App Password generated for `admin@alveryn.com`
 
 The Blueprint sets `FOUNDER_EMAIL` for the private administration portal. Only that matching
 account receives the `ADMIN` role; changing it requires a reviewed deployment configuration
@@ -59,6 +59,8 @@ Important values:
 - `GOOGLE_OAUTH_REDIRECT_URI=https://api.alveryn.com/api/auth/oauth/google/callback`
 - `REFRESH_COOKIE_SECURE=true`
 - `REFRESH_COOKIE_SAME_SITE=None` (required because the private portal and API use different sites)
+- `MAIL_USERNAME=admin@alveryn.com`
+- `MAIL_FROM=no-reply@alveryn.com` (a verified Google Workspace alias of the SMTP account)
 
 Google OAuth is configured but the frontend login button is currently hidden. Add Google credentials only when the feature is re-enabled publicly:
 
@@ -95,7 +97,7 @@ After deployment:
 
 1. Open `https://alveryn.com`.
 2. Register a new account.
-3. Verify email delivery from `studio365media@gmail.com`.
+3. Verify email delivery from `no-reply@alveryn.com`.
 4. Complete onboarding.
 5. Create a time-based Work Type.
 6. Create a unit-based Work Type and Unit Types.

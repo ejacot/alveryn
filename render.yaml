@@ -111,7 +111,9 @@ services:
       - key: MAIL_PORT
         value: 587
       - key: MAIL_USERNAME
-        value: studio365media@gmail.com
+        value: admin@alveryn.com
+      - key: MAIL_FROM
+        value: no-reply@alveryn.com
       - key: MAIL_PASSWORD
         sync: false
       - key: MAIL_STARTTLS

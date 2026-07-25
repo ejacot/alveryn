@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DefaultAuthenticationEmailService implements AuthenticationEmailService {
   private final JavaMailSender mailSender;
-  @Value("${spring.mail.username:}")
-  private String mailUsername;
+  @Value("${spring.mail.from:${spring.mail.username:}}")
+  private String mailFrom;
 
   @Override
   public void sendVerificationCode(UserAccount user, String code) {
@@ -40,8 +40,8 @@ public class DefaultAuthenticationEmailService implements AuthenticationEmailSer
   private void send(String to, String subject, String text, String safeLogMessage) {
     try {
       SimpleMailMessage message = new SimpleMailMessage();
-      if (mailUsername != null && !mailUsername.isBlank()) {
-        message.setFrom(mailUsername);
+      if (mailFrom != null && !mailFrom.isBlank()) {
+        message.setFrom(mailFrom);
       }
       message.setTo(to);
       message.setSubject(subject);

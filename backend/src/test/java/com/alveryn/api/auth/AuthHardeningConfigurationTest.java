@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(OutputCaptureExtension.class)
 class AuthHardeningConfigurationTest {
@@ -39,6 +40,20 @@ class AuthHardeningConfigurationTest {
     contextRunner
         .withPropertyValues("alveryn.auth.jwt-secret=01234567890123456789012345678901")
         .run(context -> assertThat(context.getBean(AuthProperties.class).frontendVerificationUrl()).isNull());
+  }
+
+  @Test
+  void authenticationEmailUsesConfiguredSenderAlias() {
+    contextRunner
+        .withPropertyValues(
+            "alveryn.auth.jwt-secret=01234567890123456789012345678901",
+            "spring.mail.username=admin@alveryn.com",
+            "spring.mail.from=no-reply@alveryn.com")
+        .run(
+            context ->
+                assertThat(ReflectionTestUtils.getField(
+                        context.getBean(DefaultAuthenticationEmailService.class), "mailFrom"))
+                    .isEqualTo("no-reply@alveryn.com"));
   }
 
   @Test
