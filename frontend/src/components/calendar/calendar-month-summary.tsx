@@ -1,10 +1,13 @@
 import { useTranslation } from "react-i18next";
+import { CardModuleTitle } from "../ui/card";
 
 type Props = {
   workedHours: string;
   paidAbsenceHours: string;
+  extraPaidHours: string;
   workGrossAmount: string;
   paidAbsenceGrossAmount: string;
+  extraPaidGrossAmount: string;
   hasWorkedTime: boolean;
   workedDays: number;
   absenceDays: number;
@@ -17,9 +20,10 @@ type Props = {
 export function CalendarMonthSummary({
   workedHours,
   paidAbsenceHours,
+  extraPaidHours,
   workGrossAmount,
   paidAbsenceGrossAmount,
-  hasWorkedTime,
+  extraPaidGrossAmount,
   workedDays,
   absenceDays,
   restDays,
@@ -31,25 +35,26 @@ export function CalendarMonthSummary({
 
   return (
     <section
-      className="space-y-5"
+      className="px-1 py-2"
       aria-label={t("monthlySummaryLabel")}
     >
-      {hasWorkedTime ? (
-        <article className="min-w-0 space-y-2">
+      <CardModuleTitle>{t("monthlySummaryLabel")}</CardModuleTitle>
+      <div className="grid grid-cols-2 items-end gap-6 border-b border-white/[0.07] pb-4">
+        <article className="min-w-0">
           <p className="hairline-text">{t("monthlySummary.worked")}</p>
-          <p className="truncate text-[3.2rem] font-semibold leading-none tracking-[-0.08em] text-white">
+          <p className="mt-1.5 truncate text-[2rem] font-semibold leading-none tracking-[-0.08em] text-white">
             {workedHours}
           </p>
         </article>
-      ) : null}
-
-      <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(3.75rem,0.85fr)_minmax(4.5rem,0.9fr)] gap-x-4 gap-y-5 sm:gap-x-6">
-        <article className="min-w-0 space-y-2">
+        <article className="min-w-0 text-right">
           <p className="hairline-text">{t("monthlySummary.grossPay")}</p>
-          <p className="truncate text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
+          <p className="mt-1.5 truncate text-[2rem] font-semibold leading-none tracking-[-0.08em] text-white">
             {workGrossAmount}
           </p>
         </article>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5 pt-4">
         <article className="space-y-2">
           <p className="hairline-text">{t("monthlySummary.workedDays")}</p>
           <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
@@ -87,7 +92,7 @@ export function CalendarMonthSummary({
           </p>
         </article>
         {paidAbsenceHours !== "0h 00m" ? (
-          <article className="col-span-3 min-w-0 space-y-2">
+          <article className="col-span-2 min-w-0 space-y-2 border-t border-white/[0.07] pt-4">
             <p className="hairline-text">{t("monthlySummary.paidAbsence")}</p>
             <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
               <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
@@ -95,6 +100,19 @@ export function CalendarMonthSummary({
               </p>
               <p className="truncate text-[1.35rem] font-semibold leading-none tracking-[-0.06em] text-white/72">
                 {paidAbsenceGrossAmount}
+              </p>
+            </div>
+          </article>
+        ) : null}
+        {extraPaidHours !== "0h 00m" ? (
+          <article className="col-span-2 min-w-0 space-y-2 border-t border-white/[0.07] pt-4">
+            <p className="hairline-text">{t("monthlySummary.extraPay")}</p>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
+              <p className="text-[1.55rem] font-semibold leading-none tracking-[-0.06em] text-white">
+                {extraPaidHours}
+              </p>
+              <p className="truncate text-[1.35rem] font-semibold leading-none tracking-[-0.06em] text-white/72">
+                {extraPaidGrossAmount}
               </p>
             </div>
           </article>

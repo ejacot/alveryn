@@ -11,18 +11,6 @@ import type {
 } from "../../types/dashboard";
 
 const baseSummary: DashboardSummaryMetrics = {
-  primaryMetric: {
-    label: "Today hours",
-    value: "8h 00m",
-    hint: ""
-  },
-  secondaryMetrics: [
-    {
-      label: "Today money",
-      value: "EUR 160.00",
-      hint: ""
-    }
-  ],
   extraTimeMetric: { label: "Extra hours", value: "2h 00m", hint: "" },
   extraMoneyMetric: { label: "Extra money", value: "EUR 40.00", hint: "" },
   totalTimeMetric: { label: "Total hours", value: "10h 00m", hint: "" },
@@ -262,6 +250,10 @@ describe("dashboard components", () => {
               title: "",
               kind: "TIME_BASED",
               subtitle: "",
+              projectTitle: "Hotel renovation",
+              projectNotes: "Use the service entrance.",
+              teamSize: 4,
+              address: "Leopoldstraße 10, München",
               notes: "Call the site manager before arrival.",
               duration: "2h 00m",
               amount: "EUR 40.00",
@@ -269,7 +261,11 @@ describe("dashboard components", () => {
                 {
                   id: "line-with-extra-pay",
                   label: "Overtime shift",
-                  quantity: "2h 00m",
+                  enteredValue: "20:00–22:00",
+                  interval: "20:00–22:00",
+                  hours: "2h 00m",
+                  quantity: "4 rooms",
+                  price: "EUR 40.00",
                   extraPayPercentage: 100
                 }
               ]
@@ -293,10 +289,18 @@ describe("dashboard components", () => {
     );
 
     expect(screen.getByText("Call the site manager before arrival.")).toBeInTheDocument();
-    expect(screen.getAllByText("Notes")).toHaveLength(1);
+    expect(screen.getByText("Notes")).toBeInTheDocument();
+    expect(screen.getByText("Use the service entrance.")).toBeInTheDocument();
+    expect(screen.getByText("Project notes")).toBeInTheDocument();
+    expect(screen.getByText("Hotel renovation")).toBeInTheDocument();
+    expect(screen.getByLabelText("4 people")).toHaveTextContent("4");
+    expect(screen.getByText("Leopoldstraße 10, München")).toBeInTheDocument();
+    expect(screen.getByText("20:00–22:00")).toBeInTheDocument();
+    expect(screen.getAllByText("2h 00m")).not.toHaveLength(0);
+    expect(screen.getAllByText("EUR 40.00")).not.toHaveLength(0);
+    expect(screen.getByText("Overtime shift").closest("div")).toHaveTextContent("+100%20:00–22:00");
+    expect(screen.queryByText("4 rooms")).not.toBeInTheDocument();
     expect(screen.getByText("+100%")).toBeInTheDocument();
-    expect(screen.getByText("Overtime shift").closest("div")).toHaveTextContent("+100%");
-    expect(screen.getByText("Overtime shift").closest("div")).not.toHaveTextContent("Extra");
   });
 
   it("renders absence as a day activity item", () => {
@@ -353,8 +357,8 @@ describe("dashboard components", () => {
   it("renders the expected dashboard metric structure", () => {
     render(<SummaryCards metrics={baseSummary} />);
 
-    expect(screen.getByText("Today hours")).toBeInTheDocument();
-    expect(screen.getByText("Today money")).toBeInTheDocument();
+    expect(screen.queryByText("Today hours")).not.toBeInTheDocument();
+    expect(screen.queryByText("Today money")).not.toBeInTheDocument();
     expect(screen.getByText("Extra hours")).toBeInTheDocument();
     expect(screen.getByText("Extra money")).toBeInTheDocument();
     expect(screen.getByText("Total hours")).toBeInTheDocument();
@@ -415,9 +419,9 @@ describe("dashboard components", () => {
     const { rerender } = render(<WeeklyHoursCard days={summaryDays} />);
 
     expect(screen.getByText("Worked")).toBeInTheDocument();
-    expect(screen.getByText("Hours actually worked")).toBeInTheDocument();
+    expect(screen.queryByText("Hours actually worked")).not.toBeInTheDocument();
     expect(screen.getByText("Extra")).toBeInTheDocument();
-    expect(screen.getByText("Extra-pay equivalent hours")).toBeInTheDocument();
+    expect(screen.queryByText("Extra-pay equivalent hours")).not.toBeInTheDocument();
     expect(screen.queryByText("Total")).not.toBeInTheDocument();
     expect(screen.getByText("12h 30m")).toBeInTheDocument();
     expect(screen.getByText("1h 00m")).toBeInTheDocument();
@@ -428,8 +432,8 @@ describe("dashboard components", () => {
 
     expect(screen.getByText("Extra")).toBeInTheDocument();
     expect(screen.getByText("Total")).toBeInTheDocument();
-    expect(screen.getByText("Worked + extra")).toBeInTheDocument();
-    expect(screen.getByText("Additional earnings only")).toBeInTheDocument();
+    expect(screen.queryByText("Worked + extra")).not.toBeInTheDocument();
+    expect(screen.queryByText("Additional earnings only")).not.toBeInTheDocument();
     expect(screen.queryByText("Worked")).not.toBeInTheDocument();
     expect(screen.queryByText("€230.00")).not.toBeInTheDocument();
     expect(screen.getByText("€20.00")).toBeInTheDocument();
@@ -441,6 +445,24 @@ describe("dashboard components", () => {
     expect(flowBar.querySelector('[data-segment="extra"]')).toHaveStyle({
       height: `${(20 / 170) * 100}%`
     });
+  });
+
+  it("shows the daily average extra-pay percentage in flow and rhythm", () => {
+    const days = weeklyDays.map((day) =>
+      day.key === "2026-07-15"
+        ? { ...day, extraPayPercentages: [25, 35, 50] }
+        : day
+    );
+    const { rerender } = render(<WeeklyHoursCard days={days} />);
+
+    expect(screen.getByText("+36.7%")).toBeInTheDocument();
+
+    rerender(<WeeklyHoursCard variant="flow" days={days} flowCurrency="EUR" />);
+
+    expect(screen.getByText("+36.7%")).toBeInTheDocument();
+    expect(screen.queryByText("+25%")).not.toBeInTheDocument();
+    expect(screen.queryByText("+35%")).not.toBeInTheDocument();
+    expect(screen.queryByText("+50%")).not.toBeInTheDocument();
   });
 
   it("renders localized weekly-hours empty state and chart", async () => {
@@ -467,7 +489,7 @@ describe("dashboard components", () => {
     expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Thu, Vacation")).toBeInTheDocument();
     expect(screen.queryByText("Vacation")).not.toBeInTheDocument();
-    expect(screen.getByText("Tagesdurchschnitt")).toBeInTheDocument();
+    expect(screen.queryByText("Tagesdurchschnitt")).not.toBeInTheDocument();
     expect(screen.getByText("25%")).toBeInTheDocument();
     expect(screen.getByLabelText("Wed, 8h 30m").querySelector(".bg-orange-400")).toBeInTheDocument();
     expect(screen.getByLabelText("Tue, 4h 00m").querySelector(".bg-neutral-500\\/55")).toBeInTheDocument();

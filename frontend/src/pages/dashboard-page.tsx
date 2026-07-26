@@ -180,9 +180,21 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () => rhythmRecords.filter((record) => recordOverlapsRange(record, previousWeekStartKey, previousWeekEndKey)),
     [previousWeekEndKey, previousWeekStartKey, rhythmRecords]
   );
+  const weeklyDailyRecords = useMemo(
+    () => weeklyRecords.filter((record) => !isProjectTotalRecord(record)),
+    [weeklyRecords]
+  );
+  const previousWeeklyDailyRecords = useMemo(
+    () => previousWeeklyRecords.filter((record) => !isProjectTotalRecord(record)),
+    [previousWeeklyRecords]
+  );
   const selectedDayRecords = useMemo(
     () => weeklyRecords.filter((record) => recordCoversDate(record, selectedDateKey)),
     [selectedDateKey, weeklyRecords]
+  );
+  const selectedDaySummaryRecords = useMemo(
+    () => selectedDayRecords.filter((record) => !isProjectTotalRecord(record)),
+    [selectedDayRecords]
   );
   const preferences = preferencesQuery.data ?? null;
   const absenceEmploymentId = selectedEmploymentId
@@ -219,24 +231,24 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () =>
       calculatePaidAbsenceDays({
         absences: selectedAbsence ? [selectedAbsence] : [],
-        activityDates: selectedDayRecords.map((record) => record.workDate),
+        activityDates: selectedDaySummaryRecords.map((record) => record.workDate),
         hourlyRates,
         preferences,
         from: selectedDateKey,
         to: selectedDateKey
       }),
-    [hourlyRates, preferences, selectedAbsence, selectedDateKey, selectedDayRecords]
+    [hourlyRates, preferences, selectedAbsence, selectedDateKey, selectedDaySummaryRecords]
   );
   const summary = useMemo<DashboardSummaryMetrics>(() => {
-    const todayMinutes = sumAllocatedRecordMinutes(selectedDayRecords, selectedDateKey, weeklyAbsences);
+    const todayMinutes = sumAllocatedRecordMinutes(selectedDaySummaryRecords, selectedDateKey, weeklyAbsences);
     const todayWorkBaseGross = sumAllocatedRecordBaseGross(
-      selectedDayRecords,
+      selectedDaySummaryRecords,
       selectedDateKey,
       weeklyAbsences
     );
-    const todayBaseGross = todayWorkBaseGross + sumPaidAbsenceGross(selectedDayPaidAbsences);
+    const todayBaseGross = todayWorkBaseGross;
     const todayExtraPaid = calculateExtraPaidInRange(
-      selectedDayRecords,
+      selectedDaySummaryRecords,
       selectedDateKey,
       selectedDateKey,
       weeklyAbsences
@@ -253,7 +265,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       extraMoneyMetric: todayExtraPaid.grossAmount > 0 ? {
         label: t("dashboard:summary.extraMoney"),
         value: formatCombinedGross(
-          selectedDayRecords.filter(hasExtraPay),
+          selectedDaySummaryRecords.filter(hasExtraPay),
           todayExtraPaid.grossAmount,
           t("dashboard:summary.mixedCurrencies")
         ),
@@ -267,7 +279,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       totalMoneyMetric: todayExtraPaid.grossAmount > 0 ? {
         label: t("dashboard:summary.totalMoney"),
         value: formatCombinedGross(
-          selectedDayRecords,
+          selectedDaySummaryRecords,
           todayBaseGross + todayExtraPaid.grossAmount,
           t("dashboard:summary.mixedCurrencies"),
           selectedDayPaidAbsences
@@ -290,7 +302,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   }, [
     selectedAbsence,
     selectedDayPaidAbsences,
-    selectedDayRecords,
+    selectedDaySummaryRecords,
     selectedDateKey,
     t,
     weeklyAbsences,
@@ -299,35 +311,45 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const weeklyDays = useMemo(
     () => buildWeeklyRhythmDays(
       weekDays,
-      weeklyRecords,
+      weeklyDailyRecords,
       weeklyAbsences,
       absenceTypesQuery.data ?? [],
       selectedDate,
       t
     ),
-    [absenceTypesQuery.data, selectedDate, t, weekDays, weeklyAbsences, weeklyRecords]
+    [absenceTypesQuery.data, selectedDate, t, weekDays, weeklyAbsences, weeklyDailyRecords]
   );
   const selectedDayOverview = useMemo(
     () => ({
       label: selectedDayLabel,
       entriesCount: selectedDayRecords.length + (selectedAbsence ? 1 : 0),
       totalDuration: formatMinutesAsDuration(
-        sumAllocatedRecordMinutes(selectedDayRecords, selectedDateKey, weeklyAbsences) +
+        sumAllocatedRecordMinutes(selectedDaySummaryRecords, selectedDateKey, weeklyAbsences) +
         sumPaidAbsenceMinutes(selectedDayPaidAbsences)
       ),
       totalGross: formatCombinedGross(
-        selectedDayRecords,
-        sumAllocatedRecordGross(selectedDayRecords, selectedDateKey, weeklyAbsences) +
+        selectedDaySummaryRecords,
+        sumAllocatedRecordGross(selectedDaySummaryRecords, selectedDateKey, weeklyAbsences) +
           sumPaidAbsenceGross(selectedDayPaidAbsences),
         t("dashboard:summary.mixedCurrencies"),
         selectedDayPaidAbsences
       ),
       activities: [
         ...buildSelectedDayActivities(selectedDayRecords, t),
-        ...(selectedAbsence ? [toAbsenceActivity(selectedAbsence, selectedDayPaidAbsences[0]?.minutes ?? 0, t)] : [])
+        ...(selectedAbsence ? [toAbsenceActivity(
+          selectedAbsence,
+          selectedDayPaidAbsences[0]?.minutes ?? 0,
+          selectedDayPaidAbsences[0]
+            ? formatCurrency(
+                String(selectedDayPaidAbsences[0].grossAmount),
+                selectedDayPaidAbsences[0].currency
+              )
+            : "",
+          t
+        )] : [])
       ]
     }),
-    [selectedAbsence, selectedDateKey, selectedDayLabel, selectedDayPaidAbsences, selectedDayRecords, t, weeklyAbsences]
+    [selectedAbsence, selectedDateKey, selectedDayLabel, selectedDayPaidAbsences, selectedDayRecords, selectedDaySummaryRecords, t, weeklyAbsences]
   );
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -351,22 +373,22 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   }
 
   return (
-    <div className="mx-auto w-full pb-10">
+    <div className="dashboard-glass-preview mx-auto w-full pb-10">
       <DashboardOverview
         summary={summary}
         selectedDay={selectedDayOverview}
         weeklyDays={weeklyDays}
         previousWeekAverageMinutes={averagePositiveValues(
           previousWeekDays.map((date) =>
-            sumAllocatedRecordMinutes(previousWeeklyRecords, date, previousWeeklyAbsences)
+            sumAllocatedRecordMinutes(previousWeeklyDailyRecords, date, previousWeeklyAbsences)
           )
         )}
         previousWeekAverageGross={averagePositiveValues(
           previousWeekDays.map((date) =>
-            sumAllocatedRecordGross(previousWeeklyRecords, date, previousWeeklyAbsences)
+            sumAllocatedRecordGross(previousWeeklyDailyRecords, date, previousWeeklyAbsences)
           )
         )}
-        flowCurrency={weeklyRecords[0]?.currency ?? preferences?.currency ?? "EUR"}
+        flowCurrency={weeklyDailyRecords[0]?.currency ?? preferences?.currency ?? "EUR"}
         absenceTypes={absenceTypesQuery.data ?? []}
         restDay={Boolean(selectedRestDay)}
         onMarkRestDay={() => {
@@ -490,6 +512,10 @@ function recordCoversDate(record: WorkRecord, date: string) {
   return record.workDate <= date && (record.workEndDate ?? record.workDate) >= date;
 }
 
+function isProjectTotalRecord(record: WorkRecord) {
+  return record.entryKind === "WORK_RECORD" && Boolean(record.workEndDate);
+}
+
 function recordOverlapsRange(record: WorkRecord, fromDate: string, toDate: string) {
   return record.workDate <= toDate && (record.workEndDate ?? record.workDate) >= fromDate;
 }
@@ -595,67 +621,117 @@ function toPhaseTwoWorkRecordActivity(
     .reduce((total, line) => total + Number(line.calculatedMinutes), 0);
   const mixedCurrencyLabel = t("dashboard:summary.mixedCurrencies");
   const currencies = new Set(workLines.map((line) => line.currencySnapshot));
+  const extraMinutes = workLines.reduce((total, line) => {
+    const percentage = line.extraPayPercentage ?? 0;
+    if (percentage <= 0) return total;
+    return total + (line.extraPaidEquivalentMinutes === undefined
+      ? Number(line.calculatedMinutes) * (percentage / 100)
+      : Number(line.extraPaidEquivalentMinutes));
+  }, 0);
+  const extraGross = workLines.reduce((total, line) => {
+    const percentage = line.extraPayPercentage ?? 0;
+    if (percentage <= 0) return total;
+    return total + (line.extraGrossAmount === undefined
+      ? Number(line.grossAmount) * (percentage / (100 + percentage))
+      : Number(line.extraGrossAmount));
+  }, 0);
+  const durationDays = recordDurationDays(record);
+  const spansMultipleDays = durationDays > 1;
 
   return {
     id: `record:${record.id}`,
     title: "",
     kind: "UNIT_BASED" as const,
-    subtitle: record.workEndDate
-      ? t("dashboard:selectedDay.jobDays", { count: recordDurationDays(record) })
+    subtitle: spansMultipleDays
+      ? t("dashboard:selectedDay.jobDays", { count: durationDays })
       : "",
+    projectTitle: record.projectTitle ?? null,
+    projectNotes: record.projectNotes ?? null,
+    teamSize: record.teamSize ?? null,
     address: record.address?.formatted ?? null,
     notes: record.notes,
-    periodLabel: record.workEndDate ? formatRecordPeriod(record) : null,
+    periodLabel: spansMultipleDays ? formatRecordPeriod(record) : null,
     duration: timeLines.length ? formatMinutesAsDuration(minutes) : "",
     amount:
       currencies.size === 1 && record.currency
         ? formatCurrency(record.grossAmount, record.currency)
         : mixedCurrencyLabel,
+    extraDuration: extraMinutes > 0 ? formatMinutesAsDuration(extraMinutes) : null,
+    extraAmount: extraGross > 0
+      ? currencies.size === 1
+        ? formatCurrency(String(extraGross), workLines[0]?.currencySnapshot ?? record.currency)
+        : mixedCurrencyLabel
+      : null,
     extraPayLabel: null,
     unitBreakdown: workLines.flatMap((line) => toPhaseTwoLineBreakdown(line))
   };
 }
 
-function toPhaseTwoLineBreakdown(line: WorkRecordLine) {
-  if (line.calculationMode === "TIME_HOURLY") {
-    const enteredTime = line.durationMinutes != null
+function toPhaseTwoLineBreakdown(
+  line: WorkRecordLine
+): SelectedDayActivity["unitBreakdown"] {
+  const interval = line.startTime && line.endTime
+    ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
+    : null;
+  const calculatedMinutes = Number(line.workedMinutes ?? line.calculatedMinutes ?? 0);
+  const hours = calculatedMinutes > 0
+    ? formatMinutesAsDuration(calculatedMinutes)
+    : line.durationMinutes != null
       ? formatMinutesAsDuration(line.durationMinutes)
-      : line.startTime && line.endTime
-        ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
-        : "";
-    return [{
-      id: line.id,
-      label: line.workTypeName,
-      quantity: enteredTime,
-      extraPayPercentage: line.extraPayPercentage,
-      displayOrder: line.displayOrder
-    }];
+      : null;
+  const price = formatCurrency(
+    line.totalGrossAmount ?? line.grossAmount ?? line.fixedAmountSnapshot ?? "0",
+    line.currencySnapshot
+  );
+  const base: SelectedDayActivity["unitBreakdown"][number] = {
+    id: line.id,
+    label: line.workTypeName,
+    enteredValue:
+      line.calculationMode === "FIXED_AMOUNT"
+        ? price
+        : line.calculationMode === "UNITS_PER_HOUR" || line.calculationMode === "UNITS_PER_UNIT"
+          ? (() => {
+              const unit = line.unitSymbol ?? line.unitLabel ?? "";
+              return unit ? `${line.quantity ?? "0"} ${unit}` : (line.quantity ?? "0");
+            })()
+          : line.durationMinutes != null
+            ? formatMinutesAsDuration(line.durationMinutes)
+            : interval ?? hours,
+    interval,
+    hours: line.calculationMode === "FIXED_AMOUNT" || line.calculationMode === "UNITS_PER_UNIT"
+      ? null
+      : hours,
+    price,
+    extraPayPercentage: line.extraPayPercentage,
+    displayOrder: line.displayOrder
+  };
+
+  if (
+    line.calculationMode === "TIME_HOURLY" ||
+    line.calculationMode === "TIME_ONLY" ||
+    line.calculationMode === "FIXED_AMOUNT"
+  ) {
+    return [{ ...base, quantity: null }];
   }
-  if (line.calculationMode === "FIXED_AMOUNT") {
-    return [{
-      id: line.id,
-      label: line.workTypeName,
-      quantity: formatCurrency(line.fixedAmountSnapshot ?? "0", line.currencySnapshot),
-      extraPayPercentage: line.extraPayPercentage,
-      displayOrder: line.displayOrder
-    }];
-  }
+
   const unit = line.unitSymbol ?? line.unitLabel ?? "";
   const quantity = unit
     ? `${formatQuantity(line.quantity ?? "0")} ${unit}`
     : formatQuantity(line.quantity ?? "0");
   return [
     {
-      id: line.id,
-      label: line.workTypeName,
+      ...base,
       quantity,
-      extraPayPercentage: line.extraPayPercentage,
-      displayOrder: line.displayOrder
     }
   ];
 }
 
-function toAbsenceActivity(absence: Absence, paidMinutes: number, t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]) {
+function toAbsenceActivity(
+  absence: Absence,
+  paidMinutes: number,
+  paidAmount: string,
+  t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"]
+) {
   const marker = absenceMarker(absence.absenceType);
   return {
     id: `absence-${absence.id}`,
@@ -667,7 +743,7 @@ function toAbsenceActivity(absence: Absence, paidMinutes: number, t: ReturnType<
           duration: formatMinutesAsDuration(paidMinutes)
         })
       : t("dashboard:absence.noWork"),
-    amount: "",
+    amount: paidAmount,
     unitBreakdown: [],
     marker
   };
@@ -722,13 +798,12 @@ function buildWeeklyRhythmDays(
   const extraPayPercentagesPerDay = days.map((day) => {
     const date = formatLocalIsoDate(day);
     if (hasAbsenceOnDate(absences, date)) return [];
-    return [...new Set(
-      records
-        .filter((record) => recordCoversDate(record, date))
-        .flatMap((record) => record.workLines ?? [])
-        .map((line) => line.extraPayPercentage ?? 0)
-        .filter((percentage) => percentage > 0)
-    )].sort((left, right) => left - right);
+    return records
+      .filter((record) => recordCoversDate(record, date))
+      .flatMap((record) => record.workLines ?? [])
+      .map((line) => line.extraPayPercentage ?? 0)
+      .filter((percentage) => percentage > 0)
+      .sort((left, right) => left - right);
   });
   const maximumDailyMinutes = Math.max(...minutesPerDay, 0);
   return days.map((day, index) => {

@@ -89,6 +89,7 @@ public class WorkRecord extends BaseEntity {
     if (value != null && !value.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("project must belong to session user");
     if (value != null && employment != null && !value.getEmployment().getId().equals(employment.getId())) throw new IllegalArgumentException("project and session must use the same employment");
     if (value != null && !value.contains(workDate)) throw new IllegalArgumentException("session date must be inside project period");
+    if (value != null && workEndDate != null && !value.contains(workEndDate)) throw new IllegalArgumentException("session end date must be inside project period");
     project = value;
   }
 

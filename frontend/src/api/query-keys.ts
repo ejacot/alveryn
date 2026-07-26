@@ -70,6 +70,9 @@ export const queryKeys = {
     range: (params: { from: string; to: string }) => ["work-records", "range", params] as const,
     detail: (id: string) => ["work-records", "detail", id] as const
   },
+  workProjects: {
+    all: () => ["work-projects"] as const
+  },
   workSessions: {
     current: () => ["work-sessions", "current"] as const
   },

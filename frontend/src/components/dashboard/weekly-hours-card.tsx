@@ -6,7 +6,7 @@ import type { WeeklyRhythmDay } from "../../types/dashboard";
 import { cn } from "../../utils/cn";
 import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 import { resolveWeekSwipeDirection } from "../navigation/week-selector.utils";
-import { Card } from "../ui/card";
+import { Card, CardModuleTitle } from "../ui/card";
 
 type Props = {
   variant?: "rhythm" | "flow";
@@ -47,24 +47,20 @@ export function WeeklyHoursCard({
     ? [
         {
           label: t("weeklyHours.totalMoney"),
-          description: t("weeklyHours.totalMoneyDescription"),
           value: formatCurrency(String(weeklyBaseAmount + weeklyExtraAmount), flowCurrency)
         },
         {
           label: t("weeklyHours.extraMoney"),
-          description: t("weeklyHours.extraMoneyDescription"),
           value: formatCurrency(String(weeklyExtraAmount), flowCurrency)
         }
       ]
     : [
         {
           label: t("weeklyHours.workedHours"),
-          description: t("weeklyHours.workedHoursDescription"),
           value: formatMinutesAsDuration(weeklyWorkedMinutes)
         },
         {
           label: t("weeklyHours.extraHours"),
-          description: t("weeklyHours.extraHoursDescription"),
           value: formatMinutesAsDuration(weeklyExtraMinutes)
         }
       ];
@@ -82,6 +78,12 @@ export function WeeklyHoursCard({
     : previousDailyAverage === 0
       ? currentWeekValue > 0 ? 100 : 0
       : ((dailyAverage - previousDailyAverage) / previousDailyAverage) * 100;
+  const numberFormatter = new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 2 });
+  const currencySymbol = new Intl.NumberFormat(i18n.resolvedLanguage, {
+    style: "currency",
+    currency: flowCurrency,
+    currencyDisplay: "narrowSymbol"
+  }).formatToParts(0).find((part) => part.type === "currency")?.value ?? flowCurrency;
 
   useLayoutEffect(() => {
     if (preservedViewportTop.current === null || !sectionRef.current) return;
@@ -120,33 +122,33 @@ export function WeeklyHoursCard({
   }, [selectedDayKey]);
 
   return (
-    <section ref={sectionRef} className="space-y-4">
-      <p className="hairline-text">
-        {t(variant === "flow" ? "weeklyHours.flowEyebrow" : "weeklyHours.eyebrow")}
-      </p>
+    <section ref={sectionRef}>
       {hasDays ? (
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-black/10 px-5 py-4 dark:border-white/10">
+        <Card variant="ambient" className="overflow-hidden">
+          <CardModuleTitle className="mb-0 px-5 pt-3.5">
+            {t(variant === "flow" ? "weeklyHours.flowEyebrow" : "weeklyHours.eyebrow")}
+          </CardModuleTitle>
+          <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-5 py-2.5 dark:border-white/10">
             <div>
-              <p className="text-xs font-medium text-neutral-500 dark:text-white/45">
-                {t(variant === "flow" ? "weeklyHours.dailyEarningsAverage" : "weeklyHours.dailyAverage")}
-              </p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-white">
-                {new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 2 }).format(
-                  variant === "flow" ? dailyAverage : dailyAverage / 60
-                )}{variant === "rhythm" ? " h" : ` ${flowCurrency}`}
+              <p className="flex items-baseline gap-1.5 text-lg font-semibold tabular-nums text-neutral-950 dark:text-white">
+                <span className="text-sm text-neutral-500 dark:text-white/48">
+                  {variant === "flow" ? currencySymbol : "h"}
+                </span>
+                <span>{numberFormatter.format(variant === "flow" ? dailyAverage : dailyAverage / 60)}</span>
+                <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-white/42">
+                  avg
+                </span>
               </p>
             </div>
             {weekChange !== null ? (
               <div className={cn(
-                "flex items-center gap-1 text-sm font-semibold tabular-nums",
-                weekChange >= 0 ? "text-emerald-500" : "text-red-500"
+                "flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
+                weekChange >= 0
+                  ? "border-emerald-500/15 bg-emerald-500/[0.08] text-emerald-500"
+                  : "border-red-500/15 bg-red-500/[0.08] text-red-500"
               )}>
-                {weekChange >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                {weekChange >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                 <span>{new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(Math.abs(weekChange))}%</span>
-                <span className="font-medium text-neutral-500 dark:text-white/45">
-                  {t("weeklyHours.fromLastWeek")}
-                </span>
               </div>
             ) : null}
           </div>
@@ -203,9 +205,15 @@ export function WeeklyHoursCard({
                   const flowExtraPercentage = flowTotalAmount > 0
                     ? Math.min((flowExtraAmount / flowTotalAmount) * 100, 100)
                     : 0;
-	                  const extraPayLabel = day.extraPayPercentages
-                        .map((percentage) => `+${new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(percentage)}%`)
-                        .join(" · ");
+	                  const averageExtraPayPercentage = day.extraPayPercentages.length > 0
+                        ? day.extraPayPercentages.reduce((total, percentage) => total + percentage, 0)
+                          / day.extraPayPercentages.length
+                        : null;
+	                  const extraPayLabel = averageExtraPayPercentage === null
+                        ? ""
+                        : `+${new Intl.NumberFormat(i18n.resolvedLanguage, {
+                            maximumFractionDigits: 1
+                          }).format(averageExtraPayPercentage)}%`;
 	                  const barHeight = Math.max(
                         maximumDailyValue > 0 ? Math.min((metricValue / maximumDailyValue) * 100, 100) : 0,
                         6
@@ -326,15 +334,12 @@ export function WeeklyHoursCard({
               "grid-cols-2"
             )}
           >
-            {weeklySummary.map((item) => (
-              <div key={item.label} className="min-w-0">
+            {weeklySummary.map((item, index) => (
+              <div key={item.label} className={cn("min-w-0", index === 1 && "text-right")}>
                 <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-neutral-500 dark:text-white/40">
                   {item.label}
                 </p>
-                <p className="mt-1 text-[0.68rem] leading-4 text-neutral-500 dark:text-white/45">
-                  {item.description}
-                </p>
-                <p className="mt-2 break-words text-base font-semibold tabular-nums text-neutral-950 dark:text-white">
+                <p className="mt-1.5 break-words text-base font-semibold tabular-nums text-neutral-950 dark:text-white">
                   {item.value}
                 </p>
               </div>

@@ -23,7 +23,7 @@ public class Address extends BaseEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private UserAccount user;
 
-  @Column(nullable = false, length = 150)
+  @Column(length = 150)
   private String street;
 
   @Column(name = "street_2", length = 150)
@@ -32,13 +32,13 @@ public class Address extends BaseEntity {
   @Column(name = "postal_code", length = 30)
   private String postalCode;
 
-  @Column(nullable = false, length = 100)
+  @Column(length = 100)
   private String city;
 
   @Column(length = 100)
   private String region;
 
-  @Column(nullable = false, length = 2)
+  @Column(length = 2)
   private String country;
 
   public Address(UserAccount user, String street, String street2, String postalCode, String city, String region, String country) {
@@ -47,20 +47,20 @@ public class Address extends BaseEntity {
   }
 
   public void update(String street, String street2, String postalCode, String city, String region, String country) {
-    this.street = require(street, "street", 150);
+    this.street = optional(street, 150);
     this.street2 = optional(street2, 150);
     this.postalCode = optional(postalCode, 30);
-    this.city = require(city, "city", 100);
+    this.city = optional(city, 100);
     this.region = optional(region, 100);
     this.country = normalizeCountry(country);
-  }
-
-  private static String require(String value, String field, int maxLength) {
-    String normalized = optional(value, maxLength);
-    if (normalized == null) {
-      throw new IllegalArgumentException(field + " is required");
+    if (this.street == null
+        && this.street2 == null
+        && this.postalCode == null
+        && this.city == null
+        && this.region == null
+        && this.country == null) {
+      throw new IllegalArgumentException("at least one address field is required");
     }
-    return normalized;
   }
 
   private static String optional(String value, int maxLength) {
@@ -78,7 +78,11 @@ public class Address extends BaseEntity {
   }
 
   private static String normalizeCountry(String value) {
-    String normalized = require(value, "country", 2).toUpperCase(Locale.ROOT);
+    String normalized = optional(value, 2);
+    if (normalized == null) {
+      return null;
+    }
+    normalized = normalized.toUpperCase(Locale.ROOT);
     if (!normalized.matches("[A-Z]{2}")) {
       throw new IllegalArgumentException("country must be a two-letter code");
     }

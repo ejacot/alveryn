@@ -111,7 +111,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
           </h2>
         </div>
       </div> : null}
-      <div className="relative min-h-[84px] touch-pan-y overflow-hidden">
+      <div className="relative min-h-[62px] touch-pan-y overflow-hidden">
         <AnimatePresence custom={slideDirection} initial={false}>
           <motion.div
             key={weekKey}
@@ -163,44 +163,39 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                   aria-label={`${day.weekday} ${day.dayNumber}`}
                   data-state={state}
                   onClick={() => onChange(day.date)}
-                  className="flex min-h-[74px] flex-col items-center justify-between rounded-[24px] px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]"
+                  className={cn(
+                    "flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]",
+                    selected
+                      ? "week-day-selected rounded-[18px] bg-white text-black shadow-[0_12px_34px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.8)]"
+                      : "rounded-[24px]"
+                  )}
                 >
-                  <span className="text-[10px] font-semibold tracking-[0.2em] text-white/34">
+                  <span className={cn(
+                    "text-[10px] font-semibold tracking-[0.2em]",
+                    selected ? "week-day-selected-secondary text-black/55" : "text-white/34"
+                  )}>
                     {day.weekday.slice(0, 3)}
                   </span>
                   <motion.div
                     layout
+                    style={!selected && absence ? { color: absence.color } : undefined}
                     className={cn(
-                      "relative flex h-11 w-11 items-center justify-center rounded-full text-[15px] font-semibold transition",
+                      "relative flex h-8 w-full items-center justify-center text-[15px] font-semibold transition",
                       selected
-                        ? "bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
+                        ? "text-black"
                         : current
                           ? cn(
-                              "border border-white/[0.08] bg-white/[0.1]",
+                              "mx-auto w-11 rounded-full border border-white/[0.08] bg-white/[0.1]",
                               isTrackedEmptyDay ? "text-red-300" : "text-white/88"
                             )
-                          : isTrackedEmptyDay ? "text-red-300" : "text-white/76"
+                          : cn(
+                              "mx-auto w-11 rounded-full",
+                              isTrackedEmptyDay ? "text-red-300" : "text-white/76"
+                            )
                     )}
                   >
                     {day.dayNumber}
                   </motion.div>
-                  {absence ? (
-                    <span
-                      className="block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: absence.color }}
-                      aria-hidden="true"
-                    />
-                  ) : hasEntries ? (
-                    <span
-                      className={cn(
-                        "block h-2 w-2 rounded-full transition",
-                        selected ? "bg-black/68" : current ? "bg-white/72" : "bg-white/46"
-                      )}
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <span className="block h-2 w-2" aria-hidden="true" />
-                  )}
                 </motion.button>
               );
             })}

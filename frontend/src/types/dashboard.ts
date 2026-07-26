@@ -42,16 +42,25 @@ export type SelectedDayActivity = {
   title: string;
   kind: "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" | "ABSENCE";
   subtitle: string;
+  projectTitle?: string | null;
+  projectNotes?: string | null;
+  teamSize?: number | null;
   address?: string | null;
   notes?: string | null;
   periodLabel?: string | null;
   duration: string;
   amount: string;
+  extraDuration?: string | null;
+  extraAmount?: string | null;
   extraPayLabel?: string | null;
   unitBreakdown: Array<{
     id?: string;
     label: string;
-    quantity: string;
+    enteredValue?: string | null;
+    interval?: string | null;
+    hours?: string | null;
+    quantity?: string | null;
+    price?: string | null;
     extraPayPercentage?: number | null;
     displayOrder?: number | null;
   }>;

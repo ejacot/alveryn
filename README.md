@@ -6,17 +6,19 @@
 [![Live app](https://img.shields.io/badge/live-alveryn.com-0f172a?style=flat-square)](https://alveryn.com)
 [![API health](https://img.shields.io/badge/api-api.alveryn.com-0f172a?style=flat-square)](https://api.alveryn.com/actuator/health)
 
-Alveryn is a work tracking and earnings analytics application for people who need a precise view of time, unit-based work, rates, absences, salary periods, and statistics.
+Alveryn is a personal work tracking and earnings analytics application for people who need a precise view of time, unit-based work, projects, rates, absences, rest days, salary periods, and statistics.
 
 The project is organized as a Spring Boot backend plus a Vite/React frontend, with production infrastructure for Render.
 
 ## Product
 
 - Track time-based and unit-based work entries.
+- Organize multi-day projects with project totals and day-specific work sessions.
 - Model personal work types, rates, calculation methods, formula groups, and salary periods.
-- Review dashboard, calendar, statistics, and settings with the seeded sample data.
+- Classify calendar days as worked, absent, or rest days without distorting statistics.
+- Review dashboard, calendar, statistics, and settings through responsive phone, tablet, and desktop layouts.
 - Support registration, email verification, onboarding, JWT auth, refresh cookies, and production email delivery.
-- Run as a deployable web app with PWA assets and mobile-focused flows.
+- Run as a deployable PWA with an accessible liquid-glass visual system in light and dark themes.
 
 ## Stack
 

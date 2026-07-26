@@ -9,6 +9,8 @@ import com.alveryn.api.workproject.dto.*;
 import com.alveryn.api.workproject.entity.*;
 import com.alveryn.api.workproject.repository.WorkProjectRepository;
 import com.alveryn.api.workrecord.repository.WorkRecordRepository;
+import com.alveryn.api.workrecord.dto.WorkRecordResponse;
+import com.alveryn.api.workrecord.service.WorkRecordService;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,12 +21,17 @@ public class WorkProjectService {
   private final WorkProjectRepository projects; private final WorkRecordRepository sessions;
   private final UserAccountRepository users; private final AddressRepository addresses;
   private final EmploymentService employments; private final AuthenticatedUserAccessor authenticated;
+  private final WorkRecordService workRecordService;
   @Transactional(readOnly=true) public List<WorkProjectResponse> list() { return projects.findAllByUserIdOrderByStartDateDescCreatedAtDesc(authenticated.requireUserId()).stream().map(this::response).toList(); }
   @Transactional(readOnly=true) public WorkProjectResponse get(UUID id) { return response(requireOwned(id)); }
   @Transactional public WorkProjectResponse create(WorkProjectRequest request) {
     UUID uid=authenticated.requireUserId(); var user=users.findById(uid).orElseThrow(() -> new NotFoundException("User",uid));
     var employment=employments.requireOwned(request.employmentId());
     var project=new WorkProject(user,employment,request.title(),request.startDate()); configure(project,request,uid); return response(projects.save(project));
+  }
+  @Transactional public WorkRecordResponse createWithTotals(WorkProjectWithTotalsRequest request) {
+    WorkProjectResponse created = create(request.project());
+    return workRecordService.createProjectTotal(requireOwned(created.id()), request.totals());
   }
   @Transactional public WorkProjectResponse update(UUID id, WorkProjectRequest request) {
     var project=requireOwned(id); if (!project.getEmployment().getId().equals(request.employmentId())) throw new ValidationException("project employment cannot be changed");

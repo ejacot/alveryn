@@ -17,7 +17,9 @@ public class WorkProjectController {
   @GetMapping public ApiResponse<List<WorkProjectResponse>> list(){return ApiResponse.of(projects.list());}
   @GetMapping("/{id}") public ApiResponse<WorkProjectResponse> get(@PathVariable UUID id){return ApiResponse.of(projects.get(id));}
   @PostMapping @ResponseStatus(HttpStatus.CREATED) public ApiResponse<WorkProjectResponse> create(@Valid @RequestBody WorkProjectRequest r){return ApiResponse.of(projects.create(r));}
+  @PostMapping("/with-totals") @ResponseStatus(HttpStatus.CREATED) public ApiResponse<WorkRecordResponse> createWithTotals(@Valid @RequestBody WorkProjectWithTotalsRequest r){return ApiResponse.of(projects.createWithTotals(r));}
   @PutMapping("/{id}") public ApiResponse<WorkProjectResponse> update(@PathVariable UUID id,@Valid @RequestBody WorkProjectRequest r){return ApiResponse.of(projects.update(id,r));}
   @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable UUID id){projects.delete(id);}
   @PostMapping("/{id}/sessions") @ResponseStatus(HttpStatus.CREATED) public ApiResponse<WorkRecordResponse> addSession(@PathVariable UUID id,@Valid @RequestBody WorkRecordRequest r){return ApiResponse.of(sessions.createForProject(projects.requireOwned(id),r));}
+  @PostMapping("/{id}/totals") @ResponseStatus(HttpStatus.CREATED) public ApiResponse<WorkRecordResponse> addTotals(@PathVariable UUID id,@Valid @RequestBody WorkRecordRequest r){return ApiResponse.of(sessions.createProjectTotal(projects.requireOwned(id),r));}
 }

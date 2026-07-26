@@ -1,5 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type ProxyOptions } from "vite";
+import { vendorChunkName } from "./vite.vendor-chunks";
 
 function localApiProxy(target: string): ProxyOptions {
   return {
@@ -33,46 +34,7 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (!id.includes("node_modules")) {
-              return undefined;
-            }
-
-            if (
-              id.includes("/react/") ||
-              id.includes("/react-dom/") ||
-              id.includes("/scheduler/")
-            ) {
-              return "vendor-react";
-            }
-
-            if (
-              id.includes("/@tanstack/") ||
-              id.includes("/axios/") ||
-              id.includes("/react-router-dom/") ||
-              id.includes("/@remix-run/")
-            ) {
-              return "vendor-app";
-            }
-
-            if (
-              id.includes("/i18next/") ||
-              id.includes("/react-i18next/") ||
-              id.includes("/@fontsource/")
-            ) {
-              return "vendor-i18n";
-            }
-
-            if (id.includes("/framer-motion/") || id.includes("/motion-dom/")) {
-              return "vendor-motion";
-            }
-
-            if (id.includes("/zod/")) {
-              return "vendor-validation";
-            }
-
-            return "vendor";
-          }
+          manualChunks: vendorChunkName
         }
       }
     }

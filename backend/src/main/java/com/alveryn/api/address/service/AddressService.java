@@ -10,6 +10,7 @@ import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -89,18 +90,19 @@ public class AddressService {
     if (address == null) {
       return null;
     }
-    StringBuilder builder = new StringBuilder(address.getStreet());
-    if (address.getStreet2() != null) {
-      builder.append(", ").append(address.getStreet2());
+    List<String> parts = new ArrayList<>();
+    addIfPresent(parts, address.getStreet());
+    addIfPresent(parts, address.getStreet2());
+    addIfPresent(parts, address.getPostalCode());
+    addIfPresent(parts, address.getCity());
+    addIfPresent(parts, address.getRegion());
+    addIfPresent(parts, address.getCountry());
+    return String.join(", ", parts);
+  }
+
+  private static void addIfPresent(List<String> parts, String value) {
+    if (value != null && !value.isBlank()) {
+      parts.add(value);
     }
-    if (address.getPostalCode() != null) {
-      builder.append(", ").append(address.getPostalCode());
-    }
-    builder.append(" ").append(address.getCity());
-    if (address.getRegion() != null) {
-      builder.append(", ").append(address.getRegion());
-    }
-    builder.append(", ").append(address.getCountry());
-    return builder.toString();
   }
 }

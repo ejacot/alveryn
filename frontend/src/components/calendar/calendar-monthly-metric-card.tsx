@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
-import { Card } from "../ui/card";
+import { Card, CardModuleTitle } from "../ui/card";
 
 export type CalendarMonthlyMetricDay = {
   key: string;
@@ -37,34 +37,41 @@ export function CalendarMonthlyMetricCard({
   const change = previousMonthTotal === 0
     ? total > 0 ? 100 : 0
     : ((total - previousMonthTotal) / previousMonthTotal) * 100;
+  const numberFormatter = new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 2 });
+  const currencySymbol = new Intl.NumberFormat(i18n.resolvedLanguage, {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol"
+  }).formatToParts(0).find((part) => part.type === "currency")?.value ?? currency;
 
   return (
     <section
-      className="space-y-4"
       aria-label={t(variant === "flow" ? "monthlyCharts.flow" : "monthlyCharts.rhythm")}
     >
-      <p className="hairline-text">{t(variant === "flow" ? "monthlyCharts.flow" : "monthlyCharts.rhythm")}</p>
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 dark:border-white/10">
+      <Card variant="ambient" className="overflow-hidden">
+        <CardModuleTitle className="mb-0 px-5 pt-3.5">
+          {t(variant === "flow" ? "monthlyCharts.flow" : "monthlyCharts.rhythm")}
+        </CardModuleTitle>
+        <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-5 py-2.5 dark:border-white/10">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-neutral-500 dark:text-white/45">
-              {t("monthlyCharts.dailyAverage")}
-            </p>
-            <p className="mt-1 truncate text-xl font-semibold tabular-nums text-neutral-950 dark:text-white">
-              {new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 2 }).format(
-                variant === "flow" ? average : average / 60
-              )}{variant === "rhythm" ? " h" : ` ${currency}`}
+            <p className="flex items-baseline gap-1.5 text-lg font-semibold tabular-nums text-neutral-950 dark:text-white">
+              <span className="text-sm text-neutral-500 dark:text-white/48">
+                {variant === "flow" ? currencySymbol : "h"}
+              </span>
+              <span>{numberFormatter.format(variant === "flow" ? average : average / 60)}</span>
+              <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-white/42">
+                avg
+              </span>
             </p>
           </div>
           <div className={cn(
-            "flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums",
-            change >= 0 ? "text-emerald-500" : "text-red-500"
+            "flex h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
+            change >= 0
+              ? "border-emerald-500/15 bg-emerald-500/[0.08] text-emerald-500"
+              : "border-red-500/15 bg-red-500/[0.08] text-red-500"
           )}>
-            {change >= 0 ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
+            {change >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
             <span>{new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(Math.abs(change))}%</span>
-            <span className="font-medium text-neutral-500 dark:text-white/45">
-              {t("monthlyCharts.fromLastMonth")}
-            </span>
           </div>
         </div>
 

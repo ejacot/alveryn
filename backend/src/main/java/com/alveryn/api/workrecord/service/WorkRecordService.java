@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -68,12 +69,25 @@ public class WorkRecordService {
     return createInternal(request, project, WorkEntryKind.WORK_SESSION);
   }
 
+  @Transactional
+  public WorkRecordResponse createProjectTotal(WorkProject project, @Valid WorkRecordRequest request) {
+    LocalDate expectedEnd = project.getEndDate() == null ? project.getStartDate() : project.getEndDate();
+    LocalDate requestedEnd = request.workEndDate() == null ? request.workDate() : request.workEndDate();
+    if (!project.getStartDate().equals(request.workDate()) || !expectedEnd.equals(requestedEnd)) {
+      throw new ValidationException("Project totals must use the complete project period");
+    }
+    return createInternal(request, project, WorkEntryKind.WORK_RECORD);
+  }
+
   private WorkRecordResponse createInternal(WorkRecordRequest request, WorkProject project, WorkEntryKind entryKind) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     UserAccount user = users.findById(userId).orElseThrow(() -> new NotFoundException("User", userId));
 
     validateDateRange(request);
-    WorkRecord record = new WorkRecord(user, resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
+    Address address = request.addressId() == null && project != null
+        ? project.getAddress()
+        : resolveAddress(userId, request.addressId());
+    WorkRecord record = new WorkRecord(user, address, request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
     ensureNoRestDayOverlap(record, request);
@@ -122,6 +136,14 @@ public class WorkRecordService {
     record.update(resolveAddress(userId, request.addressId()), request.workDate(), request.workEndDate(), request.teamSize(), request.notes());
     record.classifyAs(entryKind);
     record.assignEmployment(resolveRecordEmployment(userId, request));
+    if (record.getProject() != null) {
+      record.assignProject(record.getProject());
+      if (entryKind == WorkEntryKind.WORK_RECORD
+          && (!record.getWorkDate().equals(record.getProject().getStartDate())
+          || !Objects.equals(record.getWorkEndDate(), record.getProject().getEndDate()))) {
+        throw new ValidationException("Project totals must use the complete project period");
+      }
+    }
     ensureNoRestDayOverlap(record, request);
     persistLines(userId, record, request);
     return toResponse(record);
@@ -379,6 +401,7 @@ public class WorkRecordService {
         record.getEmployment() == null ? null : record.getEmployment().getId(),
         record.getProject() == null ? null : record.getProject().getId(),
         record.getProject() == null ? null : record.getProject().getTitle(),
+        record.getProject() == null ? null : record.getProject().getNotes(),
         record.getWorkDate(),
         record.getWorkEndDate(),
         record.getAddress() == null ? null : record.getAddress().getId(),

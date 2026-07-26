@@ -293,6 +293,42 @@ class UserConfigurationIntegrationTest {
   }
 
   @Test
+  void addressCanContainOnlyStreetCityOrPostalCode() throws Exception {
+    UserAccount user = createVerifiedUser("partial-addresses@example.com");
+    String token = bearerToken(user);
+
+    mockMvc
+        .perform(
+            post("/api/addresses")
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"street\":\"Leopoldstrasse 120\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.street").value("Leopoldstrasse 120"))
+        .andExpect(jsonPath("$.data.formatted").value("Leopoldstrasse 120"));
+
+    mockMvc
+        .perform(
+            post("/api/addresses")
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"city\":\"Munchen\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.city").value("Munchen"))
+        .andExpect(jsonPath("$.data.formatted").value("Munchen"));
+
+    mockMvc
+        .perform(
+            post("/api/addresses")
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"postalCode\":\"80802\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.postalCode").value("80802"))
+        .andExpect(jsonPath("$.data.formatted").value("80802"));
+  }
+
+  @Test
   void preferencesUpdateValidatesTimezoneCurrencyAndIgnoresOnboardingFlag() throws Exception {
     UserAccount user = createVerifiedUser("preferences@example.com");
 

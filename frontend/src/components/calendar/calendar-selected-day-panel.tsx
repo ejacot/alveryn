@@ -47,8 +47,7 @@ export function CalendarSelectedDayPanel({
 
       <AnimatePresence mode="popLayout" initial={false}>
         {activities.length ? (
-          <Card
-            as={motion.div}
+          <motion.div
             key={`entries-${title}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -56,14 +55,15 @@ export function CalendarSelectedDayPanel({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-3"
           >
-            {activities.map((activity) => (
+            {activities.map((activity, index) => (
               <SelectedDayActivityCard
                 key={activity.id}
                 activity={activity}
+                sectionLabel={index === 0 ? t("activity") : undefined}
                 onSelect={onEntrySelect}
               />
             ))}
-          </Card>
+          </motion.div>
         ) : null}
 
         {!hasContent ? (

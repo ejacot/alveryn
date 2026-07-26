@@ -16,7 +16,7 @@ import { queryKeys } from "../../api/query-keys";
 import { useEmploymentScope } from "../../features/employment/employment-scope";
 import type { WorkType } from "../../types/configuration";
 import type { WorkSessionCheckoutPayload } from "../../types/work-session";
-import { Card } from "../ui/card";
+import { Card, CardModuleTitle } from "../ui/card";
 import { LockedModalViewport } from "../ui/locked-modal-viewport";
 import { ModalPanel } from "../ui/modal-panel";
 
@@ -117,9 +117,9 @@ export function TimeTrackingCard() {
   const showEmploymentName = !selectedEmploymentId && timeEmployments.length > 1;
 
   return (
-    <section className="space-y-3" aria-labelledby="time-tracking-title">
-      <p id="time-tracking-title" className="hairline-text">{t("timeTracking.title")}</p>
-      <Card className="overflow-hidden px-5 py-5">
+    <section aria-labelledby="time-tracking-title">
+      <Card variant="ambient" className="overflow-hidden px-5 py-5">
+        <CardModuleTitle id="time-tracking-title">{t("timeTracking.title")}</CardModuleTitle>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="font-name truncate text-lg font-semibold tracking-[-0.04em] text-white">

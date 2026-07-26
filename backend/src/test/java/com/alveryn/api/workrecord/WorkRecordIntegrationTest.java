@@ -531,6 +531,63 @@ class WorkRecordIntegrationTest {
   }
 
   @Test
+  void createsProjectTotalsAndKeepsDailySessionsSeparate() throws Exception {
+    UserAccount user = createVerifiedUser("project-totals@example.com");
+    WorkType workType = createWorkType(user, "Project work", CalculationMethod.TIME_BASED, CompensationMethod.HOURLY);
+    WorkType child =
+        createChildWorkType(workType, "Shift", WorkLineCalculationMode.TIME_HOURLY, null, null, null, null, null);
+    createRate(user, "20.00", "EUR");
+
+    String response =
+        mockMvc
+            .perform(
+                post("/api/work-projects/with-totals")
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "project":{
+                            "employmentId":"%s",
+                            "title":"Hotel renovation",
+                            "startDate":"2026-07-27",
+                            "endDate":"2026-07-29"
+                          },
+                          "totals":{
+                            "workDate":"2026-07-27",
+                            "workEndDate":"2026-07-29",
+                            "lines":[{
+                              "workTypeId":"%s",
+                              "durationMinutes":120,
+                              "unpaidBreakMinutes":0
+                            }]
+                          }
+                        }
+                        """
+                            .formatted(workType.getEmployment().getId(), child.getId())))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.entryKind").value("WORK_RECORD"))
+            .andExpect(jsonPath("$.data.projectTitle").value("Hotel renovation"))
+            .andExpect(jsonPath("$.data.workedMinutes").value(120))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    String projectId = extractJsonValue(response, "projectId");
+    mockMvc
+        .perform(
+            post("/api/work-projects/" + projectId + "/sessions")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(timeRecordJson(child, "2026-07-28")))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.entryKind").value("WORK_SESSION"))
+        .andExpect(jsonPath("$.data.projectId").value(projectId))
+        .andExpect(jsonPath("$.data.workDate").value("2026-07-28"))
+        .andExpect(jsonPath("$.data.workEndDate").doesNotExist());
+  }
+
+  @Test
   void calendarActivityRangeUsesWorkRecordsWhenLegacyEntriesAreAbsent() throws Exception {
     UserAccount user = createVerifiedUser("calendar-range-record@example.com");
     workRecords.saveAndFlush(new com.alveryn.api.workrecord.entity.WorkRecord(

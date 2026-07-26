@@ -21,6 +21,7 @@ import type {
   WeeklySchedulePayload
 } from "../types/schedule";
 import type { EmploymentRestDay } from "../types/rest-day";
+import type { WorkProject, WorkProjectPayload } from "../types/work-project";
 import { http } from "./http";
 
 export type Credentials = {
@@ -379,6 +380,42 @@ export async function updateAddress(id: string, payload: AddressPayload) {
 
 export async function deleteAddress(id: string) {
   await http.delete(`/api/addresses/${id}`);
+}
+
+export async function listWorkProjects() {
+  const response = await http.get<ApiResponse<WorkProject[]>>("/api/work-projects");
+  return response.data.data;
+}
+
+export async function createWorkProject(payload: WorkProjectPayload) {
+  const response = await http.post<ApiResponse<WorkProject>>("/api/work-projects", payload);
+  return response.data.data;
+}
+
+export async function createWorkProjectWithTotals(
+  project: WorkProjectPayload,
+  totals: WorkRecordRequest
+) {
+  const response = await http.post<ApiResponse<WorkRecord>>(
+    "/api/work-projects/with-totals",
+    { project, totals }
+  );
+  return response.data.data;
+}
+
+export async function updateWorkProject(id: string, payload: WorkProjectPayload) {
+  const response = await http.put<ApiResponse<WorkProject>>(`/api/work-projects/${id}`, payload);
+  return response.data.data;
+}
+
+export async function createProjectTotal(projectId: string, payload: WorkRecordRequest) {
+  const response = await http.post<ApiResponse<WorkRecord>>(`/api/work-projects/${projectId}/totals`, payload);
+  return response.data.data;
+}
+
+export async function createProjectSession(projectId: string, payload: WorkRecordRequest) {
+  const response = await http.post<ApiResponse<WorkRecord>>(`/api/work-projects/${projectId}/sessions`, payload);
+  return response.data.data;
 }
 
 export async function getOnboardingStatus() {

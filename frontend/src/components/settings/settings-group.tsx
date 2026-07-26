@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../../utils/cn";
-import { Card } from "../ui/card";
+import { Card, CardModuleTitle } from "../ui/card";
 
 type SettingsGroupProps = {
   title: string;
@@ -21,13 +21,15 @@ type SettingsRowProps = {
 
 export function SettingsGroup({ title, description, children }: SettingsGroupProps) {
   return (
-    <section className="space-y-2">
-      <div className="space-y-1">
-        <p className="hairline-text">{title}</p>
-        {description ? <p className="text-sm leading-5 text-white/42">{description}</p> : null}
-      </div>
-      <Card className="overflow-hidden">
+    <section>
+      <Card variant="ambient" className="overflow-hidden">
+        <div className="px-5 pt-4">
+          <CardModuleTitle className={description ? "mb-2" : "mb-3"}>{title}</CardModuleTitle>
+          {description ? <p className="mb-3 text-center text-sm leading-5 text-white/42">{description}</p> : null}
+        </div>
+        <div className="border-t border-white/[0.06]">
         {children}
+        </div>
       </Card>
     </section>
   );

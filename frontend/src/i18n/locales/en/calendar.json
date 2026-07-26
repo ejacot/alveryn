@@ -8,6 +8,7 @@
   "jobDays_one": "{{count}} day",
   "jobDays_other": "{{count}} days",
   "title": "Calendar",
+  "activity": "Activity",
   "monthlySummaryLabel": "Monthly summary",
   "unavailable": "Calendar is unavailable.",
   "monthlySummary": {
@@ -19,7 +20,8 @@
     "missingDays": "Missing",
     "classifiedDays": "Classified",
     "mixedCurrencies": "Mixed",
-    "paidAbsence": "Paid",
+    "paidAbsence": "Paid absence",
+    "extraPay": "Extra pay",
     "paidAbsenceDetail": "Absence {{duration}}"
   },
   "legend": {

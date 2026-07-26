@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getCalendarActivityRange,
   getPreferences,
@@ -19,7 +18,6 @@ import {
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
-import { Button } from "../components/ui/button";
 import { CalendarErrorState } from "../components/calendar/calendar-error-state";
 import { CalendarMonthGrid } from "../components/calendar/calendar-month-grid";
 import { CalendarMonthSummary } from "../components/calendar/calendar-month-summary";
@@ -454,23 +452,24 @@ export function CalendarPage() {
       ...records.map((record) => record.currency).filter(Boolean)
     ]);
     const currency = records[0]?.currency ?? paidAbsences[0]?.currency ?? "EUR";
-    const paidAbsenceCurrencies = new Set([
-      ...paidAbsences.map((absence) => absence.currency),
-      ...records.filter((record) => record.workLines?.some((line) => line.extraPayPercentage > 0))
-        .map((record) => record.currency)
-        .filter((value): value is string => Boolean(value))
-    ]);
+    const paidAbsenceCurrencies = new Set(
+      paidAbsences.map((absence) => absence.currency)
+    );
     const totalCurrencies = new Set([...currencies, ...paidAbsenceCurrencies]);
 
     return {
       workedHours: formatMinutesAsDuration(workedMinutes),
-      paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes + extraPaid.minutes),
+      paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes),
+      extraPaidHours: formatMinutesAsDuration(extraPaid.minutes),
       workGrossAmount: totalCurrencies.size > 1
         ? t("monthlySummary.mixedCurrencies")
         : formatCurrency(String(workGrossAmount + paidAbsenceGrossAmount), currency),
       paidAbsenceGrossAmount: paidAbsenceCurrencies.size > 1
         ? t("monthlySummary.mixedCurrencies")
-        : formatCurrency(String(paidAbsenceGrossAmount + extraPaid.grossAmount), paidAbsences[0]?.currency ?? currency),
+        : formatCurrency(String(paidAbsenceGrossAmount), paidAbsences[0]?.currency ?? currency),
+      extraPaidGrossAmount: currencies.size > 1
+        ? t("monthlySummary.mixedCurrencies")
+        : formatCurrency(String(extraPaid.grossAmount), currency),
       hasWorkedTime: workedMinutes > 0,
       workedDays,
       absenceDays,
@@ -529,7 +528,7 @@ export function CalendarPage() {
 
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-6 pb-28 pt-8">
-      <header className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[560px]">
+      <header className="settings-sticky-header dashboard-sticky-header calendar-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[560px]">
         <div
           className={`settings-sticky-header-title absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0"
@@ -550,25 +549,6 @@ export function CalendarPage() {
       </h1>
 
       <section className="space-y-4">
-        <div className="hidden items-center justify-end gap-2 md:flex">
-          <Button
-            variant="ghost"
-            className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.02] px-4 text-white/50 hover:bg-white/[0.035]"
-            onClick={() => changeMonth(-1)}
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-10 min-h-10 rounded-full border border-white/[0.06] bg-white/[0.02] px-4 text-white/50 hover:bg-white/[0.035]"
-            onClick={() => changeMonth(1)}
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-
         <CalendarMonthGrid
           monthLabel={formatMonthLabel(activeMonth)}
           monthKey={`${year}-${month}`}

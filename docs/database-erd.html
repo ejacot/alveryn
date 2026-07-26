@@ -262,7 +262,7 @@
   <header>
     <div>
       <h1>Alveryn Database ERD</h1>
-      <p class="subtitle">Generated from current Flyway migrations and JPA entities. Schema version: V36.</p>
+      <p class="subtitle">Core conceptual view of the Flyway-managed schema. Current schema version: V67.</p>
     </div>
     <div class="legend">
       <span class="pill">PK primary key</span>
@@ -274,7 +274,7 @@
 
   <main>
     <div class="notice">
-      Current architecture: <strong>WorkRecord</strong> groups one day/job, <strong>WorkRecordLine</strong> stores performed activities, and <strong>WorkType</strong> is now both formula and optional parent category. <span class="removed">`unit_types`, `unit_entry_items`, `work_type_configurations`, `work_entries`, Excel import tables and `time_spans` are removed from the current schema.</span>
+      Current architecture: <strong>WorkProject</strong> owns multi-day project identity, <strong>WorkRecord</strong> stores a dated session or project totals, <strong>WorkRecordLine</strong> stores performed activities, and <strong>WorkType</strong> is both formula and optional parent category. The complete V67 table inventory, including employment, organization, scheduling, analytics and rest-day tables, is maintained in <a href="database.md">database.md</a>. <span class="removed">Legacy work-entry, Excel-import and `time_spans` tables are removed.</span>
     </div>
 
     <section class="layout" aria-label="Database tables">
@@ -403,11 +403,14 @@
       <div class="domain">
         <p class="domain-title">Work Tracking</p>
         <article class="table">
-          <h3>work_records <span class="tag current">current job/day</span></h3>
+          <h3>work_records <span class="tag current">session / project totals</span></h3>
           <ul>
             <li class="pk"><code>id</code><span class="type">uuid</span></li>
             <li class="fk"><code>user_id</code><span class="type">uuid</span></li>
-            <li class="fk"><code>address_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>employment_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>project_id</code><span class="type">uuid optional</span></li>
+            <li class="fk"><code>address_id</code><span class="type">uuid optional</span></li>
+            <li><code>entry_kind</code><span class="type">SESSION | PROJECT_TOTAL</span></li>
             <li><code>work_date</code><span class="type">date</span></li>
             <li><code>work_end_date</code><span class="type">date</span></li>
             <li><code>team_size</code><span class="type">integer</span></li>
@@ -419,7 +422,7 @@
           <h3>work_record_lines <span class="tag current">current activity line</span></h3>
           <ul>
             <li class="pk"><code>id</code><span class="type">uuid</span></li>
-            <li class="fk"><code>work_record_id</code><span class="type">uuid</span></li>
+            <li class="fk"><code>work_session_id</code><span class="type">uuid</span></li>
             <li class="fk"><code>work_type_id</code><span class="type">uuid</span></li>
             <li><code>display_order</code><span class="type">integer</span></li>
             <li class="snapshot"><code>work_type_name_snapshot</code><span class="type">varchar(100)</span></li>
@@ -506,9 +509,10 @@
         <ul class="relation-list">
           <li><code>user_accounts</code> <span class="arrow">1 → 1</span> <code>user_profiles</code></li>
           <li><code>user_accounts</code> <span class="arrow">1 → 1</span> <code>user_preferences</code></li>
-          <li><code>user_accounts</code> <span class="arrow">1 → many</span> <code>addresses</code>, <code>work_types</code>, <code>work_records</code>, <code>absence_types</code>, <code>absences</code>, <code>hourly_rate_periods</code></li>
+          <li><code>user_accounts</code> <span class="arrow">1 → many</span> <code>employments</code>, <code>addresses</code>, <code>work_types</code>, <code>work_projects</code>, <code>work_records</code>, <code>absence_types</code>, <code>absences</code>, <code>employment_rest_days</code>, <code>hourly_rate_periods</code></li>
           <li><code>addresses</code> <span class="arrow">1 → many</span> <code>work_records</code>; optional <code>user_profiles.address_id</code></li>
           <li><code>work_types.parent_work_type_id</code> <span class="arrow">self parent → children</span> <code>work_types.id</code></li>
+          <li><code>work_projects</code> <span class="arrow">1 → many</span> <code>work_records</code>; a record is either a dated session or project totals</li>
           <li><code>work_records</code> <span class="arrow">1 → many</span> <code>work_record_lines</code></li>
           <li><code>work_record_lines.work_type_id</code> <span class="arrow">many → 1</span> <code>work_types.id</code></li>
           <li><code>absences.absence_type_id</code> <span class="arrow">many → 1</span> <code>absence_types.id</code></li>
@@ -518,7 +522,7 @@
       <div class="relation-panel">
         <h2>Important current notes</h2>
         <ul class="relation-list">
-          <li><span class="current">Current work flow:</span> create a <code>work_record</code>, add multiple <code>work_record_lines</code>, each line points to a <code>work_type</code>.</li>
+          <li><span class="current">Current work flow:</span> create a standalone <code>work_record</code>, or create a <code>work_project</code> with project totals and dated session records; each record owns multiple <code>work_record_lines</code>.</li>
           <li><span class="current">Advanced work types:</span> a parent <code>work_type</code> has <code>composite_enabled = true</code> and child work types through <code>parent_work_type_id</code>.</li>
           <li><span class="current">Simple work types:</span> no parent and no children; formula lives directly on <code>work_types</code>.</li>
           <li><span class="current">Absences:</span> paid/unpaid and paid hours are configured in <code>absence_types</code>, then snapshotted into <code>absences</code>.</li>

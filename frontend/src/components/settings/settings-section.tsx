@@ -1,3 +1,5 @@
+import { Card, CardModuleTitle } from "../ui/card";
+
 type Props = {
   title: string;
   children: React.ReactNode;
@@ -6,15 +8,12 @@ type Props = {
 
 export function SettingsSection({ title, description, children }: Props) {
   return (
-    <section className="space-y-2">
-      <div className="space-y-1">
-        <p className="hairline-text">{title}</p>
-        {description ? <p className="text-sm text-white/42">{description}</p> : null}
-      </div>
-      <Card className="p-4">
+    <section>
+      <Card variant="ambient" className="p-4">
+        <CardModuleTitle className={description ? "mb-2" : undefined}>{title}</CardModuleTitle>
+        {description ? <p className="mb-4 text-center text-sm text-white/42">{description}</p> : null}
         {children}
       </Card>
     </section>
   );
 }
-import { Card } from "../ui/card";

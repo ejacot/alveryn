@@ -1,10 +1,11 @@
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
-export type CardVariant = "glass" | "section" | "muted" | "panel" | "auth";
+export type CardVariant = "glass" | "ambient" | "section" | "muted" | "panel" | "auth";
 
 const variantClassNames: Record<CardVariant, string> = {
   glass: "",
+  ambient: "glass-card--ambient",
   section: "p-5",
   muted: "rounded-[24px]",
   panel: "",
@@ -36,6 +37,23 @@ export function Card<T extends ElementType = "div">({
   return (
     <Component
       className={cn("universal-glass-card", variantClassNames[variant], className)}
+      {...props}
+    />
+  );
+}
+
+type CardModuleTitleProps = ComponentPropsWithoutRef<"p">;
+
+/**
+ * Shared title treatment for content modules. Keep action/list surfaces titleless.
+ */
+export function CardModuleTitle({ className, ...props }: CardModuleTitleProps) {
+  return (
+    <p
+      className={cn(
+        "hairline-text mb-4 text-center",
+        className
+      )}
       {...props}
     />
   );

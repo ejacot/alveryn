@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "../../utils/cn";
 import { getCalendarWeekdays, formatAriaDate, type CalendarDayCell } from "../../features/calendar/calendar-utils";
 import type { AbsenceTypeSetting } from "../../types/absence";
+import { CardModuleTitle } from "../ui/card";
 type DayMeta = {
   entriesCount: number;
   marker: { label: string; color: string } | null;
@@ -52,16 +53,15 @@ export function CalendarMonthGrid({
         : "flex min-h-[34px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[38px]";
 
   return (
-    <section className="mx-auto w-full max-w-[28rem] space-y-2.5 overflow-hidden sm:max-w-[32rem]" aria-label="Monthly calendar">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="hairline-text">
-          {monthLabel}
-          </h2>
-        </div>
+    <section
+      className="mx-auto w-full max-w-[32rem] overflow-hidden pb-2"
+      aria-label="Monthly calendar"
+    >
+      <div className="flex min-h-9 items-center justify-center">
+        <CardModuleTitle className="mb-0">{monthLabel}</CardModuleTitle>
       </div>
 
-      <div className="grid grid-cols-7 gap-1" role="row">
+      <div className="mt-2 grid grid-cols-7 gap-1 pt-2" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
@@ -72,7 +72,7 @@ export function CalendarMonthGrid({
         ))}
       </div>
 
-      <div className="relative overflow-hidden touch-pan-y">
+      <div className="relative mt-2 overflow-hidden touch-pan-y">
         <div className={`${gridClassName} invisible pointer-events-none`} aria-hidden="true">
           {days.map((day) => (
             <div
@@ -195,7 +195,7 @@ export function CalendarMonthGrid({
       </div>
 
       {absenceTypes.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 text-[10px] font-medium tracking-[0.14em] text-white/34">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 text-[10px] font-medium tracking-[0.14em] text-white/34">
           {absenceTypes.map((absenceType) => (
             <LegendDot
               key={absenceType.id}

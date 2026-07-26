@@ -15,6 +15,7 @@ public record WorkRecordResponse(
     UUID employmentId,
     UUID projectId,
     String projectTitle,
+    String projectNotes,
     LocalDate workDate,
     LocalDate workEndDate,
     UUID addressId,

@@ -38,12 +38,15 @@ export function SummaryCards({ metrics, onDaySwipe }: Props) {
       }}
       className="space-y-5 touch-pan-y"
     >
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-5 px-1 py-2">
         {[
           [primary ?? weekMetric, extraTime, totalTime],
           [financialMetrics[0] ?? null, extraMoney ?? financialMetrics[1] ?? null, totalMoney]
         ].map((column, columnIndex) => (
-          <div key={`summary-column-${columnIndex}`} className="min-w-0 space-y-5">
+          <div
+            key={`summary-column-${columnIndex}`}
+            className={`min-w-0 space-y-5 ${columnIndex === 1 ? "text-right" : ""}`}
+          >
             {column.filter((item): item is NonNullable<typeof item> => Boolean(item)).map((item, index) => (
               <motion.article
                 key={`${item.label}-${index}`}
@@ -68,7 +71,7 @@ export function SummaryCards({ metrics, onDaySwipe }: Props) {
           initial={{ opacity: 0.94, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, delay: 0.08 }}
-          className="border-t border-white/[0.08] pt-5"
+          className="border-t border-white/[0.09] px-1 pt-5"
         >
           <p className="hairline-text truncate">{absence.label}</p>
           {absence.duration || absence.amount ? (

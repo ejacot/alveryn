@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
-import { SummaryCards } from "./summary-cards";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
 import type { AbsenceTypeSetting } from "../../types/absence";
@@ -44,7 +43,6 @@ type Props = {
 };
 
 export function DashboardOverview({
-  summary,
   selectedDay,
   weeklyDays,
   previousWeekAverageMinutes,
@@ -98,7 +96,6 @@ export function DashboardOverview({
         absenceError={absenceError}
       />
       {timeTracker}
-      <SummaryCards metrics={summary} onDaySwipe={onDaySwipe} />
       <WeeklyHoursCard
         variant="flow"
         days={weeklyDays}
@@ -172,7 +169,7 @@ function SelectedDayPanel({
   if (restDay) {
     return (
       <motion.section {...swipeProps} className="touch-pan-y">
-        <Card variant="muted" className="flex min-h-[72px] items-center gap-3 px-4 py-3">
+        <Card variant="ambient" className="flex min-h-[72px] items-center gap-3 px-4 py-3">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full bg-white/35"
             aria-hidden="true"
@@ -205,7 +202,7 @@ function SelectedDayPanel({
   if (!selectedDay.entriesCount) {
     return (
       <motion.section {...swipeProps} className="space-y-3 touch-pan-y">
-        <Card variant="muted" className="overflow-hidden p-0 text-left">
+        <Card variant="ambient" className="overflow-hidden p-0 text-left">
           <div className="flex min-h-[68px] items-center justify-between gap-4 px-5 py-3.5">
             <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
             <button
@@ -258,26 +255,34 @@ function SelectedDayPanel({
   const multiple = selectedDay.entriesCount > 1;
 
   return (
-    <motion.section {...swipeProps} className="space-y-4 touch-pan-y">
-      <div>
-        <div>
-          <p className="hairline-text">
-            {multiple
-              ? t("selectedDay.activities", { count: selectedDay.entriesCount })
-              : t("selectedDay.activity")}
-          </p>
-        </div>
-      </div>
-
+    <motion.section {...swipeProps} className="touch-pan-y">
       <div className="space-y-3">
-        {selectedDay.activities.map((activity) => (
+        {selectedDay.activities.map((activity, index) => (
           <SelectedDayActivityCard
             key={activity.id}
             activity={activity}
+            sectionLabel={index === 0
+              ? multiple
+                ? t("selectedDay.activities", { count: selectedDay.entriesCount })
+                : t("selectedDay.activity")
+              : undefined}
             onSelect={onEntrySelect}
             onDeleteAbsence={onDeleteAbsence}
           />
         ))}
+        {selectedDay.activities.length > 1 ? (
+          <div className="flex items-end justify-between gap-6 px-1 pt-2">
+            <div>
+              <p className="hairline-text mb-1">{t("selectedDay.dayTotal")}</p>
+              <p className="text-base font-semibold tabular-nums text-white">
+                {selectedDay.totalDuration}
+              </p>
+            </div>
+            <p className="text-right text-base font-semibold tabular-nums text-white">
+              {selectedDay.totalGross}
+            </p>
+          </div>
+        ) : null}
       </div>
     </motion.section>
   );

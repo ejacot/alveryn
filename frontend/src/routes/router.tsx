@@ -8,6 +8,7 @@ import { RouteFallback } from "../components/ui/route-fallback";
 import { GuestRoute } from "./guest-route";
 import { ProtectedRoute } from "./protected-route";
 import { RouteErrorPage } from "../components/ui/route-error-page";
+import { ProfilePage } from "../pages/profile-page";
 import { APP_HOME_PATH } from "./app-paths";
 
 const WorkRecordEditorPage = lazy(() =>
@@ -33,11 +34,6 @@ const CalendarPage = lazy(() =>
 const StatisticsPage = lazy(() =>
   import("../pages/statistics-page").then((module) => ({
     default: module.StatisticsPage
-  }))
-);
-const ProfilePage = lazy(() =>
-  import("../pages/profile-page").then((module) => ({
-    default: module.ProfilePage
   }))
 );
 const SettingsProfilePage = lazy(() =>

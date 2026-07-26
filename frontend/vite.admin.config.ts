@@ -1,6 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type ProxyOptions } from "vite";
 import { resolve } from "node:path";
+import { vendorChunkName } from "./vite.vendor-chunks";
 
 function localApiProxy(target: string): ProxyOptions {
   return {
@@ -30,7 +31,12 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: resolve(process.cwd(), "dist-admin"),
-      emptyOutDir: true
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks: vendorChunkName
+        }
+      }
     }
   };
 });

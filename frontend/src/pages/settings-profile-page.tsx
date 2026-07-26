@@ -227,7 +227,7 @@ export function SettingsProfilePage() {
 
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
+      <header className="settings-sticky-header dashboard-sticky-header settings-page-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"

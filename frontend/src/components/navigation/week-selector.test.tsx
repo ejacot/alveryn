@@ -110,7 +110,7 @@ describe("WeekSelector", () => {
     expect(selectedButton).toHaveAttribute("data-state", "selected");
   });
 
-  it("marks tracked empty days in red and real absences with dots", async () => {
+  it("marks tracked empty days in red and colors absence dates without dots", async () => {
     vi.useRealTimers();
     vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
     vi.mocked(listAbsenceTypes).mockResolvedValue([
@@ -144,7 +144,8 @@ describe("WeekSelector", () => {
     const sickDay = await screen.findByRole("button", { name: /TUE 14/i });
     const emptyDay = screen.getByRole("button", { name: /MON 13/i });
     await waitFor(() => {
-      expect(sickDay.querySelector('span[style*="background-color"]')).toHaveStyle({ backgroundColor: "#e11d48" });
+      expect(sickDay.querySelector('div[style*="color"]')).toHaveStyle({ color: "#e11d48" });
+      expect(sickDay.querySelector('span[style*="background-color"]')).not.toBeInTheDocument();
       expect(sickDay.querySelector('[class*="text-red-300"]')).not.toBeInTheDocument();
       expect(emptyDay.querySelector('[class*="text-red-300"]')).toBeInTheDocument();
     });
@@ -175,7 +176,7 @@ describe("WeekSelector", () => {
     const recordDay = await screen.findByRole("button", { name: /MON 13/i });
     await waitFor(() => {
       expect(recordDay.querySelector('[class*="text-red-300"]')).not.toBeInTheDocument();
-      expect(recordDay.querySelector('span[class*="bg-white"]')).toBeInTheDocument();
+      expect(recordDay.querySelector('span[class*="bg-white"]')).not.toBeInTheDocument();
     });
   });
 

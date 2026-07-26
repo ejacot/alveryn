@@ -9,6 +9,7 @@
   "jobDays_few": "{{count}} zile",
   "jobDays_other": "{{count}} de zile",
   "title": "Calendar",
+  "activity": "Activitate",
   "monthlySummaryLabel": "Rezumat lunar",
   "unavailable": "Calendarul nu este disponibil.",
   "monthlySummary": {
@@ -20,7 +21,8 @@
     "missingDays": "Lipsă",
     "classifiedDays": "Clasificate",
     "mixedCurrencies": "Mixt",
-    "paidAbsence": "Plătit",
+    "paidAbsence": "Absență plătită",
+    "extraPay": "Plată suplimentară",
     "paidAbsenceDetail": "Absențe {{duration}}"
   },
   "legend": {

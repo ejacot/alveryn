@@ -1,6 +1,8 @@
 import type { WorkTypeFormulaMode } from "./configuration";
 import type { Address } from "./address";
 
+export type WorkRecordLineCalculationMode = WorkTypeFormulaMode | "TIME_ONLY";
+
 export type WorkRecordLineRequest = {
   workTypeId?: string | null;
   quantity?: number | null;
@@ -29,7 +31,7 @@ export type WorkRecordLine = {
   displayOrder: number;
   workTypeName: string;
   configurationName: string;
-  calculationMode: WorkTypeFormulaMode;
+  calculationMode: WorkRecordLineCalculationMode;
   unitLabel?: string | null;
   unitSymbol?: string | null;
   quantity?: string | null;
@@ -61,6 +63,7 @@ export type WorkRecord = {
   employmentId?: string | null;
   projectId?: string | null;
   projectTitle?: string | null;
+  projectNotes?: string | null;
   workDate: string;
   workEndDate?: string | null;
   addressId?: string | null;

@@ -102,7 +102,11 @@ export type WorkType = {
   deletable?: boolean;
 };
 
-export type WorkTypeFormulaMode = "TIME_HOURLY" | "UNITS_PER_HOUR" | "UNITS_PER_UNIT" | "FIXED_AMOUNT";
+export type WorkTypeFormulaMode =
+  | "TIME_HOURLY"
+  | "UNITS_PER_HOUR"
+  | "UNITS_PER_UNIT"
+  | "FIXED_AMOUNT";
 
 export type WorkTypeFormula = {
   id: string;

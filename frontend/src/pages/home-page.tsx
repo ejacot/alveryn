@@ -16,9 +16,9 @@ export function HomePage() {
   }).format(selectedDate);
 
   return (
-    <div className="space-y-4">
+    <div>
       <div
-        className="settings-sticky-header pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-[560px]"
+        className="settings-sticky-header dashboard-sticky-header pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto w-full max-w-[560px]"
       >
         <div className="relative top-16 z-10 flex h-9 items-center px-5">
           <span className="hairline-text whitespace-nowrap">{monthLabel}</span>
@@ -27,12 +27,12 @@ export function HomePage() {
             className="dashboard-header-wordmark absolute left-1/2 -translate-x-1/2"
           />
         </div>
-      </div>
-      <header className="space-y-2.5 pt-1" data-scroll-region="page-top">
-        <div className="space-y-2.5">
-          <div className="h-[1.25rem]" aria-hidden="true" />
+        <div className="dashboard-header-week pointer-events-auto absolute inset-x-5 top-[6.35rem] z-10">
           <WeekSelector value={selectedDate} onChange={setSelectedDate} showMonthLabel={false} />
         </div>
+      </div>
+      <header className="pt-1" data-scroll-region="page-top">
+        <div className="h-[7.25rem]" aria-hidden="true" />
       </header>
       <DashboardPage selectedDate={selectedDate} />
     </div>

@@ -321,10 +321,9 @@ describe("DashboardPage", () => {
 
     renderPage();
 
-    expect(await screen.findAllByText("Sick")).toHaveLength(2);
+    expect(await screen.findAllByText("Sick")).toHaveLength(1);
     expect(screen.getByText("Day off")).toBeInTheDocument();
     expect(screen.getByText("Equivalent worked time: 8h 00m")).toBeInTheDocument();
-    expect(screen.getByText("8h 00m")).toBeInTheDocument();
     expect(screen.getByText("€160.00")).toBeInTheDocument();
     expect(screen.queryByText("Today hours")).not.toBeInTheDocument();
     expect(screen.queryByText("Today money")).not.toBeInTheDocument();
@@ -438,8 +437,8 @@ describe("DashboardPage", () => {
     renderPage();
 
     expect(await screen.findAllByLabelText("Wed, Vacation")).toHaveLength(2);
-    expect(screen.getByText("10 h")).toBeInTheDocument();
-    expect(screen.getByText("250 EUR")).toBeInTheDocument();
+    expect(screen.queryByText("10 h")).not.toBeInTheDocument();
+    expect(screen.queryByText("250 EUR")).not.toBeInTheDocument();
   });
 
   it("keeps over-target rhythm days as their real worked total", async () => {
@@ -467,6 +466,6 @@ describe("DashboardPage", () => {
     renderPage();
 
     const activityCard = await screen.findByRole("button", { name: /orders/i });
-    expect(within(activityCard).getByText(/2h 00m/i)).toBeInTheDocument();
+    expect(within(activityCard).getAllByText(/2h 00m/i)).not.toHaveLength(0);
   });
 });

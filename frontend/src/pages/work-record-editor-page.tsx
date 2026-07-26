@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import {
   createAddress,
-  createWorkRecord,
+  createProjectSession,
+  createWorkProjectWithTotals,
   createWorkSession,
   deleteWorkRecord,
   getWorkRecord,
   getPreferences,
   listHourlyRates,
+  listWorkProjects,
   listWorkTypes,
   updateWorkRecord,
   updateWorkSession
@@ -19,7 +21,7 @@ import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
+import { Card, CardModuleTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
@@ -38,7 +40,11 @@ import {
 } from "../features/work-records/work-record-calculations";
 import type { WorkType, WorkTypeFormulaMode } from "../types/configuration";
 import type { Address, AddressPayload } from "../types/address";
-import type { WorkRecord, WorkRecordRequest } from "../types/work-record";
+import type {
+  WorkRecord,
+  WorkRecordLineCalculationMode,
+  WorkRecordRequest
+} from "../types/work-record";
 import { APP_HOME_PATH } from "../routes/app-paths";
 
 type OutletContext = {
@@ -49,7 +55,7 @@ type OutletContext = {
 type JobLineState = {
   id: string;
   workTypeId: string;
-  calculationMode: WorkTypeFormulaMode | null;
+  calculationMode: WorkRecordLineCalculationMode | null;
   timeInputMode: "RANGE" | "DURATION";
   quantity: string;
   fixedAmount: string;
@@ -92,7 +98,8 @@ async function invalidateWorkRecordQueries(queryClient: ReturnType<typeof useQue
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
     queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
     queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
+    queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.workProjects.all() })
   ]);
 }
 
@@ -138,6 +145,8 @@ export function WorkRecordEditorPage() {
   const [workDate, setWorkDate] = useState(safeLocalIsoDate(selectedDate));
   const [dateMode, setDateMode] = useState<"SINGLE_DAY" | "DATE_RANGE">("SINGLE_DAY");
   const [workEndDate, setWorkEndDate] = useState(safeLocalIsoDate(selectedDate));
+  const [projectTitle, setProjectTitle] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [addressExpanded, setAddressExpanded] = useState(false);
   const [addressDraft, setAddressDraft] = useState<AddressPayload>({
@@ -179,6 +188,10 @@ export function WorkRecordEditorPage() {
     queryKey: queryKeys.preferences(),
     queryFn: getPreferences
   });
+  const projectsQuery = useQuery({
+    queryKey: queryKeys.workProjects.all(),
+    queryFn: listWorkProjects
+  });
   const recordQuery = useQuery({
     queryKey: queryKeys.workRecords.detail(recordId ?? ""),
     queryFn: () => getWorkRecord(recordId!),
@@ -186,9 +199,39 @@ export function WorkRecordEditorPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: WorkRecordRequest) => payload.workEndDate
-      ? createWorkRecord(payload)
-      : createWorkSession(payload),
+    mutationFn: async ({
+      payload,
+      projectId,
+      projectName,
+      employmentId
+    }: {
+      payload: WorkRecordRequest;
+      projectId?: string | null;
+      projectName?: string | null;
+      employmentId?: string | null;
+    }) => {
+      if (payload.workEndDate) {
+        if (!projectName?.trim() || !employmentId) {
+          throw new Error("Project name and employment are required");
+        }
+        return createWorkProjectWithTotals(
+          {
+            employmentId,
+            title: projectName.trim(),
+            startDate: payload.workDate,
+            endDate: payload.workEndDate,
+            status: "ACTIVE",
+            notes: payload.notes,
+            addressId: payload.addressId
+          },
+          payload
+        );
+      }
+      if (projectId) {
+        return createProjectSession(projectId, payload);
+      }
+      return createWorkSession(payload);
+    },
     onSuccess: async () => {
       setSuccess(true);
       await invalidateWorkRecordQueries(queryClient);
@@ -223,6 +266,8 @@ export function WorkRecordEditorPage() {
     setWorkDate(recordQuery.data.workDate);
     setDateMode(recordQuery.data.workEndDate ? "DATE_RANGE" : "SINGLE_DAY");
     setWorkEndDate(recordQuery.data.workEndDate ?? recordQuery.data.workDate);
+    setProjectTitle(recordQuery.data.projectTitle ?? "");
+    setSelectedProjectId(recordQuery.data.projectId ?? "");
     setAddressId(recordQuery.data.addressId ?? "");
     if (recordQuery.data.address) {
       setAddressDraft({
@@ -242,6 +287,8 @@ export function WorkRecordEditorPage() {
   const isDirty =
     !success &&
     (dateMode === "DATE_RANGE" ||
+      projectTitle.trim() !== "" ||
+      selectedProjectId !== "" ||
       addressId !== "" ||
       hasAddressValues(addressDraft) ||
       teamSize !== "" ||
@@ -282,9 +329,10 @@ export function WorkRecordEditorPage() {
     workTypesQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
     preferencesQuery.isLoading ||
+    projectsQuery.isLoading ||
     recordQuery.isLoading;
   const loadingError =
-    workTypesQuery.error ?? hourlyRatesQuery.error ?? preferencesQuery.error ?? recordQuery.error;
+    workTypesQuery.error ?? hourlyRatesQuery.error ?? preferencesQuery.error ?? projectsQuery.error ?? recordQuery.error;
 
   const recordEmploymentId = recordQuery.data?.employmentId ?? selectedEmploymentId;
   const workTypes = useMemo(
@@ -292,6 +340,15 @@ export function WorkRecordEditorPage() {
       (workType) => workType.active && (!recordEmploymentId || workType.employmentId === recordEmploymentId)
     ),
     [recordEmploymentId, workTypesQuery.data]
+  );
+  const availableProjects = useMemo(
+    () => (projectsQuery.data ?? []).filter((project) =>
+      project.status !== "ARCHIVED" &&
+      (!recordEmploymentId || project.employmentId === recordEmploymentId) &&
+      project.startDate <= workDate &&
+      (project.endDate == null || project.endDate >= workDate)
+    ),
+    [projectsQuery.data, recordEmploymentId, workDate]
   );
   const groupedLines = useMemo(() => {
     const groups: Array<{ key: string; parent: WorkType | null; lines: JobLineState[] }> = [];
@@ -386,7 +443,19 @@ export function WorkRecordEditorPage() {
       if (isEditing) {
         await updateMutation.mutateAsync(validation.payload);
       } else {
-        await createMutation.mutateAsync(validation.payload);
+        const employmentId = recordEmploymentId
+          ?? workTypes.find((workType) => lines.some((line) => line.workTypeId === workType.id))?.employmentId
+          ?? null;
+        if (dateMode === "DATE_RANGE" && !projectTitle.trim()) {
+          setFormError(t("records:job.projectNameRequired"));
+          return;
+        }
+        await createMutation.mutateAsync({
+          payload: validation.payload,
+          projectId: dateMode === "SINGLE_DAY" ? selectedProjectId || null : null,
+          projectName: dateMode === "DATE_RANGE" ? projectTitle : null,
+          employmentId
+        });
       }
     } catch {
       // The mutation error is rendered below and input state is preserved.
@@ -426,7 +495,7 @@ export function WorkRecordEditorPage() {
 
   return (
     <div className="mx-auto min-w-0 w-full max-w-[560px] space-y-6 overflow-x-clip pb-6 pt-8">
-      <header className="settings-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
+      <header className="settings-sticky-header dashboard-sticky-header editor-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
           type="button"
@@ -456,9 +525,9 @@ export function WorkRecordEditorPage() {
         {pageTitle}
       </h1>
 
-      <section className="space-y-3">
-        <p className="hairline-text">{t("records:job.dates")}</p>
-        <Card className="space-y-4 p-5">
+      <section>
+        <Card variant="ambient" className="space-y-4 p-5">
+          <CardModuleTitle>{t("records:job.dates")}</CardModuleTitle>
           <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
             <button
               type="button"
@@ -509,6 +578,36 @@ export function WorkRecordEditorPage() {
               </label>
             ) : null}
           </div>
+          {dateMode === "DATE_RANGE" ? (
+            isEditing && recordQuery.data?.projectId ? (
+              <div className="border-t border-white/[0.08] pt-4">
+                <p className="hairline-text mb-1">{t("records:job.projectName")}</p>
+                <p className="text-sm font-semibold text-white/82">{projectTitle}</p>
+              </div>
+            ) : (
+              <Input
+                label={t("records:job.projectName")}
+                value={projectTitle}
+                maxLength={160}
+                placeholder={t("records:job.projectNamePlaceholder")}
+                onChange={(event) => setProjectTitle(event.currentTarget.value)}
+              />
+            )
+          ) : !isEditing && availableProjects.length > 0 ? (
+            <label className="block space-y-2 border-t border-white/[0.08] pt-4">
+              <span className="text-sm font-medium text-white/78">{t("records:job.addToProject")}</span>
+              <select
+                value={selectedProjectId}
+                onChange={(event) => setSelectedProjectId(event.currentTarget.value)}
+                className="h-12 w-full rounded-2xl border border-white/[0.12] bg-[#111713] px-4 text-sm font-medium text-white outline-none focus:border-white/[0.28] focus:ring-2 focus:ring-white/24"
+              >
+                <option value="">{t("records:job.noProject")}</option>
+                {availableProjects.map((project) => (
+                  <option key={project.id} value={project.id}>{project.title}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </Card>
       </section>
 
@@ -542,7 +641,8 @@ export function WorkRecordEditorPage() {
             as="button"
             type="button"
             onClick={() => setWorkTypePickerOpen(true)}
-            className="flex min-h-36 w-full items-center justify-center transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
+            variant="ambient"
+            className="flex min-h-32 w-full items-center justify-center transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
             aria-label={t("records:job.addActivity")}
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white">
@@ -553,7 +653,7 @@ export function WorkRecordEditorPage() {
           <div className="space-y-4">
             {groupedLines.map((group) =>
               group.parent ? (
-                <Card as="section" key={group.key} className="overflow-hidden px-4 py-3">
+                <Card as="section" variant="ambient" key={group.key} className="overflow-hidden px-4 py-3">
                   <div className="flex items-center gap-3 pb-2">
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: group.parent.color }} />
                     <div className="min-w-0 flex-1">
@@ -610,7 +710,7 @@ export function WorkRecordEditorPage() {
               )
             )}
             {hasTeamworkLine ? (
-              <div className="flex items-center justify-between gap-4 rounded-[20px] border border-white/[0.08] bg-white/[0.04] px-4 py-3">
+              <Card className="flex items-center justify-between gap-4 px-4 py-3">
                 <label htmlFor="job-team-size" className="text-sm font-semibold text-white">
                   {t("records:job.teamSize")}
                 </label>
@@ -627,7 +727,7 @@ export function WorkRecordEditorPage() {
                   onChange={(event) => setTeamSize(event.currentTarget.value)}
                   className="h-10 w-20 rounded-2xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold text-white outline-none transition focus:border-white/[0.28] focus:ring-2 focus:ring-white/24"
                 />
-              </div>
+              </Card>
             ) : null}
             <button
               type="button"
@@ -709,11 +809,11 @@ function AddressFields({
   const { t } = useTranslation("settings");
 
   return (
-    <Card className="p-5">
+    <Card variant="ambient" className="p-5">
         <div className="space-y-3">
           <Input
             label={t("profileEditor.fields.street")}
-            value={draft.street}
+            value={draft.street ?? ""}
             onChange={(event) => onDraftChange({ ...draft, street: event.currentTarget.value })}
           />
           <Input
@@ -724,7 +824,7 @@ function AddressFields({
           <div className="grid grid-cols-2 gap-3">
             <Input
               label={t("profileEditor.fields.city")}
-              value={draft.city}
+              value={draft.city ?? ""}
               onChange={(event) => onDraftChange({ ...draft, city: event.currentTarget.value })}
             />
             <Input
@@ -741,7 +841,7 @@ function AddressFields({
             />
             <Input
               label={t("profileEditor.fields.countryCode")}
-              value={draft.country}
+              value={draft.country ?? ""}
               maxLength={2}
               onChange={(event) => onDraftChange({ ...draft, country: event.currentTarget.value.toUpperCase() })}
             />
@@ -866,7 +966,7 @@ function WorkRecordLineCard({
   return (
     <div className={embedded
       ? "relative space-y-2 py-3 first:pt-2 last:pb-0"
-      : "relative space-y-3 rounded-[22px] border border-white/[0.08] bg-white/[0.04] p-4"}
+      : "universal-glass-card glass-card--ambient relative space-y-3 p-4"}
     >
       <div className="flex items-center justify-between gap-4">
         <p className={`font-name min-w-0 truncate font-semibold tracking-[-0.03em] text-white ${embedded ? "text-sm" : "text-base"}`}>
@@ -1419,12 +1519,12 @@ function hasAddressValues(address: AddressPayload) {
 
 function normalizeAddressPayload(address: AddressPayload): AddressPayload {
   return {
-    street: address.street.trim(),
+    street: emptyToNull(address.street),
     street2: emptyToNull(address.street2),
     postalCode: emptyToNull(address.postalCode),
-    city: address.city.trim(),
+    city: emptyToNull(address.city),
     region: emptyToNull(address.region),
-    country: address.country.trim().toUpperCase()
+    country: emptyToNull(address.country)?.toUpperCase() ?? null
   };
 }
 

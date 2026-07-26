@@ -45,10 +45,12 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await expect(page.getByText("Job saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
   await page.getByRole("button", { name: /thu 16/i }).click();
-  await expect(page.getByRole("button", { name: /activities 2 lagen/i })).toBeVisible();
+  const activity = page.getByRole("button", { name: /activity 2 lagen/i });
+  await expect(activity).toBeVisible();
+  await expect(activity).toContainText("Check hours");
   await expect(page.getByText("€7,660.00").first()).toBeVisible();
 
-  await page.getByRole("button", { name: /activities 2 lagen/i }).click();
+  await activity.click();
   await expect(page.getByRole("heading", { name: "Edit job" })).toBeVisible();
   await page.getByLabel("Team size").fill("3");
   await page.getByRole("button", { name: "Save changes" }).click();

@@ -409,11 +409,13 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument();
     const summary = screen.getByLabelText("Monthly summary");
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
-    expect(within(summary).getByText("Paid")).toBeInTheDocument();
-    expect(within(summary).getByText("23h 30m")).toBeInTheDocument();
-    expect(within(summary).queryByText(/Extra/i)).not.toBeInTheDocument();
+    expect(within(summary).getByText("Paid absence")).toBeInTheDocument();
+    expect(within(summary).getByText("16h 00m")).toBeInTheDocument();
+    expect(within(summary).getByText("Extra pay")).toBeInTheDocument();
+    expect(within(summary).getByText("7h 30m")).toBeInTheDocument();
     expect(within(summary).getByText("€510.00")).toBeInTheDocument();
-    expect(within(summary).getByText("€395.00")).toBeInTheDocument();
+    expect(within(summary).getByText("€320.00")).toBeInTheDocument();
+    expect(within(summary).getByText("€75.00")).toBeInTheDocument();
     expect(within(summary).getByText("Days")).toBeInTheDocument();
     expect(within(summary).getByText("Absence")).toBeInTheDocument();
     expect(within(summary).getAllByText("2")).toHaveLength(2);
