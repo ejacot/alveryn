@@ -50,6 +50,8 @@ jobs:
         run: chmod +x mvnw
       - name: Verify backend
         run: ./mvnw --batch-mode clean verify
+      - name: Verify production API image
+        run: docker build --tag alveryn-api-ci .
 
   frontend:
     runs-on: ubuntu-latest

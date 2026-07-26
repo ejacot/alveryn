@@ -7,6 +7,13 @@ period, breaking changes may still be introduced between minor versions.
 
 ## [Unreleased]
 
+## [0.1.0-beta.3] - 2026-07-26
+
+### Fixed
+
+- Restored production API deployment after release versioning changed the Maven artifact filename.
+- Added a CI build of the production API Docker image so artifact-copy failures block future releases.
+
 ## [0.1.0-beta.2] - 2026-07-26
 
 ### Added
@@ -53,6 +60,7 @@ period, breaking changes may still be introduced between minor versions.
 - Production deployment through `main`.
 - Version consistency checks and tag-based GitHub Releases.
 
-[Unreleased]: https://github.com/ejacot/alveryn/compare/v0.1.0-beta.2...HEAD
+[Unreleased]: https://github.com/ejacot/alveryn/compare/v0.1.0-beta.3...HEAD
+[0.1.0-beta.3]: https://github.com/ejacot/alveryn/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ejacot/alveryn/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ejacot/alveryn/releases/tag/v0.1.0-beta.1
