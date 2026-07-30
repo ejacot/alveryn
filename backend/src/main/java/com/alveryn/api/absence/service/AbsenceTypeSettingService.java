@@ -108,6 +108,20 @@ public class AbsenceTypeSettingService {
       case DAY_OFF -> "Day off";
       case PUBLIC_HOLIDAY -> "Public holiday";
     };
+    var existingByName =
+        repository.findByUserIdAndNormalizedName(userId, AbsenceTypeSetting.normalize(name));
+    if (existingByName.isPresent()) {
+      AbsenceTypeSetting setting = existingByName.get();
+      setting.update(
+          setting.getName(),
+          type,
+          setting.isPaid(),
+          setting.getPaidMinutesPerDay(),
+          setting.getColor(),
+          true,
+          setting.getDisplayOrder());
+      return toResponse(repository.save(setting));
+    }
     String color = switch (type) {
       case VACATION -> "#10B981";
       case SICK_LEAVE -> "#EF4444";
@@ -128,7 +142,7 @@ public class AbsenceTypeSettingService {
     }
     setting.update(
         InputSanitizer.requireTrimmed(request.name(), "name"),
-        null,
+        setting.getCode(),
         Boolean.TRUE.equals(request.paid()),
         request.paidMinutesPerDay() == null ? 0 : request.paidMinutesPerDay(),
         request.color(),
