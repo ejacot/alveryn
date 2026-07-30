@@ -1039,9 +1039,10 @@ function WorkRecordLineCard({
                 <Input
                   label={t("records:fields.extraPay")}
                   type="number"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   min={0}
                   max={1000}
+                  step="0.01"
                   wrapperClassName="min-w-0"
                   className="min-w-0 px-2 text-center"
                   value={line.extraPayPercentage}
@@ -1069,9 +1070,10 @@ function WorkRecordLineCard({
               {selectedWorkType.extraPayEnabled && !embedded ? <Input
                 label={t("records:fields.extraPay")}
                 type="number"
-                inputMode="numeric"
+                inputMode="decimal"
                 min={0}
                 max={1000}
+                step="0.01"
                 wrapperClassName="min-w-0"
                 className="min-w-0 px-2 text-center text-base"
                 value={line.extraPayPercentage}
@@ -1138,9 +1140,10 @@ function WorkRecordLineCard({
               <Input
                 label={t("records:fields.extraPay")}
                 type="number"
-                inputMode="numeric"
+                inputMode="decimal"
                 min={0}
                 max={1000}
+                step="0.01"
                 value={line.extraPayPercentage}
                 onFocus={() => {
                   if (line.extraPayPercentage === "0") onChange(line.id, { extraPayPercentage: "" });
@@ -1157,9 +1160,10 @@ function WorkRecordLineCard({
         <Input
           label={t("records:fields.extraPay")}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min={0}
           max={1000}
+          step="0.01"
           value={line.extraPayPercentage}
           onFocus={() => {
             if (line.extraPayPercentage === "0") onChange(line.id, { extraPayPercentage: "" });

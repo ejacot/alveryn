@@ -27,7 +27,10 @@ function getRouteErrorCopy(error: unknown, fallbackTitle?: string, fallbackDescr
   if (error instanceof Error) {
     return {
       title: fallbackTitle ?? "Something went wrong",
-      description: fallbackDescription ?? "Refresh the page or return home and try again."
+      description: fallbackDescription
+        ?? (import.meta.env.DEV
+          ? error.message
+          : "Refresh the page or return home and try again.")
     };
   }
 

@@ -175,6 +175,11 @@ export function SettingsEmploymentDetailPage() {
           to={`/settings/absences?${suffix}`}
           label={t("settings:absenceSettings.title")}
         />
+        <div className="mx-5 h-px bg-white/[0.06]" />
+        <SettingsRow
+          to={`/settings/employment/${employment.id}/extra-pay`}
+          label={t("settings:extraPayRules.title")}
+        />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings:employment.sections.timeEntry")}>

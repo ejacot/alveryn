@@ -76,6 +76,11 @@ const SettingsSchedulePage = lazy(() =>
     default: module.SettingsSchedulePage
   }))
 );
+const SettingsEmploymentExtraPayPage = lazy(() =>
+  import("../pages/settings-employment-extra-pay-page").then((module) => ({
+    default: module.SettingsEmploymentExtraPayPage
+  }))
+);
 const HourlyRatesPage = lazy(() =>
   import("../pages/hourly-rates-page").then((module) => ({
     default: module.HourlyRatesPage
@@ -109,6 +114,11 @@ const HelpSupportPage = lazy(() =>
 const PdfExportPage = lazy(() =>
   import("../pages/pdf-export-page").then((module) => ({
     default: module.PdfExportPage
+  }))
+);
+const DataImportPage = lazy(() =>
+  import("../pages/data-import-page").then((module) => ({
+    default: module.DataImportPage
   }))
 );
 const LoginPage = lazy(() =>
@@ -212,6 +222,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/employment/:employmentId/check-in-timer", element: withSuspense(<SettingsCheckInTimerPage />) },
             { path: "/settings/employment/:employmentId/hours-balance", element: withSuspense(<SettingsHoursBalancePage />) },
             { path: "/settings/employment/:employmentId/schedule", element: withSuspense(<SettingsSchedulePage />) },
+            { path: "/settings/employment/:employmentId/extra-pay", element: withSuspense(<SettingsEmploymentExtraPayPage />) },
             { path: "/settings/hourly-rates", element: withSuspense(<HourlyRatesPage />) },
             { path: "/settings/hourly-rates/new", element: withSuspense(<HourlyRateEditorPage />) },
             { path: "/settings/hourly-rates/:rateId", element: withSuspense(<HourlyRateEditorPage />) },
@@ -220,7 +231,8 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/work-types/:workTypeId", element: withSuspense(<WorkTypeEditorPage />) },
             { path: "/settings/about", element: withSuspense(<AboutAlverynPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) },
-            { path: "/settings/export-pdf", element: withSuspense(<PdfExportPage />) }
+            { path: "/settings/export-pdf", element: withSuspense(<PdfExportPage />) },
+            { path: "/settings/import-data", element: withSuspense(<DataImportPage />) }
           ]
         },
         {

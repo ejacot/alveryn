@@ -588,9 +588,7 @@ function calculateExtraPaidInRange(
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      const extraMinutes = line.extraPaidEquivalentMinutes === undefined
-        ? Number(line.calculatedMinutes) * (percentage / 100)
-        : Number(line.extraPaidEquivalentMinutes);
+      const extraMinutes = Number(line.calculatedMinutes);
       const extraGross = line.extraGrossAmount === undefined
         ? Number(line.grossAmount) * (percentage / (100 + percentage))
         : Number(line.extraGrossAmount);
@@ -620,13 +618,17 @@ function toPhaseTwoWorkRecordActivity(
   const minutes = timeLines
     .reduce((total, line) => total + Number(line.calculatedMinutes), 0);
   const mixedCurrencyLabel = t("dashboard:summary.mixedCurrencies");
-  const currencies = new Set(workLines.map((line) => line.currencySnapshot));
+  const currencies = new Set(
+    workLines
+      .filter((line) => Number(line.totalGrossAmount ?? line.grossAmount ?? 0) !== 0)
+      .map((line) => line.currencySnapshot)
+      .filter((currency): currency is string => Boolean(currency))
+  );
+  const displayCurrency = currencies.values().next().value ?? record.currency ?? "EUR";
   const extraMinutes = workLines.reduce((total, line) => {
     const percentage = line.extraPayPercentage ?? 0;
     if (percentage <= 0) return total;
-    return total + (line.extraPaidEquivalentMinutes === undefined
-      ? Number(line.calculatedMinutes) * (percentage / 100)
-      : Number(line.extraPaidEquivalentMinutes));
+    return total + Number(line.calculatedMinutes);
   }, 0);
   const extraGross = workLines.reduce((total, line) => {
     const percentage = line.extraPayPercentage ?? 0;
@@ -653,22 +655,24 @@ function toPhaseTwoWorkRecordActivity(
     periodLabel: spansMultipleDays ? formatRecordPeriod(record) : null,
     duration: timeLines.length ? formatMinutesAsDuration(minutes) : "",
     amount:
-      currencies.size === 1 && record.currency
-        ? formatCurrency(record.grossAmount, record.currency)
+      currencies.size <= 1
+        ? formatCurrency(record.grossAmount, displayCurrency)
         : mixedCurrencyLabel,
     extraDuration: extraMinutes > 0 ? formatMinutesAsDuration(extraMinutes) : null,
     extraAmount: extraGross > 0
-      ? currencies.size === 1
-        ? formatCurrency(String(extraGross), workLines[0]?.currencySnapshot ?? record.currency)
+      ? currencies.size <= 1
+        ? formatCurrency(String(extraGross), displayCurrency)
         : mixedCurrencyLabel
       : null,
     extraPayLabel: null,
-    unitBreakdown: workLines.flatMap((line) => toPhaseTwoLineBreakdown(line))
+    unitBreakdown: workLines.flatMap((line) =>
+      toPhaseTwoLineBreakdown(line, record.currency ?? "EUR"))
   };
 }
 
 function toPhaseTwoLineBreakdown(
-  line: WorkRecordLine
+  line: WorkRecordLine,
+  fallbackCurrency = "EUR"
 ): SelectedDayActivity["unitBreakdown"] {
   const interval = line.startTime && line.endTime
     ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
@@ -681,7 +685,7 @@ function toPhaseTwoLineBreakdown(
       : null;
   const price = formatCurrency(
     line.totalGrossAmount ?? line.grossAmount ?? line.fixedAmountSnapshot ?? "0",
-    line.currencySnapshot
+    line.currencySnapshot || fallbackCurrency
   );
   const base: SelectedDayActivity["unitBreakdown"][number] = {
     id: line.id,

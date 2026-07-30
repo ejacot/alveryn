@@ -22,6 +22,17 @@ import type {
 } from "../types/schedule";
 import type { EmploymentRestDay } from "../types/rest-day";
 import type { WorkProject, WorkProjectPayload } from "../types/work-project";
+import type {
+  DataImportAnalysisResponse,
+  DataImportCandidateDecision,
+  DataImportConfirmResponse,
+  DataImportPreviewResponse,
+  DataImportExecuteResponse,
+  DataImportQuestionResolution,
+  DataImportChatMessage,
+  DataImportChatResponse,
+  DataImportScope
+} from "../types/data-import";
 import { http } from "./http";
 
 export type Credentials = {
@@ -162,6 +173,86 @@ export type UpdateWorkTypePayload = CreateWorkTypePayload & {
   active: boolean;
 };
 
+export async function analyzeDataImport(
+  file: File,
+  scope: DataImportScope,
+  employmentId?: string,
+  payrollFiles: File[] = []
+) {
+  const body = new FormData();
+  body.append("file", file);
+  payrollFiles.forEach((payroll) => body.append("payrollFiles", payroll));
+  const params = new URLSearchParams({ scope });
+  if (employmentId) params.set("employmentId", employmentId);
+  const response = await http.post<ApiResponse<DataImportAnalysisResponse>>(
+    `/api/data-imports/analyze?${params.toString()}`,
+    body,
+    { headers: { "Content-Type": undefined } }
+  );
+  return response.data.data;
+}
+
+export async function confirmDataImport(
+  batchId: string,
+  candidates: DataImportCandidateDecision[]
+) {
+  const response = await http.post<ApiResponse<DataImportConfirmResponse>>(
+    `/api/data-imports/${batchId}/confirm`,
+    { candidates }
+  );
+  return response.data.data;
+}
+
+export async function previewDataImport(batchId: string) {
+  const response = await http.get<ApiResponse<DataImportPreviewResponse>>(
+    `/api/data-imports/${batchId}/preview`
+  );
+  return response.data.data;
+}
+
+export async function setDataImportPeriod(batchId: string, year: number, month: number) {
+  const response = await http.put<ApiResponse<DataImportAnalysisResponse>>(
+    `/api/data-imports/${batchId}/period`,
+    { year, month }
+  );
+  return response.data.data;
+}
+
+export async function setDataImportSheetPeriods(
+  batchId: string,
+  sheets: Array<{ sheet: string; year: number; month: number }>
+) {
+  const response = await http.put<ApiResponse<DataImportAnalysisResponse>>(
+    `/api/data-imports/${batchId}/period`,
+    { sheets }
+  );
+  return response.data.data;
+}
+
+export async function executeDataImport(
+  batchId: string,
+  entryIds: string[],
+  resolutions: Record<string, DataImportQuestionResolution>
+) {
+  const response = await http.post<ApiResponse<DataImportExecuteResponse>>(
+    `/api/data-imports/${batchId}/import`,
+    { entryIds, resolutions }
+  );
+  return response.data.data;
+}
+
+export async function chatAboutDataImportQuestion(
+  batchId: string,
+  questionId: string,
+  messages: DataImportChatMessage[]
+) {
+  const response = await http.post<ApiResponse<DataImportChatResponse>>(
+    `/api/data-imports/${batchId}/questions/chat`,
+    { questionId, messages }
+  );
+  return response.data.data;
+}
+
 export async function register(payload: Credentials) {
   const response = await http.post<ApiResponse<AuthUser>>(
     "/api/auth/register",
@@ -289,6 +380,38 @@ export async function createEmployment(payload: EmploymentPayload) {
 export async function updateEmployment(id: string, payload: EmploymentPayload) {
   const response = await http.put<ApiResponse<Employment>>(`/api/employments/${id}`, payload);
   return response.data.data;
+}
+
+export type EmploymentExtraPayRule = {
+  id: string;
+  weekday: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+  percentage: number;
+};
+
+export async function listEmploymentExtraPayRules(employmentId: string) {
+  const response = await http.get<ApiResponse<EmploymentExtraPayRule[]>>(
+    `/api/employments/${employmentId}/extra-pay-rules`
+  );
+  return response.data.data;
+}
+
+export async function saveEmploymentExtraPayRule(
+  employmentId: string,
+  weekday: EmploymentExtraPayRule["weekday"],
+  percentage: number
+) {
+  const response = await http.put<ApiResponse<EmploymentExtraPayRule>>(
+    `/api/employments/${employmentId}/extra-pay-rules/${weekday}`,
+    { percentage }
+  );
+  return response.data.data;
+}
+
+export async function deleteEmploymentExtraPayRule(
+  employmentId: string,
+  weekday: EmploymentExtraPayRule["weekday"]
+) {
+  await http.delete(`/api/employments/${employmentId}/extra-pay-rules/${weekday}`);
 }
 
 export async function deleteEmployment(id: string) {
@@ -685,4 +808,144 @@ export async function updateAbsenceType(id: string, payload: AbsenceTypePayload)
 
 export async function deleteAbsenceType(id: string) {
   await http.delete(`/api/absence-types/${id}`);
+}
+
+export type PayrollReconciliation = {
+  filename?: string;
+  year?: number;
+  month?: number;
+  normalHours?: number | null;
+  normalRate?: number | null;
+  normalAmount?: number | null;
+  absenceLabel?: string | null;
+  absenceDays?: number | null;
+  absenceHours?: number | null;
+  absenceRate?: number | null;
+  absenceAmount?: number | null;
+  extraHours?: number | null;
+  extraAmount?: number | null;
+  grossAmount?: number | null;
+  confidence?: number;
+  status?: string;
+  payrollLines?: Array<{
+    code?: string | null;
+    label?: string | null;
+    quantity?: number | null;
+    factor?: number | null;
+    percentage?: number | null;
+    amount?: number | null;
+    grossRelevant?: boolean | null;
+  }>;
+};
+
+export async function reconcileMonthlyPayroll(file: File, year: number, month: number) {
+  const data = new FormData();
+  data.append("file", file);
+  const response = await http.post<ApiResponse<PayrollReconciliation>>(
+    "/api/data-imports/payroll-reconciliation", data, {
+      params: { year, month },
+      headers: { "Content-Type": undefined }
+    }
+  );
+  let payload: unknown = response.data?.data;
+  if (typeof payload === "string") {
+    payload = JSON.parse(payload) as unknown;
+  }
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    !("normalHours" in payload)
+  ) {
+    payload = (payload as { data: unknown }).data;
+  }
+  if (!payload || typeof payload !== "object") {
+    throw new Error("The payroll server returned an invalid response");
+  }
+  return payload as PayrollReconciliation;
+}
+
+export type SavedPayrollReconciliation = {
+  id: string;
+  status: string;
+  workedHoursDifference?: number | null;
+  absenceHoursDifference?: number | null;
+  extraHoursDifference?: number | null;
+  grossDifference?: number | null;
+};
+
+export type PayrollReconciliationDetail = SavedPayrollReconciliation & {
+  employmentId: string;
+  year: number;
+  month: number;
+  filename?: string | null;
+  appWorkedHours?: number | null;
+  appAbsenceHours?: number | null;
+  appExtraHours?: number | null;
+  appGross?: number | null;
+  payrollWorkedHours?: number | null;
+  payrollAbsenceHours?: number | null;
+  payrollExtraHours?: number | null;
+  payrollGross?: number | null;
+  payrollLines: NonNullable<PayrollReconciliation["payrollLines"]>;
+  notes?: string | null;
+  documentAvailable: boolean;
+  documentFilename?: string | null;
+  documentContentType?: string | null;
+  documentSize?: number | null;
+};
+
+export async function getPayrollReconciliation(
+  employmentId: string,
+  year: number,
+  month: number
+) {
+  const response = await http.get<ApiResponse<PayrollReconciliationDetail | null>>(
+    "/api/data-imports/payroll-reconciliations",
+    { params: { employmentId, year, month } }
+  );
+  return response.data.data;
+}
+
+export async function savePayrollReconciliation(payload: {
+  employmentId: string;
+  year: number;
+  month: number;
+  filename?: string;
+  appWorkedHours: number;
+  appAbsenceHours: number;
+  appExtraHours: number;
+  appGross: number;
+  payrollWorkedHours?: number | null;
+  payrollAbsenceHours?: number | null;
+  payrollExtraHours?: number | null;
+  payrollGross?: number | null;
+  payrollLines: NonNullable<PayrollReconciliation["payrollLines"]>;
+  notes?: string;
+}) {
+  const response = await http.post<ApiResponse<SavedPayrollReconciliation>>(
+    "/api/data-imports/payroll-reconciliations", payload
+  );
+  return response.data.data;
+}
+
+export async function uploadPayrollReconciliationDocument(
+  reconciliationId: string,
+  file: File
+) {
+  const data = new FormData();
+  data.append("file", file);
+  await http.put(
+    `/api/data-imports/payroll-reconciliations/${reconciliationId}/document`,
+    data,
+    { headers: { "Content-Type": undefined } }
+  );
+}
+
+export async function getPayrollReconciliationDocument(reconciliationId: string) {
+  const response = await http.get<Blob>(
+    `/api/data-imports/payroll-reconciliations/${reconciliationId}/document`,
+    { responseType: "blob" }
+  );
+  return response.data;
 }

@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { ChevronDown, FileCheck2, FileText, Upload } from "lucide-react";
 import {
   getCalendarActivityRange,
+  getPayrollReconciliation,
+  getPayrollReconciliationDocument,
   getPreferences,
   getScheduledShifts,
   getWeeklySchedule,
@@ -14,7 +17,11 @@ import {
   listRestDays,
   listWorkRecordsInRange,
   markRestDay,
-  removeRestDay
+  removeRestDay,
+  reconcileMonthlyPayroll,
+  savePayrollReconciliation,
+  uploadPayrollReconciliationDocument,
+  type PayrollReconciliation
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -68,9 +75,22 @@ export function CalendarPage() {
   const [slideDirection, setSlideDirection] = useState(0);
   const [compactTitleVisible, setCompactTitleVisible] = useState(false);
   const largeTitleRef = useRef<HTMLHeadingElement>(null);
+  const payrollInputRef = useRef<HTMLInputElement>(null);
+  const [payrollReview, setPayrollReview] = useState<PayrollReconciliation | null>(null);
+  const [payrollPending, setPayrollPending] = useState(false);
+  const [payrollError, setPayrollError] = useState<string | null>(null);
+  const [payrollSaving, setPayrollSaving] = useState(false);
+  const [payrollSaved, setPayrollSaved] = useState(false);
+  const [payrollNotes, setPayrollNotes] = useState("");
+  const [payrollExpanded, setPayrollExpanded] = useState(false);
+  const [payrollDocument, setPayrollDocument] = useState<File | null>(null);
+  const [payrollReconciliationId, setPayrollReconciliationId] = useState<string | null>(null);
+  const [payrollDocumentAvailable, setPayrollDocumentAvailable] = useState(false);
+  const [payrollDocumentOpening, setPayrollDocumentOpening] = useState(false);
 
   const year = activeMonth.getFullYear();
   const month = activeMonth.getMonth() + 1;
+
   const monthStartKey = toIsoDate(startOfMonth(activeMonth));
   const monthEndKey = toIsoDate(addDays(getNextMonthDate(activeMonth), -1));
   const employmentsQuery = useQuery({
@@ -80,6 +100,44 @@ export function CalendarPage() {
   const activeEmployments = (employmentsQuery.data ?? []).filter((employment) => employment.active);
   const effectiveEmploymentId =
     selectedEmploymentId ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
+
+  useEffect(() => {
+    setPayrollReview(null);
+    setPayrollError(null);
+    setPayrollSaved(false);
+    setPayrollNotes("");
+    setPayrollExpanded(false);
+    setPayrollDocument(null);
+    setPayrollReconciliationId(null);
+    setPayrollDocumentAvailable(false);
+  }, [effectiveEmploymentId, year, month]);
+
+  const savedPayrollQuery = useQuery({
+    queryKey: ["payroll-reconciliation", effectiveEmploymentId ?? "none", year, month],
+    queryFn: () => getPayrollReconciliation(effectiveEmploymentId!, year, month),
+    enabled: Boolean(effectiveEmploymentId)
+  });
+
+  useEffect(() => {
+    const saved = savedPayrollQuery.data;
+    if (!saved || payrollReview) return;
+    setPayrollReview({
+      filename: saved.filename ?? undefined,
+      year: saved.year,
+      month: saved.month,
+      normalHours: saved.payrollWorkedHours,
+      absenceHours: saved.payrollAbsenceHours,
+      extraHours: saved.payrollExtraHours,
+      grossAmount: saved.payrollGross,
+      payrollLines: saved.payrollLines,
+      status: saved.status
+    });
+    setPayrollNotes(saved.notes ?? "");
+    setPayrollSaved(true);
+    setPayrollReconciliationId(saved.id);
+    setPayrollDocumentAvailable(saved.documentAvailable);
+    setPayrollExpanded(false);
+  }, [payrollReview, savedPayrollQuery.data]);
 
   const workRecordsQuery = useQuery({
     queryKey: queryKeys.workRecords.range({ from: monthStartKey, to: monthEndKey }),
@@ -470,6 +528,10 @@ export function CalendarPage() {
       extraPaidGrossAmount: currencies.size > 1
         ? t("monthlySummary.mixedCurrencies")
         : formatCurrency(String(extraPaid.grossAmount), currency),
+      workedHoursValue: workedMinutes / 60,
+      paidAbsenceHoursValue: paidAbsenceMinutes / 60,
+      extraPaidHoursValue: extraPaid.minutes / 60,
+      grossAmountValue: workGrossAmount + paidAbsenceGrossAmount,
       hasWorkedTime: workedMinutes > 0,
       workedDays,
       absenceDays,
@@ -594,6 +656,236 @@ export function CalendarPage() {
 
       <CalendarMonthSummary {...summary} />
 
+      <section className="mt-5 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035]">
+        <input ref={payrollInputRef} type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (!file) return;
+            setPayrollPending(true);
+            setPayrollError(null);
+            setPayrollReview(null);
+            setPayrollSaved(false);
+            setPayrollNotes("");
+            setPayrollDocument(file);
+            setPayrollDocumentAvailable(false);
+            setPayrollExpanded(true);
+            void reconcileMonthlyPayroll(file, year, month)
+              .then((review) => {
+                const hasValues = [
+                  review.normalHours,
+                  review.normalAmount,
+                  review.absenceHours,
+                  review.absenceAmount,
+                  review.extraHours,
+                  review.extraAmount,
+                  review.grossAmount
+                ].some((value) => value != null);
+                if (!hasValues) {
+                  throw new Error("No payroll values were found for the selected month");
+                }
+                setPayrollReview(review);
+              })
+              .catch((error) => setPayrollError(
+                error instanceof Error && error.message
+                  ? error.message
+                  : getApiError(error).message
+              ))
+              .finally(() => {
+                setPayrollPending(false);
+                event.currentTarget.value = "";
+              });
+          }} />
+        <div className="flex items-center gap-3 p-5">
+          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
+            payrollSaved ? "bg-emerald-300/15 text-emerald-200" : "bg-white/[0.07] text-white/65"
+          }`}>
+            {payrollSaved ? <FileCheck2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">Lohn reconciliation</p>
+            <p className="mt-0.5 truncate text-xs text-white/45">
+              {payrollSaved
+                ? `${payrollReview?.filename ?? "Document saved"} · Review available`
+                : payrollReview
+                  ? "Analysis ready to save"
+                  : "Compare this month with the employer payslip"}
+            </p>
+          </div>
+          {payrollReview ? (
+            <button type="button" onClick={() => setPayrollExpanded((value) => !value)}
+              aria-label={payrollExpanded ? "Collapse reconciliation" : "Open reconciliation"}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white">
+              <ChevronDown className={`h-5 w-5 transition-transform ${
+                payrollExpanded ? "rotate-180" : ""
+              }`} />
+            </button>
+          ) : (
+            <button type="button" disabled={payrollPending}
+              onClick={() => payrollInputRef.current?.click()}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-black disabled:opacity-50"
+              aria-label="Upload Lohn document">
+              <Upload className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        {payrollError ? <p className="px-5 pb-4 text-sm text-red-300">{payrollError}</p> : null}
+        {payrollReview && payrollExpanded ? (
+          <div className="space-y-2 border-t border-white/10 px-5 pb-5 pt-4 text-sm">
+            <div className="mb-4 flex gap-2">
+              {(payrollDocumentAvailable || payrollDocument) ? (
+                <button type="button" disabled={payrollDocumentOpening}
+                  onClick={() => {
+                    const viewer = window.open("", "_blank");
+                    setPayrollDocumentOpening(true);
+                    const source = payrollDocument
+                      ? Promise.resolve(payrollDocument as Blob)
+                      : payrollReconciliationId
+                        ? getPayrollReconciliationDocument(payrollReconciliationId)
+                        : Promise.reject(new Error("Payroll document is not available"));
+                    void source.then((blob) => {
+                      const url = URL.createObjectURL(blob);
+                      if (viewer) viewer.location.href = url;
+                      else {
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.target = "_blank";
+                        link.click();
+                      }
+                      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                    }).catch((error) => {
+                      viewer?.close();
+                      setPayrollError(getApiError(error).message);
+                    }).finally(() => setPayrollDocumentOpening(false));
+                  }}
+                  className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
+                  {payrollDocumentOpening ? "Opening…" : "Open document"}
+                </button>
+              ) : null}
+              <button type="button" disabled={payrollPending}
+                onClick={() => payrollInputRef.current?.click()}
+                className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
+                {payrollPending ? "Reading…" : "Replace document"}
+              </button>
+            </div>
+            <PayrollComparisonRow label="Worked hours"
+              app={summary.workedHours}
+              payroll={payrollReview.normalHours == null ? "—" : `${payrollReview.normalHours} h`} />
+            <PayrollComparisonRow label="Paid absence"
+              app={`${summary.paidAbsenceHours} · ${summary.paidAbsenceGrossAmount}`}
+              payroll={payrollReview.absenceHours == null ? "—"
+                : `${payrollReview.absenceHours} h · ${payrollReview.absenceAmount ?? "—"} €`} />
+            <PayrollComparisonRow label="Extra pay"
+              app={`${summary.extraPaidHours} · ${summary.extraPaidGrossAmount}`}
+              payroll={payrollReview.extraHours == null ? "—"
+                : `${payrollReview.extraHours} h · ${payrollReview.extraAmount ?? "—"} €`} />
+            <PayrollComparisonRow label="Gross"
+              app={summary.workGrossAmount}
+              payroll={payrollReview.grossAmount == null ? "—"
+                : `${payrollReview.grossAmount.toFixed(2)} €`} />
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                Differences · Lohn − Alveryn
+              </p>
+              <PayrollDifferenceRow label="Worked hours"
+                value={differenceLabel(payrollReview.normalHours, summary.workedHoursValue, "h")} />
+              <PayrollDifferenceRow label="Paid absence"
+                value={differenceLabel(payrollReview.absenceHours, summary.paidAbsenceHoursValue, "h")} />
+              <PayrollDifferenceRow label="Extra hours"
+                value={differenceLabel(payrollReview.extraHours, summary.extraPaidHoursValue, "h")} />
+              <PayrollDifferenceRow label="Gross"
+                value={differenceLabel(payrollReview.grossAmount, summary.grossAmountValue, "€")} />
+            </div>
+            {payrollReview.payrollLines?.length ? (
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                  Lohn details
+                </p>
+                <div className="space-y-3">
+                  {payrollReview.payrollLines.map((line, index) => (
+                    <div key={`${line.code ?? "line"}-${index}`}
+                      className="grid grid-cols-[1fr_auto] gap-x-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">
+                          {line.code ? `${line.code} · ` : ""}{line.label ?? "Payroll line"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/45">
+                          {[
+                            line.quantity == null ? null : `${line.quantity} h`,
+                            line.factor == null ? null : `× ${line.factor} €`,
+                            line.percentage == null ? null : `${line.percentage}%`
+                          ].filter(Boolean).join(" · ") || "No quantity printed"}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold tabular-nums text-white">
+                        {line.amount == null ? "—" : `${line.amount.toFixed(2)} €`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <label className="mt-4 block border-t border-white/10 pt-4">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                Reconciliation note
+              </span>
+              <textarea
+                rows={3}
+                maxLength={1000}
+                value={payrollNotes}
+                onChange={(event) => {
+                  setPayrollNotes(event.target.value);
+                  setPayrollSaved(false);
+                }}
+                placeholder="Example: Vacation was paid at €14.75 instead of the current €15.50 rate."
+                className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-5 text-white outline-none placeholder:text-white/30 focus:border-emerald-300/40"
+              />
+            </label>
+            <button type="button"
+              disabled={payrollSaving || !effectiveEmploymentId}
+              onClick={() => {
+                if (!effectiveEmploymentId) return;
+                setPayrollSaving(true);
+                setPayrollError(null);
+                void savePayrollReconciliation({
+                  employmentId: effectiveEmploymentId,
+                  year,
+                  month,
+                  filename: payrollReview.filename,
+                  appWorkedHours: summary.workedHoursValue,
+                  appAbsenceHours: summary.paidAbsenceHoursValue,
+                  appExtraHours: summary.extraPaidHoursValue,
+                  appGross: summary.grossAmountValue,
+                  payrollWorkedHours: payrollReview.normalHours,
+                  payrollAbsenceHours: payrollReview.absenceHours,
+                  payrollExtraHours: payrollReview.extraHours,
+                  payrollGross: payrollReview.grossAmount,
+                  payrollLines: payrollReview.payrollLines ?? [],
+                  notes: payrollNotes
+                }).then(async (saved) => {
+                  setPayrollReconciliationId(saved.id);
+                  if (payrollDocument) {
+                    await uploadPayrollReconciliationDocument(saved.id, payrollDocument);
+                    setPayrollDocumentAvailable(true);
+                  }
+                  setPayrollSaved(true);
+                  setPayrollExpanded(false);
+                  void savedPayrollQuery.refetch();
+                })
+                  .catch((error) => setPayrollError(getApiError(error).message))
+                  .finally(() => setPayrollSaving(false));
+              }}
+              className="mt-4 min-h-12 w-full rounded-full bg-white font-semibold text-black disabled:opacity-40">
+              {payrollSaving ? "Saving…" : payrollSaved ? "Saved ✓" : "Save reconciliation"}
+            </button>
+            <p className="pt-2 text-xs text-amber-200/80">
+              Review only. Corrections require your confirmation and are never applied by AI.
+            </p>
+          </div>
+        ) : null}
+      </section>
+
       {selectedDate ? (
         <div className="pt-5">
           <CalendarSelectedDayPanel
@@ -656,6 +948,37 @@ export function CalendarPage() {
 
     </div>
   );
+}
+
+function PayrollComparisonRow({
+  label, app, payroll
+}: { label: string; app: string; payroll: string }) {
+  return (
+    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+      <span className="text-white/55">{label}</span>
+      <span className="text-right text-white/75">{app}</span>
+      <span className="min-w-24 text-right font-semibold text-white">{payroll}</span>
+    </div>
+  );
+}
+
+function PayrollDifferenceRow({ label, value }: { label: string; value: string }) {
+  const matches = value.startsWith("0");
+  return (
+    <div className="flex items-center justify-between py-1 text-xs">
+      <span className="text-white/50">{label}</span>
+      <span className={matches ? "text-emerald-300" : "font-semibold text-amber-200"}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function differenceLabel(payroll: number | null | undefined, app: number, unit: "h" | "€") {
+  if (payroll == null) return "—";
+  const difference = payroll - app;
+  const sign = difference > 0 ? "+" : "";
+  return `${sign}${difference.toFixed(2)} ${unit}`;
 }
 
 function isInTrackedRange(isoDate: string, firstActivityDate: string | null, todayIso: string) {
@@ -730,7 +1053,7 @@ function calculateExtraPaidInRange(
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      total.minutes += Number(line.calculatedMinutes) * (percentage / 100) * allocation;
+      total.minutes += Number(line.calculatedMinutes) * allocation;
       total.grossAmount += Number(line.grossAmount) * (percentage / (100 + percentage)) * allocation;
     });
     return total;

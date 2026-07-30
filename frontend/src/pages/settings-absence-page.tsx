@@ -322,9 +322,35 @@ function AbsenceTypeDialog({
               checked={form.watch("paid")}
               onChange={(checked) => {
                 form.setValue("paid", checked, { shouldDirty: true, shouldValidate: true });
+                if (checked && form.getValues("paidMinutes") === 0) {
+                  form.setValue("paidMinutes", 480, {
+                    shouldDirty: true,
+                    shouldValidate: true
+                  });
+                }
               }}
             />
             <p className="text-xs leading-5 text-white/42">{t("settings:absenceSettings.paidHelp")}</p>
+            {form.watch("paid") ? (
+              <Input
+                label={t("settings:absenceSettings.fields.paidHours")}
+                type="number"
+                inputMode="decimal"
+                min="0.25"
+                max="24"
+                step="0.25"
+                value={form.watch("paidMinutes") / 60}
+                error={form.formState.errors.paidMinutes?.message}
+                onChange={(event) => {
+                  const hours = Number(event.currentTarget.value);
+                  form.setValue(
+                    "paidMinutes",
+                    Number.isFinite(hours) ? Math.round(hours * 60) : 0,
+                    { shouldDirty: true, shouldValidate: true }
+                  );
+                }}
+              />
+            ) : null}
           </div>
         </div>
 
