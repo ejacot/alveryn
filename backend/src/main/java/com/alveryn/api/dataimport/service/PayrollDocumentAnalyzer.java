@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -77,7 +76,7 @@ public class PayrollDocumentAnalyzer {
             evidence = intelligence.analyzePayrollText(text, candidates);
           } else {
             usedVision = true;
-            evidence = intelligence.analyzePayrollImages(render(pdf), candidates);
+            evidence = analyzeRenderedPages(pdf, candidates);
           }
           evidence.path("findings").forEach(findings::add);
           document.put("status", evidence.path("status").asText("FALLBACK"));
@@ -119,12 +118,12 @@ public class PayrollDocumentAnalyzer {
           log.info("Payroll reconciliation selected PDF page {} of {} for {}-{} ({})",
               pageIndex + 1, pdf.getNumberOfPages(), year, month,
               safeFilename(file.getOriginalFilename()));
-          images = List.of(renderPage(pdf, pageIndex, 180));
+          images = List.of(renderPage(pdf, pageIndex, 135));
         }
       } else {
         byte[] imageBytes = file.getBytes();
         if (!List.of("image/jpeg", "image/png", "image/webp").contains(contentType)
-            || imageBytes.length > 3L * 1024 * 1024) {
+            || imageBytes.length > 2L * 1024 * 1024) {
           imageBytes = normalizePayrollImage(imageBytes, contentType);
           contentType = "image/jpeg";
         }
@@ -158,21 +157,26 @@ public class PayrollDocumentAnalyzer {
     }
   }
 
-  private List<String> render(PDDocument pdf) throws Exception {
-    return render(pdf, 150);
-  }
-
-  private List<String> render(PDDocument pdf, int dpi) throws Exception {
-    List<String> images = new ArrayList<>();
+  private ObjectNode analyzeRenderedPages(PDDocument pdf, ArrayNode candidates) throws Exception {
+    ObjectNode combined = objectMapper.createObjectNode();
+    ArrayNode findings = combined.putArray("findings");
+    combined.put("status", "COMPLETED");
     for (int page = 0; page < pdf.getNumberOfPages(); page++) {
-      images.add(renderPage(pdf, page, dpi));
+      // Keep only one rendered page in memory and one Base64 image in each Groq request.
+      // This stays safely below Groq's request-size limit and Render's instance memory limit.
+      ObjectNode evidence =
+          intelligence.analyzePayrollImages(List.of(renderPage(pdf, page, 125)), candidates);
+      evidence.path("findings").forEach(findings::add);
+      if (!"COMPLETED".equals(evidence.path("status").asText())) {
+        combined.put("status", "FALLBACK");
+      }
     }
-    return images;
+    return combined;
   }
 
   private String renderPage(PDDocument pdf, int page, int dpi) throws Exception {
     BufferedImage image =
-        new PDFRenderer(pdf).renderImageWithDPI(page, dpi, ImageType.RGB);
+        new PDFRenderer(pdf).renderImageWithDPI(page, dpi, ImageType.GRAY);
     var output = new ByteArrayOutputStream();
     ImageIO.write(image, "jpeg", output);
     return "data:image/jpeg;base64,"
