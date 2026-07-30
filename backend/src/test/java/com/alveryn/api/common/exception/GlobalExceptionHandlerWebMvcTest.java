@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class GlobalExceptionHandlerWebMvcTest {
   private MockMvc mockMvc;
@@ -41,6 +42,15 @@ class GlobalExceptionHandlerWebMvcTest {
         .andExpect(jsonPath("$.trace").doesNotExist());
   }
 
+  @Test
+  void oversizedUploadsUseAHelpfulPayloadTooLargeResponse() throws Exception {
+    mockMvc
+        .perform(get("/test/upload-too-large"))
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(jsonPath("$.message").value("File exceeds the 15 MB upload limit"))
+        .andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
+  }
+
   @RestController
   static class FailingController {
     @GetMapping("/test/mail")
@@ -51,6 +61,11 @@ class GlobalExceptionHandlerWebMvcTest {
     @GetMapping("/test/unexpected")
     void unexpected() {
       throw new IllegalStateException("boom");
+    }
+
+    @GetMapping("/test/upload-too-large")
+    void uploadTooLarge() {
+      throw new MaxUploadSizeExceededException(15L * 1024 * 1024);
     }
   }
 }

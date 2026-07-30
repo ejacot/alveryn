@@ -19,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
 
@@ -61,6 +62,17 @@ public class GlobalExceptionHandler {
         e instanceof BusinessException businessException ? businessException.getCode() : null,
         r,
         errors);
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  ResponseEntity<ApiErrorResponse> handleMaxUploadSize(
+      MaxUploadSizeExceededException e, HttpServletRequest r) {
+    return response(
+        HttpStatus.PAYLOAD_TOO_LARGE,
+        "File exceeds the 15 MB upload limit",
+        "FILE_TOO_LARGE",
+        r,
+        List.of());
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)

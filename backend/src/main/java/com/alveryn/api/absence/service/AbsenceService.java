@@ -46,6 +46,17 @@ public class AbsenceService {
 
   @Transactional
   public AbsenceResponse create(@Valid AbsenceRequest request) {
+    return createInternal(request, null, null);
+  }
+
+  @Transactional
+  public AbsenceResponse createImported(
+      @Valid AbsenceRequest request, boolean paid, int paidMinutesPerDay) {
+    return createInternal(request, paid, paidMinutesPerDay);
+  }
+
+  private AbsenceResponse createInternal(
+      AbsenceRequest request, Boolean importedPaid, Integer importedPaidMinutesPerDay) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     Employment employment = employments.requireOwned(request.employmentId());
     validateRange(request.startDate(), request.endDate());
@@ -60,6 +71,9 @@ public class AbsenceService {
             type,
             request.startDate(),
             request.endDate());
+    if (importedPaid != null && importedPaidMinutesPerDay != null) {
+      absence.applyImportedPaymentSnapshot(importedPaid, importedPaidMinutesPerDay);
+    }
     absence.updateNotes(InputSanitizer.trimToNull(request.notes()));
     return toResponse(absences.save(absence));
   }

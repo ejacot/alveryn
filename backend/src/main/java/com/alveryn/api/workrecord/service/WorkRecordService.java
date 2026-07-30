@@ -9,7 +9,9 @@ import com.alveryn.api.common.exception.ConflictException;
 import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.restday.repository.EmploymentRestDayRepository;
 import com.alveryn.api.salary.service.SalaryCalculationService;
-import com.alveryn.api.employment.entity.TrackingFocus;
+import com.alveryn.api.employment.entity.CompensationType;
+import com.alveryn.api.employment.extrapay.EmploymentExtraPayRuleRepository;
+import com.alveryn.api.employment.extrapay.EmploymentExtraPayRule;
 import com.alveryn.api.time.TimeCalculator;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
@@ -50,6 +52,7 @@ public class WorkRecordService {
   private final AddressRepository addresses;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final EmploymentRestDayRepository restDays;
+  private final EmploymentExtraPayRuleRepository extraPayRules;
 
   @Transactional
   public WorkRecordResponse create(@Valid WorkRecordRequest request) {
@@ -240,7 +243,7 @@ public class WorkRecordService {
             .orElseThrow(() -> new NotFoundException("WorkType", workTypeId));
     try {
       if (workType.getEmployment() != null
-          && workType.getEmployment().getTrackingFocus() == TrackingFocus.TIME
+          && workType.getEmployment().getCompensationType() == CompensationType.FIXED_SALARY
           && workType.calculationMode() == com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode.TIME_HOURLY) {
         return toTimeOnlyLine(record, workType, request, displayOrder);
       }
@@ -293,7 +296,7 @@ public class WorkRecordService {
         breakMinutes,
         salary.hourlyRate(),
         salary.currency(),
-        resolveExtraPayPercentage(workType, request),
+        resolveExtraPayPercentage(record, workType, request),
         request.notes());
   }
 
@@ -313,7 +316,7 @@ public class WorkRecordService {
             durationMinutes,
             salary.hourlyRate(),
             salary.currency(),
-            resolveExtraPayPercentage(workType, request),
+            resolveExtraPayPercentage(record, workType, request),
             request.notes());
   }
 
@@ -338,7 +341,7 @@ public class WorkRecordService {
         quantity,
         salary.hourlyRate(),
         salary.currency(),
-        resolveExtraPayPercentage(workType, request),
+        resolveExtraPayPercentage(record, workType, request),
         request.notes());
   }
 
@@ -346,7 +349,7 @@ public class WorkRecordService {
       WorkRecord record, WorkType workType, WorkRecordLineRequest request, int displayOrder) {
     return WorkRecordLine.unitsPerUnit(
         record, workType, displayOrder, requireQuantity(request), record.getTeamSize(),
-        resolveExtraPayPercentage(workType, request), request.notes());
+        resolveExtraPayPercentage(record, workType, request), request.notes());
   }
 
   private WorkRecordLine toFixedAmountLine(
@@ -359,7 +362,7 @@ public class WorkRecordService {
     }
     return WorkRecordLine.fixedAmount(
         record, workType, displayOrder, request.fixedAmount(), request.currency(),
-        resolveExtraPayPercentage(workType, request), request.notes());
+        resolveExtraPayPercentage(record, workType, request), request.notes());
   }
 
   private BigDecimal requireQuantity(WorkRecordLineRequest request) {
@@ -374,12 +377,19 @@ public class WorkRecordService {
     return record.getEmployment().getId();
   }
 
-  private int normalizeExtraPayPercentage(Integer value) {
-    return value == null ? 0 : value;
+  private BigDecimal normalizeExtraPayPercentage(BigDecimal value) {
+    return value == null ? BigDecimal.ZERO : value;
   }
 
-  private int resolveExtraPayPercentage(WorkType workType, WorkRecordLineRequest request) {
-    return workType.isExtraPayEnabled() ? normalizeExtraPayPercentage(request.extraPayPercentage()) : 0;
+  private BigDecimal resolveExtraPayPercentage(
+      WorkRecord record, WorkType workType, WorkRecordLineRequest request) {
+    BigDecimal manual = workType.isExtraPayEnabled()
+        ? normalizeExtraPayPercentage(request.extraPayPercentage()) : BigDecimal.ZERO;
+    if (record.getEmployment() == null) return manual;
+    BigDecimal recurring = extraPayRules.findByEmploymentIdAndWeekday(
+            record.getEmployment().getId(), record.getWorkDate().getDayOfWeek())
+        .map(EmploymentExtraPayRule::getPercentage).orElse(BigDecimal.ZERO);
+    return manual.max(recurring);
   }
 
   private WorkRecordResponse toResponse(WorkRecord record) {

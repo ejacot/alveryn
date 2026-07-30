@@ -87,6 +87,38 @@ public class AbsenceTypeSettingService {
   }
 
   @Transactional
+  public AbsenceTypeSettingResponse ensureImportType(AbsenceType type) {
+    UUID userId = authenticatedUserAccessor.requireUserId();
+    var existing = repository.findByUserIdAndCode(userId, type);
+    if (existing.isPresent()) {
+      AbsenceTypeSetting setting = existing.get();
+      if (!setting.isActive()) {
+        setting.update(
+            setting.getName(), type, setting.isPaid(), setting.getPaidMinutesPerDay(),
+            setting.getColor(), true, setting.getDisplayOrder());
+        repository.save(setting);
+      }
+      return toResponse(setting);
+    }
+    UserAccount user = users.findById(userId)
+        .orElseThrow(() -> new NotFoundException("UserAccount", userId));
+    String name = switch (type) {
+      case VACATION -> "Vacation";
+      case SICK_LEAVE -> "Sick leave";
+      case DAY_OFF -> "Day off";
+      case PUBLIC_HOLIDAY -> "Public holiday";
+    };
+    String color = switch (type) {
+      case VACATION -> "#10B981";
+      case SICK_LEAVE -> "#EF4444";
+      case DAY_OFF -> "#737373";
+      case PUBLIC_HOLIDAY -> "#F59E0B";
+    };
+    return toResponse(repository.save(new AbsenceTypeSetting(
+        user, name, type, false, 0, color, nextDisplayOrder(userId))));
+  }
+
+  @Transactional
   public AbsenceTypeSettingResponse update(UUID id, @Valid AbsenceTypeSettingRequest request) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     AbsenceTypeSetting setting = findOwned(id, userId);

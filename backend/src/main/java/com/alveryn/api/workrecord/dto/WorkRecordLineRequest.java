@@ -16,5 +16,5 @@ public record WorkRecordLineRequest(
     LocalTime endTime,
     @PositiveOrZero Integer durationMinutes,
     @PositiveOrZero Integer unpaidBreakMinutes,
-    @PositiveOrZero @Max(1000) Integer extraPayPercentage,
+    @PositiveOrZero @Max(1000) BigDecimal extraPayPercentage,
     @Size(max = 500) String notes) {}

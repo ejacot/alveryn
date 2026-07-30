@@ -8,6 +8,9 @@ RUN ./mvnw --batch-mode -DskipTests clean package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /workspace/target/app.jar app.jar
 RUN useradd --system --uid 10001 alveryn
 USER 10001

@@ -8,8 +8,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
-      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:15MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:50MB}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/alveryn}
@@ -57,6 +57,13 @@ management:
         enabled: true
 
 alveryn:
+  import-intelligence:
+    enabled: ${IMPORT_AI_ENABLED:false}
+    api-key: ${GROQ_API_KEY:}
+    base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
+    model: ${GROQ_MODEL:openai/gpt-oss-20b}
+    vision-model: ${GROQ_VISION_MODEL:qwen/qwen3.6-27b}
+    timeout: ${GROQ_TIMEOUT:30s}
   founder:
     email: ${FOUNDER_EMAIL:}
   cors:

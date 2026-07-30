@@ -33,5 +33,5 @@ public record WorkRecordLineResponse(
     BigDecimal baseGrossAmount,
     BigDecimal extraGrossAmount,
     BigDecimal totalGrossAmount,
-    int extraPayPercentage,
+    BigDecimal extraPayPercentage,
     String notes) {}

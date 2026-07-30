@@ -23,11 +23,16 @@ public final class WorkCalculation {
 
   public static BigDecimal calculateGross(
       BigDecimal minutes, BigDecimal hourlyRate, int extraPayPercentage) {
+    return calculateGross(minutes, hourlyRate, BigDecimal.valueOf(extraPayPercentage));
+  }
+
+  public static BigDecimal calculateGross(
+      BigDecimal minutes, BigDecimal hourlyRate, BigDecimal extraPayPercentage) {
     if (minutes == null || minutes.signum() <= 0 || hourlyRate == null || hourlyRate.signum() < 0) {
       throw new IllegalArgumentException("invalid calculation inputs");
     }
     BigDecimal multiplier =
-        BigDecimal.valueOf(100L + normalizeExtraPayPercentage(extraPayPercentage))
+        BigDecimal.valueOf(100).add(normalizeExtraPayPercentage(extraPayPercentage))
             .divide(BigDecimal.valueOf(100), TIME_MATH_CONTEXT);
     return hourlyRate
         .multiply(minutes, TIME_MATH_CONTEXT)
@@ -43,12 +48,12 @@ public final class WorkCalculation {
     return quantity.multiply(ratePerUnit, TIME_MATH_CONTEXT).setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
 
-  public static BigDecimal applyExtraPay(BigDecimal amount, int extraPayPercentage) {
+  public static BigDecimal applyExtraPay(BigDecimal amount, BigDecimal extraPayPercentage) {
     if (amount == null || amount.signum() < 0) {
       throw new IllegalArgumentException("amount must be non-negative");
     }
     BigDecimal multiplier =
-        BigDecimal.valueOf(100L + normalizeExtraPayPercentage(extraPayPercentage))
+        BigDecimal.valueOf(100).add(normalizeExtraPayPercentage(extraPayPercentage))
             .divide(BigDecimal.valueOf(100), TIME_MATH_CONTEXT);
     return amount.multiply(multiplier, TIME_MATH_CONTEXT).setScale(GROSS_SCALE, RoundingMode.HALF_UP);
   }
@@ -58,5 +63,13 @@ public final class WorkCalculation {
       throw new IllegalArgumentException("extraPayPercentage must be between 0 and 1000");
     }
     return value;
+  }
+
+  public static BigDecimal normalizeExtraPayPercentage(BigDecimal value) {
+    BigDecimal normalized = value == null ? BigDecimal.ZERO : value;
+    if (normalized.signum() < 0 || normalized.compareTo(BigDecimal.valueOf(1000)) > 0) {
+      throw new IllegalArgumentException("extraPayPercentage must be between 0 and 1000");
+    }
+    return normalized.stripTrailingZeros();
   }
 }

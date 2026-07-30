@@ -123,6 +123,14 @@ public class Absence extends BaseEntity {
     paidMinutesPerDaySnapshot = type.getPaidMinutesPerDay();
   }
 
+  public void applyImportedPaymentSnapshot(boolean paid, int paidMinutesPerDay) {
+    if (paidMinutesPerDay < 0 || paidMinutesPerDay > 1440) {
+      throw new IllegalArgumentException("paidMinutesPerDay must be between 0 and 1440");
+    }
+    paidSnapshot = paid;
+    paidMinutesPerDaySnapshot = paid ? paidMinutesPerDay : 0;
+  }
+
   public void updateNotes(String value) {
     if (value != null && value.length() > 500)
       throw new IllegalArgumentException("notes exceeds 500 characters");

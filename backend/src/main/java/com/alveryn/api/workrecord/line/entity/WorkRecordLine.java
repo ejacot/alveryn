@@ -109,8 +109,8 @@ public class WorkRecordLine extends BaseEntity {
   @Column(name = "total_gross_amount", nullable = false, precision = 30, scale = 15)
   private BigDecimal totalGrossAmount;
 
-  @Column(name = "extra_pay_percentage", nullable = false)
-  private int extraPayPercentage;
+  @Column(name = "extra_pay_percentage", nullable = false, precision = 7, scale = 4)
+  private BigDecimal extraPayPercentage;
 
   @Column(length = 500)
   private String notes;
@@ -124,7 +124,7 @@ public class WorkRecordLine extends BaseEntity {
       int breakMinutes,
       BigDecimal hourlyRate,
       String currency,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     int totalIntervalMinutes = TimeCalculator.intervalMinutes(startTime, endTime);
     if (breakMinutes < 0 || breakMinutes >= totalIntervalMinutes) {
@@ -150,7 +150,7 @@ public class WorkRecordLine extends BaseEntity {
       int durationMinutes,
       BigDecimal hourlyRate,
       String currency,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     if (durationMinutes <= 0) {
       throw new IllegalArgumentException("durationMinutes must be positive");
@@ -166,26 +166,40 @@ public class WorkRecordLine extends BaseEntity {
     return line;
   }
 
+  public static WorkRecordLine timeHourlyDuration(
+      WorkRecord record,
+      WorkType workType,
+      int displayOrder,
+      int durationMinutes,
+      BigDecimal hourlyRate,
+      String currency,
+      int extraPayPercentage,
+      String notes) {
+    return timeHourlyDuration(
+        record, workType, displayOrder, durationMinutes, hourlyRate, currency,
+        BigDecimal.valueOf(extraPayPercentage), notes);
+  }
+
   public static WorkRecordLine timeOnly(WorkRecord record, WorkType workType, int displayOrder,
       LocalTime startTime, LocalTime endTime, int breakMinutes, String notes) {
     int totalIntervalMinutes = TimeCalculator.intervalMinutes(startTime, endTime);
     if (breakMinutes < 0 || breakMinutes >= totalIntervalMinutes) throw new IllegalArgumentException("break must be shorter than interval");
-    WorkRecordLine line = base(record, workType, displayOrder, 0, notes);
+    WorkRecordLine line = base(record, workType, displayOrder, BigDecimal.ZERO, notes);
     line.calculationModeSnapshot = WorkLineCalculationMode.TIME_ONLY;
     line.startTime = startTime; line.endTime = endTime; line.breakMinutes = breakMinutes;
     line.calculatedMinutes = BigDecimal.valueOf(totalIntervalMinutes - breakMinutes).setScale(WorkCalculation.TIME_SCALE);
-    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, 0);
+    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, BigDecimal.ZERO);
     return line;
   }
 
   public static WorkRecordLine timeOnlyDuration(WorkRecord record, WorkType workType, int displayOrder,
       int durationMinutes, String notes) {
     if (durationMinutes <= 0) throw new IllegalArgumentException("durationMinutes must be positive");
-    WorkRecordLine line = base(record, workType, displayOrder, 0, notes);
+    WorkRecordLine line = base(record, workType, displayOrder, BigDecimal.ZERO, notes);
     line.calculationModeSnapshot = WorkLineCalculationMode.TIME_ONLY;
     line.durationMinutes = durationMinutes;
     line.calculatedMinutes = BigDecimal.valueOf(durationMinutes).setScale(WorkCalculation.TIME_SCALE);
-    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, 0);
+    line.captureResults(line.calculatedMinutes, BigDecimal.ZERO, BigDecimal.ZERO);
     return line;
   }
 
@@ -196,7 +210,7 @@ public class WorkRecordLine extends BaseEntity {
       BigDecimal quantity,
       BigDecimal hourlyRate,
       String currency,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     BigDecimal minutes =
         quantity
@@ -219,7 +233,7 @@ public class WorkRecordLine extends BaseEntity {
       int displayOrder,
       BigDecimal quantity,
       Integer teamSize,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     BigDecimal minutes =
         workType.getUnitsPerHour() == null
@@ -247,7 +261,8 @@ public class WorkRecordLine extends BaseEntity {
   public static WorkRecordLine unitsPerUnit(
       WorkRecord record, WorkType workType, int displayOrder, BigDecimal quantity,
       Integer teamSize, String notes) {
-    return unitsPerUnit(record, workType, displayOrder, quantity, teamSize, 0, notes);
+    return unitsPerUnit(
+        record, workType, displayOrder, quantity, teamSize, BigDecimal.ZERO, notes);
   }
 
   public static WorkRecordLine fixedAmount(
@@ -256,7 +271,7 @@ public class WorkRecordLine extends BaseEntity {
       int displayOrder,
       BigDecimal fixedAmount,
       String currency,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     if (fixedAmount == null || fixedAmount.signum() <= 0) {
       throw new IllegalArgumentException("fixedAmount must be positive");
@@ -272,14 +287,15 @@ public class WorkRecordLine extends BaseEntity {
   public static WorkRecordLine fixedAmount(
       WorkRecord record, WorkType workType, int displayOrder, BigDecimal fixedAmount,
       String currency, String notes) {
-    return fixedAmount(record, workType, displayOrder, fixedAmount, currency, 0, notes);
+    return fixedAmount(
+        record, workType, displayOrder, fixedAmount, currency, BigDecimal.ZERO, notes);
   }
 
   private static WorkRecordLine base(
       WorkRecord record,
       WorkType workType,
       int displayOrder,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     if (!workType.isActive()) {
       throw new IllegalArgumentException("work type is inactive");
@@ -297,7 +313,8 @@ public class WorkRecordLine extends BaseEntity {
     if (displayOrder < 0) {
       throw new IllegalArgumentException("displayOrder must be non-negative");
     }
-    if (extraPayPercentage < 0 || extraPayPercentage > 1000) {
+    if (extraPayPercentage == null || extraPayPercentage.signum() < 0
+        || extraPayPercentage.compareTo(BigDecimal.valueOf(1000)) > 0) {
       throw new IllegalArgumentException("extraPayPercentage must be between 0 and 1000");
     }
     line.displayOrder = displayOrder;
@@ -306,7 +323,7 @@ public class WorkRecordLine extends BaseEntity {
     line.calculationModeSnapshot = workType.calculationMode();
     line.unitLabelSnapshot = workType.getUnitLabel();
     line.unitSymbolSnapshot = workType.getUnitSymbol();
-    line.extraPayPercentage = extraPayPercentage;
+    line.extraPayPercentage = extraPayPercentage.stripTrailingZeros();
     line.updateNotes(notes);
     return line;
   }
@@ -316,7 +333,7 @@ public class WorkRecordLine extends BaseEntity {
       WorkType workType,
       int displayOrder,
       BigDecimal quantity,
-      int extraPayPercentage,
+      BigDecimal extraPayPercentage,
       String notes) {
     if (quantity == null || quantity.signum() <= 0) {
       throw new IllegalArgumentException("quantity must be positive");
@@ -334,10 +351,10 @@ public class WorkRecordLine extends BaseEntity {
   }
 
   private void captureResults(
-      BigDecimal workedMinutes, BigDecimal baseGrossAmount, int extraPayPercentage) {
+      BigDecimal workedMinutes, BigDecimal baseGrossAmount, BigDecimal extraPayPercentage) {
     this.workedMinutes = workedMinutes.setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
     this.extraPaidEquivalentMinutes = this.workedMinutes
-        .multiply(BigDecimal.valueOf(extraPayPercentage), WorkCalculation.TIME_MATH_CONTEXT)
+        .multiply(extraPayPercentage, WorkCalculation.TIME_MATH_CONTEXT)
         .divide(BigDecimal.valueOf(100), WorkCalculation.TIME_MATH_CONTEXT)
         .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
     this.totalPaidEquivalentMinutes = this.workedMinutes
