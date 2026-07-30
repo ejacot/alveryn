@@ -120,6 +120,14 @@ services:
         value: true
       - key: REFRESH_COOKIE_SAME_SITE
         value: None
+      - key: IMPORT_AI_ENABLED
+        value: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: GROQ_VISION_MODEL
+        value: qwen/qwen3.6-27b
 
 databases:
   - name: alveryn-db
