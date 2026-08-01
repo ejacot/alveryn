@@ -51,6 +51,7 @@ public class DataImportService {
   private final WorkTypeRepository workTypeRepository;
   private final XlsxWorkbookAnalyzer analyzer;
   private final TextWorkLogConverter textWorkLogConverter;
+  private final VisualWorkLogConverter visualWorkLogConverter;
   private final ObjectMapper objectMapper;
   private final ImportIntelligenceService importIntelligenceService;
   private final PayrollDocumentAnalyzer payrollDocumentAnalyzer;
@@ -71,7 +72,9 @@ public class DataImportService {
     if (scope == null) throw new IllegalArgumentException("Import scope is required");
     try {
       byte[] sourceBytes = file.getBytes();
-      byte[] bytes = isTextFile(file) ? textWorkLogConverter.convert(sourceBytes) : sourceBytes;
+      boolean convertedDocument = isTextFile(file) || isVisualFile(file);
+      byte[] bytes = isTextFile(file) ? textWorkLogConverter.convert(sourceBytes)
+          : isVisualFile(file) ? visualWorkLogConverter.convert(file) : sourceBytes;
       var digest = MessageDigest.getInstance("SHA-256");
       digest.update(sourceBytes);
       if (payrollFiles != null) {
@@ -91,7 +94,7 @@ public class DataImportService {
         }
         if (batch.getAnalysis().path("analyzerVersion").asInt() < analyzer.version()) {
           var refreshed = analyzeAndEnrich(
-              bytes, payrollFiles, scope, employmentId, userId, isTextFile(file));
+              bytes, payrollFiles, scope, employmentId, userId, convertedDocument);
           batch.refreshAnalysis(
               refreshed.requiresReview() ? DataImportStatus.NEEDS_REVIEW : DataImportStatus.ANALYZED,
               refreshed.workbookData(), refreshed.analysis());
@@ -100,14 +103,16 @@ public class DataImportService {
       }
 
       var result = analyzeAndEnrich(
-          bytes, payrollFiles, scope, employmentId, userId, isTextFile(file));
+          bytes, payrollFiles, scope, employmentId, userId, convertedDocument);
       var user = userAccountRepository.findById(userId)
           .orElseThrow(() -> new IllegalArgumentException("Authenticated user no longer exists"));
       String filename = safeFilename(file.getOriginalFilename());
       DataImportStatus status =
           result.requiresReview() ? DataImportStatus.NEEDS_REVIEW : DataImportStatus.ANALYZED;
       var batch = batchRepository.save(DataImportBatch.analyzed(
-          user, filename, hash, sourceBytes.length, status, scope, employment,
+          user, filename, hash, sourceBytes.length,
+          file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
+          sourceBytes, status, scope, employment,
           result.workbookData(), result.analysis()));
       return response(batch, false);
     } catch (IllegalArgumentException exception) {
@@ -449,18 +454,28 @@ public class DataImportService {
 
   private void validate(MultipartFile file) {
     if (file == null || file.isEmpty()) {
-      throw new IllegalArgumentException("An .xlsx or .txt file is required");
+      throw new IllegalArgumentException("Choose a spreadsheet, note, PDF or image");
     }
     if (file.getSize() > MAX_SIZE) throw new IllegalArgumentException("File exceeds the 10 MB limit");
     String filename = safeFilename(file.getOriginalFilename());
     String lower = filename.toLowerCase(Locale.ROOT);
-    if (!lower.endsWith(".xlsx") && !lower.endsWith(".txt")) {
-      throw new IllegalArgumentException("Only .xlsx and .txt files are supported");
+    if (!lower.endsWith(".xlsx") && !lower.endsWith(".txt")
+        && !lower.endsWith(".pdf") && !lower.endsWith(".jpg")
+        && !lower.endsWith(".jpeg") && !lower.endsWith(".png")
+        && !lower.endsWith(".webp")) {
+      throw new IllegalArgumentException(
+          "Supported files are XLSX, TXT, PDF, JPG, PNG and WEBP");
     }
   }
 
   private boolean isTextFile(MultipartFile file) {
     return safeFilename(file.getOriginalFilename()).toLowerCase(Locale.ROOT).endsWith(".txt");
+  }
+
+  private boolean isVisualFile(MultipartFile file) {
+    String lower = safeFilename(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
+    return lower.endsWith(".pdf") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+        || lower.endsWith(".png") || lower.endsWith(".webp");
   }
 
   private String safeFilename(String filename) {
@@ -477,4 +492,19 @@ public class DataImportService {
         duplicate, objectMapper.convertValue(
             batch.getAnalysis(), new TypeReference<Map<String, Object>>() {}));
   }
+
+  @Transactional(readOnly = true)
+  public SourceDocument sourceDocument(UUID batchId) {
+    var userId = authenticatedUserAccessor.requireUserId();
+    DataImportBatch batch = batchRepository.findByIdAndUserId(batchId, userId)
+        .orElseThrow(() -> new IllegalArgumentException("Import does not exist"));
+    if (batch.getSourceContent() == null) {
+      throw new IllegalArgumentException("The original file was not stored for this import");
+    }
+    return new SourceDocument(batch.getSourceFilename(),
+        batch.getSourceContentType() == null ? "application/octet-stream" : batch.getSourceContentType(),
+        batch.getSourceContent());
+  }
+
+  public record SourceDocument(String filename, String contentType, byte[] content) {}
 }

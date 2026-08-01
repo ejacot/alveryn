@@ -36,6 +36,12 @@ public class DataImportBatch extends BaseEntity {
   @Column(name = "source_size", nullable = false)
   private long sourceSize;
 
+  @Column(name = "source_content_type", length = 100)
+  private String sourceContentType;
+
+  @Column(name = "source_content")
+  private byte[] sourceContent;
+
   @Column(nullable = false, length = 20)
   private String format;
 
@@ -61,12 +67,15 @@ public class DataImportBatch extends BaseEntity {
 
   protected DataImportBatch(
       UserAccount user, String filename, String sha256, long size,
-      DataImportStatus status, DataImportScope importScope, Employment employment,
+      String contentType, byte[] content, DataImportStatus status,
+      DataImportScope importScope, Employment employment,
       JsonNode workbookData, JsonNode analysis) {
     this.user = user;
     this.sourceFilename = filename;
     this.sourceSha256 = sha256;
     this.sourceSize = size;
+    this.sourceContentType = contentType;
+    this.sourceContent = content;
     this.format = "XLSX";
     this.status = status;
     this.importScope = importScope;
@@ -77,10 +86,12 @@ public class DataImportBatch extends BaseEntity {
 
   public static DataImportBatch analyzed(
       UserAccount user, String filename, String sha256, long size,
-      DataImportStatus status, DataImportScope importScope, Employment employment,
+      String contentType, byte[] content, DataImportStatus status,
+      DataImportScope importScope, Employment employment,
       JsonNode workbookData, JsonNode analysis) {
     return new DataImportBatch(
-        user, filename, sha256, size, status, importScope, employment, workbookData, analysis);
+        user, filename, sha256, size, contentType, content, status,
+        importScope, employment, workbookData, analysis);
   }
 
   public void refreshAnalysis(

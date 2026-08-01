@@ -116,6 +116,64 @@ public class ImportIntelligenceService {
     return combined;
   }
 
+  public ObjectNode analyzeWorkLogImages(List<String> imageDataUrls) {
+    if (!properties.available()) {
+      throw new IllegalArgumentException("Visual document analysis is not configured");
+    }
+    if (imageDataUrls == null || imageDataUrls.isEmpty()) {
+      throw new IllegalArgumentException("The document contains no readable pages");
+    }
+    try {
+      List<Map<String, Object>> content = new ArrayList<>();
+      content.add(Map.of("type", "text", "text", """
+          Read this work-history document exactly as printed. It may be a photograph, scan,
+          handwritten note, table, timesheet or exported document. Return every dated row from
+          every supplied page. Never invent a date, duration, quantity, rate or label.
+
+          For each row return:
+          - date: ISO yyyy-MM-dd only when a full date is printed, otherwise the printed value.
+          - activities: every work value as {label, value}. Prefer a printed calculated number
+            of hours or units. Do not calculate from a decorative time interval when a separate
+            calculated value is printed. Use the clearest printed label; use "Hours" only when
+            no label exists.
+          - marker: a non-work code such as vacation, sick, free/rest or public holiday.
+          - notes: preserve all remaining meaningful text, including intervals that were not
+            used as the activity value.
+          Return rows in source order and include all pages. Unreadable cells must be null, not
+          guessed. Decimal commas are decimal separators.
+          """));
+      imageDataUrls.forEach(url -> content.add(Map.of(
+          "type", "image_url", "image_url", Map.of("url", url))));
+      Map<String, Object> body = Map.of(
+          "model", properties.visionModel(),
+          "temperature", 0.0,
+          "max_completion_tokens", 4000,
+          "reasoning_effort", "none",
+          "messages", List.of(
+              Map.of("role", "system", "content",
+                  "Extract work-log rows without guessing. Return JSON only as {rows:[{date,activities:[{label,value}],marker,notes}]}."),
+              Map.of("role", "user", "content", content)),
+          "response_format", Map.of("type", "json_object"));
+      String raw = restClient.post().uri("/chat/completions")
+          .contentType(MediaType.APPLICATION_JSON)
+          .headers(headers -> headers.setBearerAuth(properties.apiKey()))
+          .body(objectMapper.writeValueAsString(body)).retrieve().body(String.class);
+      String modelContent = objectMapper.readTree(raw)
+          .path("choices").path(0).path("message").path("content").asText();
+      JsonNode parsed = parseJsonObject(modelContent);
+      if (!parsed.isObject() || !parsed.path("rows").isArray()) {
+        throw new IllegalArgumentException("The visual document did not contain structured rows");
+      }
+      return (ObjectNode) parsed;
+    } catch (IllegalArgumentException exception) {
+      throw exception;
+    } catch (Exception exception) {
+      log.warn("Visual work-log analysis failed: {}", exception.getMessage());
+      throw new IllegalArgumentException(
+          "The document could not be read. Try a clearer photo or a digital file", exception);
+    }
+  }
+
   public ObjectNode analyzeMonthlyPayrollImages(
       List<String> imageDataUrls, int year, int month) {
     if (!properties.available()) return unavailablePayrollResult();

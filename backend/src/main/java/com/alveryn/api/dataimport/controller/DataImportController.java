@@ -99,6 +99,18 @@ public class DataImportController {
     return ApiResponse.of(service.analyze(file, payrollFiles, scope, employmentId));
   }
 
+  @GetMapping("/{batchId}/source")
+  public ResponseEntity<byte[]> source(@PathVariable java.util.UUID batchId) {
+    var document = service.sourceDocument(batchId);
+    return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(document.contentType()))
+        .contentLength(document.content().length)
+        .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+            .filename(document.filename(), StandardCharsets.UTF_8).build().toString())
+        .header("X-Content-Type-Options", "nosniff")
+        .body(document.content());
+  }
+
   @PostMapping("/{batchId}/confirm")
   public ApiResponse<DataImportConfirmResponse> confirm(
       @PathVariable java.util.UUID batchId,

@@ -126,7 +126,7 @@ public class DataImportEntryService {
     }
     var resolution = new DataImportExecuteRequest.Resolution(
         action, interpreted.percentage(), interpreted.targetWorkTypeId(),
-        interpreted.eligibleHours());
+        interpreted.eligibleHours(), null);
     if (!validResolution(question, resolution)) return null;
     if (action == DataImportExecuteRequest.Action.ENTER_PERCENTAGE) {
       var target = entry.lines().stream()
@@ -160,6 +160,31 @@ public class DataImportEntryService {
         skipped.add(id);
         continue;
       }
+      var entryOverride = request.entryOverrides() == null
+          ? null : request.entryOverrides().get(id);
+      if (entryOverride != null) {
+        if (entryOverride.lineValues() != null
+            && entryOverride.lineValues().size() != entry.lines().size()) {
+          throw new IllegalArgumentException("Every edited activity must retain its work type");
+        }
+        var editedLines = new ArrayList<DataImportPreviewResponse.Line>();
+        for (int index = 0; index < entry.lines().size(); index++) {
+          var line = entry.lines().get(index);
+          BigDecimal value = entryOverride.lineValues() == null
+              ? line.value() : entryOverride.lineValues().get(index);
+          Integer minutes = "TIME_BASED".equals(line.calculationMethod())
+              ? value.multiply(BigDecimal.valueOf(60)).setScale(0,
+                  java.math.RoundingMode.HALF_UP).intValueExact()
+              : line.durationMinutes();
+          editedLines.add(new DataImportPreviewResponse.Line(
+              line.workTypeId(), line.workTypeName(), line.calculationMethod(), value, minutes));
+        }
+        entry = new DataImportPreviewResponse.Entry(
+            entry.id(), entry.date(), entry.status(), entry.classification(),
+            entry.absenceType(), entry.absencePaid(), entry.absencePaidMinutesPerDay(),
+            entry.teamSize(), entry.sheet(), entry.sourceRow(), entryOverride.notes(),
+            editedLines, entry.questions());
+      }
       if ("REST_DAY".equals(entry.classification())) {
         restDayService.mark(
             batch.getEmployment().getId(), entry.date(), new RestDayRequest(entry.notes()));
@@ -186,17 +211,25 @@ public class DataImportEntryService {
         skipped.add(id);
         continue;
       }
-      Map<UUID, DataImportExecuteRequest.Resolution> surcharges = new HashMap<>();
+      Map<UUID, SurchargeApplication> surcharges = new HashMap<>();
       entry.questions().stream()
           .filter(question -> "SURCHARGE".equals(question.type()))
           .map(question -> resolutions.get(question.id()))
           .filter(java.util.Objects::nonNull)
           .filter(resolution -> resolution.action()
               == DataImportExecuteRequest.Action.ENTER_PERCENTAGE)
-          .forEach(resolution -> surcharges.merge(
-              resolution.targetWorkTypeId(), resolution,
-              (left, right) -> left.percentage().compareTo(right.percentage()) >= 0
-                  ? left : right));
+          .forEach(resolution -> {
+            if (resolution.allocations() != null && !resolution.allocations().isEmpty()) {
+              resolution.allocations().forEach(allocation -> surcharges.merge(
+                  allocation.workTypeId(),
+                  new SurchargeApplication(resolution.percentage(), allocation.eligibleHours()),
+                  DataImportEntryService::higherPercentage));
+            } else if (resolution.targetWorkTypeId() != null && resolution.eligibleHours() != null) {
+              surcharges.merge(resolution.targetWorkTypeId(),
+                  new SurchargeApplication(resolution.percentage(), resolution.eligibleHours()),
+                  DataImportEntryService::higherPercentage);
+            }
+          });
       surcharges.keySet().forEach(workTypeId -> workTypes.findByIdAndUserId(
           workTypeId, userId).ifPresent(type -> type.changeExtraPayEnabled(true)));
       String resolvedNotes = entry.questions().stream()
@@ -219,8 +252,9 @@ public class DataImportEntryService {
           })
           .map(DataImportPreviewResponse.Question::value)
           .findFirst().orElse(null);
+      LocalDate importDate = entry.date();
       List<WorkRecordLineRequest> lines = entry.lines().stream()
-          .flatMap(line -> toRequests(line, surcharges.get(line.workTypeId()), interval).stream())
+          .flatMap(line -> toRequests(importDate, line, surcharges.get(line.workTypeId()), interval).stream())
           .toList();
       workRecordService.create(new WorkRecordRequest(
           entry.date(), null, null, entry.teamSize(), notes.isBlank() ? null : notes, lines));
@@ -244,8 +278,8 @@ public class DataImportEntryService {
           || resolution.action() == DataImportExecuteRequest.Action.USE_EMPLOYMENT_RULE
           || resolution.action() == DataImportExecuteRequest.Action.ENTER_PERCENTAGE
               && resolution.percentage() != null
-              && resolution.targetWorkTypeId() != null
-              && resolution.eligibleHours() != null;
+              && (resolution.allocations() != null && !resolution.allocations().isEmpty()
+                  || resolution.targetWorkTypeId() != null && resolution.eligibleHours() != null);
     }
     return resolution.action() == DataImportExecuteRequest.Action.IGNORE
         || resolution.action() == DataImportExecuteRequest.Action.ADD_AS_NOTE
@@ -254,8 +288,9 @@ public class DataImportEntryService {
   }
 
   private List<WorkRecordLineRequest> toRequests(
+      LocalDate entryDate,
       DataImportPreviewResponse.Line line,
-      DataImportExecuteRequest.Resolution surcharge,
+      SurchargeApplication surcharge,
       String interval) {
     boolean time = "TIME_BASED".equals(line.calculationMethod());
     LocalTime start = null;
@@ -275,7 +310,11 @@ public class DataImportEntryService {
         .multiply(BigDecimal.valueOf(60)).intValueExact();
     if (eligibleMinutes > line.durationMinutes()) {
       throw new IllegalArgumentException(
-          "Extra-pay eligible hours cannot exceed the base activity hours");
+          "Extra-pay eligible hours cannot exceed the base activity hours on "
+              + entryDate + " for " + line.workTypeName() + " (eligible: "
+              + surcharge.eligibleHours() + " h, base: "
+              + BigDecimal.valueOf(line.durationMinutes()).divide(BigDecimal.valueOf(60))
+              + " h)");
     }
     if (eligibleMinutes == line.durationMinutes()) {
       return List.of(lineRequest(line, start, end,
@@ -287,6 +326,13 @@ public class DataImportEntryService {
         lineRequest(line, null, null,
             eligibleMinutes, surcharge.percentage()));
   }
+
+  private static SurchargeApplication higherPercentage(
+      SurchargeApplication left, SurchargeApplication right) {
+    return left.percentage().compareTo(right.percentage()) >= 0 ? left : right;
+  }
+
+  private record SurchargeApplication(BigDecimal percentage, BigDecimal eligibleHours) {}
 
   private WorkRecordLineRequest lineRequest(
       DataImportPreviewResponse.Line line,

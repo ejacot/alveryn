@@ -12,11 +12,19 @@ import jakarta.validation.constraints.Positive;
 
 public record DataImportExecuteRequest(
     @NotEmpty List<String> entryIds,
-    Map<String, @Valid Resolution> resolutions) {
+    Map<String, @Valid Resolution> resolutions,
+    Map<String, @Valid EntryOverride> entryOverrides) {
+  public record EntryOverride(
+      String notes,
+      List<@Positive BigDecimal> lineValues) {}
   public record Resolution(
       @NotNull Action action,
       @Positive @Max(1000) BigDecimal percentage,
       UUID targetWorkTypeId,
+      @Positive BigDecimal eligibleHours,
+      List<@Valid Allocation> allocations) {}
+  public record Allocation(
+      @NotNull UUID workTypeId,
       @Positive BigDecimal eligibleHours) {}
   public enum Action {
     ENTER_PERCENTAGE,
