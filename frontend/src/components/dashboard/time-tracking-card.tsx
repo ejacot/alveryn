@@ -16,7 +16,7 @@ import { queryKeys } from "../../api/query-keys";
 import { useEmploymentScope } from "../../features/employment/employment-scope";
 import type { WorkType } from "../../types/configuration";
 import type { WorkSessionCheckoutPayload } from "../../types/work-session";
-import { Card, CardModuleTitle } from "../ui/card";
+import { Card } from "../ui/card";
 import { LockedModalViewport } from "../ui/locked-modal-viewport";
 import { ModalPanel } from "../ui/modal-panel";
 
@@ -118,24 +118,29 @@ export function TimeTrackingCard() {
 
   return (
     <section aria-labelledby="time-tracking-title">
-      <Card variant="ambient" className="overflow-hidden px-5 py-5">
-        <CardModuleTitle id="time-tracking-title">{t("timeTracking.title")}</CardModuleTitle>
+      <p
+        id="time-tracking-title"
+        className="mb-3 px-1 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/56"
+      >
+        {t("timeTracking.title")}
+      </p>
+      <Card className="overflow-hidden px-5 py-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="font-name truncate text-lg font-semibold tracking-[-0.04em] text-white">
+            <p className="font-name truncate text-lg font-semibold tracking-[-0.04em] text-[#f4f0e7]">
               {currentSession?.workTypeName ?? selectedWorkType?.name ?? t("timeTracking.noWorkType")}
             </p>
             {currentSession && showEmploymentName ? (
               <p className="mt-1 truncate text-xs text-white/46">{currentSession.employmentName}</p>
             ) : null}
             {currentSession ? (
-              <p className="mt-3 text-4xl font-semibold tabular-nums tracking-[-0.06em] text-white">
+              <p className="mt-3 font-metric text-4xl font-medium tabular-nums tracking-[-0.06em] text-[#f4f0e7]">
                 {formatClock(duration?.workedSeconds ?? 0)}
               </p>
             ) : null}
           </div>
           {currentSession ? (
-            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${currentSession.pauseStartedAt ? "bg-orange-400" : "bg-emerald-400"}`} />
+            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${currentSession.pauseStartedAt ? "bg-amber-400" : "bg-[#d5be8d]"}`} />
           ) : null}
         </div>
 
@@ -145,7 +150,7 @@ export function TimeTrackingCard() {
             <select
               value={selectedWorkTypeId}
               onChange={(event) => setSelectedWorkTypeId(event.currentTarget.value)}
-              className="h-12 w-full appearance-auto rounded-2xl border border-white/[0.1] bg-white/[0.06] px-4 text-sm font-semibold text-white outline-none focus:border-white/[0.24]"
+              className="h-12 w-full appearance-auto rounded-2xl border border-[#d5be8d]/15 bg-[#161411] px-4 text-sm font-semibold text-[#f4f0e7] outline-none focus:border-[#d5be8d]/35"
             >
               {availableWorkTypes.map((workType) => (
                 <option key={workType.id} value={workType.id} className="bg-neutral-950">
@@ -176,7 +181,7 @@ export function TimeTrackingCard() {
               type="button"
               disabled={!selectedWorkTypeId || pending}
               onClick={() => checkInMutation.mutate(selectedWorkTypeId)}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition active:scale-[0.98] disabled:opacity-40"
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-[#ead8ac]/35 bg-[#d5be8d] text-sm font-semibold text-[#17130c] shadow-[0_14px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.28)] transition active:scale-[0.98] disabled:opacity-40"
             >
               <Play className="h-4 w-4 fill-current" />
               {t("timeTracking.checkIn")}
@@ -188,7 +193,7 @@ export function TimeTrackingCard() {
                   type="button"
                   disabled={pending}
                   onClick={() => pauseMutation.mutate()}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.06] text-sm font-semibold text-white disabled:opacity-40"
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-[#d5be8d]/15 bg-[#d5be8d]/[0.06] text-sm font-semibold text-[#f4f0e7] disabled:opacity-40"
                 >
                   {currentSession.pauseStartedAt ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                   {currentSession.pauseStartedAt ? t("timeTracking.resume") : t("timeTracking.break")}
@@ -198,7 +203,7 @@ export function TimeTrackingCard() {
                 type="button"
                 disabled={pending}
                 onClick={() => checkOutMutation.mutate({})}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black disabled:opacity-40"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#d5be8d] text-sm font-semibold text-[#17130c] disabled:opacity-40"
               >
                 <CircleStop className="h-4 w-4" />
                 {t("timeTracking.checkOut")}
@@ -207,7 +212,7 @@ export function TimeTrackingCard() {
                 type="button"
                 disabled={pending}
                 onClick={() => setCorrectionOpen(true)}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.06] text-white disabled:opacity-40"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#d5be8d]/15 bg-[#d5be8d]/[0.06] text-[#f4f0e7] disabled:opacity-40"
                 aria-label={t("timeTracking.correct")}
               >
                 <Pencil className="h-4 w-4" />

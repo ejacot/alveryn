@@ -6,7 +6,7 @@ import type { WeeklyRhythmDay } from "../../types/dashboard";
 import { cn } from "../../utils/cn";
 import { formatCurrency, formatMinutesAsDuration } from "../../utils/format";
 import { resolveWeekSwipeDirection } from "../navigation/week-selector.utils";
-import { Card, CardModuleTitle } from "../ui/card";
+import { Card } from "../ui/card";
 
 type Props = {
   variant?: "rhythm" | "flow";
@@ -31,10 +31,11 @@ export function WeeklyHoursCard({
   const [slideDirection, setSlideDirection] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const preservedViewportTop = useRef<number | null>(null);
-  const hasDays = days.length > 0;
   const weekKey = days[0]?.key ?? "empty";
   const selectedDayKey = days.find((day) => day.selected)?.key ?? "none";
   const metricValues = days.map((day) => variant === "flow" ? day.amount : day.minutes);
+  const hasWeeklyActivity = metricValues.some((value) => value > 0) ||
+    days.some((day) => Boolean(day.absence));
   const currentWeekValue = metricValues.reduce((total, value) => total + value, 0);
   const weeklyWorkedMinutes = days.reduce((total, day) => total + day.minutes, 0);
   const weeklyExtraMinutes = days.reduce((total, day) => total + (day.extraMinutes ?? 0), 0);
@@ -46,7 +47,7 @@ export function WeeklyHoursCard({
   const weeklySummary = variant === "flow"
     ? [
         {
-          label: t("weeklyHours.totalMoney"),
+          label: t("weeklyHours.workEarnings"),
           value: formatCurrency(String(weeklyBaseAmount + weeklyExtraAmount), flowCurrency)
         },
         {
@@ -123,38 +124,40 @@ export function WeeklyHoursCard({
 
   return (
     <section ref={sectionRef}>
-      {hasDays ? (
-        <Card variant="ambient" className="overflow-hidden">
-          <CardModuleTitle className="mb-0 px-5 pt-3.5">
-            {t(variant === "flow" ? "weeklyHours.flowEyebrow" : "weeklyHours.eyebrow")}
-          </CardModuleTitle>
+      {hasWeeklyActivity ? (
+        <Card className="overflow-hidden">
           <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-5 py-2.5 dark:border-white/10">
             <div>
-              <p className="flex items-baseline gap-1.5 text-lg font-semibold tabular-nums text-neutral-950 dark:text-white">
-                <span className="text-sm text-neutral-500 dark:text-white/48">
-                  {variant === "flow" ? currencySymbol : "h"}
-                </span>
+              <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f4f0e7]/34">
+                {t(variant === "flow"
+                  ? "weeklyHours.dailyEarningsAverage"
+                  : "weeklyHours.dailyAverage")}
+              </p>
+              <p className="mt-1 flex items-baseline gap-1 font-metric text-lg font-medium tabular-nums text-[#f4f0e7]">
+                {variant === "flow" ? (
+                  <span className="text-sm text-[#f4f0e7]/44">{currencySymbol}</span>
+                ) : null}
                 <span>{numberFormatter.format(variant === "flow" ? dailyAverage : dailyAverage / 60)}</span>
-                <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-white/42">
-                  avg
-                </span>
+                {variant === "rhythm" ? (
+                  <span className="text-xs text-[#f4f0e7]/44">h</span>
+                ) : null}
               </p>
             </div>
             {weekChange !== null ? (
               <div className={cn(
-                "flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
-                weekChange >= 0
-                  ? "border-emerald-500/15 bg-emerald-500/[0.08] text-emerald-500"
-                  : "border-red-500/15 bg-red-500/[0.08] text-red-500"
+                  "flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
+                  weekChange >= 0
+                  ? "border-[#d5be8d]/15 bg-[#d5be8d]/[0.07] text-[#d5be8d]"
+                  : "border-red-400/15 bg-red-400/[0.06] text-red-300"
               )}>
                 {weekChange >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                 <span>{new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(Math.abs(weekChange))}%</span>
               </div>
             ) : null}
           </div>
-          <div className="px-5 py-5">
-          <div className="relative h-44 touch-pan-y overflow-hidden">
-            <div className="grid h-44 grid-cols-7 items-end gap-2 opacity-0" aria-hidden="true">
+          <div className="px-4 py-4">
+          <div className="relative h-52 touch-pan-y overflow-hidden">
+            <div className="grid h-52 grid-cols-7 items-end gap-1.5 opacity-0" aria-hidden="true">
               {days.map((day) => (
                 <div key={`placeholder-${day.key}`} />
               ))}
@@ -187,11 +190,11 @@ export function WeeklyHoursCard({
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-                className="absolute inset-0 grid h-44 grid-cols-7 items-end gap-2"
+                className="absolute inset-0 grid h-52 grid-cols-7 items-stretch gap-1.5"
               >
 	                {maximumDailyValue > 0 ? (
                     <div
-                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-emerald-400/90"
+                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#d5be8d]/55"
                       style={{ bottom: `calc(2.5rem + ${(averagePercentage / 100) * 7}rem)` }}
                       aria-hidden="true"
                     />
@@ -205,15 +208,15 @@ export function WeeklyHoursCard({
                   const flowExtraPercentage = flowTotalAmount > 0
                     ? Math.min((flowExtraAmount / flowTotalAmount) * 100, 100)
                     : 0;
-	                  const averageExtraPayPercentage = day.extraPayPercentages.length > 0
-                        ? day.extraPayPercentages.reduce((total, percentage) => total + percentage, 0)
-                          / day.extraPayPercentages.length
+	                  const uniqueExtraPayPercentages = [...new Set(day.extraPayPercentages)];
+	                  const extraPayPercentage = uniqueExtraPayPercentages.length === 1
+                        ? uniqueExtraPayPercentages[0] ?? null
                         : null;
-	                  const extraPayLabel = averageExtraPayPercentage === null
+	                  const extraPayLabel = extraPayPercentage === null
                         ? ""
                         : `+${new Intl.NumberFormat(i18n.resolvedLanguage, {
                             maximumFractionDigits: 1
-                          }).format(averageExtraPayPercentage)}%`;
+                          }).format(extraPayPercentage)}%`;
 	                  const barHeight = Math.max(
                         maximumDailyValue > 0 ? Math.min((metricValue / maximumDailyValue) * 100, 100) : 0,
                         6
@@ -228,25 +231,41 @@ export function WeeklyHoursCard({
                         preservedViewportTop.current = sectionRef.current?.getBoundingClientRect().top ?? null;
                         onDaySelect?.(day.key);
                       }}
-                      className="flex h-full min-w-0 flex-col items-center justify-end gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      className={cn(
+                        "flex h-full min-w-0 flex-col items-center gap-2 rounded-2xl px-1 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d5be8d]",
+                        day.selected
+                          ? "bg-[#d5be8d]/[0.075] shadow-[inset_0_0_0_1px_rgba(213,190,141,0.1)]"
+                          : "bg-transparent"
+                      )}
                       aria-label={isAbsenceOnly
                         ? `${day.label}, ${absenceLabel}`
                         : `${day.label}, ${variant === "flow" ? metricValue : day.value}`}
                     >
+                      <p className={`truncate text-[0.64rem] font-semibold uppercase tracking-[0.1em] ${
+                        day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/38"
+                      }`}>
+                        {day.label}
+                      </p>
                       <div className="relative h-28 w-full">
-                        {!day.absence ? (
+                        <span
+                          className="absolute bottom-0 left-1/2 h-28 w-full max-w-6 -translate-x-1/2 rounded-full bg-white/[0.065]"
+                          aria-hidden="true"
+                        />
+                        {metricValue > 0 && (!day.absence || variant === "flow") ? (
                           <>
                             {extraPayLabel ? (
                               <span
                                 className={cn(
                                   "absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[0.55rem] font-bold tabular-nums",
                                   variant === "flow"
-                                    ? "text-emerald-500 dark:text-emerald-300"
+                                    ? "text-[#d5be8d]"
                                     : day.selected
-                                      ? "text-orange-400"
-                                      : "text-emerald-500 dark:text-emerald-300"
+                                      ? "text-[#ead8ac]"
+                                      : "text-[#d5be8d]"
                                 )}
-                                style={{ bottom: `calc(${barHeight}% + 0.2rem)` }}
+                                style={{
+                                  bottom: `clamp(0.8rem, calc(${barHeight}% + 0.15rem), calc(100% - 0.9rem))`
+                                }}
                               >
                                 {extraPayLabel}
                               </span>
@@ -255,46 +274,52 @@ export function WeeklyHoursCard({
                               <motion.div
                                 initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
                                 animate={{ height: `${barHeight}%`, opacity: 1 }}
-                                transition={{ duration: 0.35, delay: index * 0.04 }}
+                                transition={{ duration: 0.22, delay: index * 0.018, ease: [0.22, 1, 0.36, 1] }}
                                 className="absolute bottom-0 left-1/2 flex w-full max-w-6 -translate-x-1/2 flex-col overflow-hidden rounded-full"
                                 data-testid={`flow-segmented-bar-${day.key}`}
                               >
                                 {flowExtraPercentage > 0 ? (
                                   <span
                                     data-segment="extra"
-                                    className="w-full bg-emerald-400 dark:bg-emerald-400"
+                                    className="w-full bg-[#d5be8d]"
                                     style={{ height: `${flowExtraPercentage}%` }}
                                     aria-hidden="true"
                                   />
                                 ) : null}
                                 <span
                                   data-segment="worked"
-                                  className={cn(
-                                    "w-full flex-1",
-                                    day.selected
-                                      ? "bg-orange-400"
-                                      : "bg-neutral-500/55 dark:bg-neutral-400/45"
-                                  )}
+                                  className="w-full flex-1"
+                                  style={{
+                                    backgroundColor: day.selected
+                                      ? "#ead8ac"
+                                      : "rgba(244, 240, 231, 0.42)"
+                                  }}
                                   aria-hidden="true"
                                 />
                               </motion.div>
                             ) : (
                               <motion.div
+                                data-testid={`rhythm-bar-${day.key}`}
                                 initial={{ height: `${Math.max(barHeight - 10, 6)}%`, opacity: 0.62 }}
                                 animate={{ height: `${barHeight}%`, opacity: 1 }}
-                                transition={{ duration: 0.35, delay: index * 0.04 }}
+                                transition={{ duration: 0.22, delay: index * 0.018, ease: [0.22, 1, 0.36, 1] }}
                                 className={cn(
                                   "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 overflow-hidden rounded-full transition-colors",
                                   day.selected
-                                    ? "bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.2)]"
-                                    : "bg-neutral-500/55 dark:bg-neutral-400/45"
+                                    ? "shadow-[0_0_18px_rgba(213,190,141,0.18)]"
+                                    : ""
                                 )}
+                                style={{
+                                  backgroundColor: day.selected
+                                    ? "#ead8ac"
+                                    : "rgba(244, 240, 231, 0.42)"
+                                }}
                               />
                             )}
                           </>
                         ) : null}
                       </div>
-                      <div className="min-w-0 text-center">
+                      <div className="mt-auto min-w-0 text-center">
                         {day.absence ? (
                           <span className="flex h-4 items-center justify-center">
                             <span
@@ -304,22 +329,22 @@ export function WeeklyHoursCard({
                             />
                           </span>
                         ) : variant === "flow" ? (
-                          <span className="block h-4" aria-hidden="true" />
+                          <p className={cn(
+                            "whitespace-nowrap text-[0.66rem] font-semibold tabular-nums",
+                            day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/42"
+                          )}>
+                            {currencySymbol}{numberFormatter.format(day.amount)}
+                          </p>
                         ) : (
                           <p className={cn(
                             "text-xs font-semibold tabular-nums",
-                            day.selected ? "text-orange-400" : "text-neutral-500 dark:text-neutral-400"
+                            day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/38"
                           )}>
                             {new Intl.NumberFormat(i18n.resolvedLanguage, {
                               maximumFractionDigits: 2
                             }).format(day.minutes / 60)}
                           </p>
                         )}
-                        <p className={`truncate text-[0.68rem] font-semibold uppercase tracking-[0.12em] ${
-                          day.selected ? "text-white" : "text-white/42"
-                        }`}>
-                          {day.label}
-                        </p>
                       </div>
                     </button>
                   );
@@ -336,10 +361,10 @@ export function WeeklyHoursCard({
           >
             {weeklySummary.map((item, index) => (
               <div key={item.label} className={cn("min-w-0", index === 1 && "text-right")}>
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-neutral-500 dark:text-white/40">
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[#f4f0e7]/36">
                   {item.label}
                 </p>
-                <p className="mt-1.5 break-words text-base font-semibold tabular-nums text-neutral-950 dark:text-white">
+                <p className="mt-1.5 break-words font-metric text-base font-medium tabular-nums text-[#f4f0e7]">
                   {item.value}
                 </p>
               </div>
@@ -347,7 +372,11 @@ export function WeeklyHoursCard({
           </div>
         </Card>
       ) : (
-        <Card className="h-36 px-5 py-6" aria-hidden="true" />
+        <Card className="flex min-h-32 items-center px-5 py-6">
+          <p className="max-w-[18rem] text-sm leading-6 text-[#f4f0e7]/38">
+            {t("weeklyHours.emptyDescription")}
+          </p>
+        </Card>
       )}
     </section>
   );

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ChevronDown, FileCheck2, FileText, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, FileCheck2, FileText, ShieldCheck, Upload } from "lucide-react";
 import {
   getCalendarActivityRange,
   getPayrollReconciliation,
@@ -52,7 +53,7 @@ import type { WorkRecord } from "../types/work-record";
 import type { EmploymentRestDay } from "../types/rest-day";
 import { parseLocalIsoDate } from "../utils/date";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
-import { calculatePaidAbsenceDays } from "../utils/paid-absence";
+import { calculatePaidAbsenceDays, type PaidAbsenceDay } from "../utils/paid-absence";
 import { useEmploymentScope } from "../features/employment/employment-scope";
 
 const EMPTY_ABSENCES: Absence[] = [];
@@ -66,7 +67,7 @@ type OutletContext = {
 export function CalendarPage() {
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
-  const { t } = useTranslation("calendar");
+  const { t } = useTranslation(["calendar", "settings"]);
   const queryClient = useQueryClient();
   const selectedEmploymentId = useEmploymentScope();
   const today = useMemo(() => new Date(), []);
@@ -81,12 +82,12 @@ export function CalendarPage() {
   const [payrollError, setPayrollError] = useState<string | null>(null);
   const [payrollSaving, setPayrollSaving] = useState(false);
   const [payrollSaved, setPayrollSaved] = useState(false);
-  const [payrollNotes, setPayrollNotes] = useState("");
   const [payrollExpanded, setPayrollExpanded] = useState(false);
   const [payrollDocument, setPayrollDocument] = useState<File | null>(null);
   const [payrollReconciliationId, setPayrollReconciliationId] = useState<string | null>(null);
   const [payrollDocumentAvailable, setPayrollDocumentAvailable] = useState(false);
   const [payrollDocumentOpening, setPayrollDocumentOpening] = useState(false);
+  const [monthlyView, setMonthlyView] = useState<"flow" | "rhythm">("flow");
 
   const year = activeMonth.getFullYear();
   const month = activeMonth.getMonth() + 1;
@@ -105,7 +106,6 @@ export function CalendarPage() {
     setPayrollReview(null);
     setPayrollError(null);
     setPayrollSaved(false);
-    setPayrollNotes("");
     setPayrollExpanded(false);
     setPayrollDocument(null);
     setPayrollReconciliationId(null);
@@ -132,7 +132,6 @@ export function CalendarPage() {
       payrollLines: saved.payrollLines,
       status: saved.status
     });
-    setPayrollNotes(saved.notes ?? "");
     setPayrollSaved(true);
     setPayrollReconciliationId(saved.id);
     setPayrollDocumentAvailable(saved.documentAvailable);
@@ -340,15 +339,68 @@ export function CalendarPage() {
   );
   const firstActivityDate = activityRangeQuery.data?.firstActivityDate ?? null;
   const todayIso = toIsoDate(today);
+  const paidAbsenceDays = useMemo(
+    () => calculatePaidAbsenceDays({
+      absences,
+      activityDates: records.map((record) => record.workDate),
+      hourlyRates,
+      preferences,
+      from: monthStartKey,
+      to: monthEndKey
+    }),
+    [absences, hourlyRates, monthEndKey, monthStartKey, preferences, records]
+  );
+  const previousPaidAbsenceDays = useMemo(
+    () => calculatePaidAbsenceDays({
+      absences: previousAbsences,
+      activityDates: previousRecords.map((record) => record.workDate),
+      hourlyRates,
+      preferences,
+      from: previousMonthStartKey,
+      to: previousMonthEndKey
+    }),
+    [
+      hourlyRates,
+      preferences,
+      previousAbsences,
+      previousMonthEndKey,
+      previousMonthStartKey,
+      previousRecords
+    ]
+  );
 
   const monthlyMetricDays = useMemo(
     () => buildMonthlyMetricDays(activeMonth, records, absences, absenceTypeById, selectedDate, today),
     [absenceTypeById, absences, activeMonth, records, selectedDate, today]
   );
+  const monthlyMetricDayByDate = useMemo(
+    () => new Map(monthlyMetricDays.map((day) => [day.key, day])),
+    [monthlyMetricDays]
+  );
   const previousMonthlyMetricDays = useMemo(
     () => buildMonthlyMetricDays(previousMonth, previousRecords, previousAbsences, absenceTypeById, null, today),
     [absenceTypeById, previousAbsences, previousMonth, previousRecords, today]
   );
+  const monthlyChartDays = useMemo(
+    () => mergePaidAbsenceMetrics(monthlyMetricDays, paidAbsenceDays),
+    [monthlyMetricDays, paidAbsenceDays]
+  );
+  const previousMonthlyChartDays = useMemo(
+    () => mergePaidAbsenceMetrics(previousMonthlyMetricDays, previousPaidAbsenceDays),
+    [previousMonthlyMetricDays, previousPaidAbsenceDays]
+  );
+  const monthlyCurrencies = useMemo(
+    () => new Set([
+      ...records.map((record) => record.currency).filter(Boolean),
+      ...paidAbsenceDays.map((day) => day.currency)
+    ]),
+    [paidAbsenceDays, records]
+  );
+  const monthlyFlowAvailable = monthlyCurrencies.size <= 1;
+
+  useEffect(() => {
+    if (!monthlyFlowAvailable) setMonthlyView("rhythm");
+  }, [monthlyFlowAvailable]);
 
   const monthGrid = useMemo(() => buildMonthGrid(activeMonth), [activeMonth]);
 
@@ -466,14 +518,7 @@ export function CalendarPage() {
   }, [hourlyRates, preferences, selectedAbsence, selectedDate, selectedRecords]);
 
   const summary = useMemo(() => {
-    const paidAbsences = calculatePaidAbsenceDays({
-      absences,
-      activityDates: records.map((record) => record.workDate),
-      hourlyRates,
-      preferences,
-      from: monthStartKey,
-      to: monthEndKey
-    });
+    const paidAbsences = paidAbsenceDays;
     const workedMinutes = monthlyMetricDays.reduce((total, day) => total + day.minutes, 0);
     const workGrossAmount = monthlyMetricDays.reduce((total, day) => total + day.amount, 0);
     const paidAbsenceMinutes = paidAbsences.reduce((total, absence) => total + absence.minutes, 0);
@@ -514,7 +559,6 @@ export function CalendarPage() {
       paidAbsences.map((absence) => absence.currency)
     );
     const totalCurrencies = new Set([...currencies, ...paidAbsenceCurrencies]);
-
     return {
       workedHours: formatMinutesAsDuration(workedMinutes),
       paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes),
@@ -528,11 +572,12 @@ export function CalendarPage() {
       extraPaidGrossAmount: currencies.size > 1
         ? t("monthlySummary.mixedCurrencies")
         : formatCurrency(String(extraPaid.grossAmount), currency),
+      paidAbsenceGrossAmountValue: paidAbsenceGrossAmount,
+      extraPaidGrossAmountValue: extraPaid.grossAmount,
       workedHoursValue: workedMinutes / 60,
       paidAbsenceHoursValue: paidAbsenceMinutes / 60,
       extraPaidHoursValue: extraPaid.minutes / 60,
       grossAmountValue: workGrossAmount + paidAbsenceGrossAmount,
-      hasWorkedTime: workedMinutes > 0,
       workedDays,
       absenceDays,
       restDays: classifiableDates.filter((date) => restDates.has(date)).length,
@@ -543,19 +588,31 @@ export function CalendarPage() {
   }, [
     absenceByDate,
     absences,
-    hourlyRates,
     missingDates,
     monthEndKey,
     monthGrid,
     monthlyMetricDays,
     monthStartKey,
-    preferences,
+    paidAbsenceDays,
     records,
     recordsByDate,
     restDates,
     t,
     todayIso
   ]);
+  const payrollComparison = useMemo(
+    () => payrollReview
+      ? buildPayrollComparison(payrollReview, {
+          workedHours: summary.workedHoursValue,
+          absenceHours: summary.paidAbsenceHoursValue,
+          absenceAmount: summary.paidAbsenceGrossAmountValue,
+          extraHours: summary.extraPaidHoursValue,
+          extraAmount: summary.extraPaidGrossAmountValue,
+          gross: summary.grossAmountValue
+        })
+      : null,
+    [payrollReview, summary]
+  );
 
   function changeMonth(direction: -1 | 1) {
     const nextMonth = direction === -1 ? getPreviousMonthDate(activeMonth) : getNextMonthDate(activeMonth);
@@ -589,8 +646,10 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-28 pt-8">
-      <header className="settings-sticky-header dashboard-sticky-header calendar-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[560px]">
+    <div className="dashboard-glass-preview mx-auto flex w-full max-w-[560px] flex-col gap-6 pb-28 pt-8">
+      <header className={`settings-sticky-header dashboard-sticky-header calendar-sticky-header pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[560px] transition-opacity duration-200 ${
+        compactTitleVisible ? "opacity-100" : "opacity-0"
+      }`}>
         <div
           className={`settings-sticky-header-title absolute left-1/2 flex h-9 -translate-x-1/2 items-center text-[1rem] font-bold leading-none tracking-[-0.035em] text-white transition duration-300 ${
             compactTitleVisible ? "translate-y-0 opacity-100 delay-100" : "translate-y-1 opacity-0"
@@ -603,14 +662,18 @@ export function CalendarPage() {
 
       <h1
         ref={largeTitleRef}
-        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
+        className={`order-0 text-3xl font-semibold leading-none tracking-[-0.07em] text-[#f4f0e7] transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
         {t("title")}
       </h1>
 
-      <section className="space-y-4">
+      <div className="order-3">
+        <CalendarMonthSummary {...summary} />
+      </div>
+
+      <section className="order-1">
         <CalendarMonthGrid
           monthLabel={formatMonthLabel(activeMonth)}
           monthKey={`${year}-${month}`}
@@ -621,6 +684,7 @@ export function CalendarPage() {
           absenceTypes={absenceTypes.filter((type) => type.active)}
           getDayMeta={(isoDate) => {
             const recordsCount = recordsByDate.get(isoDate)?.length ?? 0;
+            const metricDay = monthlyMetricDayByDate.get(isoDate);
             const inTrackedRange = isInTrackedRange(isoDate, firstActivityDate, todayIso);
             const absence = absenceByDate.get(isoDate) ?? null;
             const configuredType = absence?.absenceTypeId
@@ -637,6 +701,18 @@ export function CalendarPage() {
             return {
               entriesCount: recordsCount,
               marker,
+              activityLabel: recordsCount > 0
+                ? formatCompactCalendarDuration(
+                    metricDay?.minutes ?? 0
+                  )
+                : null,
+              earningsLabel: recordsCount > 0 && (metricDay?.amount ?? 0) > 0
+                ? formatCompactCalendarAmount(
+                    metricDay?.amount ?? 0,
+                    records[0]?.currency ?? preferences?.currency ?? "EUR"
+                  )
+                : null,
+              intensity: Math.min((metricDay?.minutes ?? 0) / 600, 1),
               noActivityInTrackedRange:
                 missingDates.has(isoDate) ||
                 (inTrackedRange && recordsCount === 0 && !marker && !scheduleQuery.data)
@@ -654,240 +730,8 @@ export function CalendarPage() {
         />
       </section>
 
-      <CalendarMonthSummary {...summary} />
-
-      <section className="mt-5 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035]">
-        <input ref={payrollInputRef} type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (!file) return;
-            setPayrollPending(true);
-            setPayrollError(null);
-            setPayrollReview(null);
-            setPayrollSaved(false);
-            setPayrollNotes("");
-            setPayrollDocument(file);
-            setPayrollDocumentAvailable(false);
-            setPayrollExpanded(true);
-            void reconcileMonthlyPayroll(file, year, month)
-              .then((review) => {
-                const hasValues = [
-                  review.normalHours,
-                  review.normalAmount,
-                  review.absenceHours,
-                  review.absenceAmount,
-                  review.extraHours,
-                  review.extraAmount,
-                  review.grossAmount
-                ].some((value) => value != null);
-                if (!hasValues) {
-                  throw new Error("No payroll values were found for the selected month");
-                }
-                setPayrollReview(review);
-              })
-              .catch((error) => setPayrollError(
-                error instanceof Error && error.message
-                  ? error.message
-                  : getApiError(error).message
-              ))
-              .finally(() => {
-                setPayrollPending(false);
-                event.currentTarget.value = "";
-              });
-          }} />
-        <div className="flex items-center gap-3 p-5">
-          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
-            payrollSaved ? "bg-emerald-300/15 text-emerald-200" : "bg-white/[0.07] text-white/65"
-          }`}>
-            {payrollSaved ? <FileCheck2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">Lohn reconciliation</p>
-            <p className="mt-0.5 truncate text-xs text-white/45">
-              {payrollSaved
-                ? `${payrollReview?.filename ?? "Document saved"} · Review available`
-                : payrollReview
-                  ? "Analysis ready to save"
-                  : "Compare this month with the employer payslip"}
-            </p>
-          </div>
-          {payrollReview ? (
-            <button type="button" onClick={() => setPayrollExpanded((value) => !value)}
-              aria-label={payrollExpanded ? "Collapse reconciliation" : "Open reconciliation"}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white">
-              <ChevronDown className={`h-5 w-5 transition-transform ${
-                payrollExpanded ? "rotate-180" : ""
-              }`} />
-            </button>
-          ) : (
-            <button type="button" disabled={payrollPending}
-              onClick={() => payrollInputRef.current?.click()}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-black disabled:opacity-50"
-              aria-label="Upload Lohn document">
-              <Upload className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-        {payrollError ? <p className="px-5 pb-4 text-sm text-red-300">{payrollError}</p> : null}
-        {payrollReview && payrollExpanded ? (
-          <div className="space-y-2 border-t border-white/10 px-5 pb-5 pt-4 text-sm">
-            <div className="mb-4 flex gap-2">
-              {(payrollDocumentAvailable || payrollDocument) ? (
-                <button type="button" disabled={payrollDocumentOpening}
-                  onClick={() => {
-                    const viewer = window.open("", "_blank");
-                    setPayrollDocumentOpening(true);
-                    const source = payrollDocument
-                      ? Promise.resolve(payrollDocument as Blob)
-                      : payrollReconciliationId
-                        ? getPayrollReconciliationDocument(payrollReconciliationId)
-                        : Promise.reject(new Error("Payroll document is not available"));
-                    void source.then((blob) => {
-                      const url = URL.createObjectURL(blob);
-                      if (viewer) viewer.location.href = url;
-                      else {
-                        const link = document.createElement("a");
-                        link.href = url;
-                        link.target = "_blank";
-                        link.click();
-                      }
-                      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                    }).catch((error) => {
-                      viewer?.close();
-                      setPayrollError(getApiError(error).message);
-                    }).finally(() => setPayrollDocumentOpening(false));
-                  }}
-                  className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
-                  {payrollDocumentOpening ? "Opening…" : "Open document"}
-                </button>
-              ) : null}
-              <button type="button" disabled={payrollPending}
-                onClick={() => payrollInputRef.current?.click()}
-                className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
-                {payrollPending ? "Reading…" : "Replace document"}
-              </button>
-            </div>
-            <PayrollComparisonRow label="Worked hours"
-              app={summary.workedHours}
-              payroll={payrollReview.normalHours == null ? "—" : `${payrollReview.normalHours} h`} />
-            <PayrollComparisonRow label="Paid absence"
-              app={`${summary.paidAbsenceHours} · ${summary.paidAbsenceGrossAmount}`}
-              payroll={payrollReview.absenceHours == null ? "—"
-                : `${payrollReview.absenceHours} h · ${payrollReview.absenceAmount ?? "—"} €`} />
-            <PayrollComparisonRow label="Extra pay"
-              app={`${summary.extraPaidHours} · ${summary.extraPaidGrossAmount}`}
-              payroll={payrollReview.extraHours == null ? "—"
-                : `${payrollReview.extraHours} h · ${payrollReview.extraAmount ?? "—"} €`} />
-            <PayrollComparisonRow label="Gross"
-              app={summary.workGrossAmount}
-              payroll={payrollReview.grossAmount == null ? "—"
-                : `${payrollReview.grossAmount.toFixed(2)} €`} />
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                Differences · Lohn − Alveryn
-              </p>
-              <PayrollDifferenceRow label="Worked hours"
-                value={differenceLabel(payrollReview.normalHours, summary.workedHoursValue, "h")} />
-              <PayrollDifferenceRow label="Paid absence"
-                value={differenceLabel(payrollReview.absenceHours, summary.paidAbsenceHoursValue, "h")} />
-              <PayrollDifferenceRow label="Extra hours"
-                value={differenceLabel(payrollReview.extraHours, summary.extraPaidHoursValue, "h")} />
-              <PayrollDifferenceRow label="Gross"
-                value={differenceLabel(payrollReview.grossAmount, summary.grossAmountValue, "€")} />
-            </div>
-            {payrollReview.payrollLines?.length ? (
-              <div className="mt-4 border-t border-white/10 pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                  Lohn details
-                </p>
-                <div className="space-y-3">
-                  {payrollReview.payrollLines.map((line, index) => (
-                    <div key={`${line.code ?? "line"}-${index}`}
-                      className="grid grid-cols-[1fr_auto] gap-x-4">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">
-                          {line.code ? `${line.code} · ` : ""}{line.label ?? "Payroll line"}
-                        </p>
-                        <p className="mt-0.5 text-xs text-white/45">
-                          {[
-                            line.quantity == null ? null : `${line.quantity} h`,
-                            line.factor == null ? null : `× ${line.factor} €`,
-                            line.percentage == null ? null : `${line.percentage}%`
-                          ].filter(Boolean).join(" · ") || "No quantity printed"}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums text-white">
-                        {line.amount == null ? "—" : `${line.amount.toFixed(2)} €`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <label className="mt-4 block border-t border-white/10 pt-4">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-                Reconciliation note
-              </span>
-              <textarea
-                rows={3}
-                maxLength={1000}
-                value={payrollNotes}
-                onChange={(event) => {
-                  setPayrollNotes(event.target.value);
-                  setPayrollSaved(false);
-                }}
-                placeholder="Example: Vacation was paid at €14.75 instead of the current €15.50 rate."
-                className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-5 text-white outline-none placeholder:text-white/30 focus:border-emerald-300/40"
-              />
-            </label>
-            <button type="button"
-              disabled={payrollSaving || !effectiveEmploymentId}
-              onClick={() => {
-                if (!effectiveEmploymentId) return;
-                setPayrollSaving(true);
-                setPayrollError(null);
-                void savePayrollReconciliation({
-                  employmentId: effectiveEmploymentId,
-                  year,
-                  month,
-                  filename: payrollReview.filename,
-                  appWorkedHours: summary.workedHoursValue,
-                  appAbsenceHours: summary.paidAbsenceHoursValue,
-                  appExtraHours: summary.extraPaidHoursValue,
-                  appGross: summary.grossAmountValue,
-                  payrollWorkedHours: payrollReview.normalHours,
-                  payrollAbsenceHours: payrollReview.absenceHours,
-                  payrollExtraHours: payrollReview.extraHours,
-                  payrollGross: payrollReview.grossAmount,
-                  payrollLines: payrollReview.payrollLines ?? [],
-                  notes: payrollNotes
-                }).then(async (saved) => {
-                  setPayrollReconciliationId(saved.id);
-                  if (payrollDocument) {
-                    await uploadPayrollReconciliationDocument(saved.id, payrollDocument);
-                    setPayrollDocumentAvailable(true);
-                  }
-                  setPayrollSaved(true);
-                  setPayrollExpanded(false);
-                  void savedPayrollQuery.refetch();
-                })
-                  .catch((error) => setPayrollError(getApiError(error).message))
-                  .finally(() => setPayrollSaving(false));
-              }}
-              className="mt-4 min-h-12 w-full rounded-full bg-white font-semibold text-black disabled:opacity-40">
-              {payrollSaving ? "Saving…" : payrollSaved ? "Saved ✓" : "Save reconciliation"}
-            </button>
-            <p className="pt-2 text-xs text-amber-200/80">
-              Review only. Corrections require your confirmation and are never applied by AI.
-            </p>
-          </div>
-        ) : null}
-      </section>
-
       {selectedDate ? (
-        <div className="pt-5">
+        <div className="order-2 pt-1">
           <CalendarSelectedDayPanel
             title={formatSelectedDate(selectedDate)}
             records={selectedRecords}
@@ -923,62 +767,520 @@ export function CalendarPage() {
         </div>
       ) : null}
 
-      <CalendarMonthlyMetricCard
-        variant="flow"
-        days={monthlyMetricDays}
-        previousMonthTotal={previousMonthlyMetricDays.reduce((total, day) => total + day.amount, 0)}
-        currency={records[0]?.currency ?? preferences?.currency ?? "EUR"}
-        onDaySelect={(date) => {
-          const parsed = parseLocalIsoDate(date);
-          setSelectedDate(parsed);
-          outletContext?.setSelectedDate?.(parsed);
-        }}
-      />
+      <section className="calendar-payroll-panel order-3 relative -mt-6 overflow-hidden rounded-b-[30px] border border-t border-[#d5be8d]/[0.14] bg-[linear-gradient(150deg,#10100d_0%,#090a09_72%)] shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#d5be8d]/[0.07] blur-3xl" />
+        <input ref={payrollInputRef} type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (!file) return;
+            setPayrollPending(true);
+            setPayrollError(null);
+            setPayrollReview(null);
+            setPayrollSaved(false);
+            setPayrollDocument(file);
+            setPayrollDocumentAvailable(false);
+            setPayrollExpanded(true);
+            void reconcileMonthlyPayroll(file, year, month)
+              .then((review) => {
+                const hasValues = [
+                  review.normalHours,
+                  review.normalAmount,
+                  review.absenceHours,
+                  review.absenceAmount,
+                  review.extraHours,
+                  review.extraAmount,
+                  review.grossAmount
+                ].some((value) => value != null);
+                if (!hasValues) {
+                  throw new Error(t("payroll.errors.noValues"));
+                }
+                setPayrollReview(review);
+              })
+              .catch((error) => setPayrollError(
+                error instanceof Error && error.message
+                  ? error.message
+                  : getApiError(error).message
+              ))
+              .finally(() => {
+                setPayrollPending(false);
+                event.currentTarget.value = "";
+              });
+          }} />
+        <div className="relative p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#d5be8d]/62">
+              {t("payroll.eyebrow", { month: formatMonthLabel(activeMonth) })}
+            </p>
+            {payrollComparison ? (
+              <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${
+                payrollComparison.differenceCount === 0
+                  ? "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-200/80"
+                  : "border-[#d5be8d]/20 bg-[#d5be8d]/[0.09] text-[#ead8ac]"
+              }`}>
+                <ShieldCheck className="h-3 w-3" />
+                {payrollComparison.differenceCount === 0
+                  ? payrollSaved ? t("payroll.status.confirmed") : t("payroll.status.matches")
+                  : t("payroll.status.differences", { count: payrollComparison.differenceCount })}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-3">
+          <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-[18px] border ${
+            payrollSaved
+              ? "border-emerald-300/15 bg-emerald-300/[0.09] text-emerald-200"
+              : "border-[#d5be8d]/15 bg-[#d5be8d]/[0.07] text-[#ead8ac]"
+          }`}>
+            {payrollSaved ? <FileCheck2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[1.05rem] font-semibold tracking-[-0.035em] text-[#f4f0e7]">
+              {payrollComparison
+                ? payrollComparison.differenceCount === 0
+                  ? t("payroll.title.matches")
+                  : t("payroll.title.review")
+                : t("payroll.title.scan")}
+            </p>
+            <p className="mt-1 truncate text-xs text-white/42">
+              {payrollComparison
+                ? payrollComparison.differenceCount === 0
+                  ? t("payroll.description.matches")
+                  : t("payroll.description.grossDifference", {
+                      difference: formatSignedCurrency(payrollComparison.grossDifference)
+                    })
+                : t("payroll.description.scan")}
+            </p>
+          </div>
+          {payrollReview ? (
+            <button type="button" onClick={() => setPayrollExpanded((value) => !value)}
+              aria-label={t(payrollExpanded ? "payroll.actions.collapse" : "payroll.actions.open")}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/[0.08] bg-white/[0.06] text-white">
+              <ChevronDown className={`h-5 w-5 transition-transform ${
+                payrollExpanded ? "rotate-180" : ""
+              }`} />
+            </button>
+          ) : (
+            <button type="button" disabled={payrollPending}
+              onClick={() => payrollInputRef.current?.click()}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d5be8d]/16 bg-[#d5be8d]/[0.08] text-[#ead8ac] transition active:scale-95 disabled:opacity-50"
+              aria-label={t("payroll.actions.scanAria")}>
+              <Upload className="h-[18px] w-[18px]" />
+            </button>
+          )}
+          </div>
+        </div>
+        {payrollError ? <p className="px-5 pb-4 text-sm text-red-300">{payrollError}</p> : null}
+        {payrollReview && payrollExpanded ? (
+          <div className="space-y-4 border-t border-white/[0.08] px-5 pb-5 pt-5 text-sm">
+            {payrollComparison ? (
+              <div className={`rounded-[22px] border px-4 py-4 ${
+                payrollComparison.differenceCount === 0
+                  ? "border-emerald-300/15 bg-emerald-300/[0.055]"
+                  : "border-[#d5be8d]/15 bg-[#d5be8d]/[0.055]"
+              }`}>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/36">
+                  {t("payroll.result.label")}
+                </p>
+                <div className="mt-2 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-semibold tracking-[-0.04em] text-[#f4f0e7]">
+                      {payrollComparison.differenceCount === 0
+                        ? t("payroll.result.everythingMatches")
+                        : t("payroll.result.found", { count: payrollComparison.differenceCount })}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-white/42">
+                      {payrollComparison.differenceCount === 0
+                        ? t("payroll.result.agree")
+                        : t("payroll.result.review")}
+                    </p>
+                  </div>
+                  <p className={`shrink-0 font-metric text-lg font-medium tabular-nums ${
+                    payrollComparison.grossDifference === 0
+                      ? "text-emerald-200"
+                      : "text-[#ead8ac]"
+                  }`}>
+                    {payrollComparison.grossDifference === 0
+                      ? "✓"
+                      : formatSignedCurrency(payrollComparison.grossDifference)}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            <div className="mb-4 flex gap-2">
+              {(payrollDocumentAvailable || payrollDocument) ? (
+                <button type="button" disabled={payrollDocumentOpening}
+                  onClick={() => {
+                    const viewer = window.open("", "_blank");
+                    setPayrollDocumentOpening(true);
+                    const source = payrollDocument
+                      ? Promise.resolve(payrollDocument as Blob)
+                      : payrollReconciliationId
+                        ? getPayrollReconciliationDocument(payrollReconciliationId)
+                        : Promise.reject(new Error(t("payroll.errors.documentUnavailable")));
+                    void source.then((blob) => {
+                      const url = URL.createObjectURL(blob);
+                      if (viewer) viewer.location.href = url;
+                      else {
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.target = "_blank";
+                        link.click();
+                      }
+                      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                    }).catch((error) => {
+                      viewer?.close();
+                      setPayrollError(getApiError(error).message);
+                    }).finally(() => setPayrollDocumentOpening(false));
+                  }}
+                  className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
+                  {payrollDocumentOpening ? t("payroll.actions.opening") : t("payroll.actions.openDocument")}
+                </button>
+              ) : null}
+              <button type="button" disabled={payrollPending}
+                onClick={() => payrollInputRef.current?.click()}
+                className="min-h-10 rounded-full border border-white/12 bg-white/[0.07] px-4 text-xs font-semibold text-white disabled:opacity-50">
+                {payrollPending ? t("payroll.actions.reading") : t("payroll.actions.replaceDocument")}
+              </button>
+            </div>
+            <div className="space-y-2">
+            <PayrollComparisonRow label={t("payroll.categories.workedHours")}
+              app={summary.workedHours}
+              payroll={payrollReview.normalHours == null ? "—" : `${payrollReview.normalHours} h`}
+              difference={payrollComparison?.rows.workedHours ?? null} />
+            {payrollComparison?.showPaidAbsence ? (
+              <PayrollComparisonRow label={t("payroll.categories.paidAbsence")}
+                app={`${summary.paidAbsenceHours} · ${summary.paidAbsenceGrossAmount}`}
+                payroll={payrollReview.absenceHours == null && payrollReview.absenceAmount == null
+                  ? "—"
+                  : `${payrollReview.absenceHours ?? "—"} h · ${payrollReview.absenceAmount ?? "—"} €`}
+                difference={payrollComparison.rows.paidAbsence} />
+            ) : null}
+            <PayrollComparisonRow label={t("payroll.categories.extraPay")}
+              app={`${summary.extraPaidHours} · ${summary.extraPaidGrossAmount}`}
+              payroll={payrollReview.extraHours == null ? "—"
+                : `${payrollReview.extraHours} h · ${payrollReview.extraAmount ?? "—"} €`}
+              difference={payrollComparison?.rows.extraPay ?? null} />
+            <PayrollComparisonRow label={t("payroll.categories.gross")}
+              app={summary.workGrossAmount}
+              payroll={payrollReview.grossAmount == null ? "—"
+                : `${payrollReview.grossAmount.toFixed(2)} €`}
+              difference={payrollComparison?.rows.gross ?? null}
+              currency />
+            </div>
+            {payrollReview.payrollLines?.length ? (
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                  {t("payroll.details.title")}
+                </p>
+                <div className="space-y-3">
+                  {payrollReview.payrollLines.map((line, index) => (
+                    <div key={`${line.code ?? "line"}-${index}`}
+                      className="grid grid-cols-[1fr_auto] gap-x-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">
+                          {line.code ? `${line.code} · ` : ""}{line.label ?? t("payroll.details.line")}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/45">
+                          {[
+                            line.quantity == null ? null : `${line.quantity} h`,
+                            line.factor == null ? null : `× ${line.factor} €`,
+                            line.percentage == null ? null : `${line.percentage}%`
+                          ].filter(Boolean).join(" · ") || t("payroll.details.noQuantity")}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold tabular-nums text-white">
+                        {line.amount == null ? "—" : `${line.amount.toFixed(2)} €`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <button type="button"
+              disabled={payrollSaving || !effectiveEmploymentId}
+              onClick={() => {
+                if (!effectiveEmploymentId) return;
+                setPayrollSaving(true);
+                setPayrollError(null);
+                void savePayrollReconciliation({
+                  employmentId: effectiveEmploymentId,
+                  year,
+                  month,
+                  filename: payrollReview.filename,
+                  appWorkedHours: summary.workedHoursValue,
+                  appAbsenceHours: summary.paidAbsenceHoursValue,
+                  appExtraHours: summary.extraPaidHoursValue,
+                  appGross: summary.grossAmountValue,
+                  payrollWorkedHours: payrollReview.normalHours,
+                  payrollAbsenceHours: payrollReview.absenceHours,
+                  payrollExtraHours: payrollReview.extraHours,
+                  payrollGross: payrollReview.grossAmount,
+                  payrollLines: payrollReview.payrollLines ?? []
+                }).then(async (saved) => {
+                  setPayrollReconciliationId(saved.id);
+                  if (payrollDocument) {
+                    await uploadPayrollReconciliationDocument(saved.id, payrollDocument);
+                    setPayrollDocumentAvailable(true);
+                  }
+                  setPayrollSaved(true);
+                  setPayrollExpanded(false);
+                  void savedPayrollQuery.refetch();
+                })
+                  .catch((error) => setPayrollError(getApiError(error).message))
+                  .finally(() => setPayrollSaving(false));
+              }}
+              className="mt-4 min-h-12 w-full rounded-full bg-white font-semibold text-black disabled:opacity-40">
+              {payrollSaving
+                ? t("payroll.actions.saving")
+                : payrollSaved
+                  ? t("payroll.actions.saved")
+                  : t("payroll.actions.save")}
+            </button>
+          </div>
+        ) : null}
+      </section>
 
-      <CalendarMonthlyMetricCard
-        variant="rhythm"
-        days={monthlyMetricDays}
-        previousMonthTotal={previousMonthlyMetricDays.reduce((total, day) => total + day.minutes, 0)}
-        onDaySelect={(date) => {
-          const parsed = parseLocalIsoDate(date);
-          setSelectedDate(parsed);
-          outletContext?.setSelectedDate?.(parsed);
-        }}
-      />
+      <section className="order-4" aria-label={t("monthlyCharts.sectionLabel")}>
+        <div className="mb-3 flex items-center justify-between gap-4 px-1">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/56">
+            {t("monthlyCharts.title")}
+          </p>
+          <div
+            className="relative grid grid-cols-2 rounded-full border border-white/[0.07] bg-white/[0.025] p-[3px]"
+            role="group"
+            aria-label={t("monthlyCharts.viewLabel")}
+          >
+            {(["flow", "rhythm"] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setMonthlyView(view)}
+                disabled={view === "flow" && !monthlyFlowAvailable}
+                aria-pressed={monthlyView === view}
+                title={view === "flow" && !monthlyFlowAvailable
+                  ? t("monthlyCharts.flowUnavailable")
+                  : undefined}
+                className={`relative isolate flex h-8 min-w-[4.35rem] items-center justify-center rounded-full px-3 text-[0.7rem] font-medium transition-colors duration-150 active:scale-[0.97] ${
+                  monthlyView === view
+                    ? "text-[#ead8ac]"
+                    : "text-[#f4f0e7]/36 hover:text-[#f4f0e7]/58"
+                } disabled:cursor-not-allowed disabled:opacity-30`}
+              >
+                {monthlyView === view ? (
+                  <motion.span
+                    layoutId="calendar-monthly-view"
+                    className="absolute inset-0 -z-10 rounded-full border border-[#d5be8d]/18 bg-[#d5be8d]/[0.09]"
+                    transition={{ type: "spring", stiffness: 620, damping: 40, mass: 0.58 }}
+                  />
+                ) : null}
+                <span>{t(`monthlyCharts.${view}`)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {!monthlyFlowAvailable ? (
+          <p className="-mt-1 mb-3 px-1 text-xs leading-5 text-[#f4f0e7]/34">
+            {t("monthlyCharts.flowUnavailable")}
+          </p>
+        ) : null}
+        <CalendarMonthlyMetricCard
+          variant={monthlyView}
+          days={monthlyChartDays}
+          previousMonthTotal={previousMonthlyChartDays.reduce(
+            (total, day) => total + (monthlyView === "flow" ? day.amount : day.minutes),
+            0
+          )}
+          currency={records[0]?.currency ?? preferences?.currency ?? "EUR"}
+          onDaySelect={(date) => {
+            const parsed = parseLocalIsoDate(date);
+            setSelectedDate(parsed);
+            outletContext?.setSelectedDate?.(parsed);
+          }}
+        />
+      </section>
+
+      <section className="order-5 border-t border-white/[0.06] pt-5" aria-label={t("settings:pdfExport.title")}>
+        <div className="overflow-hidden rounded-[26px] border border-white/[0.075] bg-white/[0.028] backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={() => navigate("/settings/import-data?returnTo=/calendar")}
+          className="flex min-h-[4.5rem] w-full items-center gap-3.5 border-b border-white/[0.06] px-4 text-left transition hover:bg-white/[0.025] active:bg-white/[0.045]"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-white/[0.055] text-white/60">
+            <Upload className="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f4f0e7]">{t("settings:dataImport.menuLabel")}</span>
+            <span className="mt-1 line-clamp-1 block text-xs text-white/34">{t("settings:dataImport.menuDescription")}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate(`/settings/export-pdf?from=${monthStartKey}&to=${monthEndKey}&returnTo=/calendar`)}
+          className="flex min-h-[4.5rem] w-full items-center gap-3.5 px-4 text-left transition hover:bg-white/[0.025] active:bg-white/[0.045]"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#d5be8d]/[0.075] text-[#ead8ac]/75">
+            <FileText className="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f4f0e7]">{t("settings:pdfExport.menuLabel")}</span>
+            <span className="mt-1 line-clamp-1 block text-xs text-white/34">{t("settings:pageInfo.pdfExport.description")}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden="true" />
+        </button>
+        </div>
+      </section>
 
     </div>
   );
 }
 
 function PayrollComparisonRow({
-  label, app, payroll
-}: { label: string; app: string; payroll: string }) {
+  label,
+  app,
+  payroll,
+  difference,
+  currency = false
+}: {
+  label: string;
+  app: string;
+  payroll: string;
+  difference: string | null;
+  currency?: boolean;
+}) {
+  const matches = difference === "✓";
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
-      <span className="text-white/55">{label}</span>
-      <span className="text-right text-white/75">{app}</span>
-      <span className="min-w-24 text-right font-semibold text-white">{payroll}</span>
-    </div>
+    <article className={`rounded-[20px] border px-4 py-3.5 ${
+      difference && !matches
+        ? "border-[#d5be8d]/18 bg-[#d5be8d]/[0.05]"
+        : "border-white/[0.07] bg-white/[0.025]"
+    }`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold tracking-[-0.02em] text-[#f4f0e7]">{label}</p>
+        <span className={`font-metric text-xs font-semibold tabular-nums ${
+          matches ? "text-emerald-200/80" : difference ? "text-[#ead8ac]" : "text-white/28"
+        }`}>
+          {difference ?? "—"}
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-3">
+        <div>
+          <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/28">
+            Alveryn
+          </p>
+          <p className="mt-1 truncate font-metric text-sm font-medium tabular-nums text-white/66">
+            {app}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/28">
+            Lohn
+          </p>
+          <p className={`mt-1 truncate font-metric text-sm font-medium tabular-nums ${
+            currency && difference && !matches ? "text-[#ead8ac]" : "text-[#f4f0e7]"
+          }`}>
+            {payroll}
+          </p>
+        </div>
+      </div>
+    </article>
   );
 }
 
-function PayrollDifferenceRow({ label, value }: { label: string; value: string }) {
-  const matches = value.startsWith("0");
-  return (
-    <div className="flex items-center justify-between py-1 text-xs">
-      <span className="text-white/50">{label}</span>
-      <span className={matches ? "text-emerald-300" : "font-semibold text-amber-200"}>
-        {value}
-      </span>
-    </div>
+function buildPayrollComparison(
+  payroll: PayrollReconciliation,
+  app: {
+    workedHours: number;
+    absenceHours: number;
+    absenceAmount: number;
+    extraHours: number;
+    extraAmount: number;
+    gross: number;
+  }
+) {
+  const workedHours = comparisonDifference(payroll.normalHours, app.workedHours, "h");
+  const showPaidAbsence = [
+    app.absenceHours,
+    app.absenceAmount,
+    payroll.absenceHours ?? 0,
+    payroll.absenceAmount ?? 0
+  ].some((value) => Math.abs(value) >= 0.01);
+  const paidAbsence = combinedComparisonDifference(
+    comparisonDifference(payroll.absenceHours, app.absenceHours, "h"),
+    comparisonDifference(payroll.absenceAmount, app.absenceAmount, "€")
   );
+  const extraPay = combinedComparisonDifference(
+    comparisonDifference(payroll.extraHours, app.extraHours, "h"),
+    comparisonDifference(payroll.extraAmount, app.extraAmount, "€")
+  );
+  const gross = comparisonDifference(payroll.grossAmount, app.gross, "€");
+  const rows = {
+    workedHours,
+    ...(showPaidAbsence ? { paidAbsence } : {}),
+    extraPay,
+    gross
+  };
+
+  return {
+    rows: { workedHours, paidAbsence, extraPay, gross },
+    showPaidAbsence,
+    differenceCount: Object.values(rows).filter((value) => value !== null && value !== "✓").length,
+    grossDifference: payroll.grossAmount == null ? 0 : normalizeDifference(payroll.grossAmount - app.gross)
+  };
 }
 
-function differenceLabel(payroll: number | null | undefined, app: number, unit: "h" | "€") {
-  if (payroll == null) return "—";
-  const difference = payroll - app;
-  const sign = difference > 0 ? "+" : "";
-  return `${sign}${difference.toFixed(2)} ${unit}`;
+function comparisonDifference(
+  payroll: number | null | undefined,
+  app: number,
+  unit: "h" | "€"
+) {
+  if (payroll == null) return null;
+  const difference = normalizeDifference(payroll - app);
+  if (difference === 0) return "✓";
+  if (unit === "€") return formatSignedCurrency(difference);
+  return `${difference > 0 ? "+" : ""}${difference.toFixed(2)} h`;
+}
+
+function combinedComparisonDifference(
+  first: string | null,
+  second: string | null
+) {
+  const differences = [first, second].filter(
+    (value): value is string => Boolean(value && value !== "✓")
+  );
+  if (differences.length > 0) return differences.join(" · ");
+  if (first === "✓" || second === "✓") return "✓";
+  return null;
+}
+
+function normalizeDifference(value: number) {
+  return Math.abs(value) < 0.01 ? 0 : Number(value.toFixed(2));
+}
+
+function formatSignedCurrency(value: number) {
+  const normalized = normalizeDifference(value);
+  if (normalized === 0) return "€0.00";
+  return `${normalized > 0 ? "+" : "−"}€${Math.abs(normalized).toFixed(2)}`;
+}
+
+function formatCompactCalendarDuration(minutes: number) {
+  if (minutes <= 0) return null;
+  const hours = Math.floor(minutes / 60);
+  const remainder = Math.round(minutes % 60);
+  if (hours === 0) return `${remainder}m`;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h${remainder.toString().padStart(2, "0")}`;
+}
+
+function formatCompactCalendarAmount(amount: number, currency: string) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+    currencyDisplay: "narrowSymbol"
+  }).format(amount);
 }
 
 function isInTrackedRange(isoDate: string, firstActivityDate: string | null, todayIso: string) {
@@ -1008,7 +1310,7 @@ function buildMonthlyMetricDays(
           const eligibleDays = recordEligibleDates(record, absences);
           if (!eligibleDays.includes(key) || eligibleDays.length === 0) return;
           minutes += recordTimeMinutes(record) / eligibleDays.length;
-          amount += Number(record.grossAmount) / eligibleDays.length;
+          amount += Number(record.totalGrossAmount ?? record.grossAmount) / eligibleDays.length;
         });
     }
 
@@ -1024,6 +1326,23 @@ function buildMonthlyMetricDays(
       selected: selectedDate
         ? toIsoDate(selectedDate) === key
         : toIsoDate(today) === key
+    };
+  });
+}
+
+function mergePaidAbsenceMetrics(
+  days: CalendarMonthlyMetricDay[],
+  paidAbsences: PaidAbsenceDay[]
+) {
+  const paidByDate = new Map(paidAbsences.map((absence) => [absence.date, absence]));
+
+  return days.map((day) => {
+    const paidAbsence = paidByDate.get(day.key);
+    if (!paidAbsence) return day;
+    return {
+      ...day,
+      minutes: day.minutes + paidAbsence.minutes,
+      amount: day.amount + paidAbsence.grossAmount
     };
   });
 }
@@ -1061,9 +1380,18 @@ function calculateExtraPaidInRange(
 }
 
 function recordTimeMinutes(record: WorkRecord) {
-  return (record.workLines ?? [])
-    .filter((line) => line.calculationMode === "TIME_HOURLY" || line.calculationMode === "UNITS_PER_HOUR")
+  const lineMinutes = (record.workLines ?? [])
+    .filter((line) => (
+      line.calculationMode === "TIME_HOURLY" ||
+      line.calculationMode === "TIME_ONLY" ||
+      line.calculationMode === "UNITS_PER_HOUR" ||
+      line.calculationMode === "UNITS_PER_UNIT"
+    ) && Number(line.calculatedMinutes) > 0)
     .reduce((total, line) => total + Number(line.calculatedMinutes), 0);
+
+  if (lineMinutes > 0) return lineMinutes;
+
+  return Number(record.workedMinutes ?? record.calculatedMinutes ?? 0);
 }
 
 function defaultAbsenceColor(type: Absence["absenceType"]) {

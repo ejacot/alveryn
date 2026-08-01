@@ -1,12 +1,22 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
-import { getCalendarWeekdays, formatAriaDate, type CalendarDayCell } from "../../features/calendar/calendar-utils";
+import {
+  formatAriaDate,
+  getCalendarWeekdays,
+  type CalendarDayCell
+} from "../../features/calendar/calendar-utils";
 import type { AbsenceTypeSetting } from "../../types/absence";
-import { CardModuleTitle } from "../ui/card";
+
 type DayMeta = {
   entriesCount: number;
   marker: { label: string; color: string } | null;
   noActivityInTrackedRange: boolean;
+  activityLabel?: string | null;
+  earningsLabel?: string | null;
+  intensity?: number;
 };
 
 type Props = {
@@ -20,7 +30,10 @@ type Props = {
   getDayMeta: (isoDate: string) => DayMeta;
   onSelect: (date: Date) => void;
   onSwipeChange: (direction: -1 | 1) => void;
-  onResolveSwipe: (info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }) => number;
+  onResolveSwipe: (info: {
+    offset: { x: number; y: number };
+    velocity: { x: number; y: number };
+  }) => number;
 };
 
 const weekdays = getCalendarWeekdays();
@@ -38,34 +51,44 @@ export function CalendarMonthGrid({
   onSwipeChange,
   onResolveSwipe
 }: Props) {
+  const { t } = useTranslation("calendar");
   const rowCount = days.length / 7;
   const gridClassName =
-    rowCount === 4
-      ? "grid grid-cols-7 gap-x-2.5 gap-y-1 sm:gap-x-3 sm:gap-y-1.5"
-      : rowCount === 5
-        ? "grid grid-cols-7 gap-x-2.5 gap-y-1 sm:gap-x-3 sm:gap-y-2"
-        : "grid grid-cols-7 gap-x-2.5 gap-y-1.5 sm:gap-x-3 sm:gap-y-2.5";
+    rowCount === 6
+      ? "grid grid-cols-7 gap-x-1 gap-y-1 sm:gap-x-2 sm:gap-y-1.5"
+      : "grid grid-cols-7 gap-x-1 gap-y-1.5 sm:gap-x-2 sm:gap-y-2";
   const cellClassName =
-    rowCount === 4
-      ? "flex min-h-[29px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[33px]"
-      : rowCount === 5
-        ? "flex min-h-[31px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[35px]"
-        : "flex min-h-[34px] flex-col items-center justify-start gap-0 rounded-[16px] px-0.5 py-0.5 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/18 focus:ring-offset-2 focus:ring-offset-[#050505] sm:min-h-[38px]";
+    rowCount === 6
+      ? "flex min-h-[49px] flex-col items-center justify-between rounded-[13px] px-0.5 py-0.5 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/30 sm:min-h-[54px]"
+      : "flex min-h-[54px] flex-col items-center justify-between rounded-[14px] px-0.5 py-1 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/30 sm:min-h-[59px]";
 
   return (
     <section
-      className="mx-auto w-full max-w-[32rem] overflow-hidden pb-2"
-      aria-label="Monthly calendar"
+      className="mx-auto w-full overflow-hidden px-1 pb-1"
+      aria-label={t("calendarGrid.label")}
     >
-      <div className="flex min-h-9 items-center justify-center">
-        <CardModuleTitle className="mb-0">{monthLabel}</CardModuleTitle>
+      <div className="flex min-h-12 items-center justify-between">
+        <MonthButton label={t("calendarGrid.previousMonth")} onClick={() => onSwipeChange(-1)}>
+          <ChevronLeft className="h-5 w-5" />
+        </MonthButton>
+        <div className="text-center">
+          <p className="text-[1.25rem] font-semibold tracking-[-0.045em] text-[#f4f0e7]">
+            {monthLabel}
+          </p>
+          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-[#d5be8d]/58">
+            {t("calendarGrid.monthlyActivity")}
+          </p>
+        </div>
+        <MonthButton label={t("calendarGrid.nextMonth")} onClick={() => onSwipeChange(1)}>
+          <ChevronRight className="h-5 w-5" />
+        </MonthButton>
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-1 pt-2" role="row">
+      <div className="mt-2 grid grid-cols-7 gap-1 border-t border-white/[0.065] pt-3" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="text-center text-[10px] font-semibold tracking-[0.2em] text-white/34"
+            className="text-center text-[9px] font-semibold tracking-[0.17em] text-white/32"
           >
             {weekday.slice(0, 3)}
           </div>
@@ -75,12 +98,9 @@ export function CalendarMonthGrid({
       <div className="relative mt-2 overflow-hidden touch-pan-y">
         <div className={`${gridClassName} invisible pointer-events-none`} aria-hidden="true">
           {days.map((day) => (
-            <div
-              key={`placeholder-${day.key}`}
-              className={cn(`${cellClassName} justify-between`)}
-            >
-              <div className="h-9 w-9 sm:h-10 sm:w-10" />
-              <div className="min-h-[4px]" />
+            <div key={`placeholder-${day.key}`} className={cellClassName}>
+              <div className="h-7 w-7" />
+              <div className="min-h-[14px]" />
             </div>
           ))}
         </div>
@@ -94,11 +114,8 @@ export function CalendarMonthGrid({
             dragDirectionLock
             onDragEnd={(_, info) => {
               const direction = onResolveSwipe(info);
-              if (direction === -1) {
-                onSwipeChange(-1);
-              } else if (direction === 1) {
-                onSwipeChange(1);
-              }
+              if (direction === -1) onSwipeChange(-1);
+              if (direction === 1) onSwipeChange(1);
             }}
             variants={{
               enter: (direction: number) => ({
@@ -112,7 +129,7 @@ export function CalendarMonthGrid({
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
             className={`absolute inset-x-0 top-0 ${gridClassName}`}
             role="grid"
           >
@@ -128,20 +145,11 @@ export function CalendarMonthGrid({
                 day.date.getMonth() === today.getMonth() &&
                 day.date.getDate() === today.getDate();
               const meta = getDayMeta(day.key);
-              const shouldHighlightNoActivity = meta.noActivityInTrackedRange && !selected;
               const ariaSegments = [formatAriaDate(day.date)];
-              if (selected) {
-                ariaSegments.push("selected");
-              }
-              if (current) {
-                ariaSegments.push("today");
-              }
-              if (meta.entriesCount > 0) {
-                ariaSegments.push(`${meta.entriesCount} work record${meta.entriesCount === 1 ? "" : "s"}`);
-              }
-              if (meta.marker) {
-                ariaSegments.push(meta.marker.label);
-              }
+              if (selected) ariaSegments.push("selected");
+              if (current) ariaSegments.push("today");
+              if (meta.entriesCount > 0) ariaSegments.push(`${meta.entriesCount} work records`);
+              if (meta.marker) ariaSegments.push(meta.marker.label);
 
               return (
                 <button
@@ -153,38 +161,65 @@ export function CalendarMonthGrid({
                   data-state={selected ? "selected" : current ? "today" : "default"}
                   onClick={() => onSelect(day.date)}
                   className={cn(
-                    `${cellClassName} justify-between`,
-                    !day.inActiveMonth && "text-white/20"
+                    cellClassName,
+                    selected && "bg-[#f4f0e7] shadow-[0_12px_34px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.8)]",
+                    !selected && day.inActiveMonth && meta.entriesCount > 0 && "bg-[#d5be8d]/[0.035]",
+                    !selected && day.inActiveMonth && "hover:bg-white/[0.055]",
+                    !day.inActiveMonth && "opacity-30"
                   )}
+                  style={resolveDaySurfaceStyle(meta, selected)}
                 >
-                  <span className="sr-only">{day.weekday}</span>
-                  <div
+                  <span
                     className={cn(
-                      "relative flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-semibold transition sm:h-10 sm:w-10",
+                      "flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold",
                       selected
-                        ? "scale-[1.035] bg-white text-black shadow-[0_22px_44px_rgba(255,255,255,0.14)]"
+                        ? "text-black"
                         : current
-                          ? cn(
-                              "border border-white/[0.08] bg-white/[0.1]",
-                              shouldHighlightNoActivity ? "text-red-300" : "text-white/88"
-                            )
-                          : day.inActiveMonth
-                            ? shouldHighlightNoActivity ? "text-red-300" : "text-white/76"
-                            : shouldHighlightNoActivity ? "text-red-300" : "text-white/28"
+                          ? "border border-[#d5be8d]/35 bg-[#d5be8d]/10 text-[#f4f0e7]"
+                          : meta.noActivityInTrackedRange
+                            ? "text-[#d5be8d]/72"
+                            : "text-white/74"
                     )}
                   >
                     {day.dayNumber}
-                  </div>
-
-                  <div className="flex min-h-[4px] items-center gap-1" aria-hidden="true">
-                    {meta.marker ? (
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor: meta.marker.color,
-                          opacity: day.inActiveMonth ? 1 : 0.45
-                        }}
-                      />
+                  </span>
+                  <div className="flex min-h-[17px] max-w-full flex-col items-center justify-end leading-none">
+                    {meta.activityLabel ? (
+                      <>
+                        <span
+                          className={cn(
+                            "max-w-full truncate font-metric text-[8px] font-semibold tabular-nums",
+                            selected ? "text-black/64" : "text-[#ead8ac]/82"
+                          )}
+                        >
+                          {meta.activityLabel}
+                        </span>
+                        {meta.earningsLabel ? (
+                          <span className={cn(
+                            "mt-0.5 max-w-full truncate font-metric text-[7px] font-medium tabular-nums",
+                            selected ? "text-black/42" : "text-white/32"
+                          )}>
+                            {meta.earningsLabel}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : meta.marker ? (
+                      <span className="flex max-w-full items-center justify-center">
+                        <span
+                          className={cn(
+                            "calendar-day-marker max-w-[42px] truncate text-[7px] font-semibold leading-tight",
+                            selected && "text-black/52"
+                          )}
+                          style={!selected
+                            ? {
+                                color: meta.marker.color,
+                                "--calendar-marker-color": meta.marker.color
+                              } as CSSProperties
+                            : undefined}
+                        >
+                          {meta.marker.label}
+                        </span>
+                      </span>
                     ) : null}
                   </div>
                 </button>
@@ -195,13 +230,9 @@ export function CalendarMonthGrid({
       </div>
 
       {absenceTypes.length > 0 ? (
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 text-[10px] font-medium tracking-[0.14em] text-white/34">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-white/[0.06] pt-3 text-[9px] font-medium tracking-[0.12em] text-white/36">
           {absenceTypes.map((absenceType) => (
-            <LegendDot
-              key={absenceType.id}
-              color={absenceType.color}
-              label={absenceType.name}
-            />
+            <LegendDot key={absenceType.id} color={absenceType.color} label={absenceType.name} />
           ))}
         </div>
       ) : null}
@@ -209,10 +240,51 @@ export function CalendarMonthGrid({
   );
 }
 
+function resolveDaySurfaceStyle(meta: DayMeta, selected: boolean) {
+  if (selected) return undefined;
+
+  if (meta.entriesCount > 0) {
+    const opacity = 0.18 + Math.min(meta.intensity ?? 0, 1) * 0.52;
+    return {
+      boxShadow: `inset 0 -2px 0 rgba(213,190,141,${opacity})`
+    };
+  }
+
+  if (meta.marker) {
+    return {
+      boxShadow: `inset 0 -2px 0 color-mix(in srgb, ${meta.marker.color} 68%, transparent)`,
+      backgroundColor: `color-mix(in srgb, ${meta.marker.color} 7%, transparent)`
+    };
+  }
+
+  return undefined;
+}
+
+function MonthButton({
+  label,
+  onClick,
+  children
+}: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="grid h-10 w-10 place-items-center rounded-full text-white/62 transition hover:bg-white/[0.07] hover:text-white active:scale-95"
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
+
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
       <span>{label}</span>
     </span>
   );

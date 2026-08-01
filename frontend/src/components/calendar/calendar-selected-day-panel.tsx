@@ -42,7 +42,7 @@ export function CalendarSelectedDayPanel({
   const activities = buildCalendarActivities(records, t);
 
   return (
-    <section className="space-y-4" aria-label="Selected day details">
+    <section className="space-y-4" aria-label={t("selectedDayDetails")}>
       <p className="hairline-text">{titleEyebrow}</p>
 
       <AnimatePresence mode="popLayout" initial={false}>

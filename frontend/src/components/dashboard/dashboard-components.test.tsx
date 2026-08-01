@@ -112,7 +112,6 @@ describe("dashboard components", () => {
 
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={baseSelectedDay}
         weeklyDays={[]}
         absenceTypes={absenceTypes}
@@ -123,11 +122,32 @@ describe("dashboard components", () => {
 
     expect(screen.queryByRole("heading", { name: "Today" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a new work record" })).toBeInTheDocument();
-    expect(screen.getByText("Add entry")).toBeInTheDocument();
-    expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Add entry")).not.toBeInTheDocument();
+    expect(screen.getByText("No activity yet")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add a new work record" }));
     expect(onQuickAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents combining earnings from different currencies in Flow", () => {
+    render(
+      <DashboardOverview
+        selectedDay={baseSelectedDay}
+        weeklyDays={weeklyDays}
+        flowAvailable={false}
+        onQuickAdd={vi.fn()}
+        onCreateAbsence={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Flow" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rhythm" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(
+      screen.getByText("Flow is unavailable when the week contains multiple currencies.")
+    ).toBeInTheDocument();
   });
 
   it("shows absence choices only when the selected day has no activity", async () => {
@@ -136,7 +156,6 @@ describe("dashboard components", () => {
 
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={baseSelectedDay}
         weeklyDays={[]}
         absenceTypes={absenceTypes}
@@ -156,7 +175,6 @@ describe("dashboard components", () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={baseSelectedDay}
         weeklyDays={[]}
         onQuickAdd={vi.fn()}
@@ -170,7 +188,6 @@ describe("dashboard components", () => {
 
     rerender(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={baseSelectedDay}
         weeklyDays={[]}
         restDay
@@ -191,7 +208,6 @@ describe("dashboard components", () => {
 
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={baseSelectedDay}
         weeklyDays={[]}
         absenceTypes={[]}
@@ -212,7 +228,6 @@ describe("dashboard components", () => {
   it("hides absence action when the selected day already has activity", () => {
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={{
           ...baseSelectedDay,
           entriesCount: 1,
@@ -240,7 +255,6 @@ describe("dashboard components", () => {
   it("shows job notes only when the record contains text", () => {
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={{
           ...baseSelectedDay,
           entriesCount: 2,
@@ -289,16 +303,16 @@ describe("dashboard components", () => {
     );
 
     expect(screen.getByText("Call the site manager before arrival.")).toBeInTheDocument();
-    expect(screen.getByText("Notes")).toBeInTheDocument();
+    expect(screen.queryByText("Notes")).not.toBeInTheDocument();
     expect(screen.getByText("Use the service entrance.")).toBeInTheDocument();
-    expect(screen.getByText("Project notes")).toBeInTheDocument();
+    expect(screen.queryByText("Project notes")).not.toBeInTheDocument();
     expect(screen.getByText("Hotel renovation")).toBeInTheDocument();
     expect(screen.getByLabelText("4 people")).toHaveTextContent("4");
     expect(screen.getByText("Leopoldstraße 10, München")).toBeInTheDocument();
     expect(screen.getByText("20:00–22:00")).toBeInTheDocument();
     expect(screen.getAllByText("2h 00m")).not.toHaveLength(0);
     expect(screen.getAllByText("EUR 40.00")).not.toHaveLength(0);
-    expect(screen.getByText("Overtime shift").closest("div")).toHaveTextContent("+100%20:00–22:00");
+    expect(screen.getByText("Overtime shift").closest("div")).toHaveTextContent("20:00–22:00+100%");
     expect(screen.queryByText("4 rooms")).not.toBeInTheDocument();
     expect(screen.getByText("+100%")).toBeInTheDocument();
   });
@@ -306,7 +320,6 @@ describe("dashboard components", () => {
   it("renders absence as a day activity item", () => {
     render(
       <DashboardOverview
-        summary={baseSummary}
         selectedDay={{
           ...baseSelectedDay,
           entriesCount: 1,
@@ -427,11 +440,14 @@ describe("dashboard components", () => {
     expect(screen.getByText("1h 00m")).toBeInTheDocument();
     expect(screen.queryByText("13h 30m")).not.toBeInTheDocument();
     expect(screen.getByText("+50%")).toBeInTheDocument();
+    expect(screen.getByText("+50%")).toHaveStyle({
+      bottom: "clamp(0.8rem, calc(100% + 0.15rem), calc(100% - 0.9rem))"
+    });
 
     rerender(<WeeklyHoursCard variant="flow" days={summaryDays} flowCurrency="EUR" />);
 
     expect(screen.getByText("Extra")).toBeInTheDocument();
-    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("Weekly gross")).toBeInTheDocument();
     expect(screen.queryByText("Worked + extra")).not.toBeInTheDocument();
     expect(screen.queryByText("Additional earnings only")).not.toBeInTheDocument();
     expect(screen.queryByText("Worked")).not.toBeInTheDocument();
@@ -442,12 +458,22 @@ describe("dashboard components", () => {
 
     const flowBar = screen.getByTestId("flow-segmented-bar-2026-07-15");
     expect(flowBar.querySelector('[data-segment="worked"]')).toBeInTheDocument();
+    expect(flowBar.querySelector('[data-segment="worked"]')).toHaveStyle({
+      backgroundColor: "#ead8ac"
+    });
     expect(flowBar.querySelector('[data-segment="extra"]')).toHaveStyle({
       height: `${(20 / 170) * 100}%`
     });
+    expect(
+      screen
+        .getByTestId("flow-segmented-bar-2026-07-14")
+        .querySelector('[data-segment="worked"]')
+    ).toHaveStyle({
+      backgroundColor: "rgba(244, 240, 231, 0.42)"
+    });
   });
 
-  it("shows the daily average extra-pay percentage in flow and rhythm", () => {
+  it("does not invent an average when a day contains different extra-pay rates", () => {
     const days = weeklyDays.map((day) =>
       day.key === "2026-07-15"
         ? { ...day, extraPayPercentages: [25, 35, 50] }
@@ -455,11 +481,11 @@ describe("dashboard components", () => {
     );
     const { rerender } = render(<WeeklyHoursCard days={days} />);
 
-    expect(screen.getByText("+36.7%")).toBeInTheDocument();
+    expect(screen.queryByText("+36.7%")).not.toBeInTheDocument();
 
     rerender(<WeeklyHoursCard variant="flow" days={days} flowCurrency="EUR" />);
 
-    expect(screen.getByText("+36.7%")).toBeInTheDocument();
+    expect(screen.queryByText("+36.7%")).not.toBeInTheDocument();
     expect(screen.queryByText("+25%")).not.toBeInTheDocument();
     expect(screen.queryByText("+35%")).not.toBeInTheDocument();
     expect(screen.queryByText("+50%")).not.toBeInTheDocument();
@@ -489,11 +515,16 @@ describe("dashboard components", () => {
     expect(screen.queryByText("8h 00m")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Thu, Vacation")).toBeInTheDocument();
     expect(screen.queryByText("Vacation")).not.toBeInTheDocument();
-    expect(screen.queryByText("Tagesdurchschnitt")).not.toBeInTheDocument();
+    expect(screen.getByText("Tagesdurchschnitt")).toBeInTheDocument();
     expect(screen.getByText("25%")).toBeInTheDocument();
-    expect(screen.getByLabelText("Wed, 8h 30m").querySelector(".bg-orange-400")).toBeInTheDocument();
-    expect(screen.getByLabelText("Tue, 4h 00m").querySelector(".bg-neutral-500\\/55")).toBeInTheDocument();
-    expect(screen.getByLabelText("Thu, Vacation").querySelector("[class*='bg-neutral']")).not.toBeInTheDocument();
+    expect(screen.getByTestId("rhythm-bar-2026-07-15")).toHaveStyle({
+      backgroundColor: "#ead8ac"
+    });
+    expect(screen.getByTestId("rhythm-bar-2026-07-14")).toHaveStyle({
+      backgroundColor: "rgba(244, 240, 231, 0.42)"
+    });
+    expect(screen.queryByTestId("rhythm-bar-2026-07-13")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rhythm-bar-2026-07-16")).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Tue, 4h 00m"));
     expect(onDaySelect).toHaveBeenCalledWith("2026-07-14");

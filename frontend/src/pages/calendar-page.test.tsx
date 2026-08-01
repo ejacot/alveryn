@@ -30,6 +30,8 @@ vi.mock("framer-motion", () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         initial,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        layoutId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onDragEnd,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         transition,
@@ -49,6 +51,7 @@ vi.mock("framer-motion", () => {
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     motion: {
       div: createMockMotion("div"),
+      span: createMockMotion("span"),
       button: createMockMotion("button"),
       nav: createMockMotion("nav")
     }
@@ -152,7 +155,7 @@ const julyRecords = [
           displayOrder: 0,
           workTypeName: "Orders",
           configurationName: "Orders",
-          calculationMode: "UNITS_PER_HOUR" as const,
+          calculationMode: "UNITS_PER_UNIT" as const,
           unitLabel: "Order",
           unitSymbol: null,
           quantity: "4",
@@ -476,10 +479,9 @@ describe("CalendarPage", () => {
     const futureVacation = screen.getByRole("gridcell", { name: /monday, july 20, 2026, vacation/i });
 
     expect(within(freeDay).getByText("13")).not.toHaveClass("text-red-300");
-    expect(freeDay.querySelector('[style*="background-color"]'))
-      .toHaveStyle({ backgroundColor: "#64748b" });
+    expect(within(freeDay).getByText("Free")).toHaveStyle({ color: "#64748b" });
     expect(within(sickDay).getByText("14")).not.toHaveClass("text-red-300");
-    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("text-red-300");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#d5be8d]/35");
     expect(todayWithoutActivity).not.toHaveAccessibleName(/day off/i);
     expect(futureVacation).toHaveAccessibleName(/vacation/i);
     expect(within(futureVacation).getByText("20")).not.toHaveClass("text-red-300");
@@ -586,15 +588,26 @@ describe("CalendarPage", () => {
     ).toBeTruthy();
   });
 
-  it("renders one monthly chart column per calendar day without visible day values", async () => {
+  it("renders one readable monthly chart column per day with day references", async () => {
     renderPage();
+    const user = userEvent.setup();
 
     const flow = await screen.findByRole("region", { name: "Flow" });
-    const rhythm = screen.getByRole("region", { name: "Rhythm" });
     expect(within(flow).getAllByRole("button")).toHaveLength(31);
+    expect(within(flow).getByText("15")).toBeInTheDocument();
+    expect(screen.getByTestId("flow-monthly-bar-2026-07-15")).toHaveStyle({
+      height: "93.75%",
+      backgroundColor: "#ead8ac"
+    });
+
+    await user.click(screen.getByRole("button", { name: "Rhythm" }));
+    const rhythm = screen.getByRole("region", { name: "Rhythm" });
     expect(within(rhythm).getAllByRole("button")).toHaveLength(31);
-    expect(within(flow).queryByText("15")).not.toBeInTheDocument();
-    expect(within(rhythm).queryByText("15")).not.toBeInTheDocument();
+    expect(within(rhythm).getByText("15")).toBeInTheDocument();
+    expect(screen.getByTestId("rhythm-monthly-bar-2026-07-15")).toHaveStyle({
+      height: "93.75%",
+      backgroundColor: "#ead8ac"
+    });
   });
 
   it("renders a friendly error state when monthly loading fails", async () => {

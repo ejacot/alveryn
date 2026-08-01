@@ -1,12 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
 import type { AbsenceTypeSetting } from "../../types/absence";
 import type {
-  DashboardSummaryMetrics,
   SelectedDayOverview,
   WeeklyRhythmDay
 } from "../../types/dashboard";
@@ -17,12 +16,12 @@ import { ModalPanel } from "../ui/modal-panel";
 import type { ReactNode } from "react";
 
 type Props = {
-  summary: DashboardSummaryMetrics | null;
   selectedDay: SelectedDayOverview;
   weeklyDays?: WeeklyRhythmDay[];
   previousWeekAverageMinutes?: number;
   previousWeekAverageGross?: number;
   flowCurrency?: string;
+  flowAvailable?: boolean;
   absenceTypes?: AbsenceTypeSetting[];
   restDay?: boolean;
   onMarkRestDay?: () => void;
@@ -48,6 +47,7 @@ export function DashboardOverview({
   previousWeekAverageMinutes,
   previousWeekAverageGross,
   flowCurrency,
+  flowAvailable = true,
   absenceTypes = [],
   restDay = false,
   onMarkRestDay,
@@ -67,9 +67,16 @@ export function DashboardOverview({
   preview = false
 }: Props) {
   const { t } = useTranslation("dashboard");
+  const [weeklyView, setWeeklyView] = useState<"flow" | "rhythm">(
+    flowAvailable ? "flow" : "rhythm"
+  );
+
+  useEffect(() => {
+    if (!flowAvailable) setWeeklyView("rhythm");
+  }, [flowAvailable]);
 
   return (
-    <div className="space-y-8 pb-6">
+    <div className="space-y-6 pb-6">
       {preview ? (
         <div className="space-y-2">
           <p className="hairline-text">{t("heading.previewEyebrow")}</p>
@@ -79,6 +86,45 @@ export function DashboardOverview({
           <p className="text-sm leading-6 text-white/46">{t("heading.previewDescription")}</p>
         </div>
       ) : null}
+      <Card as="section" variant="ambient" className="relative overflow-hidden px-5 py-5">
+        <div
+          className="pointer-events-none absolute -right-16 -top-24 h-52 w-52 rounded-full bg-[#d5be8d]/[0.055] blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative flex items-start justify-between gap-5">
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#d5be8d]/68">
+              {selectedDay.label}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onQuickAdd}
+            aria-label={t("quickAdd.accessibleLabel")}
+            className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#ead8ac]/28 bg-[#d5be8d]/12 text-[#ead8ac] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_14px_30px_rgba(0,0,0,0.2)] transition active:scale-[0.94]"
+          >
+            <Plus className="h-5 w-5" strokeWidth={1.9} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="relative mt-5 grid grid-cols-2 gap-4 border-t border-[#d5be8d]/10 pt-4">
+          <div>
+            <p className="text-[0.62rem] font-medium uppercase tracking-[0.14em] text-[#f4f0e7]/34">
+              {selectedDay.durationLabel ?? t("selectedDay.hours")}
+            </p>
+            <p className="mt-2 font-metric text-[1.65rem] font-medium leading-none tracking-[-0.055em] text-[#f4f0e7]">
+              {selectedDay.totalDuration || "—"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[0.62rem] font-medium uppercase tracking-[0.14em] text-[#f4f0e7]/34">
+              {t("selectedDay.earnings")}
+            </p>
+            <p className="mt-2 break-words font-metric text-[1.15rem] font-medium leading-none tracking-[-0.04em] text-[#ead8ac]">
+              {selectedDay.totalGross || "—"}
+            </p>
+          </div>
+        </div>
+      </Card>
       <SelectedDayPanel
         selectedDay={selectedDay}
         absenceTypes={absenceTypes}
@@ -87,7 +133,6 @@ export function DashboardOverview({
         onRemoveRestDay={onRemoveRestDay}
         restDayPending={restDayPending}
         onEntrySelect={onEntrySelect}
-        onQuickAdd={onQuickAdd}
         onDaySwipe={onDaySwipe}
         onCreateAbsence={onCreateAbsence}
         onConfigureAbsences={onConfigureAbsences}
@@ -96,20 +141,61 @@ export function DashboardOverview({
         absenceError={absenceError}
       />
       {timeTracker}
-      <WeeklyHoursCard
-        variant="flow"
-        days={weeklyDays}
-        previousWeekAverageGross={previousWeekAverageGross}
-        flowCurrency={flowCurrency}
-        onDaySelect={onRhythmDaySelect}
-        onWeekSwipe={onWeekSwipe}
-      />
-      <WeeklyHoursCard
-        days={weeklyDays}
-        previousWeekAverageMinutes={previousWeekAverageMinutes}
-        onDaySelect={onRhythmDaySelect}
-        onWeekSwipe={onWeekSwipe}
-      />
+      <section aria-label={t("sections.thisWeek")}>
+        <div className="mb-3 flex items-center justify-between gap-4 px-1">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/56">
+            {t("sections.thisWeek")}
+          </p>
+          <div
+            className="relative grid grid-cols-2 rounded-full border border-white/[0.07] bg-white/[0.025] p-[3px]"
+            role="group"
+            aria-label={t("weeklyHours.view")}
+          >
+            {(["flow", "rhythm"] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setWeeklyView(view)}
+                disabled={view === "flow" && !flowAvailable}
+                aria-pressed={weeklyView === view}
+                title={view === "flow" && !flowAvailable
+                  ? t("weeklyHours.mixedCurrencies")
+                  : undefined}
+                className={`relative isolate flex h-8 min-w-[4.35rem] items-center justify-center rounded-full px-3 text-[0.7rem] font-medium transition-colors duration-150 active:scale-[0.97] ${
+                  weeklyView === view
+                    ? "text-[#ead8ac]"
+                    : "text-[#f4f0e7]/36 hover:text-[#f4f0e7]/58"
+                } disabled:cursor-not-allowed disabled:opacity-30`}
+              >
+                {weeklyView === view ? (
+                  <motion.span
+                    layoutId="dashboard-weekly-view"
+                    className="absolute inset-0 -z-10 rounded-full border border-[#d5be8d]/18 bg-[#d5be8d]/[0.09]"
+                    transition={{ type: "spring", stiffness: 620, damping: 40, mass: 0.58 }}
+                  />
+                ) : null}
+                <span>
+                  {t(view === "flow" ? "weeklyHours.flowEyebrow" : "weeklyHours.eyebrow")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {!flowAvailable ? (
+          <p className="-mt-1 mb-3 px-1 text-xs leading-5 text-[#f4f0e7]/34">
+            {t("weeklyHours.mixedCurrencies")}
+          </p>
+        ) : null}
+        <WeeklyHoursCard
+          variant={weeklyView}
+          days={weeklyDays}
+          previousWeekAverageMinutes={previousWeekAverageMinutes}
+          previousWeekAverageGross={previousWeekAverageGross}
+          flowCurrency={flowCurrency}
+          onDaySelect={onRhythmDaySelect}
+          onWeekSwipe={onWeekSwipe}
+        />
+      </section>
     </div>
   );
 }
@@ -122,7 +208,6 @@ function SelectedDayPanel({
   onRemoveRestDay,
   restDayPending,
   onEntrySelect,
-  onQuickAdd,
   onDaySwipe,
   onCreateAbsence,
   onConfigureAbsences,
@@ -137,7 +222,6 @@ function SelectedDayPanel({
   onRemoveRestDay?: () => void;
   restDayPending: boolean;
   onEntrySelect?: (entryId: string) => void;
-  onQuickAdd: () => void;
   onDaySwipe?: (direction: -1 | 1) => void;
   onCreateAbsence: (absenceTypeId: string) => void;
   onConfigureAbsences?: () => void;
@@ -202,23 +286,16 @@ function SelectedDayPanel({
   if (!selectedDay.entriesCount) {
     return (
       <motion.section {...swipeProps} className="space-y-3 touch-pan-y">
-        <Card variant="ambient" className="overflow-hidden p-0 text-left">
-          <div className="flex min-h-[68px] items-center justify-between gap-4 px-5 py-3.5">
-            <p className="hairline-text">{t("quickAdd.eyebrow")}</p>
-            <button
-              type="button"
-              onClick={onQuickAdd}
-              aria-label={t("quickAdd.accessibleLabel")}
-              className="dashboard-primary-cta rounded-full border border-white/[0.08] bg-white/[0.92] px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
-            >
-              {t("quickAdd.cta")}
-            </button>
+        <Card className="overflow-hidden p-0 text-left">
+          <div className="flex min-h-[62px] items-center gap-3 px-5 py-3.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d5be8d]/45" aria-hidden="true" />
+            <p className="text-sm text-[#f4f0e7]/42">{t("quickAdd.emptyDescription")}</p>
           </div>
-          <div className="grid grid-cols-2 border-t border-white/[0.06]">
+          <div className="grid grid-cols-2 border-t border-[#d5be8d]/10">
             <button
               type="button"
               onClick={() => setAbsenceOpen(true)}
-              className="min-h-11 border-r border-white/[0.06] px-4 text-sm font-semibold text-white/52 transition hover:bg-white/[0.035] hover:text-white"
+              className="min-h-12 border-r border-[#d5be8d]/10 px-4 text-sm font-medium text-[#f4f0e7]/48 transition hover:bg-[#d5be8d]/[0.04] hover:text-[#f4f0e7]"
             >
               {t("absence.cta")}
             </button>
@@ -227,7 +304,7 @@ function SelectedDayPanel({
                 type="button"
                 onClick={onMarkRestDay}
                 disabled={restDayPending}
-                className="min-h-11 px-4 text-sm font-semibold text-white/52 transition hover:bg-white/[0.035] hover:text-white disabled:opacity-50"
+                className="min-h-12 px-4 text-sm font-medium text-[#f4f0e7]/48 transition hover:bg-[#d5be8d]/[0.04] hover:text-[#f4f0e7] disabled:opacity-50"
               >
                 {t("restDay.cta")}
               </button>
@@ -256,16 +333,16 @@ function SelectedDayPanel({
 
   return (
     <motion.section {...swipeProps} className="touch-pan-y">
+      <p className="mb-3 px-1 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/56">
+        {multiple
+          ? t("selectedDay.activities", { count: selectedDay.entriesCount })
+          : t("selectedDay.activity")}
+      </p>
       <div className="space-y-3">
-        {selectedDay.activities.map((activity, index) => (
+        {selectedDay.activities.map((activity) => (
           <SelectedDayActivityCard
             key={activity.id}
             activity={activity}
-            sectionLabel={index === 0
-              ? multiple
-                ? t("selectedDay.activities", { count: selectedDay.entriesCount })
-                : t("selectedDay.activity")
-              : undefined}
             onSelect={onEntrySelect}
             onDeleteAbsence={onDeleteAbsence}
           />

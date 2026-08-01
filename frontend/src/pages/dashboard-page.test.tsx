@@ -322,9 +322,11 @@ describe("DashboardPage", () => {
     renderPage();
 
     expect(await screen.findAllByText("Sick")).toHaveLength(1);
+    expect(screen.getByText("Paid hours")).toBeInTheDocument();
     expect(screen.getByText("Day off")).toBeInTheDocument();
     expect(screen.getByText("Equivalent worked time: 8h 00m")).toBeInTheDocument();
-    expect(screen.getByText("€160.00")).toBeInTheDocument();
+    expect(screen.getAllByText("€160.00")).toHaveLength(3);
+    expect(screen.getByText("Weekly gross")).toBeInTheDocument();
     expect(screen.queryByText("Today hours")).not.toBeInTheDocument();
     expect(screen.queryByText("Today money")).not.toBeInTheDocument();
     expect(screen.queryByText("No work planned")).not.toBeInTheDocument();
@@ -389,8 +391,12 @@ describe("DashboardPage", () => {
     });
 
     renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Rhythm" }));
 
-    expect(await screen.findAllByLabelText("Wed, Sick")).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText("Wed, Sick")).toHaveLength(1);
+    });
     expect(screen.queryByText("Sick")).not.toBeInTheDocument();
   });
 
@@ -435,8 +441,14 @@ describe("DashboardPage", () => {
     });
 
     renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Rhythm" }));
 
-    expect(await screen.findAllByLabelText("Wed, Vacation")).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText("Wed, Vacation")).toHaveLength(1);
+    });
+    expect(screen.getByText("Project hours")).toBeInTheDocument();
+    expect(screen.getByText("Project total")).toBeInTheDocument();
     expect(screen.queryByText("10 h")).not.toBeInTheDocument();
     expect(screen.queryByText("250 EUR")).not.toBeInTheDocument();
   });
@@ -448,6 +460,7 @@ describe("DashboardPage", () => {
         calculatedMinutes: "720",
         workLines: timeRecord.workLines?.map((line) => ({
           ...line,
+          calculationMode: "TIME_ONLY" as const,
           calculatedMinutes: "720",
           workedHours: "12.00"
         }))
@@ -455,6 +468,8 @@ describe("DashboardPage", () => {
     ]);
 
     renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Rhythm" }));
 
     expect(await screen.findByLabelText("Mon, 12h 00m")).toBeInTheDocument();
   });

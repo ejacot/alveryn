@@ -49,7 +49,9 @@ export type SelectedDayActivity = {
   notes?: string | null;
   periodLabel?: string | null;
   duration: string;
+  durationLabel?: string | null;
   amount: string;
+  amountLabel?: string | null;
   extraDuration?: string | null;
   extraAmount?: string | null;
   extraPayLabel?: string | null;
@@ -71,6 +73,7 @@ export type SelectedDayOverview = {
   label: string;
   entriesCount: number;
   totalDuration: string;
+  durationLabel?: string;
   totalGross: string;
   activities: SelectedDayActivity[];
 };

@@ -4,7 +4,6 @@ import { DashboardErrorState } from "../components/dashboard/dashboard-error-sta
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
 import type {
-  DashboardSummaryMetrics,
   SelectedDayOverview,
   WeeklyRhythmDay
 } from "../types/dashboard";
@@ -44,31 +43,6 @@ export function PreviewDashboardPage() {
     );
   }
 
-  const previewSummary: DashboardSummaryMetrics = {
-    primaryMetric: {
-      label: t("summary.today"),
-      value: "6.5h",
-      hint: t("preview.summary.focusedShift")
-    },
-    secondaryMetrics: [
-      {
-        label: t("preview.summary.earnings"),
-        value: "EUR 126",
-        hint: t("preview.summary.projectedGross")
-      },
-      {
-        label: t("summary.week"),
-        value: "31.0h",
-        hint: t("preview.summary.steadyRhythm")
-      }
-    ],
-    tertiaryMetric: {
-      label: t("preview.summary.entries"),
-      value: "5",
-      hint: t("preview.summary.recentActivity")
-    }
-  };
-
   const previewSelectedDay: SelectedDayOverview = {
     label: t("selectedDay.today"),
     entriesCount: 1,
@@ -89,7 +63,6 @@ export function PreviewDashboardPage() {
 
   return (
     <DashboardOverview
-      summary={previewSummary}
       selectedDay={previewSelectedDay}
       weeklyDays={previewWeeklyDays}
       onQuickAdd={() => undefined}
