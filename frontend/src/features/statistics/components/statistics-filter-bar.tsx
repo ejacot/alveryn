@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { BriefcaseBusiness, Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/ui/select";
 import { Card } from "../../../components/ui/card";
-import type { WorkType } from "../../../types/configuration";
+import type { Employment, WorkType } from "../../../types/configuration";
 import type { CalculationMethod } from "../../../types/work-calculation";
 import {
   formatStatisticsDate,
@@ -18,10 +18,13 @@ import type { StatisticsFilters, StatisticsMetric, StatisticsPeriod } from "../t
 type Props = {
   filters: StatisticsFilters;
   workTypes: WorkType[];
+  employments: Employment[];
+  employmentIds: string[];
+  onEmploymentsChange: (ids: string[]) => void;
   onChange: (filters: StatisticsFilters) => void;
 };
 
-export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
+export function StatisticsFilterBar({ filters, workTypes, employments, employmentIds, onEmploymentsChange, onChange }: Props) {
   const { t } = useTranslation("common");
   const [draftFrom, setDraftFrom] = useState(filters.from);
   const [draftTo, setDraftTo] = useState(filters.to);
@@ -51,8 +54,20 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
       as="section"
       variant="section"
       aria-label={t("statistics.filters.label")}
-      className="space-y-4"
+      className="space-y-5 overflow-hidden"
     >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="hairline-text">{t("statistics.filters.period")}</p>
+          <p className="mt-1 text-sm font-medium text-white/62">{formatPeriod(filters.from, filters.to, t("statistics.periods.year"))}</p>
+        </div>
+        {employments.length > 1 ? (
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/62">
+            <BriefcaseBusiness className="h-3.5 w-3.5" />
+            {employmentIds.length === 0 ? t("statistics.filters.allEmployments") : t("statistics.filters.selectedCount", { count: employmentIds.length })}
+          </span>
+        ) : null}
+      </div>
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {periods.map((period) => (
           <button
@@ -85,6 +100,25 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
           {t("statistics.periods.custom")}
         </button>
       </div>
+
+      {employments.length > 1 ? (
+        <div className="border-t border-white/[0.07] pt-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/38">{t("statistics.filters.employment")}</p>
+          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <FilterChip active={employmentIds.length === 0} label={t("statistics.filters.all")} onClick={() => onEmploymentsChange([])} />
+            {employments.map((employment) => (
+              <FilterChip
+                key={employment.id}
+                active={employmentIds.includes(employment.id)}
+                label={employment.name}
+                onClick={() => onEmploymentsChange(employmentIds.includes(employment.id)
+                  ? employmentIds.filter((id) => id !== employment.id)
+                  : [...employmentIds, employment.id])}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <Select
@@ -120,29 +154,17 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
 
       {advancedOpen ? (
         <div className="grid gap-3 border-t border-white/[0.07] pt-4 sm:grid-cols-2">
-          <Select
-            label={t("statistics.filters.workType")}
-            value=""
-            onChange={(event) => {
-              const value = event.target.value;
-              if (!value) {
-                onChange(updateStatisticsWorkTypes(filters, []));
-                return;
-              }
-              const next = filters.workTypeIds.includes(value)
-                ? filters.workTypeIds.filter((id) => id !== value)
-                : [...filters.workTypeIds, value];
-              onChange(updateStatisticsWorkTypes(filters, next));
-            }}
-          >
-            <option value="">{activeWorkTypeLabel}</option>
-            {workTypes.map((workType) => (
-              <option key={workType.id} value={workType.id}>
-                {filters.workTypeIds.includes(workType.id) ? "✓ " : ""}
-                {workType.name}
-              </option>
-            ))}
-          </Select>
+          <div>
+            <p className="mb-2 text-xs font-medium text-white/60">{t("statistics.filters.workType")}</p>
+            <button type="button" onClick={() => onChange(updateStatisticsWorkTypes(filters, []))} className="mb-2 text-xs font-semibold text-white/45">{activeWorkTypeLabel}</button>
+            <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto">
+              {workTypes
+                .filter((workType) => employmentIds.length === 0 || (workType.employmentId && employmentIds.includes(workType.employmentId)))
+                .map((workType) => (
+                  <FilterChip key={workType.id} active={filters.workTypeIds.includes(workType.id)} label={workType.name} onClick={() => onChange(updateStatisticsWorkTypes(filters, filters.workTypeIds.includes(workType.id) ? filters.workTypeIds.filter((id) => id !== workType.id) : [...filters.workTypeIds, workType.id]))} />
+                ))}
+            </div>
+          </div>
           <Select
             label={t("statistics.filters.calculationMethod")}
             value={filters.calculationMethods[0] ?? ""}
@@ -243,4 +265,17 @@ export function StatisticsFilterBar({ filters, workTypes, onChange }: Props) {
       ) : null}
     </Card>
   );
+}
+
+function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${active ? "border-[#d7bd86]/45 bg-[#d7bd86]/14 text-[#f2dfb6]" : "border-white/[0.08] bg-white/[0.035] text-white/55"}`}>
+      {active ? <Check className="h-3.5 w-3.5" /> : null}{label}
+    </button>
+  );
+}
+
+function formatPeriod(from: string, to: string, fallback: string) {
+  if (from.slice(0, 4) === to.slice(0, 4) && from.endsWith("-01-01") && to.endsWith("-12-31")) return `${fallback} ${from.slice(0, 4)}`;
+  return `${from} – ${to}`;
 }

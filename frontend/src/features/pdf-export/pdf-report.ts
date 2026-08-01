@@ -1,5 +1,6 @@
 import type { WorkRecord } from "../../types/work-record";
 import type { Absence } from "../../types/absence";
+import type { EmploymentRestDay } from "../../types/rest-day";
 
 export type PdfExportField = "intervals" | "hours" | "quantity" | "extra" | "earnings" | "notes";
 
@@ -7,13 +8,14 @@ export type PdfExportSelection = Record<PdfExportField, boolean>;
 
 export type PdfReportRow = {
   key: string;
-  kind: "session" | "absence" | "empty";
+  kind: "session" | "absence" | "rest" | "empty";
   isoDate: string;
   date: string;
   activity: string;
   intervals: string;
   hours: string;
   quantity: string;
+  workDetails: string;
   extra: string;
   earnings: string;
   notes: string;
@@ -34,23 +36,28 @@ type ReportLabels = {
   absences: string;
   totalHours: string;
   totalExtraHours: string;
+  totalEarnings: string;
   date: string;
   activity: string;
   intervals: string;
   hours: string;
   quantity: string;
+  workDetails: string;
   extra: string;
   earnings: string;
   notes: string;
   generatedWith: string;
   mixedCurrencies: string;
+  restDay: string;
+  noActivity: string;
+  page: string;
 };
 
 export function buildPdfReportRows(
   records: WorkRecord[],
   selection: PdfExportSelection,
   locale: string,
-  range?: { from: string; to: string; absences?: Absence[] }
+  range?: { from: string; to: string; absences?: Absence[]; restDays?: EmploymentRestDay[] }
 ) {
   const sessionRows = [...records]
     .sort((left, right) => left.workDate.localeCompare(right.workDate) || left.createdAt.localeCompare(right.createdAt))
@@ -59,9 +66,10 @@ export function buildPdfReportRows(
   if (!range) return sessionRows;
 
   const absenceRows = buildAbsenceRows(range.absences ?? [], selection, locale, range.from, range.to);
+  const restRows = buildRestDayRows(range.restDays ?? [], selection, locale, range.from, range.to);
 
   const rowsByDate = new Map<string, PdfReportRow[]>();
-  [...sessionRows, ...absenceRows].forEach((row) => {
+  [...sessionRows, ...absenceRows, ...restRows].forEach((row) => {
     rowsByDate.set(row.isoDate, [...(rowsByDate.get(row.isoDate) ?? []), row]);
   });
 
@@ -76,7 +84,9 @@ export async function generateAlverynPdf({
   from,
   to,
   locale,
-  labels
+  labels,
+  userName,
+  employmentName
 }: {
   rows: PdfReportRow[];
   selection: PdfExportSelection;
@@ -84,23 +94,29 @@ export async function generateAlverynPdf({
   to: string;
   locale: string;
   labels: ReportLabels;
+  userName: string;
+  employmentName: string;
 }) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1240;
-  canvas.height = 1754;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("PDF canvas is unavailable");
-
-  drawReportCanvas(context, canvas.width, canvas.height, {
-    rows,
-    selection,
-    locale,
-    labels
-  });
-
   const { jsPDF } = await import("jspdf");
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-  pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+  const singleMonth = from.slice(0, 7) === to.slice(0, 7);
+  const orientation = "portrait";
+  const pages: PdfReportRow[][] = singleMonth ? [rows] : chunk(rows, 26);
+  const logo = await loadImage("/brand/alveryn-mark.png").catch(() => null);
+  const pdf = new jsPDF({ orientation, unit: "mm", format: "a4", compress: true });
+  for (let index = 0; index < pages.length; index += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1240;
+    canvas.height = 1754;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("PDF canvas is unavailable");
+    drawReportCanvas(context, canvas.width, canvas.height, {
+      rows: pages[index], allRows: rows, selection, locale, labels,
+      from, to, userName, employmentName, logo, page: index + 1, pageCount: pages.length
+    });
+    if (index > 0) pdf.addPage("a4", orientation);
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0,
+      210, 297, undefined, "FAST");
+  }
   downloadPdf(pdf.output("blob"), `alveryn-report-${from}-${to}.pdf`);
 }
 
@@ -132,17 +148,32 @@ function toReportRow(
   });
   const earnings = [...earningsByCurrency.entries()];
   const amount = earnings.reduce((total, [, value]) => total + value, 0);
-  const extraMinutes = lines.reduce((total, line) => {
-    const snapshot = line.extraPaidEquivalentMinutes;
-    return total + (snapshot === undefined
-      ? Math.max(Number(line.calculatedMinutes || 0), 0) * Math.max(Number(line.extraPayPercentage || 0), 0) / 100
-      : Math.max(Number(snapshot || 0), 0));
-  }, 0);
+  const extraMinutes = lines.reduce((total, line) => total + (
+    Math.max(Number(line.extraPayPercentage || 0), 0) > 0
+      ? Math.max(Number(line.calculatedMinutes || 0), 0)
+      : 0
+  ), 0);
   const currency = earnings.length === 1 ? earnings[0][0] : earnings.length > 1 ? "MIXED" : "";
   const notes = unique([
     record.notes?.trim() ?? "",
     ...lines.map((line) => line.notes?.trim() ?? "")
   ].filter(Boolean));
+
+  const intervalValue = selection.intervals ? intervals.join(" · ") : "";
+  const hoursValue = selection.hours && minutes > 0 ? formatDuration(minutes) : "";
+  const quantityValue = selection.quantity ? quantities.join(", ") : "";
+  const workDetails = lines.map((line) => {
+    const lineMinutes = Math.max(Number(line.calculatedMinutes || 0), 0);
+    const lineQuantity = Math.max(Number(line.quantity ?? 0), 0);
+    const details = [
+      selection.intervals && line.startTime && line.endTime
+        ? `${line.startTime.slice(0, 5)}–${line.endTime.slice(0, 5)}`
+        : "",
+      selection.hours && lineMinutes > 0 ? formatDuration(lineMinutes) : "",
+      selection.quantity && lineQuantity > 0 ? formatNumber(lineQuantity, locale) : ""
+    ].filter(Boolean);
+    return details.length > 0 ? `${line.workTypeName.trim()}: ${details.join(" · ")}` : "";
+  }).filter(Boolean).join("; ");
 
   return {
     key: record.id,
@@ -150,10 +181,13 @@ function toReportRow(
     isoDate: record.workDate,
     date: formatDate(record.workDate, locale),
     activity: activityNames.join(" · "),
-    intervals: selection.intervals ? intervals.join(" · ") : "",
-    hours: selection.hours && minutes > 0 ? formatDuration(minutes) : "",
-    quantity: selection.quantity ? quantities.join(", ") : "",
-    extra: selection.extra ? percentages.map((value) => `+${formatNumber(value, locale)}%`).join(" · ") : "",
+    intervals: intervalValue,
+    hours: hoursValue,
+    quantity: quantityValue,
+    workDetails,
+    extra: selection.extra && percentages.length > 0
+      ? `${formatDuration(extraMinutes)} · ${percentages.map((value) => `+${formatNumber(value, locale)}%`).join(" · ")}`
+      : "",
     earnings: selection.earnings
       ? earnings.map(([code, value]) => formatMoney(value, code, locale)).join(" · ")
       : "",
@@ -175,6 +209,7 @@ function emptyDayRow(date: string, locale: string): PdfReportRow {
     intervals: "",
     hours: "",
     quantity: "",
+    workDetails: "",
     extra: "",
     earnings: "",
     notes: "",
@@ -203,17 +238,35 @@ function buildAbsenceRows(
       date: formatDate(date, locale),
       activity: absence.absenceTypeName,
       intervals: "",
-      hours: "",
+      hours: selection.hours && absence.paid && absence.paidMinutesPerDay > 0
+        ? formatDuration(absence.paidMinutesPerDay) : "",
       quantity: "",
+      workDetails: "",
       extra: "",
       earnings: "",
       notes: selection.notes ? absence.notes?.trim() ?? "" : "",
       minutes: 0,
-      extraMinutes: absence.paid ? Math.max(absence.paidMinutesPerDay, 0) : 0,
+      extraMinutes: 0,
       amount: 0,
       currency: ""
     }));
   });
+}
+
+function buildRestDayRows(
+  restDays: EmploymentRestDay[], selection: PdfExportSelection, locale: string,
+  from: string, to: string
+) {
+  return restDays.filter((item) => item.date >= from && item.date <= to).map((item): PdfReportRow => ({
+    key: `rest:${item.id}`,
+    kind: "rest",
+    isoDate: item.date,
+    date: formatDate(item.date, locale),
+    activity: "REST_DAY",
+    intervals: "", hours: "", quantity: "", workDetails: "", extra: "", earnings: "",
+    notes: selection.notes ? item.notes?.trim() ?? "" : "",
+    minutes: 0, extraMinutes: 0, amount: 0, currency: ""
+  }));
 }
 
 function drawReportCanvas(
@@ -222,37 +275,55 @@ function drawReportCanvas(
   height: number,
   report: {
     rows: PdfReportRow[];
+    allRows: PdfReportRow[];
     selection: PdfExportSelection;
     locale: string;
     labels: ReportLabels;
+    from: string;
+    to: string;
+    userName: string;
+    employmentName: string;
+    logo: HTMLImageElement | null;
+    page: number;
+    pageCount: number;
   }
 ) {
-  const { rows, selection, locale, labels } = report;
+  const { rows, allRows, selection, locale, labels } = report;
   context.fillStyle = "#f1f1ed";
   context.fillRect(0, 0, width, height);
 
   context.fillStyle = "#090909";
   context.fillRect(0, 0, width, 142);
-  drawSpacedText(context, "ALVERYN", 64, 68, 25, 9, "#ffffff");
+  if (report.logo) context.drawImage(report.logo, 64, 30, 62, 62);
+  drawSpacedText(context, "ALVERYN", report.logo ? 148 : 64, 68, 25, 9, "#ffffff");
   context.fillStyle = "#a5a5a0";
   context.font = "600 15px Inter, Arial, sans-serif";
-  context.fillText(labels.report.toUpperCase(), 66, 108);
+  context.fillText(`${labels.report.toUpperCase()} · ${report.userName}`, 66, 108);
   context.textAlign = "right";
   context.fillText(`${labels.generated}: ${formatDate(new Date().toISOString().slice(0, 10), locale)}`, width - 64, 68);
+  context.fillText(`${report.employmentName} · ${report.from} – ${report.to}`, width - 64, 108);
   context.textAlign = "left";
 
-  const totalMinutes = rows.reduce((total, row) => total + row.minutes, 0);
-  const workedDates = new Set(rows.filter((row) => row.kind === "session" && row.minutes > 0).map((row) => row.isoDate));
-  const absenceDates = new Set(rows
+  const totalMinutes = allRows.reduce((total, row) => total + row.minutes, 0);
+  const workedDates = new Set(allRows.filter((row) => row.kind === "session" && row.minutes > 0).map((row) => row.isoDate));
+  const absenceDates = new Set(allRows
     .filter((row) => row.kind === "absence" && !workedDates.has(row.isoDate))
     .map((row) => row.isoDate));
-  const totalExtraMinutes = rows.reduce((total, row) =>
+  const totalExtraMinutes = allRows.reduce((total, row) =>
     total + (row.kind === "absence" && workedDates.has(row.isoDate) ? 0 : row.extraMinutes), 0);
+  const earningsByCurrency = new Map<string, number>();
+  allRows.forEach((row) => {
+    if (!row.currency || row.amount <= 0) return;
+    earningsByCurrency.set(row.currency, (earningsByCurrency.get(row.currency) ?? 0) + row.amount);
+  });
+  const totalEarnings = [...earningsByCurrency.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency, locale)).join(" · ") || "—";
   const summary = [
     { label: labels.workedDays, value: formatNumber(workedDates.size, locale) },
     { label: labels.absences, value: formatNumber(absenceDates.size, locale) },
     { label: labels.totalHours, value: formatDuration(totalMinutes) },
-    { label: labels.totalExtraHours, value: formatDuration(totalExtraMinutes) }
+    { label: labels.totalExtraHours, value: formatDuration(totalExtraMinutes) },
+    ...(selection.earnings ? [{ label: labels.totalEarnings, value: totalEarnings }] : [])
   ];
   const summaryWidth = (width - 128 - (summary.length - 1) * 12) / summary.length;
   summary.forEach((item, index) => {
@@ -297,8 +368,15 @@ function drawReportCanvas(
     columns.forEach((column, columnIndex) => {
       context.fillStyle = column.key === "activity" ? "#101010" : "#555550";
       context.font = `${column.key === "activity" ? 650 : 550} ${bodyFontSize}px Inter, Arial, sans-serif`;
-      const value = String(row[column.key]);
-      context.fillText(trimToWidth(context, value, widths[columnIndex] - 16), cursorX + 8, y + rowHeight * 0.62);
+      const rawValue = column.key === "activity" && row.kind === "rest"
+        ? labels.restDay : column.key === "activity" && row.kind === "empty"
+          ? labels.noActivity : row[column.key];
+      const value = String(rawValue);
+      if (column.key === "workDetails" && value.includes("; ")) {
+        drawCellLines(context, value.split("; "), cursorX + 8, y, widths[columnIndex] - 16, rowHeight, bodyFontSize);
+      } else {
+        context.fillText(trimToWidth(context, value, widths[columnIndex] - 16), cursorX + 8, y + rowHeight * 0.62);
+      }
       cursorX += widths[columnIndex];
     });
   });
@@ -307,8 +385,13 @@ function drawReportCanvas(
   context.font = "600 13px Inter, Arial, sans-serif";
   context.fillText(labels.generatedWith, 64, height - 30);
   context.textAlign = "right";
-  context.fillText("ALVERYN.COM  •  A4", width - 64, height - 30);
+  context.fillText(`${labels.page} ${report.page}/${report.pageCount}  •  ALVERYN.COM  •  A4`, width - 64, height - 30);
   context.textAlign = "left";
+}
+
+function chunk<T>(items: T[], size: number) {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
+    items.slice(index * size, (index + 1) * size));
 }
 
 function buildColumns(selection: PdfExportSelection, labels: ReportLabels) {
@@ -316,9 +399,9 @@ function buildColumns(selection: PdfExportSelection, labels: ReportLabels) {
     { key: "date", label: labels.date, weight: 1.3 },
     { key: "activity", label: labels.activity, weight: 1.9 }
   ];
-  if (selection.intervals) columns.push({ key: "intervals", label: labels.intervals, weight: 1.05 });
-  if (selection.hours) columns.push({ key: "hours", label: labels.hours, weight: 0.8 });
-  if (selection.quantity) columns.push({ key: "quantity", label: labels.quantity, weight: 0.95 });
+  if (selection.intervals || selection.hours || selection.quantity) {
+    columns.push({ key: "workDetails", label: labels.workDetails, weight: 1.65 });
+  }
   if (selection.extra) columns.push({ key: "extra", label: labels.extra, weight: 0.65 });
   if (selection.earnings) columns.push({ key: "earnings", label: labels.earnings, weight: 1 });
   if (selection.notes) columns.push({ key: "notes", label: labels.notes, weight: 1.8 });
@@ -355,6 +438,27 @@ function trimToWidth(context: CanvasRenderingContext2D, value: string, maxWidth:
   return `${text}…`;
 }
 
+function drawCellLines(
+  context: CanvasRenderingContext2D,
+  values: string[],
+  x: number,
+  y: number,
+  maxWidth: number,
+  rowHeight: number,
+  fontSize: number
+) {
+  const lineHeight = Math.max(fontSize * 1.08, 6);
+  const maxLines = Math.max(1, Math.floor((rowHeight - 4) / lineHeight));
+  const visible = values.slice(0, maxLines);
+  if (values.length > maxLines) {
+    visible[maxLines - 1] = `${visible[maxLines - 1]} · +${values.length - maxLines + 1}`;
+  }
+  const startY = y + (rowHeight - visible.length * lineHeight) / 2 + lineHeight * 0.78;
+  visible.forEach((value, index) => {
+    context.fillText(trimToWidth(context, value, maxWidth), x, startY + index * lineHeight);
+  });
+}
+
 function roundRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
   const safeRadius = Math.max(0, Math.min(radius, width / 2, height / 2));
   context.beginPath();
@@ -383,6 +487,15 @@ function downloadPdf(blob: Blob, filename: string) {
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function loadImage(source: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to load ${source}`));
+    image.src = source;
+  });
 }
 
 function drawSpacedText(context: CanvasRenderingContext2D, value: string, x: number, y: number, fontSize: number, spacing: number, color: string) {

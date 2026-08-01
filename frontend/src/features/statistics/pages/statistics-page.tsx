@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
-import { listWorkTypes } from "../../../api/endpoints";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { listEmployments, listWorkTypes } from "../../../api/endpoints";
 import { queryKeys } from "../../../api/query-keys";
 import { Card } from "../../../components/ui/card";
 import { SectionHeading } from "../../../components/ui/section-heading";
+import { Download, FileText } from "lucide-react";
 import { StatisticsLineChart } from "../charts/statistics-line-chart";
 import { StatisticsDrilldownPanel } from "../components/statistics-drilldown-panel";
 import { StatisticsFilterBar } from "../components/statistics-filter-bar";
@@ -137,6 +138,7 @@ function latestSearchParams(fallback: URLSearchParams) {
 }
 
 export function StatisticsPage() {
+  const navigate = useNavigate();
   const { t } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFiltersState] = useState(() => parseFilters(searchParams));
@@ -155,12 +157,29 @@ export function StatisticsPage() {
   const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<string | null>(null);
   const [selectedChartPoint, setSelectedChartPoint] =
     useState<StatisticsTimeSeriesPoint | null>(null);
+  const [employmentIds, setEmploymentIds] = useState<string[]>([]);
   const workTypes = useQuery({
     queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
   });
+  const employments = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments
+  });
+  const effectiveFilters = useMemo(() => {
+    if (employmentIds.length === 0) return filters;
+    const allowed = (workTypes.data ?? [])
+      .filter((workType) => workType.employmentId && employmentIds.includes(workType.employmentId))
+      .map((workType) => workType.id);
+    return {
+      ...filters,
+      workTypeIds: filters.workTypeIds.length > 0
+        ? filters.workTypeIds.filter((id) => allowed.includes(id))
+        : allowed
+    };
+  }, [employmentIds, filters, workTypes.data]);
   const statistics = useStatistics(
-    filters,
+    effectiveFilters,
     heatmapMetric,
     heatmapCurrency,
     productivityMetric,
@@ -236,11 +255,24 @@ export function StatisticsPage() {
   const hasEntries = Boolean(overview && overview.entries > 0);
 
   return (
-    <div className="statistics-workspace space-y-5 pb-8">
-      <SectionHeading eyebrow={t("statistics.eyebrow")} title={t("statistics.title")} />
+    <div className="statistics-workspace space-y-6 pb-8">
+      <div className="sticky-header-blur -mx-1 flex items-end justify-between gap-3 px-1 pb-3 pt-1">
+        <SectionHeading eyebrow={t("statistics.eyebrow")} title={t("statistics.title")} />
+        <div className="mb-1 flex gap-2">
+          <button type="button" disabled={!overview} onClick={() => overview && exportStatisticsCsv(overview, timeSeries?.points ?? [], breakdown)} className="statistics-export-button disabled:opacity-35" aria-label={t("statistics.export.csv")}>
+            <Download className="h-4 w-4" /><span className="hidden sm:inline">CSV</span>
+          </button>
+          <button type="button" disabled={!overview} onClick={() => overview && navigate(`/settings/export-pdf?from=${filters.from}&to=${filters.to}&returnTo=/statistics`)} className="statistics-export-button disabled:opacity-35" aria-label={t("statistics.export.pdf")}>
+            <FileText className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
+          </button>
+        </div>
+      </div>
       <StatisticsFilterBar
         filters={filters}
         workTypes={workTypes.data ?? []}
+        employments={(employments.data ?? []).filter((employment) => employment.active)}
+        employmentIds={employmentIds}
+        onEmploymentsChange={setEmploymentIds}
         onChange={setFilters}
       />
       {statistics.isError || !overview ? (
@@ -249,7 +281,7 @@ export function StatisticsPage() {
         <StatisticsEmptyState />
       ) : (
         <>
-          <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.22fr)_minmax(19rem,0.78fr)]">
+          <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.28fr)_minmax(19rem,0.72fr)]">
             <Card
               as="section"
               variant="section"
@@ -327,4 +359,32 @@ export function StatisticsPage() {
       )}
     </div>
   );
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportStatisticsCsv(
+  overview: NonNullable<ReturnType<typeof useStatistics>["overview"]["data"]>,
+  points: StatisticsTimeSeriesPoint[],
+  breakdown: ReturnType<typeof useStatistics>["workTypes"]["data"]
+) {
+  const rows = [
+    ["section", "label", "value", "currency"],
+    ...overview.grossByCurrency.map((item) => ["summary", "gross", item.amount, item.currency]),
+    ["summary", "worked_minutes", overview.workedMinutes, ""],
+    ["summary", "worked_days", String(overview.workedDays), ""],
+    ...points.map((point) => ["trend", `${point.bucketStart}/${point.bucketEnd}`, point.value, point.currency ?? ""]),
+    ...(breakdown ?? []).flatMap((item) => item.grossByCurrency.length
+      ? item.grossByCurrency.map((gross) => ["work_type", item.name, gross.amount, gross.currency])
+      : [["work_type", item.name, item.minutes, "minutes"]])
+  ];
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+  downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), "alveryn-statistics.csv");
 }

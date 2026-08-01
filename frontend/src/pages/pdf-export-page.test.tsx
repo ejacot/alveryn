@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PdfExportPage } from "./pdf-export-page";
 
 vi.mock("../api/endpoints", () => ({
+  getProfile: vi.fn(),
   listAbsencesInRange: vi.fn(),
   listEmployments: vi.fn(),
-  listWorkRecordsInRange: vi.fn()
+  listRestDays: vi.fn(),
+  listWorkRecordsInRange: vi.fn(),
+  recordPdfExport: vi.fn()
 }));
 
 vi.mock("../features/pdf-export/pdf-report", async () => {
@@ -15,7 +18,7 @@ vi.mock("../features/pdf-export/pdf-report", async () => {
   return { ...actual, generateAlverynPdf: vi.fn() };
 });
 
-import { listAbsencesInRange, listEmployments, listWorkRecordsInRange } from "../api/endpoints";
+import { getProfile, listAbsencesInRange, listEmployments, listRestDays, listWorkRecordsInRange } from "../api/endpoints";
 import { generateAlverynPdf } from "../features/pdf-export/pdf-report";
 
 function renderPage() {
@@ -81,6 +84,13 @@ describe("PdfExportPage", () => {
       updatedAt: "2026-07-10T20:30:00Z"
     }]);
     vi.mocked(listAbsencesInRange).mockResolvedValue([]);
+    vi.mocked(listRestDays).mockResolvedValue([]);
+    vi.mocked(getProfile).mockResolvedValue({
+      id: "profile-1", firstName: "Ana", lastName: "Test", displayName: "Ana Test",
+      dateOfBirth: null, phone: null, countryCode: null, city: null, postalCode: null,
+      street: null, houseNumber: null, apartment: null, addressId: null, address: null,
+      avatarUrl: null, employmentStartDate: null, employmentEndDate: null, employmentType: "OTHER"
+    });
     vi.mocked(generateAlverynPdf).mockResolvedValue(undefined);
   });
 
@@ -88,15 +98,18 @@ describe("PdfExportPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(await screen.findByText("Minijob")).toBeInTheDocument();
+    await screen.findByRole("button", { name: "Preview report" });
     const notes = screen.getByRole("checkbox", { name: "Notes" });
     await user.click(notes);
     expect(notes).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Generate PDF" }));
+    fireEvent.change(screen.getByLabelText("Period"), { target: { value: "2026-07" } });
+    await user.click(screen.getByRole("button", { name: "Preview report" }));
+    await user.click(await screen.findByRole("button", { name: "Download PDF" }));
 
     await waitFor(() => expect(generateAlverynPdf).toHaveBeenCalledWith(
       expect.objectContaining({
         selection: expect.objectContaining({ notes: false }),
+        employmentName: "All",
         rows: expect.arrayContaining([expect.objectContaining({ activity: "Delivery" })])
       })
     ));

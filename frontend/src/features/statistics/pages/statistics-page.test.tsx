@@ -4,7 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 import { StatisticsPage } from "./statistics-page";
 
 vi.mock("../../../api/endpoints", () => ({
-  listWorkTypes: vi.fn(async () => [])
+  listWorkTypes: vi.fn(async () => []),
+  listEmployments: vi.fn(async () => [])
 }));
 
 vi.mock("../hooks/use-statistics", () => ({

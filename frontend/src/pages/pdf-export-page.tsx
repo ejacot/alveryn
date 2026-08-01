@@ -1,199 +1,255 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Download } from "lucide-react";
+import { Check, Download, Eye, FileText, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
+import {
+  getProfile, listAbsencesInRange, listEmployments, listRestDays,
+  listWorkRecordsInRange, recordPdfExport
+} from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
-import { listAbsencesInRange, listEmployments, listWorkRecordsInRange, recordPdfExport } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
 import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { useEmploymentScope } from "../features/employment/employment-scope";
 import {
-  buildPdfReportRows,
-  filterWorkRecordsByEmployment,
-  generateAlverynPdf,
-  type PdfExportField,
-  type PdfExportSelection
+  buildPdfReportRows, generateAlverynPdf,
+  type PdfExportField, type PdfExportSelection, type PdfReportRow
 } from "../features/pdf-export/pdf-report";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { i18n } from "../i18n";
-import { firstDayOfCurrentMonthLocalIsoDate, todayLocalIsoDate } from "../utils/date";
 
 const exportFields: PdfExportField[] = ["intervals", "hours", "quantity", "extra", "earnings", "notes"];
-
 const initialSelection: PdfExportSelection = {
-  intervals: true,
-  hours: true,
-  quantity: true,
-  extra: true,
-  earnings: true,
-  notes: true
+  intervals: true, hours: true, quantity: true, extra: true, earnings: true, notes: true
 };
+const languageOptions = ["ro", "de", "en", "ru"] as const;
+
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthRange(month: string) {
+  const [year, value] = month.split("-").map(Number);
+  return {
+    from: `${month}-01`,
+    to: `${month}-${String(new Date(year, value, 0).getDate()).padStart(2, "0")}`
+  };
+}
 
 export function PdfExportPage() {
   const { t } = useTranslation(["settings", "common"]);
-  const safeBack = useSafeBackNavigation({ fallback: "/profile" });
-  const selectedEmploymentId = useEmploymentScope();
-  const [from, setFrom] = useState(firstDayOfCurrentMonthLocalIsoDate());
-  const [to, setTo] = useState(todayLocalIsoDate());
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
+  const safeBack = useSafeBackNavigation({
+    fallback: returnTo === "/calendar" || returnTo === "/statistics" ? returnTo : "/profile"
+  });
+  const requestedFrom = searchParams.get("from");
+  const requestedTo = searchParams.get("to");
+  const hasRequestedRange = Boolean(
+    requestedFrom && requestedTo && /^\d{4}-\d{2}-\d{2}$/.test(requestedFrom)
+      && /^\d{4}-\d{2}-\d{2}$/.test(requestedTo) && requestedFrom <= requestedTo
+  );
+  const initialMonth = hasRequestedRange ? requestedFrom!.slice(0, 7) : currentMonth();
+  const initialRange = hasRequestedRange
+    ? { from: requestedFrom!, to: requestedTo! }
+    : monthRange(initialMonth);
+  const [month, setMonth] = useState(initialMonth);
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
+  const [employmentIds, setEmploymentIds] = useState<string[]>([]);
+  const [language, setLanguage] = useState(i18n.resolvedLanguage?.split("-")[0] ?? "en");
   const [selection, setSelection] = useState<PdfExportSelection>(initialSelection);
+  const [previewRows, setPreviewRows] = useState<PdfReportRow[] | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const employmentsQuery = useQuery({
-    queryKey: queryKeys.employments.all(),
-    queryFn: listEmployments
-  });
-
-  const employmentName = useMemo(() => {
-    if (!selectedEmploymentId) return t("settings:employment.all");
-    return employmentsQuery.data?.find((employment) => employment.id === selectedEmploymentId)?.name
-      ?? t("settings:employment.none");
-  }, [employmentsQuery.data, selectedEmploymentId, t]);
+  const employmentsQuery = useQuery({ queryKey: queryKeys.employments.all(), queryFn: listEmployments });
+  const profileQuery = useQuery({ queryKey: queryKeys.profile(), queryFn: getProfile });
+  const activeEmployments = useMemo(
+    () => (employmentsQuery.data ?? []).filter((employment) => employment.active),
+    [employmentsQuery.data]
+  );
+  const selectedEmployments = employmentIds.length === 0
+    ? activeEmployments
+    : activeEmployments.filter((employment) => employmentIds.includes(employment.id));
+  const employmentName = selectedEmployments.length === activeEmployments.length
+    ? t("settings:employment.all")
+    : selectedEmployments.map((employment) => employment.name).join(", ");
+  const userName = profileQuery.data?.displayName
+    || [profileQuery.data?.firstName, profileQuery.data?.lastName].filter(Boolean).join(" ")
+    || "Alveryn";
   const hasSelection = exportFields.some((field) => selection[field]);
 
-  async function handleExport() {
-    if (from > to) {
-      setError(t("settings:pdfExport.errors.dateRange"));
-      return;
-    }
-    if (!hasSelection) {
-      setError(t("settings:pdfExport.errors.fields"));
-      return;
-    }
-
-    setPending(true);
+  function invalidatePreview() {
+    setPreviewRows(null);
     setError(null);
+  }
+
+  async function loadRows() {
+    if (from > to) throw new Error(t("settings:pdfExport.errors.dateRange"));
+    if (!hasSelection) throw new Error(t("settings:pdfExport.errors.fields"));
+    const [records, absences, restGroups] = await Promise.all([
+      listWorkRecordsInRange({ from, to }),
+      listAbsencesInRange({ from, to }),
+      Promise.all(selectedEmployments.map((employment) => listRestDays(employment.id, from, to)))
+    ]);
+    const selectedSet = new Set(selectedEmployments.map((employment) => employment.id));
+    const scopedRecords = employmentIds.length === 0
+      ? records : records.filter((record) => Boolean(record.employmentId && selectedSet.has(record.employmentId)));
+    const scopedAbsences = employmentIds.length === 0
+      ? absences : absences.filter((absence) => Boolean(absence.employmentId && selectedSet.has(absence.employmentId)));
+    return buildPdfReportRows(scopedRecords, selection, language, {
+      from, to, absences: scopedAbsences, restDays: restGroups.flat()
+    });
+  }
+
+  async function handlePreview() {
+    setPending(true); setError(null);
     try {
-      const [records, absences] = await Promise.all([
-        listWorkRecordsInRange({ from, to }),
-        listAbsencesInRange({ from, to })
-      ]);
-      const scopedRecords = filterWorkRecordsByEmployment(records, selectedEmploymentId);
-      const scopedAbsences = selectedEmploymentId
-        ? absences.filter((absence) => absence.employmentId === selectedEmploymentId)
-        : absences;
-      const sessionRows = buildPdfReportRows(
-        scopedRecords,
-        selection,
-        i18n.resolvedLanguage || "en"
-      );
-      if (sessionRows.length === 0 && scopedAbsences.length === 0) {
-        setError(t("settings:pdfExport.errors.empty"));
-        return;
-      }
-      const rows = buildPdfReportRows(
-        scopedRecords,
-        selection,
-        i18n.resolvedLanguage || "en",
-        { from, to, absences: scopedAbsences }
-      );
+      setPreviewRows(await loadRows());
+      window.setTimeout(() => {
+        const preview = document.getElementById("pdf-preview");
+        if (preview && typeof preview.scrollIntoView === "function") preview.scrollIntoView({ behavior: "smooth" });
+      }, 40);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : getApiError(cause).message);
+    } finally { setPending(false); }
+  }
+
+  async function handleExport() {
+    if (!previewRows) return;
+    setPending(true); setError(null);
+    const fixedT = i18n.getFixedT(language, ["settings", "common"]);
+    try {
       await generateAlverynPdf({
-        rows,
-        selection,
-        from,
-        to,
-        locale: i18n.resolvedLanguage || "en",
+        rows: previewRows, selection, from, to, locale: language, userName, employmentName,
         labels: {
-          report: t("settings:pdfExport.pdf.report"),
-          generated: t("settings:pdfExport.pdf.generated"),
-          workedDays: t("settings:pdfExport.pdf.workedDays"),
-          absences: t("settings:pdfExport.pdf.absences"),
-          totalHours: t("settings:pdfExport.pdf.totalHours"),
-          totalExtraHours: t("settings:pdfExport.pdf.totalExtraHours"),
-          date: t("settings:pdfExport.fields.date"),
-          activity: t("settings:pdfExport.fields.activity"),
-          intervals: t("settings:pdfExport.fields.intervals"),
-          hours: t("settings:pdfExport.fields.hours"),
-          quantity: t("settings:pdfExport.fields.quantity"),
-          extra: t("settings:pdfExport.fields.extra"),
-          earnings: t("settings:pdfExport.fields.earnings"),
-          notes: t("settings:pdfExport.fields.notes"),
-          generatedWith: t("settings:pdfExport.pdf.generatedWith"),
-          mixedCurrencies: t("settings:pdfExport.pdf.mixedCurrencies")
+          report: fixedT("settings:pdfExport.pdf.report"), generated: fixedT("settings:pdfExport.pdf.generated"),
+          workedDays: fixedT("settings:pdfExport.pdf.workedDays"), absences: fixedT("settings:pdfExport.pdf.absences"),
+          totalHours: fixedT("settings:pdfExport.pdf.totalHours"), totalExtraHours: fixedT("settings:pdfExport.pdf.totalExtraHours"),
+          totalEarnings: fixedT("settings:pdfExport.pdf.totalEarnings"),
+          date: fixedT("settings:pdfExport.fields.date"), activity: fixedT("settings:pdfExport.fields.activity"),
+          intervals: fixedT("settings:pdfExport.fields.intervals"), hours: fixedT("settings:pdfExport.fields.hours"),
+          quantity: fixedT("settings:pdfExport.fields.quantity"), extra: fixedT("settings:pdfExport.fields.extra"),
+          workDetails: fixedT("settings:pdfExport.fields.workDetails"),
+          earnings: fixedT("settings:pdfExport.fields.earnings"), notes: fixedT("settings:pdfExport.fields.notes"),
+          generatedWith: fixedT("settings:pdfExport.pdf.generatedWith"), mixedCurrencies: fixedT("settings:pdfExport.pdf.mixedCurrencies"),
+          restDay: fixedT("settings:pdfExport.pdf.restDay"), noActivity: fixedT("settings:pdfExport.pdf.noActivity"),
+          page: fixedT("settings:pdfExport.pdf.page")
         }
       });
       void recordPdfExport().catch(() => undefined);
     } catch (cause) {
       setError(cause instanceof Error && cause.message
-        ? t("settings:pdfExport.errors.generation", { reason: cause.message })
-        : getApiError(cause).message);
-    } finally {
-      setPending(false);
-    }
+        ? t("settings:pdfExport.errors.generation", { reason: cause.message }) : getApiError(cause).message);
+    } finally { setPending(false); }
   }
 
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
-      <SettingsNavigationHeader
-        title={t("settings:pdfExport.title")}
-        backLabel={t("common:actions.back")}
-        onBack={safeBack}
-      />
+    <div className="mx-auto w-full max-w-[760px] space-y-6 pb-28 pt-5">
+      <SettingsNavigationHeader title={t("settings:pdfExport.title")} backLabel={t("common:actions.back")} onBack={safeBack} />
+      <header className="px-1">
+        <p className="hairline-text">{t("settings:pdfExport.employerReport")}</p>
+        <h1 className="mt-2 text-[2.35rem] font-semibold tracking-[-0.07em] text-white">{t("settings:pdfExport.createTitle")}</h1>
+        <p className="mt-2 max-w-lg text-sm leading-6 text-white/48">{t("settings:pdfExport.createHint")}</p>
+      </header>
 
-      <Card className="px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/36">
-          {t("settings:pdfExport.employment")}
-        </p>
-        <p className="font-name mt-2 truncate text-lg font-semibold tracking-[-0.04em] text-white">
-          {employmentName}
-        </p>
-        <p className="mt-1 text-sm leading-5 text-white/46">{t("settings:pdfExport.scopeHint")}</p>
+      <Card className="space-y-5 p-5">
+        <section>
+          <p className="hairline-text">{t("settings:pdfExport.period")}</p>
+          <input type="month" aria-label={t("settings:pdfExport.period")} value={month} onChange={(event) => {
+            const next = event.currentTarget.value; if (!next) return;
+            const range = monthRange(next); setMonth(next); setFrom(range.from); setTo(range.to); invalidatePreview();
+          }} className="font-metric mt-3 h-14 w-full rounded-2xl border border-white/10 bg-black/20 px-4 font-semibold text-white outline-none" />
+          <details className="mt-3 border-t border-white/[0.06] pt-3">
+            <summary className="cursor-pointer text-sm text-white/42">{t("settings:pdfExport.customPeriod")}</summary>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Input label={t("settings:pdfExport.from")} type="date" value={from} onChange={(event) => { setFrom(event.currentTarget.value); invalidatePreview(); }} />
+              <Input label={t("settings:pdfExport.to")} type="date" value={to} onChange={(event) => { setTo(event.currentTarget.value); invalidatePreview(); }} />
+            </div>
+          </details>
+        </section>
+
+        {activeEmployments.length > 1 ? (
+          <section className="border-t border-white/[0.06] pt-4">
+            <p className="hairline-text">{t("settings:pdfExport.employment")}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Choice active={employmentIds.length === 0} label={t("settings:employment.all")} onClick={() => { setEmploymentIds([]); invalidatePreview(); }} />
+              {activeEmployments.map((employment) => <Choice key={employment.id} active={employmentIds.includes(employment.id)} label={employment.name} onClick={() => {
+                setEmploymentIds((current) => current.includes(employment.id) ? current.filter((id) => id !== employment.id) : [...current, employment.id]); invalidatePreview();
+              }} />)}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="border-t border-white/[0.06] pt-4">
+          <p className="hairline-text">{t("settings:pdfExport.documentLanguage")}</p>
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+            <Languages className="h-4 w-4 shrink-0 text-white/35" />
+            {languageOptions.map((item) => <Choice key={item} active={language === item} label={item.toUpperCase()} onClick={() => { setLanguage(item); invalidatePreview(); }} />)}
+          </div>
+        </section>
       </Card>
 
       <section className="space-y-2">
-        <p className="hairline-text">{t("settings:pdfExport.period")}</p>
-        <p className="text-sm leading-5 text-white/42">{t("settings:pdfExport.periodHint")}</p>
-        <Card className="grid grid-cols-2 gap-3 p-5">
-          <Input label={t("settings:pdfExport.from")} type="date" value={from} onChange={(event) => setFrom(event.currentTarget.value)} />
-          <Input label={t("settings:pdfExport.to")} type="date" value={to} onChange={(event) => setTo(event.currentTarget.value)} />
-        </Card>
-      </section>
-
-      <section className="space-y-2">
-        <p className="hairline-text">{t("settings:pdfExport.include")}</p>
-        <p className="text-sm leading-5 text-white/42">{t("settings:pdfExport.includeHint")}</p>
-        <Card className="grid grid-cols-2 overflow-hidden">
-          {exportFields.map((field, index) => (
-            <label
-              key={field}
-              className={`flex min-h-14 cursor-pointer items-center gap-3 px-5 py-3 transition hover:bg-white/[0.05] ${
-                index % 2 === 0 ? "border-r border-white/[0.06]" : ""
-              } ${index >= 2 ? "border-t border-white/[0.06]" : ""}`}
-            >
-              <input
-                type="checkbox"
-                checked={selection[field]}
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setSelection((current) => ({ ...current, [field]: checked }));
-                  setError(null);
-                }}
-                className="peer sr-only"
-              />
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/[0.18] bg-white/[0.04] text-transparent peer-checked:border-white peer-checked:bg-white peer-checked:text-black">
-                <Check className="h-3.5 w-3.5" strokeWidth={3} />
-              </span>
-              <span className="text-sm font-semibold text-white/76">{t(`settings:pdfExport.fields.${field}`)}</span>
+        <div className="flex items-end justify-between px-1"><p className="hairline-text">{t("settings:pdfExport.include")}</p><span className="text-xs text-white/35">{t("settings:pdfExport.allDaysIncluded")}</span></div>
+        <Card className="grid grid-cols-2 overflow-hidden sm:grid-cols-3">
+          {exportFields.map((field) => (
+            <label key={field} className="flex min-h-14 cursor-pointer items-center gap-3 border-b border-r border-white/[0.06] px-4 py-3">
+              <input type="checkbox" checked={selection[field]} onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                setSelection((current) => ({ ...current, [field]: checked }));
+                invalidatePreview();
+              }} className="peer sr-only" />
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/[0.18] text-transparent peer-checked:border-[#d5be8d] peer-checked:bg-[#d5be8d] peer-checked:text-black"><Check className="h-3.5 w-3.5" /></span>
+              <span className="text-sm font-semibold text-white/68">{t(`settings:pdfExport.fields.${field}`)}</span>
             </label>
           ))}
         </Card>
       </section>
 
-      <Card className="px-5 py-4">
-        <p className="text-sm leading-6 text-white/50">{t("settings:pdfExport.singlePageHint")}</p>
-      </Card>
-
-      {error ? <p role="alert" className="px-1 text-sm text-red-300">{error}</p> : null}
-      <button
-        type="button"
-        disabled={pending || employmentsQuery.isLoading}
-        onClick={() => void handleExport()}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-45"
-      >
-        <Download className="h-4 w-4" />
-        {pending ? t("settings:pdfExport.generating") : t("settings:pdfExport.generate")}
-      </button>
+      {error ? <p role="alert" className="rounded-2xl bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p> : null}
+      {!previewRows ? (
+        <button type="button" disabled={pending || employmentsQuery.isLoading || profileQuery.isLoading} onClick={() => void handlePreview()} className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-white font-semibold text-black disabled:opacity-40"><Eye className="h-4 w-4" />{pending ? t("settings:pdfExport.preparing") : t("settings:pdfExport.preview")}</button>
+      ) : (
+        <>
+          <ReportPreview rows={previewRows} userName={userName} employmentName={employmentName} from={from} to={to} selection={selection} t={t} />
+          <button type="button" disabled={pending} onClick={() => void handleExport()} className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-white font-semibold text-black disabled:opacity-40"><Download className="h-4 w-4" />{pending ? t("settings:pdfExport.generating") : t("settings:pdfExport.generate")}</button>
+        </>
+      )}
     </div>
+  );
+}
+
+function Choice({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${active ? "border-[#d5be8d]/45 bg-[#d5be8d]/12 text-[#ead8b2]" : "border-white/[0.08] bg-white/[0.035] text-white/50"}`}>{active ? <Check className="h-3.5 w-3.5" /> : null}{label}</button>;
+}
+
+function ReportPreview({ rows, userName, employmentName, from, to, selection, t }: { rows: PdfReportRow[]; userName: string; employmentName: string; from: string; to: string; selection: PdfExportSelection; t: ReturnType<typeof useTranslation<["settings", "common"]>>["t"] }) {
+  return (
+    <section id="pdf-preview" className="space-y-2">
+      <div className="flex items-center justify-between px-1"><p className="hairline-text">{t("settings:pdfExport.preview")}</p><span className="flex items-center gap-1 text-xs text-white/35"><FileText className="h-3.5 w-3.5" />A4</span></div>
+      <div className="overflow-hidden rounded-[26px] bg-[#f4f3ef] text-[#111] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+        <div className="flex items-start justify-between bg-[#111] px-5 py-5 text-white">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <img src="/brand/alveryn-mark.png" alt="" className="h-7 w-7 object-contain" />
+              <p className="text-xs font-bold tracking-[0.28em]">ALVERYN</p>
+            </div>
+            <p className="mt-2 text-sm font-semibold">{userName}</p>
+          </div>
+          <div className="text-right text-[0.65rem] text-white/55"><p>{employmentName}</p><p>{from} – {to}</p></div>
+        </div>
+        <div className="max-h-[34rem] overflow-auto p-3">
+          <div className="min-w-[620px]">
+            {rows.map((row) => <div key={row.key} className="grid grid-cols-[6.5rem_1.4fr_1.5fr_.7fr_1fr_1.2fr] gap-2 border-b border-black/[0.07] px-2 py-2 text-[0.64rem]">
+              <span className="font-semibold">{row.date}</span><span>{row.kind === "empty" ? "—" : row.activity}</span><span>{row.workDetails}</span><span>{selection.extra ? row.extra : ""}</span><span>{selection.earnings ? row.earnings : ""}</span><span className="truncate">{selection.notes ? row.notes : ""}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+      <p className="px-1 text-xs leading-5 text-white/38">{from.slice(0, 7) === to.slice(0, 7) ? t("settings:pdfExport.onePageConfirmed") : t("settings:pdfExport.multiPageHint")}</p>
+    </section>
   );
 }

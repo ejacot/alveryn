@@ -27,9 +27,9 @@ function rangeForPeriod(period: StatisticsPeriod, now = new Date()) {
 }
 
 export function createDefaultStatisticsFilters(now = new Date()): StatisticsFilters {
-  const range = rangeForPeriod("month", now);
+  const range = rangeForPeriod("year", now);
   return {
-    period: "month",
+    period: "year",
     from: range.from,
     to: range.to,
     metric: "GROSS",

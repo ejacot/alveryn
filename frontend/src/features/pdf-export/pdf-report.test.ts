@@ -64,7 +64,7 @@ describe("PDF report data", () => {
       intervals: "08:00–16:00",
       hours: "7h 30m",
       quantity: "",
-      extra: "+50%",
+      extra: "7h 30m · +50%",
       earnings: "€170.00",
       notes: "Record note"
     });
@@ -110,12 +110,13 @@ describe("PDF report data", () => {
       intervals: "08:00–16:00 · 16:30–18:00",
       hours: "9h 00m",
       quantity: "20, 10",
+      workDetails: "Housekeeping: 08:00–16:00 · 7h 30m · 20; Public areas: 16:30–18:00 · 1h 30m · 10",
       earnings: "€200.00"
     });
     expect(rows[2]).toMatchObject({ key: "empty:2026-07-03", activity: "", hours: "" });
   });
 
-  it("adds absences to their calendar days and carries paid absence time as extra time", () => {
+  it("adds paid absences without misclassifying them as extra work", () => {
     const rows = buildPdfReportRows([], selection, "ro", {
       from: "2026-07-01",
       to: "2026-07-02",
@@ -139,7 +140,7 @@ describe("PDF report data", () => {
       date: "02 iulie",
       activity: "Medical",
       minutes: 0,
-      extraMinutes: 480
+      extraMinutes: 0
     });
   });
 });
