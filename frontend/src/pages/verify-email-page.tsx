@@ -106,8 +106,14 @@ export function VerifyEmailPage() {
           label={t("common:labels.verificationCode")}
           inputMode="numeric"
           autoComplete="one-time-code"
+          maxLength={6}
+          className="text-center text-xl font-semibold tracking-[0.35em]"
           error={form.formState.errors.code?.message}
-          {...form.register("code")}
+          {...form.register("code", {
+            onChange: (event) => {
+              event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
+            }
+          })}
         />
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
         <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>

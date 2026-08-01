@@ -2,7 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  Clock3,
+  Gauge,
+  Percent,
+  Scale,
+  Tags,
+  Timer,
+  Umbrella
+} from "lucide-react";
 import { getApiError } from "../api/api-errors";
 import { deleteEmployment, getEmployment, updateEmployment, type EmploymentPayload } from "../api/endpoints";
 import { queryKeys } from "../api/query-keys";
@@ -155,46 +165,53 @@ export function SettingsEmploymentDetailPage() {
         </Card>
       </section>
 
-      <SettingsGroup title={t("settings:employment.settingsTitle")}>
+      <SettingsGroup title={t("settings:employment.settingsTitle")} icon={<Gauge className="h-3.5 w-3.5" />}>
         <SettingsRow
           to={`/settings/employment/${employment.id}/schedule`}
           label={t("settings:schedule.title")}
+          icon={<CalendarDays className="h-[18px] w-[18px]" />}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/hourly-rates?${suffix}`}
           label={t("settings:employment.hourlyRates")}
+          icon={<Clock3 className="h-[18px] w-[18px]" />}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/work-types?${suffix}`}
           label={t("settings:workTypes")}
+          icon={<Tags className="h-[18px] w-[18px]" />}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/absences?${suffix}`}
           label={t("settings:absenceSettings.title")}
+          icon={<Umbrella className="h-[18px] w-[18px]" />}
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to={`/settings/employment/${employment.id}/extra-pay`}
           label={t("settings:extraPayRules.title")}
+          icon={<Percent className="h-[18px] w-[18px]" />}
         />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings:employment.sections.timeEntry")}>
+      <SettingsGroup title={t("settings:employment.sections.timeEntry")} icon={<Timer className="h-3.5 w-3.5" />}>
         <SettingsRow
           to={`/settings/employment/${employment.id}/check-in-timer`}
           label={t("settings:employment.fields.timer")}
           value={t(timerEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+          icon={<Timer className="h-[18px] w-[18px]" />}
         />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")}>
+      <SettingsGroup title={t("settings:employment.sections.hourBalanceAccount")} icon={<Scale className="h-3.5 w-3.5" />}>
         <SettingsRow
           to={`/settings/employment/${employment.id}/hours-balance`}
           label={t("settings:employment.fields.hourBalanceAccount")}
           value={t(hourBalanceEnabled ? "settings:employment.enabled" : "settings:employment.disabled")}
+          icon={<Scale className="h-[18px] w-[18px]" />}
         />
       </SettingsGroup>
 

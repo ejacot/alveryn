@@ -63,7 +63,6 @@ export function RegisterPage() {
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: t("auth:register.backToLogin") }}
     >
       <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

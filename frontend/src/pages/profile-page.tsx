@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  CalendarClock,
+  CircleHelp,
+  FileDown,
+  FileUp,
+  Globe2,
+  Info,
+  LogOut,
+  Palette,
+  Search,
+  ShieldCheck
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { queryKeys } from "../api/query-keys";
 import { getPreferences, getProfile, listEmployments } from "../api/endpoints";
@@ -22,6 +35,7 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
   const backButtonRef = useRef<HTMLButtonElement | null>(null);
   const largeTitleRef = useRef<HTMLHeadingElement | null>(null);
   const [compactTitleVisible, setCompactTitleVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const profileQuery = useQuery({
     queryKey: queryKeys.profile(),
     queryFn: getProfile,
@@ -72,6 +86,23 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
     if (activeEmployments.length === 1) return activeEmployments[0].name;
     return t("settings:employment.count", { count: activeEmployments.length });
   }, [activeEmployments, t]);
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+  const matchesSearch = (...values: string[]) =>
+    !normalizedSearch || values.some((value) => value.toLocaleLowerCase().includes(normalizedSearch));
+  const showWork = matchesSearch(t("settings:workEmployments"), t("settings:employment.settingsTitle"), employmentValue);
+  const showPreferences = matchesSearch(
+    t("settings:appearanceRegion"),
+    t("settings:preferencesSections.region"),
+    t("settings:preferencesSections.dateTime"),
+    t("settings:preferencesSections.appearance")
+  );
+  const showData = matchesSearch(
+    t("settings:dataDocuments"),
+    t("settings:dataImport.menuLabel"),
+    t("settings:pdfExport.menuLabel")
+  );
+  const showSupport = matchesSearch(t("settings:support"), t("settings:about"), t("settings:help"));
+  const showAccount = matchesSearch(t("settings:account"), t("settings:logout"));
 
   useEffect(() => {
     let frameId = 0;
@@ -165,61 +196,97 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
         ariaLabel={t("settings:profile")}
       />
 
-      <SettingsGroup title={t("settings:work")}>
+      <label className="relative block">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.currentTarget.value)}
+          placeholder={t("settings:searchPlaceholder")}
+          aria-label={t("settings:searchPlaceholder")}
+          className="h-12 w-full rounded-[18px] border border-white/[0.08] bg-white/[0.045] pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition placeholder:text-white/28 focus:border-[#d5be8d]/25 focus:bg-white/[0.065] focus:ring-2 focus:ring-[#d5be8d]/12"
+        />
+      </label>
+
+      {showWork ? <SettingsGroup
+        title={t("settings:workEmployments")}
+        icon={<BriefcaseBusiness className="h-3.5 w-3.5" />}
+      >
         <SettingsRow
           to={activeEmployments.length === 1 ? `/settings/employment/${activeEmployments[0].id}` : "/settings/employment"}
           label={t("settings:employment.settingsTitle")}
           value={employmentValue}
+          icon={<BriefcaseBusiness className="h-[18px] w-[18px]" />}
+          iconClassName="bg-[#d5be8d]/[0.08] text-[#ead8ac]"
         />
-      </SettingsGroup>
+      </SettingsGroup> : null}
 
-      <SettingsGroup title={t("settings:preferences")}>
+      {showPreferences ? <SettingsGroup
+        title={t("settings:appearanceRegion")}
+        icon={<Palette className="h-3.5 w-3.5" />}
+      >
         <SettingsRow
           to="/settings/preferences?section=region"
           label={t("settings:preferencesSections.region")}
           value={formatLanguage(preferences?.language)}
+          icon={<Globe2 className="h-[18px] w-[18px]" />}
+          iconClassName="bg-sky-400/[0.09] text-sky-200/80"
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/preferences?section=date-time"
           label={t("settings:preferencesSections.dateTime")}
           value={preferences?.timeFormat === "H12" ? t("settings:preferencesOptions.time12") : t("settings:preferencesOptions.time24")}
+          icon={<CalendarClock className="h-[18px] w-[18px]" />}
+          iconClassName="bg-violet-400/[0.09] text-violet-200/80"
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/preferences?section=appearance"
           label={t("settings:preferencesSections.appearance")}
           value={t(`settings:preferencesOptions.${themeTranslationKey(preferences?.theme)}`)}
+          icon={<Palette className="h-[18px] w-[18px]" />}
+          iconClassName="bg-[#d5be8d]/[0.09] text-[#ead8ac]"
         />
-      </SettingsGroup>
+      </SettingsGroup> : null}
 
-      <SettingsGroup title={t("settings:data")}>
+      {showData ? <SettingsGroup title={t("settings:dataDocuments")} icon={<ShieldCheck className="h-3.5 w-3.5" />}>
         <SettingsRow
           to="/settings/import-data"
           label={t("settings:dataImport.menuLabel")}
           description={t("settings:dataImport.menuDescription")}
+          icon={<FileUp className="h-[18px] w-[18px]" />}
+          iconClassName="bg-emerald-400/[0.09] text-emerald-200/80"
         />
         <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/export-pdf"
           label={t("settings:pdfExport.menuLabel")}
           description={t("settings:pageInfo.pdfExport.description")}
+          icon={<FileDown className="h-[18px] w-[18px]" />}
+          iconClassName="bg-blue-400/[0.09] text-blue-200/80"
         />
-      </SettingsGroup>
+      </SettingsGroup> : null}
 
-      <SettingsGroup title={t("settings:support")}>
-        <SettingsRow to="/settings/about" label={t("settings:about")} />
+      {showSupport ? <SettingsGroup title={t("settings:support")} icon={<CircleHelp className="h-3.5 w-3.5" />}>
+        <SettingsRow to="/settings/about" label={t("settings:about")} icon={<Info className="h-[18px] w-[18px]" />} />
         <div className="mx-5 h-px bg-white/[0.06]" />
-        <SettingsRow to="/settings/help" label={t("settings:help")} />
-      </SettingsGroup>
+        <SettingsRow to="/settings/help" label={t("settings:help")} icon={<CircleHelp className="h-[18px] w-[18px]" />} />
+      </SettingsGroup> : null}
 
-      <SettingsGroup title={t("settings:account")}>
+      {showAccount ? <SettingsGroup title={t("settings:account")}>
         <SettingsRow
           label={t("settings:logout")}
           onClick={() => void logout()}
           destructive
+          icon={<LogOut className="h-[18px] w-[18px]" />}
+          iconClassName="bg-red-400/[0.08] text-red-200/75"
         />
-      </SettingsGroup>
+      </SettingsGroup> : null}
+
+      {normalizedSearch && !showWork && !showPreferences && !showData && !showSupport && !showAccount ? (
+        <p className="py-10 text-center text-sm text-white/38">{t("settings:noSearchResults")}</p>
+      ) : null}
     </div>
   );
 }

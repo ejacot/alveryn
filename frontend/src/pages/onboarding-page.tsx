@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   completeOnboarding,
   createHourlyRate,
@@ -20,6 +21,7 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Card } from "../components/ui/card";
+import { AppLogo } from "../components/branding/app-logo";
 import {
   clearStoredOnboardingStep,
   storeOnboardingStep
@@ -38,6 +40,7 @@ const DEFAULT_DATE_FORMAT = "dd/MM/yyyy";
 const CURRENCY_OPTIONS = ["EUR", "CHF", "RON", "USD", "GBP", "PLN"];
 
 export function OnboardingPage() {
+  const { t } = useTranslation("onboarding");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
@@ -258,8 +261,8 @@ export function OnboardingPage() {
   if (!userId || isBootstrapping) {
     return (
       <ScreenMessage
-        title="Preparing Alveryn..."
-        description="Applying your defaults and restoring the shortest path into the app."
+        title={t("loadingTitle")}
+        description={t("loadingDescription")}
       />
     );
   }
@@ -267,7 +270,7 @@ export function OnboardingPage() {
   if (combinedError) {
     return (
       <Card variant="section" className="mt-10 space-y-4 text-center">
-        <p className="text-lg font-semibold text-white">Onboarding needs another try</p>
+        <p className="text-lg font-semibold text-white">{t("errorTitle")}</p>
         <p className="text-sm leading-6 text-white/62">{getApiError(combinedError).message}</p>
         <Button
           className="w-full"
@@ -276,41 +279,43 @@ export function OnboardingPage() {
             void Promise.all([onboardingStatusQuery.refetch(), hourlyRatesQuery.refetch()]);
           }}
         >
-          Retry
+          {t("retry")}
         </Button>
       </Card>
     );
   }
 
   const totalSteps = hourlyRateRequired ? 2 : 1;
-  const progressValue = totalSteps === 1 ? 100 : ((currentStep - 1) / (totalSteps - 1)) * 100;
+  const progressValue = (currentStep / totalSteps) * 100;
 
   return (
-    <section className="pb-8 pt-6">
-      <div className="mx-auto mb-8 max-w-md space-y-4">
-        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.24em] text-white/42">
-          <span>Onboarding</span>
-          <span>
+    <section className="dashboard-glass-preview relative min-h-[calc(100dvh-2rem)] overflow-hidden pb-10 pt-5">
+      <div className="pointer-events-none absolute left-1/2 top-[-9rem] h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-[#d5be8d]/[0.055] blur-[90px]" />
+      <div className="relative mx-auto max-w-md">
+        <div className="mb-10 flex items-center justify-between px-1">
+          <AppLogo wordmark />
+          <span className="font-metric text-xs font-semibold tabular-nums text-white/35">
             {currentStep} / {totalSteps}
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-white/10">
+        <div className="mb-7 grid gap-2" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0, 1fr))` }}>
+          {Array.from({ length: totalSteps }, (_, index) => (
+            <span key={index} className={`h-[3px] rounded-full transition-colors duration-300 ${index < currentStep ? "bg-[#d5be8d]" : "bg-white/[0.09]"}`} />
+          ))}
           <motion.div
-            className="h-full rounded-full bg-white"
+            className="sr-only"
             animate={{ width: `${progressValue}%` }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
           />
         </div>
-      </div>
 
       <Card
         as={motion.div}
         key={currentStep}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         variant="section"
-        className="mx-auto max-w-md space-y-6 rounded-[32px] p-6"
+        className="space-y-6 rounded-[30px] border-white/[0.085] bg-white/[0.035] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:p-6"
       >
         {currentStep === STEP_PROFILE ? (
           <form
@@ -335,20 +340,22 @@ export function OnboardingPage() {
             })}
           >
             <StepHeader
-              title="Let's get to know you"
+              eyebrow={t("setup.label")}
+              title={t("setup.profile.title")}
+              description={t("setup.profile.description")}
             />
             <Input
-              label="First name"
+              label={t("setup.profile.firstName")}
               error={profileForm.formState.errors.firstName?.message}
               {...profileForm.register("firstName")}
             />
             <Input
-              label="Last name"
+              label={t("setup.profile.lastName")}
               error={profileForm.formState.errors.lastName?.message}
               {...profileForm.register("lastName")}
             />
             <Button className="w-full" type="submit" disabled={profileMutation.isPending}>
-              {profileMutation.isPending ? "Saving..." : "Continue"}
+              {profileMutation.isPending ? t("setup.actions.saving") : t("setup.actions.continue")}
             </Button>
             <FormLevelError error={profileMutation.error} />
           </form>
@@ -383,11 +390,13 @@ export function OnboardingPage() {
             })}
           >
             <StepHeader
-              title="What is your hourly rate?"
+              eyebrow={t("setup.label")}
+              title={t("hourlyRateTitle")}
+              description={t("hourlyRateDescription")}
             />
             <div className="grid grid-cols-[1fr_7rem] gap-3">
               <Input
-                label="Amount per hour"
+                label={t("setup.payment.rate")}
                 type="text"
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
@@ -401,7 +410,7 @@ export function OnboardingPage() {
                 }}
               />
               <Select
-                label="Currency"
+                label={t("setup.payment.currency")}
                 error={hourlyRateForm.formState.errors.currency?.message}
                 {...hourlyRateForm.register("currency")}
               >
@@ -413,13 +422,13 @@ export function OnboardingPage() {
               </Select>
             </div>
             <Input
-              label="Start date (optional)"
+              label={t("hourlyRateStartDate")}
               type="date"
               error={hourlyRateForm.formState.errors.validFrom?.message}
               {...hourlyRateForm.register("validFrom")}
             />
             <p className="-mt-3 text-xs leading-5 text-white/42">
-              If you leave it empty, Alveryn starts this rate on the first day of the current month.
+              {t("hourlyRateStartDateHint")}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Button
@@ -427,7 +436,7 @@ export function OnboardingPage() {
                 variant="ghost"
                 onClick={() => setCurrentStep(STEP_PROFILE)}
               >
-                Back
+                {t("setup.actions.back")}
               </Button>
               <Button
                 className="w-full"
@@ -441,28 +450,32 @@ export function OnboardingPage() {
                 {hourlyRateMutation.isPending ||
                 currencyPreferenceMutation.isPending ||
                 finishMutation.isPending
-                  ? "Finishing..."
-                  : "Let's go"}
+                  ? t("setup.actions.saving")
+                  : t("setup.actions.finish")}
               </Button>
             </div>
             <FormLevelError error={hourlyRateMutation.error ?? currencyPreferenceMutation.error ?? finishMutation.error} />
           </form>
         ) : null}
       </Card>
+      </div>
     </section>
   );
 }
 
 function StepHeader({
+  eyebrow,
   title,
   description
 }: {
+  eyebrow?: string;
   title: string;
   description?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <h1 className="text-[1.9rem] font-semibold leading-tight text-white">{title}</h1>
+    <div className="space-y-2.5">
+      {eyebrow ? <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#d5be8d]/65">{eyebrow}</p> : null}
+      <h1 className="text-[2rem] font-semibold leading-[1.04] tracking-[-0.055em] text-[#f4f0e7]">{title}</h1>
       {description ? (
         <p className="text-sm leading-6 text-white/62">{description}</p>
       ) : null}

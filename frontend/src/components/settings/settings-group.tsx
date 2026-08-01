@@ -6,6 +6,7 @@ import { Card, CardModuleTitle } from "../ui/card";
 type SettingsGroupProps = {
   title: string;
   description?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -17,14 +18,23 @@ type SettingsRowProps = {
   destructive?: boolean;
   onClick?: () => void;
   showChevron?: boolean;
+  icon?: React.ReactNode;
+  iconClassName?: string;
 };
 
-export function SettingsGroup({ title, description, children }: SettingsGroupProps) {
+export function SettingsGroup({ title, description, icon, children }: SettingsGroupProps) {
   return (
     <section>
       <Card variant="ambient" className="overflow-hidden">
         <div className="px-5 pt-4">
-          <CardModuleTitle className={description ? "mb-2" : "mb-3"}>{title}</CardModuleTitle>
+          <div className={`flex items-center gap-2.5 ${description ? "mb-2" : "mb-3"}`}>
+            {icon ? (
+              <span className="grid h-7 w-7 place-items-center rounded-[10px] border border-[#d5be8d]/12 bg-[#d5be8d]/[0.07] text-[#d5be8d]">
+                {icon}
+              </span>
+            ) : null}
+            <CardModuleTitle className="mb-0">{title}</CardModuleTitle>
+          </div>
           {description ? <p className="mb-3 text-center text-sm leading-5 text-white/42">{description}</p> : null}
         </div>
         <div className="border-t border-white/[0.06]">
@@ -42,13 +52,23 @@ export function SettingsRow({
   value,
   destructive = false,
   onClick,
-  showChevron
+  showChevron,
+  icon,
+  iconClassName
 }: SettingsRowProps) {
   const classes =
     "flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset";
 
   const content = (
     <>
+      {icon ? (
+        <span className={cn(
+          "grid h-9 w-9 shrink-0 place-items-center rounded-[12px] border border-white/[0.07] bg-white/[0.045] text-white/60",
+          iconClassName
+        )}>
+          {icon}
+        </span>
+      ) : null}
       <span className="min-w-0 flex-1">
         <span
           className={cn(

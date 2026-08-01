@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CreditCard, KeyRound, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { z } from "zod";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -248,6 +248,8 @@ export function SettingsProfilePage() {
         </div>
       </header>
 
+      <div className="settings-page-header-spacer" aria-hidden="true" />
+
       <h1
         ref={largeTitleRef}
         className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
@@ -279,18 +281,21 @@ export function SettingsProfilePage() {
 
           <SettingsGroup title={t("profileEditor.title")}>
             <SettingsRow
+              icon={<UserRound className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.personalInformation")}
               onClick={() => setActiveSection("personal")}
               showChevron
             />
             <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
+              icon={<ShieldCheck className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.signInSecurity")}
               onClick={() => setActiveSection("security")}
               showChevron
             />
             <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
+              icon={<CreditCard className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.subscriptions")}
               onClick={() => setActiveSection("subscriptions")}
               showChevron
@@ -301,6 +306,7 @@ export function SettingsProfilePage() {
         <div className="space-y-8">
           <SettingsGroup title={t("profileEditor.security.contact")}>
             <SettingsRow
+              icon={<Mail className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.email")}
               value={user?.account.email ?? ""}
               onClick={() => setActiveSection("email")}
@@ -308,6 +314,7 @@ export function SettingsProfilePage() {
             />
             <div className="mx-5 h-px bg-white/[0.06]" />
             <SettingsRow
+              icon={<Phone className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.phoneNumber")}
               value={profile?.phone || t("profileEditor.menu.notSet")}
               onClick={() => setActiveSection("phone")}
@@ -317,6 +324,7 @@ export function SettingsProfilePage() {
 
           <SettingsGroup title={t("profileEditor.security.title")}>
             <SettingsRow
+              icon={<KeyRound className="h-[1.1rem] w-[1.1rem]" />}
               label={t("profileEditor.menu.changePassword")}
               onClick={() => setActiveSection("password")}
               showChevron
@@ -416,6 +424,9 @@ export function SettingsProfilePage() {
 function ProfilePlaceholder({ title, description }: { title: string; description: string }) {
   return (
     <Card as="section" className="px-5 py-6">
+      <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#d5be8d]">
+        <BadgeCheck className="h-5 w-5" />
+      </div>
       <p className="text-[1.15rem] font-semibold tracking-[-0.05em] text-white">{title}</p>
       <p className="mt-2 text-sm leading-6 text-white/48">{description}</p>
     </Card>

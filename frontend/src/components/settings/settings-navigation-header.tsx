@@ -73,6 +73,8 @@ export function SettingsNavigationHeader({ title, backLabel, onBack, action }: P
         ) : null}
       </header>
 
+      <div className="settings-page-header-spacer" aria-hidden="true" />
+
       <h1
         ref={largeTitleRef}
         className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${

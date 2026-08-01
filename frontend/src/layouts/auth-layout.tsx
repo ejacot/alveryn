@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
+import { RouteScrollReset } from "../components/navigation/route-scroll-reset";
 
 export function AuthLayout() {
   useEffect(() => {
@@ -23,6 +24,7 @@ export function AuthLayout() {
 
   return (
     <div className="auth-shell fixed inset-0 overflow-hidden overscroll-none bg-[#0D0D0D] text-white">
+      <RouteScrollReset />
       <Outlet />
     </div>
   );

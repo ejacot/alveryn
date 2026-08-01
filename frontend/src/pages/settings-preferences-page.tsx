@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
+import { CalendarDays, Clock3, Coins, Languages, MoonStar, TimerReset } from "lucide-react";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { getPreferences, updatePreferences, type UpdatePreferencesPayload } from "../api/endpoints";
@@ -18,7 +19,7 @@ import { Card } from "../components/ui/card";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { applyAppLanguage } from "../i18n";
-import { getNativeLanguageName, normalizeLanguage } from "../i18n/language";
+import { getNativeLanguageName, normalizeLanguage, SUPPORTED_LANGUAGES } from "../i18n/language";
 import { getSupportedTimezones } from "../utils/timezones";
 import { applyAppTheme } from "../utils/theme";
 
@@ -133,23 +134,23 @@ export function SettingsPreferencesPage() {
       >
         {showRegion ? (
           <Card as="section" className="overflow-hidden">
-            <PreferenceRow label={t("settings:preferencesFields.language")} error={form.formState.errors.language?.message}>
+            <PreferenceRow icon={<Languages />} label={t("settings:preferencesFields.language")} error={form.formState.errors.language?.message}>
               <select aria-label={t("settings:preferencesFields.language")} {...form.register("language")}>
-                {["en", "de", "ro"].map((language) => (
+                {SUPPORTED_LANGUAGES.map((language) => (
                   <option key={language} value={language}>
                     {getNativeLanguageName(normalizeLanguage(language))}
                   </option>
                 ))}
               </select>
             </PreferenceRow>
-            <PreferenceRow label={t("settings:preferencesFields.timezone")} error={form.formState.errors.timezone?.message}>
+            <PreferenceRow icon={<Clock3 />} label={t("settings:preferencesFields.timezone")} error={form.formState.errors.timezone?.message}>
               <select aria-label={t("settings:preferencesFields.timezone")} {...form.register("timezone")}>
                 {supportedTimezones.map((timezone) => (
                   <option key={timezone} value={timezone}>{timezone}</option>
                 ))}
               </select>
             </PreferenceRow>
-            <PreferenceRow label={t("settings:preferencesFields.currency")} error={form.formState.errors.currency?.message} last>
+            <PreferenceRow icon={<Coins />} label={t("settings:preferencesFields.currency")} error={form.formState.errors.currency?.message} last>
               <select aria-label={t("settings:preferencesFields.currency")} {...form.register("currency")}>
                 {["EUR", "USD", "GBP", "CHF", "PLN", "RON"].map((currency) => (
                   <option key={currency} value={currency}>{currency}</option>
@@ -161,19 +162,19 @@ export function SettingsPreferencesPage() {
 
         {showDateTime ? (
           <Card as="section" className="overflow-hidden">
-            <PreferenceRow label={t("settings:preferencesFields.firstDayOfWeek")} error={form.formState.errors.firstDayOfWeek?.message}>
+            <PreferenceRow icon={<CalendarDays />} label={t("settings:preferencesFields.firstDayOfWeek")} error={form.formState.errors.firstDayOfWeek?.message}>
               <select aria-label={t("settings:preferencesFields.firstDayOfWeek")} {...form.register("firstDayOfWeek")}>
                 <option value="MONDAY">{t("settings:preferencesOptions.monday")}</option>
                 <option value="SUNDAY">{t("settings:preferencesOptions.sunday")}</option>
               </select>
             </PreferenceRow>
-            <PreferenceRow label={t("settings:preferencesFields.timeFormat")} error={form.formState.errors.timeFormat?.message}>
+            <PreferenceRow icon={<TimerReset />} label={t("settings:preferencesFields.timeFormat")} error={form.formState.errors.timeFormat?.message}>
               <select aria-label={t("settings:preferencesFields.timeFormat")} {...form.register("timeFormat")}>
                 <option value="H24">{t("settings:preferencesOptions.time24")}</option>
                 <option value="H12">{t("settings:preferencesOptions.time12")}</option>
               </select>
             </PreferenceRow>
-            <PreferenceRow label={t("settings:preferencesFields.dateFormat")} error={form.formState.errors.dateFormat?.message} last>
+            <PreferenceRow icon={<CalendarDays />} label={t("settings:preferencesFields.dateFormat")} error={form.formState.errors.dateFormat?.message} last>
               <select aria-label={t("settings:preferencesFields.dateFormat")} {...form.register("dateFormat")}>
                 <option value="DD.MM.YYYY">31.12.2026</option>
                 <option value="MM/DD/YYYY">12/31/2026</option>
@@ -185,7 +186,7 @@ export function SettingsPreferencesPage() {
 
         {showAppearance ? (
           <Card as="section" className="overflow-hidden">
-            <PreferenceRow label={t("settings:preferencesFields.theme")} error={form.formState.errors.theme?.message} last>
+            <PreferenceRow icon={<MoonStar />} label={t("settings:preferencesFields.theme")} error={form.formState.errors.theme?.message} last>
               <select aria-label={t("settings:preferencesFields.theme")} {...form.register("theme")}>
                 <option value="SYSTEM">{t("settings:preferencesOptions.systemTheme")}</option>
                 <option value="LIGHT">{t("settings:preferencesOptions.lightTheme")}</option>
@@ -207,18 +208,23 @@ export function SettingsPreferencesPage() {
 
 function PreferenceRow({
   label,
+  icon,
   error,
   last = false,
   children
 }: {
   label: string;
+  icon?: React.ReactNode;
   error?: string;
   last?: boolean;
   children: React.ReactElement<{ className?: string }>;
 }) {
   return (
     <div className={`relative flex min-h-14 items-center justify-between gap-4 px-5 py-3 ${last ? "" : "after:absolute after:inset-x-5 after:bottom-0 after:h-px after:bg-white/[0.06]"}`}>
-      <span className="min-w-0 text-[1rem] tracking-[-0.02em] text-white">{label}</span>
+      <span className="flex min-w-0 items-center gap-3 text-[1rem] tracking-[-0.02em] text-white">
+        {icon ? <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/[0.07] bg-white/[0.045] text-white/55 [&_svg]:h-[1.05rem] [&_svg]:w-[1.05rem]">{icon}</span> : null}
+        {label}
+      </span>
       <div className="min-w-0 max-w-[58%] text-right">
         <div className="[&_select]:max-w-full [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:truncate [&_select]:border-0 [&_select]:bg-transparent [&_select]:py-2 [&_select]:text-right [&_select]:text-sm [&_select]:text-white/48 [&_select]:outline-none [&_select]:focus:text-white">
           {children}

@@ -24,23 +24,26 @@ export function AuthCard({
   const { t } = useTranslation(["auth"]);
 
   return (
-    <div className="mx-auto flex h-screen h-[100dvh] w-full max-w-[520px] items-center justify-center overflow-hidden overscroll-none px-5 py-[max(1.25rem,env(safe-area-inset-top))]">
-      <div className="w-full">
-        <div className="mb-7 flex justify-center">
-          <AppLogo />
+    <div className="auth-shell dashboard-glass-preview relative min-h-screen min-h-[100dvh] w-full overflow-x-hidden overscroll-none">
+      <div className="pointer-events-none absolute left-1/2 top-[-11rem] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-[#d5be8d]/[0.065] blur-[110px]" />
+      <div className="pointer-events-none absolute -bottom-32 -right-40 h-80 w-80 rounded-full bg-emerald-900/[0.09] blur-[100px]" />
+      <div className="relative mx-auto flex min-h-screen min-h-[100dvh] w-full max-w-[520px] items-center px-5 py-[max(1.5rem,env(safe-area-inset-top))]">
+      <div className="w-full py-3">
+        <div className="mb-8 flex justify-center">
+          <AppLogo wordmark />
         </div>
-        <Card variant="auth" className="rounded-2xl border-white/[0.1] bg-[#171717] p-5 shadow-[0_24px_80px_rgba(0,0,0,.35)] sm:p-6">
-        <div className="space-y-1.5 text-center">
-          <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.045em] text-white">
+        <Card variant="auth" className="rounded-[30px] border-white/[0.085] bg-white/[0.035] p-5 shadow-[0_28px_90px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:p-6">
+        <div className="space-y-2 text-center">
+          <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.06em] text-[#f4f0e7]">
             {title}
           </h1>
           {subtitle ? (
-            <p className="mx-auto max-w-sm text-[0.82rem] leading-5 text-white/48">{subtitle}</p>
+            <p className="mx-auto max-w-sm text-[0.84rem] leading-5 text-white/45">{subtitle}</p>
           ) : null}
         </div>
-        <div className="mt-6">{children}</div>
+        <div className="mt-7">{children}</div>
         {footer ? (
-          <div className="mt-5 border-t border-white/[0.07] pt-4 text-center text-sm text-white/48">
+          <div className="mt-6 border-t border-white/[0.065] pt-4 text-center text-sm text-white/42">
             {footer}
           </div>
         ) : null}
@@ -48,16 +51,17 @@ export function AuthCard({
           <div className="mt-2 text-center text-xs">
             <Link
               to={backLink.to}
-              className="text-white/46 transition hover:text-white/70"
+              className="inline-flex min-h-10 items-center text-white/42 transition hover:text-white/70"
             >
               {backLink.label}
             </Link>
           </div>
         ) : null}
         </Card>
-        <div className="mt-4 text-center text-[0.68rem] leading-4 text-white/24">
+        <div className="mt-5 px-4 text-center text-[0.66rem] leading-4 text-white/22">
           {t("legal.footnote")}
         </div>
+      </div>
       </div>
     </div>
   );

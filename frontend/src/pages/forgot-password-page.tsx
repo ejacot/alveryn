@@ -50,7 +50,6 @@ export function ForgotPasswordPage() {
           </Link>
         </span>
       }
-      backLink={{ to: "/login", label: t("auth:forgotPassword.backToLogin") }}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <Input

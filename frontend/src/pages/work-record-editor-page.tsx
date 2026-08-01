@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, MapPin, Plus, ReceiptText, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -12,6 +12,7 @@ import {
   getWorkRecord,
   getPreferences,
   listHourlyRates,
+  listEmployments,
   listWorkProjects,
   listWorkTypes,
   updateWorkRecord,
@@ -93,6 +94,15 @@ function createClientLineId() {
   return `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+function createLineForWorkType(workType: WorkType, fallbackCurrency: string) {
+  const line = newLine();
+  line.workTypeId = workType.id;
+  line.calculationMode = workTypeCalculationMode(workType);
+  line.currency = workType.currency ?? fallbackCurrency;
+  line.unpaidBreakMinutes = String(workType.defaultBreakMinutes ?? 0);
+  return line;
+}
+
 async function invalidateWorkRecordQueries(queryClient: ReturnType<typeof useQueryClient>) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
@@ -143,12 +153,14 @@ export function WorkRecordEditorPage() {
   }, [outletContext, searchParams]);
 
   const [workDate, setWorkDate] = useState(safeLocalIsoDate(selectedDate));
+  const [editorEmploymentId, setEditorEmploymentId] = useState(selectedEmploymentId ?? "");
   const [dateMode, setDateMode] = useState<"SINGLE_DAY" | "DATE_RANGE">("SINGLE_DAY");
   const [workEndDate, setWorkEndDate] = useState(safeLocalIsoDate(selectedDate));
   const [projectTitle, setProjectTitle] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [addressId, setAddressId] = useState("");
   const [addressExpanded, setAddressExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [addressDraft, setAddressDraft] = useState<AddressPayload>({
     street: "",
     street2: "",
@@ -160,6 +172,7 @@ export function WorkRecordEditorPage() {
   const [teamSize, setTeamSize] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<JobLineState[]>([]);
+  const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [workTypePickerOpen, setWorkTypePickerOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -179,6 +192,10 @@ export function WorkRecordEditorPage() {
   const workTypesQuery = useQuery({
     queryKey: queryKeys.workTypes.all(),
     queryFn: listWorkTypes
+  });
+  const employmentsQuery = useQuery({
+    queryKey: queryKeys.employments.all(),
+    queryFn: listEmployments
   });
   const hourlyRatesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
@@ -264,6 +281,7 @@ export function WorkRecordEditorPage() {
       return;
     }
     setWorkDate(recordQuery.data.workDate);
+    setEditorEmploymentId(recordQuery.data.employmentId ?? "");
     setDateMode(recordQuery.data.workEndDate ? "DATE_RANGE" : "SINGLE_DAY");
     setWorkEndDate(recordQuery.data.workEndDate ?? recordQuery.data.workDate);
     setProjectTitle(recordQuery.data.projectTitle ?? "");
@@ -282,6 +300,7 @@ export function WorkRecordEditorPage() {
     setTeamSize(recordQuery.data.teamSize ? String(recordQuery.data.teamSize) : "");
     setNotes(recordQuery.data.notes ?? "");
     setLines(recordToLines(recordQuery.data));
+    setActiveLineId(recordQuery.data.workLines?.[0]?.id ?? null);
   }, [recordQuery.data]);
 
   const isDirty =
@@ -327,14 +346,26 @@ export function WorkRecordEditorPage() {
 
   const isLoading =
     workTypesQuery.isLoading ||
+    employmentsQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
     preferencesQuery.isLoading ||
     projectsQuery.isLoading ||
     recordQuery.isLoading;
   const loadingError =
-    workTypesQuery.error ?? hourlyRatesQuery.error ?? preferencesQuery.error ?? projectsQuery.error ?? recordQuery.error;
+    workTypesQuery.error ?? employmentsQuery.error ?? hourlyRatesQuery.error ?? preferencesQuery.error ?? projectsQuery.error ?? recordQuery.error;
 
-  const recordEmploymentId = recordQuery.data?.employmentId ?? selectedEmploymentId;
+  const activeEmployments = useMemo(
+    () => (employmentsQuery.data ?? []).filter((employment) => employment.active),
+    [employmentsQuery.data]
+  );
+  const recordEmploymentId = recordQuery.data?.employmentId
+    ?? (editorEmploymentId || null)
+    ?? (activeEmployments.length === 1 ? activeEmployments[0].id : null);
+  useEffect(() => {
+    if (!isEditing && !editorEmploymentId && activeEmployments.length === 1) {
+      setEditorEmploymentId(activeEmployments[0].id);
+    }
+  }, [activeEmployments, editorEmploymentId, isEditing]);
   const workTypes = useMemo(
     () => (workTypesQuery.data ?? []).filter(
       (workType) => workType.active && (!recordEmploymentId || workType.employmentId === recordEmploymentId)
@@ -366,6 +397,18 @@ export function WorkRecordEditorPage() {
     () => lines.some((line) => workTypes.find((workType) => workType.id === line.workTypeId)?.teamworkEnabled),
     [lines, workTypes]
   );
+  const liveSummary = useMemo(
+    () => buildGroupSummary(lines, workTypes, hourlyRatesQuery.data ?? [], workDate, teamSize),
+    [hourlyRatesQuery.data, lines, teamSize, workDate, workTypes]
+  );
+
+  useEffect(() => {
+    if (isEditing || lines.length || workTypes.length !== 1) return;
+    const onlyWorkType = workTypes[0];
+    const line = createLineForWorkType(onlyWorkType, preferencesQuery.data?.currency ?? "EUR");
+    setLines([line]);
+    setActiveLineId(line.id);
+  }, [isEditing, lines.length, preferencesQuery.data?.currency, workTypes]);
 
   function updateLine(lineId: string, patch: Partial<JobLineState>) {
     setLines((current) =>
@@ -391,11 +434,7 @@ export function WorkRecordEditorPage() {
 
   function addWorkTypeLines(selectedWorkTypes: WorkType[], grouped = false) {
     const nextLines = selectedWorkTypes.map((workType) => {
-    const line = newLine();
-    line.workTypeId = workType.id;
-    line.calculationMode = workTypeCalculationMode(workType);
-    line.currency = workType.currency ?? preferencesQuery.data?.currency ?? "EUR";
-    line.unpaidBreakMinutes = String(workType.defaultBreakMinutes ?? 0);
+      const line = createLineForWorkType(workType, preferencesQuery.data?.currency ?? "EUR");
       if (grouped && line.calculationMode === "TIME_HOURLY") {
         line.startTime = "";
         line.endTime = "";
@@ -406,6 +445,7 @@ export function WorkRecordEditorPage() {
       return line;
     });
     setLines((current) => [...current, ...nextLines]);
+    setActiveLineId(nextLines[0]?.id ?? null);
     setWorkTypePickerOpen(false);
   }
 
@@ -527,7 +567,34 @@ export function WorkRecordEditorPage() {
 
       <section>
         <Card variant="ambient" className="space-y-4 p-5">
-          <CardModuleTitle>{t("records:job.dates")}</CardModuleTitle>
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#ead8ac]">
+              <CalendarDays className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <CardModuleTitle>{t("records:job.dates")}</CardModuleTitle>
+              <p className="mt-1 text-xs text-white/40">{workDate}</p>
+            </div>
+          </div>
+          {!isEditing && activeEmployments.length > 1 ? (
+            <label className="block space-y-2 border-t border-white/[0.08] pt-4">
+              <span className="text-sm font-medium text-white/70">{t("records:job.employment")}</span>
+              <select
+                value={editorEmploymentId}
+                onChange={(event) => {
+                  setEditorEmploymentId(event.currentTarget.value);
+                  setLines([]);
+                  setActiveLineId(null);
+                }}
+                className="h-12 w-full rounded-2xl border border-white/[0.12] bg-[#111713] px-4 text-sm font-semibold text-white outline-none focus:border-white/[0.28] focus:ring-2 focus:ring-white/24"
+              >
+                <option value="">{t("records:job.chooseEmployment")}</option>
+                {activeEmployments.map((employment) => (
+                  <option key={employment.id} value={employment.id}>{employment.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
             <button
               type="button"
@@ -611,27 +678,6 @@ export function WorkRecordEditorPage() {
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <button
-          type="button"
-          aria-expanded={addressExpanded}
-          onClick={() => setAddressExpanded((value) => !value)}
-          className="flex w-full items-center justify-between gap-4 rounded-lg py-1 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
-        >
-          <span className="hairline-text">{t("records:job.address")}</span>
-          <ChevronRight
-            className={`hairline-text h-4 w-4 shrink-0 transition-transform duration-200 ${addressExpanded ? "rotate-90" : "rotate-0"}`}
-            aria-hidden="true"
-          />
-        </button>
-        {addressExpanded ? (
-          <AddressFields
-            draft={addressDraft}
-            onDraftChange={setAddressDraft}
-          />
-        ) : null}
-      </section>
-
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <p className="hairline-text">{t("records:job.lines")}</p>
@@ -696,17 +742,32 @@ export function WorkRecordEditorPage() {
                   />
                 </Card>
               ) : (
-                <WorkRecordLineCard
-                  key={group.key}
-                  index={lines.indexOf(group.lines[0])}
-                  line={group.lines[0]}
-                  workTypes={workTypes}
-                  workDate={workDate}
-                  hourlyRates={hourlyRatesQuery.data ?? []}
-                  teamSize={teamSize}
-                  onChange={updateLine}
-                  onRemove={() => setLines((current) => current.filter((item) => item.id !== group.lines[0].id))}
-                />
+                activeLineId === group.lines[0].id ? (
+                  <WorkRecordLineCard
+                    key={group.key}
+                    index={lines.indexOf(group.lines[0])}
+                    line={group.lines[0]}
+                    workTypes={workTypes}
+                    workDate={workDate}
+                    hourlyRates={hourlyRatesQuery.data ?? []}
+                    teamSize={teamSize}
+                    onChange={updateLine}
+                    onRemove={() => {
+                      setLines((current) => current.filter((item) => item.id !== group.lines[0].id));
+                      setActiveLineId(null);
+                    }}
+                  />
+                ) : (
+                  <CollapsedWorkLine
+                    key={group.key}
+                    line={group.lines[0]}
+                    workTypes={workTypes}
+                    hourlyRates={hourlyRatesQuery.data ?? []}
+                    workDate={workDate}
+                    teamSize={teamSize}
+                    onOpen={() => setActiveLineId(group.lines[0].id)}
+                  />
+                )
               )
             )}
             {hasTeamworkLine ? (
@@ -741,31 +802,77 @@ export function WorkRecordEditorPage() {
         )}
       </section>
 
+      {liveSummary ? (
+        <Card as="section" variant="ambient" className="overflow-hidden p-5">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#ead8ac]">
+              <ReceiptText className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.62rem] font-medium uppercase tracking-[0.16em] text-white/34">{t("records:summary.title")}</p>
+              <p className="mt-1 font-metric text-xl font-medium text-white">
+                {formatMinutesAsDuration(liveSummary.actualMinutes + liveSummary.equivalentMinutes)}
+              </p>
+            </div>
+            <div className="shrink-0 text-right font-metric text-base font-medium text-[#ead8ac]">
+              {liveSummary.amounts.map((amount) => (
+                <p key={amount.currency}>{formatCurrency(String(amount.value), amount.currency)}</p>
+              ))}
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       <section className="space-y-3">
-        <p className="hairline-text">{t("records:fields.notes")}</p>
-        <Textarea
-          label={t("records:fields.notes")}
-          labelClassName="sr-only"
-          rows={3}
-          className="min-h-24 resize-none bg-white/[0.04]"
-          placeholder={t("records:job.notesPlaceholder")}
-          value={notes}
-          onChange={(event) => setNotes(event.currentTarget.value)}
-        />
+        <button
+          type="button"
+          aria-expanded={detailsExpanded}
+          onClick={() => setDetailsExpanded((value) => !value)}
+          className="universal-glass-card glass-card--ambient flex w-full items-center gap-3 rounded-[24px] p-4 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-white/[0.08] bg-white/[0.05] text-[#ead8ac]">
+            <MapPin className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-white">{t("records:job.details")}</span>
+            <span className="mt-1 block text-xs text-white/40">{t("records:job.detailsHint")}</span>
+          </span>
+          <ChevronRight className={`h-5 w-5 text-white/38 transition-transform ${detailsExpanded ? "rotate-90" : ""}`} />
+        </button>
+        {detailsExpanded ? (
+          <div className="space-y-4">
+            <button
+              type="button"
+              aria-expanded={addressExpanded}
+              onClick={() => setAddressExpanded((value) => !value)}
+              className="flex w-full items-center justify-between px-1 text-left text-sm font-semibold text-white/70"
+            >
+              {t("records:job.address")}
+              <ChevronRight className={`h-4 w-4 transition-transform ${addressExpanded ? "rotate-90" : ""}`} />
+            </button>
+            {addressExpanded ? <AddressFields draft={addressDraft} onDraftChange={setAddressDraft} /> : null}
+            <Textarea
+              label={t("records:fields.notes")}
+              rows={3}
+              className="min-h-24 resize-none bg-white/[0.04]"
+              placeholder={t("records:job.notesPlaceholder")}
+              value={notes}
+              onChange={(event) => setNotes(event.currentTarget.value)}
+            />
+          </div>
+        ) : null}
       </section>
 
       {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
       {saveError ? <p className="text-sm text-red-300">{saveError}</p> : null}
 
-      <div className="space-y-3 pt-1">
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 -mx-1 space-y-3 rounded-[28px] border border-white/[0.09] bg-black/55 p-2 backdrop-blur-2xl">
         <Button className="w-full" type="button" disabled={saveMutation.isPending || createAddressMutation.isPending || success} onClick={() => void handleSubmit()}>
           {saveMutation.isPending || createAddressMutation.isPending
             ? t("records:job.saving")
             : success
               ? t("records:saved")
-              : isEditing
-                ? t("records:job.saveChanges")
-                : t("records:job.save")}
+              : t("common:actions.save")}
         </Button>
         {isEditing ? (
           <Button
@@ -875,48 +982,55 @@ function WorkTypePickerDialog({
   }, {});
 
   return (
-    <LockedModalViewport className="bg-black/58 px-4 py-4 backdrop-blur-sm">
+    <LockedModalViewport className="items-end bg-black/52 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur-md">
       <button type="button" className="absolute inset-0" onClick={onClose} aria-label={t("job.closePicker")} />
       <ModalPanel
         as="section"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-type-picker-title"
-        className="flex max-h-[calc(100dvh-2rem)] max-w-sm flex-col overflow-hidden"
+        className="flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] max-w-[430px] flex-col overflow-hidden !rounded-[30px] !border-[#d5be8d]/[0.14] !bg-[linear-gradient(150deg,rgba(22,22,17,0.98),rgba(8,10,9,0.98))] !p-0 shadow-[0_28px_90px_rgba(0,0,0,0.7)]"
       >
-        <header className="flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
-          <h2 id="work-type-picker-title" className="text-xl font-semibold tracking-[-0.05em] text-white">
-            {t("job.chooseActivity")}
-          </h2>
+        <header className="relative flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 pb-4 pt-5">
+          <div>
+            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#d5be8d]/60">
+              {t("job.lines")}
+            </p>
+            <h2 id="work-type-picker-title" className="mt-1 text-[1.35rem] font-semibold tracking-[-0.055em] text-[#f4f0e7]">
+              {t("job.chooseActivity")}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white/52 transition hover:bg-white/[0.07] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.05] text-white/52 transition active:scale-95 hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
             aria-label={t("job.closePicker")}
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {parents.map((parent) => {
             const children = childrenByParent[parent.id] ?? [];
             return (
-              <div key={parent.id} className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-white/[0.04]">
+              <div key={parent.id} className="overflow-hidden rounded-[20px] border border-white/[0.075] bg-white/[0.035]">
                 <button
                   type="button"
                   onClick={() => children.length ? onSelectGroup(parent) : onSelect(parent)}
-                  className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset"
+                  className="flex min-h-[3.65rem] w-full items-center gap-3 px-4 py-2.5 text-left transition active:scale-[0.99] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/25 focus:ring-inset"
                 >
-                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: parent.color }} />
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[13px] border border-white/[0.08] bg-white/[0.045]">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: parent.color }} />
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="font-name block truncate text-base font-semibold text-white">{parent.name}</span>
-                    {children.length ? (
-                      <span className="mt-1 block text-xs text-white/42">{t("job.activityCount", { count: children.length })}</span>
-                    ) : null}
+                    <span className="mt-0.5 block text-xs text-white/38">
+                      {children.length
+                        ? t("job.activityCount", { count: children.length })
+                        : workTypeMethodLabel(parent, t)}
+                    </span>
                   </span>
-                  {children.length ? (
-                    <ChevronRight className="h-5 w-5 shrink-0 text-white/36" aria-hidden="true" />
-                  ) : null}
+                  <ChevronRight className="h-5 w-5 shrink-0 text-white/30" aria-hidden="true" />
                 </button>
               </div>
             );
@@ -1184,6 +1298,48 @@ function WorkRecordLineCard({
   );
 }
 
+function CollapsedWorkLine({
+  line,
+  workTypes,
+  hourlyRates,
+  workDate,
+  teamSize,
+  onOpen
+}: {
+  line: JobLineState;
+  workTypes: WorkType[];
+  hourlyRates: Awaited<ReturnType<typeof listHourlyRates>>;
+  workDate: string;
+  teamSize: string;
+  onOpen: () => void;
+}) {
+  const selectedWorkType = workTypes.find((workType) => workType.id === line.workTypeId) ?? null;
+  const preview = buildLinePreview(line, selectedWorkType, hourlyRates, workDate, teamSize);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="universal-glass-card flex min-h-16 w-full items-center gap-3 rounded-[22px] px-4 py-3 text-left transition active:scale-[0.985]"
+    >
+      <span
+        className="h-3 w-3 shrink-0 rounded-full"
+        style={{ backgroundColor: selectedWorkType?.color ?? "#d5be8d" }}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="font-name block truncate font-semibold text-white">
+          {selectedWorkType?.name ?? "—"}
+        </span>
+        <span className="mt-1 block truncate text-xs text-white/42">{preview?.label ?? "—"}</span>
+      </span>
+      {preview?.amount ? (
+        <span className="shrink-0 font-metric text-sm font-medium text-[#ead8ac]">{preview.amount}</span>
+      ) : null}
+      <ChevronRight className="h-4 w-4 shrink-0 text-white/30" aria-hidden="true" />
+    </button>
+  );
+}
+
 function WorkTypeGroupSummary({
   lines,
   workTypes,
@@ -1238,6 +1394,7 @@ function buildGroupSummary(
     const workType = workTypes.find((item) => item.id === line.workTypeId);
     if (!workType || !hasMeaningfulLineInput(line)) continue;
     const mode = workTypeCalculationMode(workType);
+    const extraMultiplier = 1 + Math.max(0, Number(line.extraPayPercentage || 0)) / 100;
 
     if (mode === "TIME_HOURLY") {
       const minutes = line.timeInputMode === "DURATION"
@@ -1248,7 +1405,7 @@ function buildGroupSummary(
             breakMinutes: Number(line.unpaidBreakMinutes || 0)
           })?.workedMinutes ?? 0;
       actualMinutes += minutes;
-      if (hourlyRate) addAmount(calculateGrossAmount(minutes, hourlyRate.hourlyRate), hourlyRate.currency);
+      if (hourlyRate) addAmount(calculateGrossAmount(minutes, hourlyRate.hourlyRate) * extraMultiplier, hourlyRate.currency);
       continue;
     }
 
@@ -1257,7 +1414,7 @@ function buildGroupSummary(
       const unitsPerHour = Number(workType.unitsPerHour);
       const minutes = unitsPerHour > 0 ? Math.round((quantity / unitsPerHour) * 60) : 0;
       equivalentMinutes += minutes;
-      if (hourlyRate) addAmount(calculateGrossAmount(minutes, hourlyRate.hourlyRate), hourlyRate.currency);
+      if (hourlyRate) addAmount(calculateGrossAmount(minutes, hourlyRate.hourlyRate) * extraMultiplier, hourlyRate.currency);
       continue;
     }
 
@@ -1265,14 +1422,14 @@ function buildGroupSummary(
       const quantity = parseDecimalInput(line.quantity);
       const rate = Number(workType.ratePerUnit);
       const workers = workType.teamworkEnabled ? Number(teamSize) : 1;
-      if (Number.isFinite(rate) && workers > 0) addAmount((quantity * rate) / workers, workType.currency);
+      if (Number.isFinite(rate) && workers > 0) addAmount(((quantity * rate) / workers) * extraMultiplier, workType.currency);
       const unitsPerHour = Number(workType.unitsPerHour);
       if (unitsPerHour > 0) equivalentMinutes += Math.round((quantity / unitsPerHour) * 60);
       continue;
     }
 
     if (mode === "FIXED_AMOUNT") {
-      addAmount(parseDecimalInput(line.fixedAmount), line.currency);
+      addAmount(parseDecimalInput(line.fixedAmount) * extraMultiplier, line.currency);
     }
   }
 
@@ -1365,6 +1522,13 @@ function workTypeRateLabel(workType: WorkType) {
     return `${workType.unitsPerHour ?? ""} ${unit}/h`;
   }
   return "";
+}
+
+function workTypeMethodLabel(workType: WorkType, t: (key: string) => string) {
+  const mode = workTypeCalculationMode(workType);
+  if (mode === "TIME_HOURLY") return t("workTypePicker.timeBased");
+  if (mode === "FIXED_AMOUNT") return t("workTypePicker.fixedBased");
+  return t("workTypePicker.unitBased");
 }
 
 function workTypeCalculationMode(workType: WorkType | null): WorkTypeFormulaMode | null {

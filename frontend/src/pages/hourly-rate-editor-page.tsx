@@ -17,12 +17,12 @@ import {
 import { SettingsConfirmDialog } from "../components/settings/settings-confirm-dialog";
 import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { SettingsContextCard } from "../components/settings/settings-context-card";
+import { SettingsPageHeader } from "../components/settings/settings-page-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
+import { Card } from "../components/ui/card";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
-import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
-import { ModalPanel } from "../components/ui/modal-panel";
 import { ModalActions } from "../components/ui/modal-actions";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
@@ -160,37 +160,18 @@ export function HourlyRateEditorPage() {
   const hourlyRateField = form.register("hourlyRate");
 
   return (
-    <LockedModalViewport
-      className="z-[60] bg-black/50 px-4 py-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="hourly-rate-title"
-    >
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label={t("hourlyRateEditor.cancel")}
-        className="absolute inset-0 h-full w-full cursor-default"
-        onClick={() => confirmOrRun(safeBack)}
-      />
-      <ModalPanel
+    <div className="space-y-6 pb-10 pt-4">
+      <SettingsPageHeader title={title} fallbackHref={ratesPath} onBack={() => confirmOrRun(safeBack)} />
+      <SettingsContextCard context="hourlyRateEditor" />
+      <Card
         as="form"
-        className="max-w-sm"
+        variant="ambient"
+        className="space-y-5 p-5"
         onSubmit={form.handleSubmit(async (values) => {
           await saveMutation.mutateAsync(values);
         })}
       >
-        <div className="mb-5">
-          <h1 id="hourly-rate-title" className="text-xl font-semibold tracking-[-0.06em] text-white">
-            {title}
-          </h1>
-        </div>
-
-        <div className="mb-5">
-          <SettingsContextCard context="hourlyRateEditor" />
-        </div>
-
-        <div className="space-y-3">
+        <div className="space-y-4">
           {!requestedEmploymentId ? (
             <Select
               label={t("hourlyRateEditor.fields.employment")}
@@ -249,7 +230,7 @@ export function HourlyRateEditorPage() {
         </div>
 
         {saveMutation.error ? <p className="mt-4 text-sm text-red-300">{getApiError(saveMutation.error).message}</p> : null}
-        <div className="mt-6 space-y-3">
+        <div className="space-y-3 border-t border-white/[0.06] pt-5">
           {isEditing ? (
             <button
               type="button"
@@ -267,7 +248,7 @@ export function HourlyRateEditorPage() {
             onCancel={() => confirmOrRun(safeBack)}
           />
         </div>
-      </ModalPanel>
+      </Card>
 
       <SettingsConfirmDialog
         open={showConfirm}
@@ -280,7 +261,7 @@ export function HourlyRateEditorPage() {
       />
       {dialog}
       <SettingsSuccessMessage message={successMessage} />
-    </LockedModalViewport>
+    </div>
   );
 }
 

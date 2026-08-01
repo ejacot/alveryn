@@ -1,5 +1,6 @@
-import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useSafeBackNavigation } from "../../hooks/use-safe-back-navigation";
+import { SettingsNavigationHeader } from "./settings-navigation-header";
 
 type Props = {
   title: string;
@@ -15,25 +16,18 @@ export function SettingsPageHeader({
   onBack
 }: Props) {
   const safeBack = useSafeBackNavigation({ fallback: fallbackHref });
+  const { t } = useTranslation("common");
 
   return (
-    <header className="space-y-2">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onBack ?? safeBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.045] text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/[0.07] active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/24"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="h-[18px] w-[18px]" />
-        </button>
-        <h1 className="min-w-0 text-[1.75rem] font-semibold tracking-[-0.055em] text-white">{title}</h1>
-      </div>
+    <div className="space-y-2">
+      <SettingsNavigationHeader
+        title={title}
+        backLabel={t("actions.back")}
+        onBack={onBack ?? safeBack}
+      />
       {description ? (
-        <div className="pl-[2.9rem]">
-          <p className="max-w-[34rem] text-sm leading-6 text-white/48">{description}</p>
-        </div>
+        <p className="max-w-[34rem] text-sm leading-6 text-white/48">{description}</p>
       ) : null}
-    </header>
+    </div>
   );
 }

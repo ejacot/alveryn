@@ -41,7 +41,7 @@ describe("AppLayout", () => {
     expect(screen.queryByTestId("main-workspace")).not.toBeInTheDocument();
   });
 
-  it("keeps full-screen background and primary navigation on settings subroutes", () => {
+  it("keeps the full-screen background and hides primary navigation on settings subroutes", () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false }
@@ -58,8 +58,6 @@ describe("AppLayout", () => {
 
     expect(container.querySelector(".app-background")).not.toBeNull();
     expect(screen.getByTestId("settings-master-pane-content")).toBeInTheDocument();
-    expect(screen.getByLabelText("Primary navigation")).toBeInTheDocument();
-    expect(screen.getByLabelText("Home")).toBeInTheDocument();
-    expect(screen.getByLabelText("Settings")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Primary navigation")).not.toBeInTheDocument();
   });
 });

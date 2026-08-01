@@ -3,6 +3,11 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HourlyRatesPage } from "./hourly-rates-page";
 
+vi.mock("../utils/date", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../utils/date")>(),
+  todayLocalIsoDate: () => "2026-07-15"
+}));
+
 vi.mock("../api/endpoints", () => ({
   listHourlyRates: vi.fn(async () => [
     {
