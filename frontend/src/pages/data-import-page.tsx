@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle, CheckCircle2, FileSpreadsheet, Files, Send, Sparkles, Upload
+  AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronRight, FileSpreadsheet,
+  FileText, Files, Image as ImageIcon, Send, Sparkles, Upload
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  analyzeDataImport,
+  analyzeDataImport, getDataImportSourceDocument,
   chatAboutDataImportQuestion,
   confirmDataImport,
   executeDataImport,
@@ -56,15 +57,6 @@ function detectedPeriod(result: DataImportAnalysisResponse) {
   return year && monthIndex >= 0
     ? { year: Number(year), month: monthIndex + 1, source: "DETECTED" }
     : null;
-}
-
-function detectPeriodFromText(text: string) {
-  const normalized = text.toLocaleLowerCase();
-  const year = normalized.match(/\b(20\d{2})\b/)?.[1];
-  const monthIndex = monthWords.findIndex(
-    (words) => words.some((word) => normalized.includes(word)));
-  return year && monthIndex >= 0
-    ? { year: Number(year), month: monthIndex + 1 } : null;
 }
 
 function detectSheetPeriod(sheetName: string, filename: string) {
@@ -164,6 +156,7 @@ export function DataImportPage() {
   const [payrollFiles, setPayrollFiles] = useState<File[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null);
   const [result, setResult] = useState<DataImportAnalysisResponse | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DataImportCandidateDecision>>({});
   const [preview, setPreview] = useState<DataImportPreviewResponse | null>(null);
@@ -174,7 +167,14 @@ export function DataImportPage() {
   const [assistantProposal, setAssistantProposal] =
     useState<NonNullable<DataImportChatResponse["proposal"]> | null>(null);
   const [assistantPending, setAssistantPending] = useState(false);
+  const [quickPercentage, setQuickPercentage] = useState("");
+  const [quickTargetId, setQuickTargetId] = useState("");
   const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [sourceOpening, setSourceOpening] = useState(false);
+  const [entryEdits, setEntryEdits] = useState<Record<string, {
+    notes: string;
+    lineValues: number[];
+  }>>({});
   const [periodYear, setPeriodYear] = useState("");
   const [periodMonth, setPeriodMonth] = useState("");
   const [confirmedAliases, setConfirmedAliases] = useState<Set<string>>(new Set());
@@ -185,6 +185,11 @@ export function DataImportPage() {
     () => employments.data?.filter((employment) => employment.active) ?? [],
     [employments.data]
   );
+  useEffect(() => {
+    if (!employmentId && activeEmployments.length === 1) {
+      setEmploymentId(activeEmployments[0].id);
+    }
+  }, [activeEmployments, employmentId]);
   const unresolvedCandidates = useMemo(() => {
     if (!result || preview) return [];
     return result.analysis.workTypeCandidates.filter(
@@ -198,18 +203,26 @@ export function DataImportPage() {
   const unresolvedQuestions = useMemo(() => allQuestions.filter(
     ({ question }) => !resolutions[question.id]), [allQuestions, resolutions]);
   const currentQuestion = unresolvedQuestions[0] ?? null;
+  useEffect(() => {
+    const timeLines = currentQuestion?.entry.lines.filter(
+      (line) => line.calculationMethod === "TIME_BASED") ?? [];
+    setQuickTargetId(timeLines.length === 1 ? timeLines[0].workTypeId : "");
+    setQuickPercentage("");
+  }, [currentQuestion?.entry.lines, currentQuestion?.question.id]);
   const clearEntries = useMemo(() => preview?.entries.filter((entry) =>
     entry.status !== "DUPLICATE"
     && (entry.lines.length > 0 || entry.classification !== "WORK")
     && entry.questions.every((question) => Boolean(resolutions[question.id]))
   ) ?? [], [preview, resolutions]);
   const totalHours = useMemo(() => clearEntries.reduce((total, entry) =>
-    total + entry.lines.reduce((entryTotal, line) =>
-      entryTotal + (line.calculationMethod === "TIME_BASED" ? line.value : 0), 0), 0),
-  [clearEntries]);
+    total + entry.lines.reduce((entryTotal, line, index) =>
+      entryTotal + (line.calculationMethod === "TIME_BASED"
+        ? entryEdits[entry.id]?.lineValues[index] ?? line.value : 0), 0), 0),
+  [clearEntries, entryEdits]);
   const totalUnits = clearEntries.reduce((total, entry) =>
-    total + entry.lines.reduce((entryTotal, line) =>
-      entryTotal + (line.calculationMethod === "UNIT_BASED" ? line.value : 0), 0), 0);
+    total + entry.lines.reduce((entryTotal, line, index) =>
+      entryTotal + (line.calculationMethod === "UNIT_BASED"
+        ? entryEdits[entry.id]?.lineValues[index] ?? line.value : 0), 0), 0);
   const teamSizedDays = clearEntries.filter((entry) => Boolean(entry.teamSize)).length;
   const extraEligibleHours = useMemo(() => allQuestions
     .filter(({ entry }) => clearEntries.some((candidate) => candidate.id === entry.id))
@@ -221,6 +234,29 @@ export function DataImportPage() {
   const absenceCount = clearEntries.filter(
     (entry) => entry.classification === "ABSENCE").length;
   const notesCount = clearEntries.filter((entry) => Boolean(entry.notes?.trim())).length;
+  const importIssues = useMemo(() => allQuestions.flatMap(({ entry, question }) => {
+    const resolution = resolutions[question.id];
+    if (question.type !== "SURCHARGE" || resolution?.action !== "ENTER_PERCENTAGE"
+      || !resolution.targetWorkTypeId || resolution.eligibleHours == null) return [];
+    const lineIndex = entry.lines.findIndex((line) => line.workTypeId === resolution.targetWorkTypeId);
+    if (lineIndex < 0) return [];
+    const line = entry.lines[lineIndex];
+    const baseHours = entryEdits[entry.id]?.lineValues[lineIndex] ?? line.value;
+    if (resolution.eligibleHours <= baseHours) return [];
+    const totalBaseHours = entry.lines.reduce((total, candidate, index) => total
+      + (candidate.calculationMethod === "TIME_BASED"
+        ? entryEdits[entry.id]?.lineValues[index] ?? candidate.value
+        : 0), 0);
+    if (Math.abs(totalBaseHours - resolution.eligibleHours) < 0.001) return [];
+    return [{
+      entryId: entry.id,
+      date: entry.date,
+      activity: line.workTypeName,
+      baseHours,
+      eligibleHours: resolution.eligibleHours,
+      sourceLabel: question.sourceLabel ?? ""
+    }];
+  }), [allQuestions, entryEdits, resolutions]);
 
   async function analyze() {
     if (!file || (scope === "SINGLE" && !employmentId)) return;
@@ -405,13 +441,59 @@ export function DataImportPage() {
     setAssistantProposal(null);
   }
 
+  function resolveSurchargeQuickly() {
+    if (!currentQuestion || !quickTargetId) return;
+    const percentage = numberValue(quickPercentage);
+    if (!percentage) return;
+    const source = currentQuestion.question;
+    const targets = unresolvedQuestions.filter(({ question }) =>
+      question.type === "SURCHARGE" && question.sourceLabel === source.sourceLabel);
+    setResolutions((current) => {
+      const next = { ...current };
+      targets.forEach(({ entry, question }) => {
+        const matchingLine = entry.lines.find((line) => line.workTypeId === quickTargetId)
+          ?? (entry.lines.filter((line) => line.calculationMethod === "TIME_BASED").length === 1
+            ? entry.lines.find((line) => line.calculationMethod === "TIME_BASED")
+            : undefined);
+        if (!matchingLine) return;
+        next[question.id] = {
+          action: "ENTER_PERCENTAGE",
+          percentage,
+          targetWorkTypeId: matchingLine.workTypeId,
+          eligibleHours: numberValue(question.value) ?? matchingLine.value
+        };
+      });
+      return next;
+    });
+  }
+
   async function importData() {
     if (!result || clearEntries.length === 0 || unresolvedQuestions.length > 0) return;
+    if (importIssues.length > 0) {
+      revealImportIssue(importIssues[0].entryId);
+      return;
+    }
     setPending(true);
     setError(null);
     try {
+      const importResolutions = { ...resolutions };
+      allQuestions.forEach(({ entry, question }) => {
+        const resolution = importResolutions[question.id];
+        if (question.type !== "SURCHARGE" || resolution?.action !== "ENTER_PERCENTAGE"
+          || resolution.eligibleHours == null) return;
+        const timeLines = entry.lines.map((line, index) => ({ line, index }))
+          .filter(({ line }) => line.calculationMethod === "TIME_BASED");
+        const allocations = timeLines.map(({ line, index }) => ({
+          workTypeId: line.workTypeId,
+          eligibleHours: entryEdits[entry.id]?.lineValues[index] ?? line.value
+        }));
+        const total = allocations.reduce((sum, allocation) => sum + allocation.eligibleHours, 0);
+        if (allocations.length > 1 && Math.abs(total - resolution.eligibleHours) < 0.001) {
+          importResolutions[question.id] = { ...resolution, allocations };
+        }
+      });
       const imported = await executeDataImport(
-        result.batchId, clearEntries.map((entry) => entry.id), resolutions);
+        result.batchId, clearEntries.map((entry) => entry.id), importResolutions, entryEdits);
       setImportSummary(t("settings:dataImport.importedSummary", {
         records: imported.importedRecords, lines: imported.importedLines
       }));
@@ -423,6 +505,14 @@ export function DataImportPage() {
     }
   }
 
+  function revealImportIssue(entryId: string) {
+    setHighlightedEntryId(entryId);
+    window.setTimeout(() => document.getElementById(`import-entry-${entryId}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    }), 30);
+  }
+
   function reset() {
     setResult(null);
     setPreview(null);
@@ -431,42 +521,56 @@ export function DataImportPage() {
     setResolutions({});
     setAssistantMessages([]);
     setImportSummary(null);
+    setEntryEdits({});
+  }
+
+  async function openSourceDocument() {
+    if (!result || sourceOpening) return;
+    const viewer = window.open("", "_blank");
+    setSourceOpening(true);
+    setError(null);
+    try {
+      const blob = await getDataImportSourceDocument(result.batchId);
+      const url = URL.createObjectURL(blob);
+      if (viewer) viewer.location.href = url;
+      else {
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (cause) {
+      viewer?.close();
+      setError(getApiError(cause).message);
+    } finally {
+      setSourceOpening(false);
+    }
   }
 
   return (
-    <div className="settings-detail-content mx-auto w-full max-w-[620px] space-y-5 px-5 pb-32 pt-5">
+    <div className="settings-detail-content mx-auto w-full max-w-[560px] space-y-6 pb-32 pt-5">
       <SettingsNavigationHeader
         title={t("settings:dataImport.title")}
         backLabel={t("common:actions.back")}
         onBack={safeBack}
       />
-      <Progress stage={!result ? 1 : !preview ? 2 : unresolvedQuestions.length > 0 ? 3 : 4} />
+      <Progress stage={!file ? 1 : !result ? 2 : !preview ? 3 : unresolvedQuestions.length > 0 ? 4 : 5} />
 
       {!result ? (
         <>
-          <header>
-            <h1 className="text-2xl font-semibold text-white">
+          <header className="pt-1">
+            <p className="hairline-text mb-2">01 · {t("settings:dataImport.chooseFile")}</p>
+            <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.055em] text-white">
               {t("settings:dataImport.simpleSourceTitle")}
             </h1>
             <p className="mt-2 text-sm leading-6 text-white/50">
               {t("settings:dataImport.simpleSourceHint")}
             </p>
           </header>
-          <Card className="space-y-4 p-5">
-            <label>
-              <span className="mb-2 block text-sm font-medium text-white/70">
-                {t("settings:dataImport.employment")}
-              </span>
-              <select value={employmentId}
-                onChange={(event) => setEmploymentId(event.currentTarget.value)}
-                className="h-14 w-full rounded-2xl border border-white/10 bg-[#111] px-4 text-white">
-                <option value="">{t("settings:dataImport.chooseEmployment")}</option>
-                {activeEmployments.map((employment) => (
-                  <option key={employment.id} value={employment.id}>{employment.name}</option>
-                ))}
-              </select>
-            </label>
-            <input ref={fileInput} hidden type="file" accept=".xlsx,.txt,text/plain"
+          <Card variant="ambient" className="overflow-hidden p-1.5">
+            <input ref={fileInput} hidden type="file"
+              accept=".xlsx,.txt,text/plain,.pdf,application/pdf,.jpg,.jpeg,.png,.webp,image/*"
               onChange={(event) => {
                 const selected = event.currentTarget.files?.[0] ?? null;
                 setFile(selected);
@@ -480,25 +584,53 @@ export function DataImportPage() {
                 fileInput.current.click();
               }
             }}
-              className="flex min-h-28 w-full items-center gap-4 rounded-[24px] border border-dashed border-emerald-300/30 bg-emerald-300/[0.06] p-5 text-left">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-300/15">
-                {file ? <FileSpreadsheet className="h-6 w-6 text-emerald-200" />
-                  : <Upload className="h-6 w-6 text-emerald-200" />}
+              className="group relative flex min-h-44 w-full flex-col items-center justify-center rounded-[26px] border border-dashed border-[#d5be8d]/25 bg-[radial-gradient(circle_at_50%_0%,rgba(213,190,141,0.12),transparent_58%)] p-6 text-center transition active:scale-[0.99]">
+              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[22px] border border-white/[0.12] bg-white/[0.07] text-[#d5be8d] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_40px_rgba(0,0,0,0.24)]">
+                {file ? <FileSpreadsheet className="h-7 w-7" />
+                  : <Upload className="h-7 w-7" />}
               </span>
-              <span>
-                <span className="block font-semibold text-white">
+              <span className="mt-4 min-w-0 max-w-full">
+                <span className="block truncate text-[1.05rem] font-semibold tracking-[-0.03em] text-white">
                   {file?.name ?? t("settings:dataImport.chooseFile")}
                 </span>
-                <span className="mt-1 block text-sm text-white/45">
+                <span className="mt-1.5 block text-sm leading-5 text-white/42">
                   {t("settings:dataImport.simpleFileHint")}
                 </span>
               </span>
             </button>
+            <div className="flex items-center justify-center gap-5 py-3 text-white/28">
+              <FileSpreadsheet className="h-4 w-4" /><FileText className="h-4 w-4" />
+              <ImageIcon className="h-4 w-4" /><Files className="h-4 w-4" />
+            </div>
+          </Card>
+
+          {file && activeEmployments.length !== 1 ? (
+            <Card variant="ambient" className="overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#d5be8d]/10 text-[#d5be8d]"><BriefcaseBusiness className="h-5 w-5" /></span>
+                <label className="min-w-0 flex-1">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.18em] text-white/35">{t("settings:dataImport.employment")}</span>
+                  <select value={employmentId}
+                    onChange={(event) => setEmploymentId(event.currentTarget.value)}
+                    className="w-full appearance-none border-0 bg-transparent py-1 text-[1rem] font-medium text-white outline-none">
+                    <option value="">{t("settings:dataImport.chooseEmployment")}</option>
+                    {activeEmployments.map((employment) => (
+                      <option key={employment.id} value={employment.id}>{employment.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <ChevronRight className="h-4 w-4 text-white/25" />
+              </div>
+            </Card>
+          ) : null}
+
+          {file ? (
+            <Card className="space-y-3 p-4">
             <input ref={payrollInput} hidden multiple type="file" accept=".pdf"
               onChange={(event) => setPayrollFiles(
                 Array.from(event.currentTarget.files ?? []))} />
             <button type="button" onClick={() => payrollInput.current?.click()}
-              className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 text-left">
+              className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-white/[0.035]">
               <Files className="h-5 w-5 text-white/45" />
               <span className="text-sm text-white/65">
                 {payrollFiles.length
@@ -506,7 +638,8 @@ export function DataImportPage() {
                   : t("settings:dataImport.optionalEvidence")}
               </span>
             </button>
-          </Card>
+            </Card>
+          ) : null}
           {error ? <ErrorMessage message={error} /> : null}
           <Button className="w-full" disabled={!file || !employmentId || pending}
             onClick={() => void analyze()}>
@@ -517,7 +650,7 @@ export function DataImportPage() {
       ) : !preview ? (
         <>
           <header>
-            <p className="text-sm font-medium text-emerald-200">
+            <p className="text-sm font-medium text-[#d5be8d]">
               {t("settings:dataImport.aiReadFile")}
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-white">
@@ -535,11 +668,11 @@ export function DataImportPage() {
           {!result.analysis.datesAreExplicit
             && result.analysis.sheets.length > 1 && !hasDetectedSheetPeriods(result) ? (
             <Card className="border-amber-300/20 p-5">
-              <div className="mb-4 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-4 py-3">
-                <p className="text-sm font-semibold text-emerald-100">
+              <div className="mb-4 rounded-2xl border border-[#d5be8d]/20 bg-[#d5be8d]/[0.08] px-4 py-3">
+                <p className="text-sm font-semibold text-[#e8d8b4]">
                   {result.analysis.sheets.length} of {result.analysis.sheetCount} sheets read
                 </p>
-                <p className="mt-1 text-xs leading-5 text-emerald-100/60">
+                <p className="mt-1 text-xs leading-5 text-[#d5be8d]/60">
                   {result.analysis.rowCount} rows are stored. Confirming the periods below applies
                   to every sheet, not only the first visible ones.
                 </p>
@@ -631,7 +764,7 @@ export function DataImportPage() {
                   <div className="flex items-start gap-3">
                     {needsAnswer || needsAliasConfirmation
                       ? <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-300" />
-                      : <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />}
+                      : <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#d5be8d]" />}
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-white">{candidate.sourceLabel}</p>
                       <p className="mt-1 text-sm leading-5 text-white/50">
@@ -663,7 +796,7 @@ export function DataImportPage() {
                           <button type="button"
                             onClick={() => setConfirmedAliases((current) =>
                               new Set(current).add(candidate.normalizedLabel))}
-                            className="min-h-12 w-full rounded-xl bg-emerald-300 px-3 text-sm font-semibold text-black">
+                            className="min-h-12 w-full rounded-xl bg-[#d5be8d] px-3 text-sm font-semibold text-black">
                             {t("settings:dataImport.yesSameWorkType")}
                           </button>
                           <select value={draft?.workTypeId ?? ""}
@@ -697,7 +830,7 @@ export function DataImportPage() {
                                   onClick={() => updateDecision(candidate, { absenceType: type })}
                                   className={`min-h-12 rounded-xl border px-2 text-xs font-medium ${
                                     draft.absenceType === type
-                                      ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-200"
+                                      ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
                                       : "border-white/10 bg-white/[0.05] text-white/70"
                                   }`}>
                                   {t(`settings:dataImport.absenceTypes.${type}`)}
@@ -714,7 +847,7 @@ export function DataImportPage() {
                               })}
                               className={`min-h-12 rounded-xl border text-sm ${
                                 draft.absencePaid === true
-                                  ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-200"
+                                  ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
                                   : "border-white/10 bg-white/[0.05] text-white/70"
                               }`}>
                               {t("settings:dataImport.paidAbsence")}
@@ -726,7 +859,7 @@ export function DataImportPage() {
                               })}
                               className={`min-h-12 rounded-xl border text-sm ${
                                 draft.absencePaid === false
-                                  ? "border-emerald-300/40 bg-emerald-300/15 text-emerald-200"
+                                  ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
                                   : "border-white/10 bg-white/[0.05] text-white/70"
                               }`}>
                               {t("settings:dataImport.unpaidAbsence")}
@@ -757,7 +890,7 @@ export function DataImportPage() {
                               calculationMethod: "TIME_BASED",
                               compensationMethod: "HOURLY"
                             })}
-                            className="min-h-12 rounded-xl border border-emerald-300/20 bg-emerald-300/[0.08] px-2 text-xs font-medium text-emerald-100">
+                            className="min-h-12 rounded-xl border border-[#d5be8d]/20 bg-[#d5be8d]/[0.08] px-2 text-xs font-medium text-[#e8d8b4]">
                             {t("settings:dataImport.classifyWorkType")}
                           </button>
                           <button type="button"
@@ -842,94 +975,99 @@ export function DataImportPage() {
       ) : unresolvedQuestions.length > 0 ? (
         <>
           <header>
-            <p className="text-sm font-medium text-emerald-200">
+            <p className="text-sm font-medium text-[#d5be8d]">
               {t("settings:dataImport.onlyExceptions", {
                 resolved: allQuestions.length - unresolvedQuestions.length,
                 total: allQuestions.length
               })}
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-white">
-              {t("settings:dataImport.talkToAssistant")}
+              {t("settings:dataImport.clarifyTitle")}
             </h1>
             <p className="mt-2 text-sm leading-6 text-white/50">
-              {t("settings:dataImport.talkToAssistantHint")}
+              {t("settings:dataImport.clarifyHint")}
             </p>
           </header>
-          <Card className="overflow-hidden">
-            <div className="border-b border-white/[0.07] bg-amber-300/[0.05] p-4">
+          <Card variant="ambient" className="overflow-hidden">
+            <div className="border-b border-white/[0.07] bg-[#d5be8d]/[0.045] p-5">
               <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-amber-200" />
+                <Sparkles className="mt-0.5 h-5 w-5 text-[#d5be8d]" />
                 <div>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="font-metric text-sm font-semibold text-white">
                     {currentQuestion?.entry.date} · {currentQuestion?.question.sourceLabel
                       ?? t("settings:dataImport.noteOrInterval")}
                   </p>
                   <p className="mt-1 text-sm leading-5 text-white/55">
-                    {currentQuestion?.question.prompt}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="max-h-[42vh] space-y-3 overflow-y-auto p-4">
-              {assistantMessages.map((message, index) => (
-                <div key={index}
-                  className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-5 ${
-                    message.role === "USER"
-                      ? "ml-auto bg-emerald-300/15 text-emerald-50"
-                      : "bg-white/[0.06] text-white/70"
-                  }`}>
-                  {message.content}
-                </div>
-              ))}
-              {assistantProposal ? (
-                <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/[0.08] p-4">
-                  <p className="text-sm font-semibold text-emerald-100">
-                    {t("settings:dataImport.aiProposal")}
-                  </p>
-                  <p className="mt-2 text-sm leading-5 text-white/65">
-                    {assistantProposal.confirmation}
-                  </p>
-                  <Button className="mt-3 w-full" onClick={applyProposalToSimilar}>
                     {currentQuestion?.question.type === "SURCHARGE"
-                      ? t("settings:dataImport.applyEverywhere")
-                      : t("settings:dataImport.applyAiProposal")}
-                  </Button>
+                      ? t("settings:dataImport.surchargeQuestion", {
+                          hours: currentQuestion.question.value,
+                          label: currentQuestion.question.sourceLabel
+                        })
+                      : t("settings:dataImport.genericQuestion")}
+                  </p>
                 </div>
-              ) : null}
-            </div>
-            <div className="border-t border-white/[0.07] p-4">
-              <div className="flex items-end gap-2">
-                <textarea rows={2} value={assistantInput}
-                  onChange={(event) => setAssistantInput(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      void sendToAssistant();
-                    }
-                  }}
-                  placeholder={t("settings:dataImport.globalAiPlaceholder")}
-                  className="min-h-14 flex-1 resize-none rounded-2xl border border-white/10 bg-[#111] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" />
-                <button type="button" onClick={() => void sendToAssistant()}
-                  disabled={!assistantInput.trim() || assistantPending}
-                  className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-300 text-black disabled:opacity-35">
-                  <Send className="h-5 w-5" />
-                </button>
               </div>
-              <details className="mt-3">
-                <summary className="cursor-pointer text-center text-xs text-white/35">
-                  {t("settings:dataImport.manualFallback")}
-                </summary>
-                <div className="mt-3 flex flex-wrap justify-center gap-2">
-                  {currentQuestion?.question.options
-                    .filter((option) => option !== "ENTER_PERCENTAGE")
-                    .map((option) => (
+            </div>
+            <div className="space-y-5 p-5">
+              {currentQuestion?.question.type === "SURCHARGE" ? (
+                <>
+                  <label className="block">
+                    <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-white/35">{t("settings:dataImport.baseActivityLabel")}</span>
+                    <select value={quickTargetId} onChange={(event) => setQuickTargetId(event.currentTarget.value)}
+                      className="h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 text-white outline-none focus:border-[#d5be8d]/40">
+                      <option value="">{t("settings:dataImport.chooseBaseActivity")}</option>
+                      {currentQuestion.entry.lines.filter((line) => line.calculationMethod === "TIME_BASED").map((line) => (
+                        <option key={line.workTypeId} value={line.workTypeId}>{line.workTypeName} · {line.value} h</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-white/35">{t("settings:dataImport.percentageLabel")}</span>
+                    <div className="relative">
+                      <input value={quickPercentage} onChange={(event) => setQuickPercentage(event.currentTarget.value)}
+                        type="text" inputMode="decimal" placeholder="50"
+                        className="font-metric h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 pr-12 text-lg font-semibold text-white outline-none focus:border-[#d5be8d]/40" />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/35">%</span>
+                    </div>
+                  </label>
+                  <button type="button" onClick={resolveSurchargeQuickly}
+                    disabled={!quickTargetId || !numberValue(quickPercentage)}
+                    className="min-h-14 w-full rounded-full bg-[#f1ede4] px-5 font-semibold text-black transition active:scale-[0.985] disabled:opacity-35">
+                    {t("settings:dataImport.confirmSimilar", {
+                      count: unresolvedQuestions.filter(({ question }) => question.type === "SURCHARGE" && question.sourceLabel === currentQuestion.question.sourceLabel).length
+                    })}
+                  </button>
+                </>
+              ) : (
+                <div className="grid gap-2">
+                  {currentQuestion?.question.options.map((option) => (
                     <button key={option} type="button"
-                      onClick={() => resolveManually(
-                        option as DataImportQuestionResolution["action"])}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60">
+                      onClick={() => resolveManually(option as DataImportQuestionResolution["action"])}
+                      className="min-h-13 rounded-2xl border border-white/[0.09] bg-white/[0.04] px-4 text-left text-sm text-white/70 transition active:scale-[0.99]">
                       {t(`settings:dataImport.questionActions.${option}`)}
                     </button>
                   ))}
+                </div>
+              )}
+              <details className="border-t border-white/[0.06] pt-4">
+                <summary className="cursor-pointer list-none text-center text-sm text-white/38">{t("settings:dataImport.needAiHelp")}</summary>
+                <div className="mt-4 space-y-3">
+                  {assistantMessages.slice(-2).map((message, index) => (
+                    <p key={index} className="rounded-2xl bg-white/[0.045] px-4 py-3 text-sm leading-5 text-white/60">{message.content}</p>
+                  ))}
+                  {assistantProposal ? (
+                    <button type="button" onClick={applyProposalToSimilar}
+                      className="min-h-12 w-full rounded-2xl border border-[#d5be8d]/25 bg-[#d5be8d]/10 px-4 text-sm font-semibold text-[#e8d8b4]">
+                      {assistantProposal.confirmation ?? t("settings:dataImport.applyAiProposal")}
+                    </button>
+                  ) : null}
+                  <div className="flex items-end gap-2">
+                    <textarea rows={2} value={assistantInput} onChange={(event) => setAssistantInput(event.currentTarget.value)}
+                      placeholder={t("settings:dataImport.globalAiPlaceholder")}
+                      className="min-h-14 flex-1 resize-none rounded-2xl border border-white/[0.09] bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25" />
+                    <button type="button" onClick={() => void sendToAssistant()} disabled={!assistantInput.trim() || assistantPending}
+                      className="grid h-14 w-14 place-items-center rounded-2xl bg-[#d5be8d] text-black disabled:opacity-35"><Send className="h-5 w-5" /></button>
+                  </div>
                 </div>
               </details>
             </div>
@@ -939,7 +1077,7 @@ export function DataImportPage() {
       ) : (
         <>
           <header>
-            <p className="text-sm font-medium text-emerald-200">
+            <p className="text-sm font-medium text-[#d5be8d]">
               {t("settings:dataImport.readyForImport")}
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-white">
@@ -964,8 +1102,8 @@ export function DataImportPage() {
               value={`${extraEligibleHours} h`} />
             <SummaryRow label={t("settings:dataImport.duplicatesSkipped")}
               value={String(preview.duplicateCount)} />
-            <div className="rounded-2xl bg-emerald-300/[0.08] p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
+            <div className="rounded-2xl bg-[#d5be8d]/[0.08] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#e8d8b4]">
                 <CheckCircle2 className="h-5 w-5" />
                 {t("settings:dataImport.noUnresolvedData")}
               </div>
@@ -974,9 +1112,106 @@ export function DataImportPage() {
               </p>
             </div>
           </Card>
+          <button type="button" onClick={() => void openSourceDocument()}
+            disabled={sourceOpening}
+            className="flex min-h-14 w-full items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 text-left transition active:scale-[0.99] disabled:opacity-50">
+            <span className="flex min-w-0 items-center gap-3">
+              <FileText className="h-5 w-5 shrink-0 text-[#d5be8d]" />
+              <span className="min-w-0">
+                <span className="block text-xs uppercase tracking-[0.16em] text-white/32">{t("settings:dataImport.originalDocument")}</span>
+                <span className="block truncate text-sm font-medium text-white/75">{result.filename}</span>
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/25" />
+          </button>
+          <section className="space-y-3">
+            <div className="flex items-end justify-between gap-4 px-1">
+              <div>
+                <p className="hairline-text">{t("settings:dataImport.finalCheck")}</p>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.045em] text-white">{t("settings:dataImport.reviewDays", { count: clearEntries.length })}</h2>
+              </div>
+              <span className="text-xs text-white/35">{t("settings:dataImport.tapDayToReview")}</span>
+            </div>
+            <div className="space-y-2">
+              {clearEntries.map((entry) => (
+                <details id={`import-entry-${entry.id}`} key={entry.id} open={highlightedEntryId === entry.id || undefined} className={`group rounded-[22px] border bg-white/[0.035] open:bg-white/[0.05] ${highlightedEntryId === entry.id ? "border-red-300/35 ring-1 ring-red-300/15" : "border-white/[0.08]"}`}>
+                  <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-3">
+                    <span className="font-metric min-w-[5.7rem] text-sm font-semibold text-white">{entry.date}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-white/55">
+                      {entry.classification === "WORK"
+                        ? entry.lines.map((line) => line.workTypeName).join(" · ")
+                        : entry.classification === "ABSENCE"
+                          ? entry.absenceType
+                          : t("settings:dataImport.restDaysDetected")}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-white/25 transition group-open:rotate-90" />
+                  </summary>
+                  <div className="space-y-3 border-t border-white/[0.06] px-4 py-4">
+                    {entry.lines.map((line, index) => (
+                      <div key={`${line.workTypeId}-${index}`} className="flex items-center justify-between gap-4 text-sm">
+                        <label className="text-white/55" htmlFor={`${entry.id}-line-${index}`}>{line.workTypeName}</label>
+                        <span className="flex items-center gap-2">
+                          <input id={`${entry.id}-line-${index}`} type="number" min="0.01" step="0.01" inputMode="decimal"
+                            value={entryEdits[entry.id]?.lineValues[index] ?? line.value}
+                            onChange={(event) => {
+                              const value = Number(event.currentTarget.value);
+                              setEntryEdits((current) => {
+                                const existing = current[entry.id] ?? {
+                                  notes: entry.notes ?? "",
+                                  lineValues: entry.lines.map((item) => item.value)
+                                };
+                                const lineValues = [...existing.lineValues];
+                                lineValues[index] = Number.isFinite(value) ? value : line.value;
+                                return { ...current, [entry.id]: { ...existing, lineValues } };
+                              });
+                            }}
+                            className="font-metric h-10 w-20 rounded-xl border border-white/[0.09] bg-black/20 px-2 text-right font-semibold text-white outline-none focus:border-[#d5be8d]/40" />
+                          <span className="text-xs text-white/35">{line.calculationMethod === "TIME_BASED" ? "h" : "u"}</span>
+                        </span>
+                      </div>
+                    ))}
+                    <textarea rows={2}
+                      aria-label="Notes"
+                      value={entryEdits[entry.id]?.notes ?? entry.notes ?? ""}
+                      onChange={(event) => {
+                        const notes = event.currentTarget.value;
+                        setEntryEdits((current) => ({
+                          ...current,
+                          [entry.id]: current[entry.id]
+                            ? { ...current[entry.id], notes }
+                            : { notes, lineValues: entry.lines.map((item) => item.value) }
+                        }));
+                      }}
+                      placeholder="Notes"
+                      className="min-h-14 w-full resize-none rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white/60 outline-none placeholder:text-white/25 focus:border-[#d5be8d]/40" />
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+          {importIssues.length > 0 ? (
+            <div role="alert" className="space-y-2 rounded-[22px] border border-red-300/15 bg-red-400/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-200" />
+                <div>
+                  <p className="font-semibold text-red-100">{t("settings:dataImport.importIssuesTitle", { count: importIssues.length })}</p>
+                  <p className="mt-1 text-sm leading-5 text-red-100/70">{t("settings:dataImport.importIssuesHint")}</p>
+                </div>
+              </div>
+              {importIssues.map((issue) => (
+                <button key={`${issue.entryId}-${issue.sourceLabel}`} type="button" onClick={() => revealImportIssue(issue.entryId)} className="flex w-full items-center justify-between gap-3 rounded-2xl bg-black/20 px-4 py-3 text-left transition active:scale-[0.99]">
+                  <span>
+                    <span className="font-metric block text-sm font-semibold text-white">{issue.date} · {issue.activity}</span>
+                    <span className="mt-1 block text-xs text-white/48">{t("settings:dataImport.extraHoursProblem", { eligible: issue.eligibleHours, base: issue.baseHours })}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
+                </button>
+              ))}
+            </div>
+          ) : null}
           {error ? <ErrorMessage message={error} /> : null}
           {importSummary ? (
-            <p className="rounded-2xl bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+            <p className="rounded-2xl bg-[#d5be8d]/10 px-4 py-3 text-sm text-[#e8d8b4]">
               {importSummary}
             </p>
           ) : null}
@@ -996,11 +1231,11 @@ export function DataImportPage() {
 
 function Progress({ stage }: { stage: number }) {
   return (
-    <div className="flex items-center gap-2" aria-label={`Step ${stage} of 4`}>
-      {[1, 2, 3, 4].map((item) => (
+    <div className="flex items-center gap-2 px-0.5" aria-label={`Step ${stage} of 5`}>
+      {[1, 2, 3, 4, 5].map((item) => (
         <span key={item}
-          className={`h-1.5 flex-1 rounded-full ${
-            item <= stage ? "bg-emerald-300" : "bg-white/10"
+          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+            item <= stage ? "bg-[#d5be8d] shadow-[0_0_12px_rgba(213,190,141,0.22)]" : "bg-white/[0.08]"
           }`} />
       ))}
     </div>

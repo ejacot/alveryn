@@ -207,6 +207,7 @@ export type DataImportQuestionResolution = {
   percentage?: number;
   targetWorkTypeId?: string;
   eligibleHours?: number;
+  allocations?: Array<{ workTypeId: string; eligibleHours: number }>;
 };
 
 export type DataImportChatMessage = {

@@ -192,6 +192,13 @@ export async function analyzeDataImport(
   return response.data.data;
 }
 
+export async function getDataImportSourceDocument(batchId: string) {
+  const response = await http.get<Blob>(`/api/data-imports/${batchId}/source`, {
+    responseType: "blob"
+  });
+  return response.data;
+}
+
 export async function confirmDataImport(
   batchId: string,
   candidates: DataImportCandidateDecision[]
@@ -232,11 +239,12 @@ export async function setDataImportSheetPeriods(
 export async function executeDataImport(
   batchId: string,
   entryIds: string[],
-  resolutions: Record<string, DataImportQuestionResolution>
+  resolutions: Record<string, DataImportQuestionResolution>,
+  entryOverrides: Record<string, { notes: string; lineValues: number[] }> = {}
 ) {
   const response = await http.post<ApiResponse<DataImportExecuteResponse>>(
     `/api/data-imports/${batchId}/import`,
-    { entryIds, resolutions }
+    { entryIds, resolutions, entryOverrides }
   );
   return response.data.data;
 }
