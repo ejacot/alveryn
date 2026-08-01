@@ -3,12 +3,38 @@
     "flow": "Flow",
     "rhythm": "Rhythmus",
     "dailyAverage": "Tagesdurchschnitt",
-    "fromLastMonth": "zum Vormonat"
+    "fromLastMonth": "zum Vormonat",
+    "dailyEarningsAverage": "Durchschnittlicher Tagesverdienst",
+    "dailyHoursAverage": "Durchschnittliche Tagesstunden",
+    "averageShort": "Ø",
+    "day": "Tag {{day}}",
+    "title": "Monat im Verlauf",
+    "sectionLabel": "Monatliche Entwicklung",
+    "viewLabel": "Monatsansicht",
+    "flowUnavailable": "Flow ist bei mehreren Währungen im Monat nicht verfügbar."
+  },
+  "calendarGrid": {
+    "label": "Monatskalender",
+    "previousMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
+    "monthlyActivity": "Monatliche Aktivität"
+  },
+  "payroll": {
+    "eyebrow": "Lohn · {{month}}",
+    "status": { "confirmed": "Bestätigt", "matches": "Stimmt überein", "differences_one": "{{count}} Abweichung", "differences_other": "{{count}} Abweichungen" },
+    "title": { "matches": "Monat stimmt überein", "review": "Abweichungen prüfen", "scan": "Lohnabrechnung scannen" },
+    "description": { "matches": "Alveryn stimmt mit der Lohnabrechnung überein", "grossDifference": "{{difference}} Bruttoabweichung", "scan": "Lohnabrechnung fotografieren oder hochladen" },
+    "result": { "label": "Ergebnis", "everythingMatches": "Alles stimmt überein", "found_one": "{{count}} Abweichung gefunden", "found_other": "{{count}} Abweichungen gefunden", "agree": "Erfasste Arbeit und Lohnabrechnung stimmen überein.", "review": "Prüfe die markierten Kategorien vor der Bestätigung." },
+    "actions": { "collapse": "Abgleich schließen", "open": "Abgleich öffnen", "scanAria": "Lohnabrechnung scannen oder hochladen", "scan": "Lohn scannen", "opening": "Wird geöffnet…", "openDocument": "Dokument öffnen", "reading": "Wird gelesen…", "replaceDocument": "Dokument ersetzen", "saving": "Wird gespeichert…", "saved": "Gespeichert ✓", "save": "Abgleich speichern" },
+    "categories": { "workedHours": "Arbeitsstunden", "paidAbsence": "Bezahlte Abwesenheit", "extraPay": "Zuschläge", "gross": "Brutto" },
+    "details": { "title": "Lohndetails", "line": "Lohnposition", "noQuantity": "Keine Menge angegeben" },
+    "errors": { "noValues": "Für den ausgewählten Monat wurden keine Lohnwerte gefunden", "documentUnavailable": "Die Lohnabrechnung ist nicht verfügbar" }
   },
   "jobDays_one": "{{count}} Tag",
   "jobDays_other": "{{count}} Tage",
   "title": "Kalender",
   "activity": "Aktivität",
+  "selectedDayDetails": "Details zum ausgewählten Tag",
   "monthlySummaryLabel": "Monatsübersicht",
   "unavailable": "Kalender ist nicht verfügbar.",
   "monthlySummary": {

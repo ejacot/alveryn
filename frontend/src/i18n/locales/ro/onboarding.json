@@ -3,9 +3,13 @@
   "loadingTitle": "Alveryn se pregateste...",
   "loadingDescription": "Aplicam valorile implicite si restabilim cea mai scurta cale spre aplicatie.",
   "errorTitle": "Onboardingul are nevoie de o noua incercare",
+  "retry": "Încearcă din nou",
   "welcomeTitle": "Bine ai venit in Alveryn",
   "profileTitle": "Hai sa te cunoastem putin.",
   "hourlyRateTitle": "Cat castigi pe ora?",
+  "hourlyRateDescription": "Tariful este folosit pentru calcule corecte din prima zi.",
+  "hourlyRateStartDate": "Data începerii (opțional)",
+  "hourlyRateStartDateHint": "Dacă o lași necompletată, tariful începe în prima zi a lunii curente.",
   "hourlyRateHint": "Salvat astazi in EUR.",
   "setup": {
     "label": "Configurare inițială",

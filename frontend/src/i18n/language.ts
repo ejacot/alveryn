@@ -1,4 +1,4 @@
-export const SUPPORTED_LANGUAGES = ["en", "de", "ro"] as const;
+export const SUPPORTED_LANGUAGES = ["en", "de", "ro", "ru"] as const;
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
@@ -12,7 +12,11 @@ const LANGUAGE_ALIASES: Record<string, SupportedLanguage> = {
   "de-ch": "de",
   ro: "ro",
   "ro-ro": "ro",
-  "ro-md": "ro"
+  "ro-md": "ro",
+  ru: "ru",
+  "ru-ru": "ru",
+  "ru-by": "ru",
+  "ru-kz": "ru"
 };
 
 export function normalizeLanguage(value?: string | null): SupportedLanguage {
@@ -37,7 +41,9 @@ export function getNativeLanguageName(language: SupportedLanguage) {
     case "de":
       return "Deutsch";
     case "ro":
-      return "Romana";
+      return "Română";
+    case "ru":
+      return "Русский";
     case "en":
     default:
       return "English";

@@ -3,9 +3,13 @@
   "loadingTitle": "Alveryn wird vorbereitet...",
   "loadingDescription": "Deine Standards werden angewendet und der kurzeste Weg in die App wird wiederhergestellt.",
   "errorTitle": "Onboarding braucht einen neuen Versuch",
+  "retry": "Erneut versuchen",
   "welcomeTitle": "Willkommen bei Alveryn",
   "profileTitle": "Lass uns dich kurz kennenlernen.",
   "hourlyRateTitle": "Wie viel verdienst du pro Stunde?",
+  "hourlyRateDescription": "Dein Tarif sorgt vom ersten Tag an für korrekte Berechnungen.",
+  "hourlyRateStartDate": "Startdatum (optional)",
+  "hourlyRateStartDateHint": "Ohne Datum beginnt der Tarif am ersten Tag des aktuellen Monats.",
   "hourlyRateHint": "Heute als EUR gespeichert.",
   "setup": {
     "label": "Erste Einrichtung",

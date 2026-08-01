@@ -33,10 +33,10 @@
     "confirm": "Renunță"
   },
   "nav": {
-    "home": "Acasă",
+    "home": "Astăzi",
     "calendar": "Calendar",
     "addEntry": "Adaugă",
-    "statistics": "Statistici",
+    "statistics": "Analiză",
     "settings": "Setări",
     "primaryNavigation": "Navigare principală"
   },
@@ -57,9 +57,12 @@
       "workType": "Tip de muncă",
       "calculationMethod": "Calcul",
       "more": "Mai multe filtre",
+      "employment": "Loc de muncă",
+      "allEmployments": "Toate locurile de muncă",
       "all": "Toate",
       "selectedCount": "{{count}} selectate"
     },
+    "export": { "csv": "Exportă CSV", "pdf": "Exportă PDF" },
     "periods": {
       "today": "Astăzi",
       "week": "Săptămâna aceasta",

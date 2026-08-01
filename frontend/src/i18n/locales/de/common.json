@@ -33,10 +33,10 @@
     "confirm": "Verwerfen"
   },
   "nav": {
-    "home": "Start",
+    "home": "Heute",
     "calendar": "Kalender",
     "addEntry": "Eintrag",
-    "statistics": "Statistik",
+    "statistics": "Einblicke",
     "settings": "Einstellungen",
     "primaryNavigation": "Primäre Navigation"
   },
@@ -57,9 +57,12 @@
       "workType": "Arbeitstyp",
       "calculationMethod": "Berechnung",
       "more": "Weitere Filter",
+      "employment": "Beschäftigung",
+      "allEmployments": "Alle Beschäftigungen",
       "all": "Alle",
       "selectedCount": "{{count}} ausgewählt"
     },
+    "export": { "csv": "CSV exportieren", "pdf": "PDF exportieren" },
     "periods": {
       "today": "Heute",
       "week": "Diese Woche",

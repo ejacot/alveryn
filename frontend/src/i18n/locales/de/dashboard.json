@@ -28,6 +28,9 @@
     "teamSize_other": "{{count}} Personen",
     "extraPaid": "Extra",
     "hours": "Stunden",
+    "paidHours": "Bezahlte Stunden",
+    "projectHours": "Projektstunden",
+    "projectTotal": "Projektsumme",
     "earnings": "Verdienst",
     "activity": "Aktivität",
     "activities_one": "{{count}} Aktivität",
@@ -70,6 +73,10 @@
     "selectedDay": "Dieser Tag",
     "mixedCurrencies": "Mehrere Währungen",
     "allEntries": "Alle gespeicherten Einträge"
+  },
+  "sections": {
+    "payDetails": "Vergütungsdetails",
+    "thisWeek": "Diese Woche"
   },
   "quickAdd": {
     "eyebrow": "Schnell erfassen",
@@ -123,6 +130,9 @@
     "saveAndCheckOut": "Speichern & ausstempeln"
   },
   "weeklyHours": {
+    "view": "Wochenmetrik",
+    "money": "Geld",
+    "hours": "Stunden",
     "eyebrow": "Rhythmus",
     "flowEyebrow": "Flow",
     "dailyAverage": "Tagesdurchschnitt",
@@ -134,6 +144,8 @@
     "extraHoursDescription": "Extra-Vergütung als Stundenwert",
     "totalHours": "Gesamt",
     "workedMoney": "Gearbeitet",
+    "workEarnings": "Wochenbrutto",
+    "mixedCurrencies": "Flow ist bei mehreren Währungen innerhalb einer Woche nicht verfügbar.",
     "extraMoney": "Extra",
     "extraMoneyDescription": "Nur zusätzlicher Verdienst",
     "totalMoney": "Gesamt",

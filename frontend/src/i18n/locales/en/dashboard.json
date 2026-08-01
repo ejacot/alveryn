@@ -28,6 +28,9 @@
     "teamSize_other": "{{count}} people",
     "extraPaid": "Extra",
     "hours": "Hours",
+    "paidHours": "Paid hours",
+    "projectHours": "Project hours",
+    "projectTotal": "Project total",
     "earnings": "Earnings",
     "activity": "Activity",
     "activities_one": "{{count}} activity",
@@ -70,6 +73,10 @@
     "selectedDay": "This day",
     "mixedCurrencies": "Mixed currencies",
     "allEntries": "All saved entries"
+  },
+  "sections": {
+    "payDetails": "Pay details",
+    "thisWeek": "This week"
   },
   "quickAdd": {
     "eyebrow": "Quick add",
@@ -123,6 +130,9 @@
     "saveAndCheckOut": "Save & check out"
   },
   "weeklyHours": {
+    "view": "Weekly metric",
+    "money": "Money",
+    "hours": "Hours",
     "eyebrow": "Rhythm",
     "flowEyebrow": "Flow",
     "dailyAverage": "Daily average",
@@ -134,6 +144,8 @@
     "extraHoursDescription": "Extra-pay equivalent hours",
     "totalHours": "Total",
     "workedMoney": "Worked",
+    "workEarnings": "Weekly gross",
+    "mixedCurrencies": "Flow is unavailable when the week contains multiple currencies.",
     "extraMoney": "Extra",
     "extraMoneyDescription": "Additional earnings only",
     "totalMoney": "Total",

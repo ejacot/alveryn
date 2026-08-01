@@ -3,13 +3,39 @@
     "flow": "Flow",
     "rhythm": "Ritm",
     "dailyAverage": "Media zilnică",
-    "fromLastMonth": "față de luna trecută"
+    "fromLastMonth": "față de luna trecută",
+    "dailyEarningsAverage": "Câștig mediu zilnic",
+    "dailyHoursAverage": "Medie zilnică de ore",
+    "averageShort": "med.",
+    "day": "Ziua {{day}}",
+    "title": "Luna în mișcare",
+    "sectionLabel": "Evoluție lunară",
+    "viewLabel": "Vizualizare lunară",
+    "flowUnavailable": "Flow nu este disponibil când luna conține mai multe monede."
+  },
+  "calendarGrid": {
+    "label": "Calendar lunar",
+    "previousMonth": "Luna precedentă",
+    "nextMonth": "Luna următoare",
+    "monthlyActivity": "Activitate lunară"
+  },
+  "payroll": {
+    "eyebrow": "Salariu · {{month}}",
+    "status": { "confirmed": "Confirmat", "matches": "Coincide", "differences_one": "{{count}} diferență", "differences_few": "{{count}} diferențe", "differences_other": "{{count}} de diferențe" },
+    "title": { "matches": "Luna coincide", "review": "Verifică diferențele", "scan": "Scanează fluturașul" },
+    "description": { "matches": "Alveryn coincide cu documentul angajatorului", "grossDifference": "Diferență brută de {{difference}}", "scan": "Fotografiază sau încarcă documentul angajatorului" },
+    "result": { "label": "Rezultat", "everythingMatches": "Totul coincide", "found_one": "A fost găsită {{count}} diferență", "found_few": "Au fost găsite {{count}} diferențe", "found_other": "Au fost găsite {{count}} de diferențe", "agree": "Munca înregistrată și fluturașul angajatorului coincid.", "review": "Verifică rubricile evidențiate înainte de confirmare." },
+    "actions": { "collapse": "Închide comparația", "open": "Deschide comparația", "scanAria": "Scanează sau încarcă fluturașul de salariu", "scan": "Scanează fluturașul", "opening": "Se deschide…", "openDocument": "Deschide documentul", "reading": "Se citește…", "replaceDocument": "Înlocuiește documentul", "saving": "Se salvează…", "saved": "Salvat ✓", "save": "Salvează comparația" },
+    "categories": { "workedHours": "Ore lucrate", "paidAbsence": "Absență plătită", "extraPay": "Plată extra", "gross": "Brut" },
+    "details": { "title": "Detalii salariale", "line": "Poziție salarială", "noQuantity": "Cantitatea nu este specificată" },
+    "errors": { "noValues": "Nu au fost găsite valori salariale pentru luna selectată", "documentUnavailable": "Documentul salarial nu este disponibil" }
   },
   "jobDays_one": "{{count}} zi",
   "jobDays_few": "{{count}} zile",
   "jobDays_other": "{{count}} de zile",
   "title": "Calendar",
   "activity": "Activitate",
+  "selectedDayDetails": "Detaliile zilei selectate",
   "monthlySummaryLabel": "Rezumat lunar",
   "unavailable": "Calendarul nu este disponibil.",
   "monthlySummary": {

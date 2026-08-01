@@ -3,12 +3,38 @@
     "flow": "Flow",
     "rhythm": "Rhythm",
     "dailyAverage": "Daily average",
-    "fromLastMonth": "from last month"
+    "fromLastMonth": "from last month",
+    "dailyEarningsAverage": "Daily earnings average",
+    "dailyHoursAverage": "Daily hours average",
+    "averageShort": "avg",
+    "day": "Day {{day}}",
+    "title": "Month in motion",
+    "sectionLabel": "Monthly trends",
+    "viewLabel": "Monthly view",
+    "flowUnavailable": "Flow is unavailable when the month contains multiple currencies."
+  },
+  "calendarGrid": {
+    "label": "Monthly calendar",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "monthlyActivity": "Monthly activity"
+  },
+  "payroll": {
+    "eyebrow": "Payroll · {{month}}",
+    "status": { "confirmed": "Confirmed", "matches": "Matches", "differences_one": "{{count}} difference", "differences_other": "{{count}} differences" },
+    "title": { "matches": "Month matches", "review": "Review the differences", "scan": "Scan your Lohn" },
+    "description": { "matches": "Alveryn matches the employer document", "grossDifference": "{{difference}} gross difference", "scan": "Photograph or upload the employer document" },
+    "result": { "label": "Result", "everythingMatches": "Everything matches", "found_one": "{{count}} difference found", "found_other": "{{count}} differences found", "agree": "The recorded work and employer Lohn agree.", "review": "Review the highlighted categories before confirming." },
+    "actions": { "collapse": "Collapse reconciliation", "open": "Open reconciliation", "scanAria": "Scan or upload Lohn document", "scan": "Scan Lohn", "opening": "Opening…", "openDocument": "Open document", "reading": "Reading…", "replaceDocument": "Replace document", "saving": "Saving…", "saved": "Saved ✓", "save": "Save reconciliation" },
+    "categories": { "workedHours": "Worked hours", "paidAbsence": "Paid absence", "extraPay": "Extra pay", "gross": "Gross" },
+    "details": { "title": "Lohn details", "line": "Payroll line", "noQuantity": "No quantity printed" },
+    "errors": { "noValues": "No payroll values were found for the selected month", "documentUnavailable": "Payroll document is not available" }
   },
   "jobDays_one": "{{count}} day",
   "jobDays_other": "{{count}} days",
   "title": "Calendar",
   "activity": "Activity",
+  "selectedDayDetails": "Selected day details",
   "monthlySummaryLabel": "Monthly summary",
   "unavailable": "Calendar is unavailable.",
   "monthlySummary": {

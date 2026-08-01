@@ -30,6 +30,9 @@
     "teamSize_other": "{{count}} de persoane",
     "extraPaid": "Extra",
     "hours": "Ore",
+    "paidHours": "Ore plătite",
+    "projectHours": "Ore proiect",
+    "projectTotal": "Total proiect",
     "earnings": "Venit",
     "activity": "Activitate",
     "activities_one": "{{count}} activitate",
@@ -77,6 +80,10 @@
     "selectedDay": "Această zi",
     "mixedCurrencies": "Monede diferite",
     "allEntries": "Toate intrările salvate"
+  },
+  "sections": {
+    "payDetails": "Detalii plată",
+    "thisWeek": "Săptămâna aceasta"
   },
   "quickAdd": {
     "eyebrow": "Adăugare rapidă",
@@ -130,6 +137,9 @@
     "saveAndCheckOut": "Salvează și încheie"
   },
   "weeklyHours": {
+    "view": "Metrică săptămânală",
+    "money": "Bani",
+    "hours": "Ore",
     "eyebrow": "Ritm",
     "flowEyebrow": "Flow",
     "dailyAverage": "Media zilnică",
@@ -141,6 +151,8 @@
     "extraHoursDescription": "Echivalent în ore din extra pay",
     "totalHours": "Total",
     "workedMoney": "Lucrat",
+    "workEarnings": "Brut săptămânal",
+    "mixedCurrencies": "Flow nu este disponibil când săptămâna conține mai multe monede.",
     "extraMoney": "Extra",
     "extraMoneyDescription": "Doar câștigul suplimentar",
     "totalMoney": "Total",

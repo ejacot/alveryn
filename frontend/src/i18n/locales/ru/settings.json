@@ -1,0 +1,47 @@
+{
+  "title": "Настройки",
+  "account": "Учётная запись",
+  "workEmployments": "Работа и места работы",
+  "appearanceRegion": "Оформление и регион",
+  "dataDocuments": "Данные и документы",
+  "searchPlaceholder": "Поиск в настройках",
+  "noSearchResults": "Подходящие настройки не найдены.",
+  "preferences": "Предпочтения",
+  "preferencesSections": {
+    "region": "Язык и регион",
+    "dateTime": "Дата и время",
+    "appearance": "Оформление"
+  },
+  "preferencesFields": {
+    "regional": "Региональные настройки",
+    "format": "Формат",
+    "appearance": "Оформление",
+    "workDefaults": "Рабочие значения по умолчанию",
+    "language": "Язык",
+    "currency": "Валюта",
+    "timezone": "Часовой пояс",
+    "firstDayOfWeek": "Первый день недели",
+    "dateFormat": "Формат даты",
+    "timeFormat": "Формат времени",
+    "theme": "Тема",
+    "defaultBreakMinutes": "Перерыв по умолчанию",
+    "absencePay": "Оплачиваемые отсутствия",
+    "normalDayHours": "Часы обычного рабочего дня",
+    "normalDayMinutes": "Минуты",
+    "paidSickLeave": "Больничные дни оплачиваются",
+    "paidVacation": "Дни отпуска оплачиваются"
+  },
+  "preferencesOptions": {
+    "monday": "Понедельник",
+    "sunday": "Воскресенье",
+    "time24": "24-часовой",
+    "time12": "12-часовой",
+    "systemTheme": "Системная",
+    "lightTheme": "Светлая",
+    "darkTheme": "Тёмная"
+  },
+  "app": "Приложение",
+  "profile": "Профиль",
+  "aboutPage": { "title": "Об Alveryn", "product": "Продукт", "version": "Версия {{version}}", "productDescription": "Спокойный и точный учёт работы, времени и доходов — естественный для вашего телефона.", "privacy": "Данные и конфиденциальность", "privacyTitle": "Ваша работа остаётся личной", "privacyDescription": "Alveryn использует только ограниченные анонимные данные о продукте. Электронная почта, заметки, доходы и активности никогда не включаются в аналитику продукта." },
+  "helpPage": { "title": "Помощь и поддержка", "support": "Прямая поддержка", "description": "Расскажите, что произошло, и мы поможем найти самое понятное решение." }
+}
