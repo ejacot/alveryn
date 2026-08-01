@@ -5,7 +5,7 @@ test("statistics page shows the empty state for a new account", async ({ page },
   const user = await createE2eUser(testInfo.title);
   await loginThroughUi(page, user);
 
-  await page.getByLabel("Statistics").click();
+  await page.getByLabel("Insights").click();
 
   await expect(page.getByRole("heading", { name: "Statistics" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "No statistics yet." })).toBeVisible();

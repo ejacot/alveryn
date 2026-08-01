@@ -33,7 +33,7 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await page.getByRole("dialog").getByRole("button", { name: /montaj/i }).click();
   await page.getByLabel("Team size").fill("2");
   await page.getByLabel("Metru patrat Units").fill("300");
-  await expect(page.getByText("€7,500.00")).toBeVisible();
+  await expect(page.getByText("€7,500.00").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Add another activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /control/i }).click();
@@ -41,11 +41,11 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await page.getByLabel("End", { exact: true }).last().fill("16:00");
   await page.getByLabel("Break (minutes)", { exact: true }).last().fill("0");
 
-  await page.getByRole("button", { name: "Save job" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Job saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
   await page.getByRole("button", { name: /thu 16/i }).click();
-  const activity = page.getByRole("button", { name: /activity 2 lagen/i });
+  const activity = page.getByRole("button", { name: /2 lagen 300 m2 check hours/i });
   await expect(activity).toBeVisible();
   await expect(activity).toContainText("Check hours");
   await expect(page.getByText("€7,660.00").first()).toBeVisible();
@@ -53,7 +53,7 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await activity.click();
   await expect(page.getByRole("heading", { name: "Edit job" })).toBeVisible();
   await page.getByLabel("Team size").fill("3");
-  await page.getByRole("button", { name: "Save changes" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Job saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
 });

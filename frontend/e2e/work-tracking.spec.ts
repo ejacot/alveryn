@@ -60,12 +60,12 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
   await page.getByLabel("Metru patrat Units").fill("300");
-  await expect(page.getByText("€15,000.00")).toBeVisible();
+  await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   const recordRequest = page.waitForResponse((response) =>
     response.url().includes("/api/work-records") && response.request().method() === "POST"
   );
-  await page.getByRole("button", { name: "Save job" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const recordResponse = await recordRequest;
   expect(recordResponse.ok()).toBeTruthy();
   const recordBody = await recordResponse.json();
@@ -82,7 +82,7 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
 
   await expect(page.getByText("Job saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
-  await expect(page.getByRole("button", { name: /activity 2 lagen 300 m2/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /2 lagen 300 m2 earnings/i })).toBeVisible();
   await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-types"))).toBe(true);
@@ -113,12 +113,12 @@ test("updates per-unit formula rates without changing existing job snapshots", a
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
   await page.getByLabel("Metru patrat Units").fill("300");
-  await expect(page.getByText("€15,000.00")).toBeVisible();
-  await page.getByRole("button", { name: "Save job" }).click();
+  await expect(page.getByText("€15,000.00").first()).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.waitForURL(/\/app$/);
-  await page.getByRole("button", { name: /activity 2 lagen 300 m2/i }).click();
+  await page.getByRole("button", { name: /2 lagen 300 m2 earnings/i }).click();
   await expect(page.getByRole("heading", { name: "Edit job" })).toBeVisible();
-  await expect(page.getByText("€15,000.00")).toBeVisible();
+  await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   await page.goto("/settings/work-types");
   await page.getByRole("button", { name: /expand montaj pardoseala/i }).click();
@@ -130,7 +130,7 @@ test("updates per-unit formula rates without changing existing job snapshots", a
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
   await page.getByLabel("Metru patrat Units").fill("10");
-  await expect(page.getByText("€600.00")).toBeVisible();
+  await expect(page.getByText("€600.00").first()).toBeVisible();
 });
 
 test("creates a configured work type from an iPhone-sized viewport", async ({ page }, testInfo) => {
@@ -163,27 +163,27 @@ test("creates a configured work type from an iPhone-sized viewport", async ({ pa
   expect(consoleErrors).toEqual([]);
 });
 
-test("settings subpage keeps bottom navigation and protects dirty forms", async ({ page }, testInfo) => {
+test("settings subpage hides bottom navigation and protects dirty forms", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const user = await createE2eUser(testInfo.title);
   await loginThroughUi(page, user);
 
   await page.goto("/settings/work-types/new");
-  await expect(page.getByLabel("Primary navigation")).toBeVisible();
-  await page.getByLabel("Home").click();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByLabel("Primary navigation")).toHaveCount(0);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page).toHaveURL(/\/settings\/work-types$/);
 
   await page.goto("/settings/work-types/new");
   await page.getByRole("button", { name: /time based/i }).click();
   await page.getByLabel("Name").fill("Dirty type");
-  await page.getByLabel("Calendar").click();
+  await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("dialog", { name: "Discard changes?" })).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page).toHaveURL(/\/settings\/work-types\/new/);
 
-  await page.getByLabel("Calendar").click();
+  await page.getByRole("button", { name: "Back" }).click();
   await page.getByRole("button", { name: "Discard" }).click();
-  await expect(page).toHaveURL(/\/calendar/);
+  await expect(page).toHaveURL(/\/settings\/work-types$/);
 });
 
 test("settings shows one profile destination", async ({ page }, testInfo) => {
