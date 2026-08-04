@@ -21,6 +21,7 @@ import { i18n } from "../i18n";
 import { DashboardErrorState } from "../components/dashboard/dashboard-error-state";
 import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
+import { InstallAppTip } from "../components/dashboard/install-app-tip";
 import { TimeTrackingCard } from "../components/dashboard/time-tracking-card";
 import type { SelectedDayActivity, WeeklyRhythmDay } from "../types/dashboard";
 import type { Absence, AbsenceTypeSetting } from "../types/absence";
@@ -341,6 +342,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
 
   return (
     <div className="dashboard-glass-preview mx-auto w-full pb-10">
+      <InstallAppTip />
       <DashboardOverview
         selectedDay={selectedDayOverview}
         weeklyDays={weeklyDays}

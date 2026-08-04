@@ -1,4 +1,10 @@
 {
+  "installTip": {
+    "title": "Folosește Alveryn ca pe o aplicație",
+    "description": "Adaugă Alveryn pe ecranul principal din meniul browserului pentru acces mai rapid și mai simplu.",
+    "appStore": "Versiunea pentru App Store va apărea în curând.",
+    "dismiss": "Închide sfatul"
+  },
   "heading": {
     "eyebrow": "Astăzi",
     "previewEyebrow": "Previzualizare",

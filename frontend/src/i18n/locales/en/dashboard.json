@@ -1,4 +1,10 @@
 {
+  "installTip": {
+    "title": "Use Alveryn like an app",
+    "description": "Add Alveryn to your Home Screen from your browser menu for faster, easier access.",
+    "appStore": "An App Store version is coming soon.",
+    "dismiss": "Dismiss tip"
+  },
   "heading": {
     "eyebrow": "Today",
     "previewEyebrow": "Preview",

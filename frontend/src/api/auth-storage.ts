@@ -7,7 +7,7 @@ const AUTH_SYNC_CHANNEL = "alveryn.auth-sync";
 type AuthStorageListener = () => void;
 type AuthSyncMessage = { type: "login" | "logout" | "session-changed" };
 
-function isInstalledApp() {
+export function isInstalledApp() {
   if (typeof window === "undefined") {
     return false;
   }

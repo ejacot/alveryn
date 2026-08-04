@@ -1,4 +1,10 @@
 {
+  "installTip": {
+    "title": "Alveryn wie eine App nutzen",
+    "description": "Füge Alveryn über das Browsermenü zum Home-Bildschirm hinzu, um schneller und einfacher darauf zuzugreifen.",
+    "appStore": "Eine Version für den App Store kommt bald.",
+    "dismiss": "Tipp schließen"
+  },
   "heading": {
     "eyebrow": "Heute",
     "previewEyebrow": "Vorschau",
