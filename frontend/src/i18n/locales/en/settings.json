@@ -20,7 +20,7 @@
     "employerReport": "Employer report", "createTitle": "Prepare report", "createHint": "Review the period and contents, then preview the exact document you will share.",
     "customPeriod": "Choose a custom period", "documentLanguage": "Document language", "allDaysIncluded": "Every day is included",
     "preview": "Preview report", "preparing": "Preparing…", "onePageConfirmed": "This month will be exported on one portrait A4 page.", "multiPageHint": "The period will be split into numbered A4 pages.",
-    "fields": { "date": "Date", "activity": "Activity", "intervals": "Work intervals", "hours": "Worked hours", "quantity": "Completed quantity", "workDetails": "Work performed", "extra": "Extra percentage", "earnings": "Earnings", "notes": "Notes" },
+    "fields": { "date": "Date", "activity": "Activity", "status": "Day status", "intervals": "Work intervals", "hours": "Worked hours", "quantity": "Completed quantity", "workDetails": "Work performed", "extra": "Extra percentage", "earnings": "Earnings", "notes": "Notes" },
     "errors": { "dateRange": "The end date cannot be before the start date.", "fields": "Select at least one field for the report.", "empty": "There is no work to export for this employment and period.", "generation": "The PDF could not be generated: {{reason}}" },
     "pdf": { "report": "Work report", "employment": "Employment", "period": "Period", "generated": "Generated", "workedDays": "Worked days", "absences": "Absences", "totalHours": "Total hours", "totalExtraHours": "Total extra hours", "totalEarnings": "Total earnings", "generatedWith": "Generated with Alveryn.com", "mixedCurrencies": "Mixed currencies", "restDay": "Day off", "noActivity": "No activity", "page": "Page" }
   },
@@ -45,25 +45,34 @@
       "example": { "title": "Monday · Cleaning", "detail": "08:00–17:00 · 30 min break", "result": "Planned" }
     },
     "hourlyRates": {
-      "title": "How hourly rates work",
-      "description": "Alveryn uses the rate active on the date you worked.",
+      "title": "Hourly rates",
+      "description": "Add a rate and the date it starts. Alveryn automatically uses the correct rate for each day you worked.",
+      "addRate": "Add an hourly rate",
       "steps": { "hours": "Worked", "rate": "Rate", "earnings": "Earnings" },
       "values": { "hours": "8 h", "rate": "€20/h", "earnings": "€160" },
       "example": { "title": "Current hourly rate", "detail": "From 1 July 2026", "result": "€20/h" }
     },
     "workTypes": {
-      "title": "How work types work",
-      "description": "Create the activities you perform and choose how each one is measured.",
+      "title": "Organize the work you record",
+      "description": "Create a work type for a single activity. Use a category when several work types share the same calculation, teamwork and extra-pay settings.",
+      "addWorkType": "Add a work type",
+      "createCategory": "Create a category",
       "steps": { "activity": "Activity", "method": "Measured by", "result": "Recorded as" },
       "values": { "activity": "Cleaning", "method": "Time", "result": "8 h" },
       "example": { "title": "Cleaning", "detail": "Time-based activity", "result": "8 h" }
     },
     "absences": {
-      "title": "How absences work",
-      "description": "Define each absence once, then select it when adding a day away.",
+      "title": "Absence types",
+      "description": "Create the types of time away you use, such as vacation or sick leave. Choose whether each one is paid, then select it when recording a day away.",
+      "addAbsence": "Add an absence type",
       "steps": { "type": "Type", "date": "Date", "impact": "Day value" },
       "values": { "type": "Vacation", "date": "27 Jul", "impact": "8 h paid" },
       "example": { "title": "Vacation", "detail": "Monday, 27 July", "result": "8 h paid" }
+    },
+    "recurringExtraPay": {
+      "title": "Recurring extra pay",
+      "description": "Choose a weekday and percentage once. Alveryn automatically adds that extra pay to eligible work recorded on that weekday.",
+      "addRule": "Add a recurring extra-pay rule"
     }
   },
   "status": {
@@ -120,11 +129,13 @@
       "TIME": {
         "title": "Track my working time",
         "summaryTitle": "Time tracking",
+        "shortDescription": "Hours first; earnings still calculated.",
         "description": "Focus on worked hours, check-in and an optional hour balance."
       },
       "EARNINGS": {
         "title": "Track my earnings",
         "summaryTitle": "Earnings tracking",
+        "shortDescription": "Earnings first; work is still recorded.",
         "description": "See how much you earn and which work produced it."
       }
     },
@@ -153,6 +164,7 @@
       "termsValidFrom": "Terms valid from",
       "startDate": "Start date",
       "endDate": "End date",
+      "endDateOptional": "End date (optional)",
       "salaryAmount": "Fixed salary (optional)",
       "currency": "Currency",
       "targetHours": "Target hours",
@@ -219,8 +231,11 @@
     "emptyTitle": "No work types yet",
     "description": "Configure the activities that can be added to a job. A job can contain several work lines, and every line keeps its own formula.",
     "addWorkType": "Add work type",
+    "createCategory": "Create category",
     "emptyDescription": "Create the first formula you use at work: hours, units converted to hours, or direct per-unit pay.",
-    "formulaCount": "{{count}} formulas",
+    "category": "Category",
+    "workTypeCount_one": "{{count}} work type",
+    "workTypeCount_other": "{{count}} work types",
     "formulas": {
       "time": "Hours",
       "unitsToHours": "Units to hours",
@@ -229,13 +244,20 @@
   },
   "workTypeEditor": {
     "addTitle": "Add work type",
+    "addCategoryTitle": "Create category",
     "editTitle": "Edit work type",
-    "chooseModeTitle": "Choose calculation",
+    "chooseModeTitle": "How is this work type calculated?",
+    "chooseCategoryModeTitle": "How will work types in this category be calculated?",
     "chooseModeDescription": "Start with the formula. The next step only shows the fields needed for that type of work.",
     "created": "Work type created.",
     "updated": "Work type updated.",
     "unavailableTitle": "Work type is unavailable",
     "editorDescription": "Choose how this work is counted.",
+    "advancedSettings": "Advanced settings",
+    "categoryOptionsTitle": "Options for all work types",
+    "categoryOptionsDescription": "These settings apply automatically to every work type in this category.",
+    "addActivity": "Add activity",
+    "createCategory": "Create category",
     "coreSettings": "Work type",
     "deactivate": "Deactivate work type",
     "deactivateTitle": "Deactivate work type?",
@@ -249,7 +271,10 @@
     "sections": { "name": "Name" },
     "fields": {
       "name": "Name",
+      "namePlaceholder": "e.g. Regular shift",
+      "unitExamples": "e.g. km, m², rooms, deliveries",
       "categoryName": "Category name",
+      "categoryPlaceholder": "e.g. Cleaning services",
       "calculationMethod": "Calculation method",
       "compensationMethod": "Payment method",
       "color": "Color",
@@ -257,7 +282,7 @@
       "teamworkEnabled": "Teamwork",
       "extraPayEnabled": "Extra pay",
       "teamworkDescription": "Ask for team size and divide direct per-unit pay by the number of workers.",
-      "compositeEnabled": "Advanced",
+      "compositeEnabled": "Multiple work lines",
       "compositeDescription": "This work type can contain several internal formulas.",
       "status": "Status"
     },
@@ -294,38 +319,39 @@
       "fixedResultValue": "The exact amount saved for that task."
     },
     "modes": {
-      "timeTitle": "Time based",
-      "timeDescription": "Use this when the activity is paid or tracked by actual start and end time.",
+      "timeTitle": "By time",
+      "timeDescription": "Enter a start and end time.",
       "timeFormula": "hours x hourly rate",
       "timeSuggestedName": "TIME WORK",
-      "unitsPerHourTitle": "Units converted to hours",
-      "unitsPerHourDescription": "Use this when completed units become equivalent time, then use the hourly rate.",
+      "unitsPerHourTitle": "Units into hours",
+      "unitsPerHourDescription": "Convert completed units into worked hours.",
       "unitsPerHourFormula": "units / units per hour = hours",
       "unitsPerHourSuggestedName": "UNIT WORK",
-      "perUnitTitle": "Direct per-unit pay",
-      "perUnitDescription": "Use this for m², deliveries, rooms, tasks or any unit paid directly.",
+      "perUnitTitle": "Paid per unit",
+      "perUnitDescription": "Quantity multiplied by a price per unit.",
       "perUnitFormula": "quantity x rate per unit",
       "perUnitSuggestedName": "PER UNIT WORK",
       "fixedTitle": "Fixed price",
-      "fixedDescription": "Use this when each recorded task has its own fixed amount.",
+      "fixedDescription": "Enter a fixed amount each time.",
       "fixedFormula": "fixed amount",
       "fixedSuggestedName": "FIXED PRICE WORK"
     }
   },
   "workTypeFormulas": {
-    "sectionTitle": "Work lines and formulas",
-    "sectionDescription": "These are the activities that appear inside a New Job. Add one line for every thing you may complete during a workday.",
-    "add": "Add formula",
-    "addFirst": "Add first formula",
-    "addTitle": "Add formula",
-    "editTitle": "Edit formula",
-    "emptyTitle": "No formulas yet",
-    "emptyDescription": "Add the first line that should appear when creating a job.",
-    "deactivate": "Deactivate formula",
+    "sectionTitle": "Work types",
+    "sectionDescription": "The work types grouped in this category.",
+    "categoryCalculation": "Calculation for all: {{method}}",
+    "add": "Add work type",
+    "addFirst": "Add first work type",
+    "addTitle": "Add work type",
+    "editTitle": "Edit work type",
+    "emptyTitle": "No work types in this category",
+    "emptyDescription": "Add the first type of work you want to group here.",
+    "deactivate": "Deactivate work type",
     "fields": {
-      "name": "Activity name",
-      "calculationMode": "Formula",
-      "unitLabel": "Unit name",
+      "name": "Work type name",
+      "calculationMode": "How is this work type calculated?",
+      "unitLabel": "Units",
       "unitSymbol": "Symbol",
       "unitsPerHour": "Units per hour",
       "ratePerUnit": "Rate per unit",
@@ -349,8 +375,8 @@
       "fixed": "Fixed amount entered per job"
     },
     "symbolPlaceholder": "Example: m²",
-    "unitsPerHourPlaceholder": "Example: 2.4",
-    "ratePerUnitPlaceholder": "Example: 50",
+    "unitsPerHourPlaceholder": "... units/hour",
+    "ratePerUnitPlaceholder": "payment/unit",
     "validation": {
       "nameRequired": "Name is required",
       "nameTooLong": "Name is too long",
@@ -613,7 +639,20 @@
     "title": "Recurring extra pay",
     "description": "Automatically apply an extra percentage to every work entry on selected weekdays.",
     "add": "Add or update a weekday rule",
-    "percentage": "Extra percentage"
+    "weekday": "Weekday",
+    "percentage": "Extra percentage",
+    "percentageFor": "Extra percentage for {{day}}",
+    "chooseDay": "Choose a weekday",
+    "noDaysLeft": "All weekdays have been added",
+    "addDay": "Add weekday",
+    "timeInterval": "Extra pay by time interval",
+    "timeIntervalHint": "For example, add 30% to work performed between 22:00 and 06:00.",
+    "from": "From",
+    "to": "To",
+    "addInterval": "Add time interval",
+    "intervalName": "Name",
+    "intervalNamePlaceholder": "Night shift",
+    "percentageShort": "Extra"
   },
   "dataImport": {
     "title": "Import data", "menuLabel": "Import data", "menuDescription": "Bring historical work into Alveryn safely.",

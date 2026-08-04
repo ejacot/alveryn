@@ -4,15 +4,15 @@
 
 :root {
   --color-obsidian: #050505;
-  --color-obsidian-raised: #0b0a09;
-  --color-surface: #11100e;
-  --color-surface-raised: #171512;
-  --color-ivory: #f4f0e7;
-  --color-ivory-muted: rgba(244, 240, 231, 0.62);
-  --color-ivory-faint: rgba(244, 240, 231, 0.36);
-  --color-champagne: #d5be8d;
-  --color-champagne-bright: #ead8ac;
-  --color-hairline: rgba(234, 216, 172, 0.12);
+  --color-obsidian-raised: #0b0b0b;
+  --color-surface: #111111;
+  --color-surface-raised: #171717;
+  --color-foreground: #f5f5f5;
+  --color-foreground-muted: rgba(255, 255, 255, 0.62);
+  --color-foreground-faint: rgba(255, 255, 255, 0.36);
+  --color-emerald: #10b981;
+  --color-emerald-bright: #34d399;
+  --color-hairline: rgba(52, 211, 153, 0.12);
   color-scheme: dark;
   font-family:
     -apple-system,
@@ -24,7 +24,7 @@
     system-ui,
     sans-serif;
   background: var(--color-obsidian);
-  color: var(--color-ivory);
+  color: var(--color-foreground);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -32,19 +32,19 @@
 }
 
 :root[data-theme="light"] {
-  --color-obsidian: #f3f1eb;
-  --color-obsidian-raised: #f8f7f3;
+  --color-obsidian: #f5f5f5;
+  --color-obsidian-raised: #fafafa;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
-  --color-ivory: #181713;
-  --color-ivory-muted: rgba(24, 23, 19, 0.62);
-  --color-ivory-faint: rgba(24, 23, 19, 0.38);
-  --color-champagne: #8c7441;
-  --color-champagne-bright: #725b2f;
-  --color-hairline: rgba(35, 31, 22, 0.1);
+  --color-foreground: #181818;
+  --color-foreground-muted: rgba(24, 24, 24, 0.62);
+  --color-foreground-faint: rgba(24, 24, 24, 0.38);
+  --color-emerald: #047857;
+  --color-emerald-bright: #065f46;
+  --color-hairline: rgba(0, 0, 0, 0.1);
   color-scheme: light;
-  background: #f3f1eb;
-  color: #181713;
+  background: #f5f5f5;
+  color: #181818;
 }
 
 html,
@@ -61,7 +61,7 @@ body,
 html[data-theme="light"],
 html[data-theme="light"] body,
 html[data-theme="light"] #root {
-  background: #f5f5f2;
+  background: #f5f5f5;
 }
 
 html {
@@ -81,8 +81,8 @@ body {
 
 html[data-theme="light"] body {
   background:
-    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.98), rgba(243, 241, 235, 0) 44%),
-    #f3f1eb;
+    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0) 44%),
+    #f5f5f5;
 }
 
 body::-webkit-scrollbar {
@@ -277,16 +277,16 @@ html[data-theme="light"] .app-logo-wordmark {
     min-height: 100dvh;
     overflow: hidden;
     background:
-      radial-gradient(circle at 50% -12rem, rgba(213, 190, 141, 0.075), transparent 30rem),
-      linear-gradient(180deg, #090807 0%, var(--color-obsidian) 34rem, #030303 100%);
+      radial-gradient(circle at 50% -12rem, rgba(16, 185, 129, 0.075), transparent 30rem),
+      linear-gradient(180deg, #090909 0%, var(--color-obsidian) 34rem, #030303 100%);
     pointer-events: none;
   }
 
   .app-background--dashboard {
     background:
-      radial-gradient(circle at 50% -10rem, rgba(213, 190, 141, 0.09), transparent 29rem),
-      radial-gradient(circle at 90% 35rem, rgba(244, 240, 231, 0.025), transparent 22rem),
-      linear-gradient(180deg, #090807 0%, var(--color-obsidian) 36rem, #030303 100%);
+      radial-gradient(circle at 50% -10rem, rgba(16, 185, 129, 0.09), transparent 29rem),
+      radial-gradient(circle at 90% 35rem, rgba(255, 255, 255, 0.025), transparent 22rem),
+      linear-gradient(180deg, #090909 0%, var(--color-obsidian) 36rem, #030303 100%);
   }
 
   .app-background--dashboard::before,
@@ -303,7 +303,7 @@ html[data-theme="light"] .app-logo-wordmark {
     right: -8rem;
     width: 20rem;
     height: 20rem;
-    background: radial-gradient(circle at 38% 38%, rgba(213, 190, 141, 0.08), transparent 70%);
+    background: radial-gradient(circle at 38% 38%, rgba(16, 185, 129, 0.08), transparent 70%);
   }
 
   .app-background--dashboard::after {
@@ -311,20 +311,20 @@ html[data-theme="light"] .app-logo-wordmark {
     left: -10rem;
     width: 24rem;
     height: 24rem;
-    background: radial-gradient(circle at 62% 40%, rgba(244, 240, 231, 0.04), transparent 72%);
+    background: radial-gradient(circle at 62% 40%, rgba(255, 255, 255, 0.04), transparent 72%);
   }
 
   html[data-theme="light"] .app-background {
     background:
-      radial-gradient(circle at 50% -18%, rgba(255, 255, 255, 1), rgba(245, 245, 242, 0) 44%),
-      linear-gradient(180deg, #fbfbf8 0%, #f5f5f2 46%, #efeee9 100%);
+      radial-gradient(circle at 50% -18%, rgba(255, 255, 255, 1), rgba(245, 245, 245, 0) 44%),
+      linear-gradient(180deg, #fafafa 0%, #f5f5f5 46%, #eeeeee 100%);
   }
 
   html[data-theme="light"] .app-background--dashboard {
     background:
-      linear-gradient(180deg, rgba(248, 249, 246, 0.78), rgba(241, 244, 239, 0.88)),
+      linear-gradient(180deg, rgba(248, 248, 248, 0.78), rgba(241, 241, 241, 0.88)),
       url("../assets/backgrounds/alveryn-glass-ambient.webp") center / cover no-repeat,
-      #f1f3ef;
+      #f1f1f1;
   }
 
   .universal-glass-card {
@@ -332,7 +332,7 @@ html[data-theme="light"] .app-logo-wordmark {
     border-radius: 26px;
     background:
       linear-gradient(145deg, rgba(255, 255, 255, 0.018), transparent 45%),
-      rgba(14, 13, 11, 0.94);
+      rgba(14, 14, 14, 0.94);
     box-shadow:
       0 18px 48px rgba(0, 0, 0, 0.16),
       inset 0 1px 0 rgba(255, 255, 255, 0.035);
@@ -341,13 +341,13 @@ html[data-theme="light"] .app-logo-wordmark {
   .glass-card--ambient {
     position: relative;
     isolation: isolate;
-    border-color: rgba(234, 216, 172, 0.15);
+    border-color: rgba(52, 211, 153, 0.15);
     background:
-      linear-gradient(145deg, rgba(234, 216, 172, 0.055), transparent 48%),
-      rgba(16, 15, 13, 0.96);
+      linear-gradient(145deg, rgba(52, 211, 153, 0.055), transparent 48%),
+      rgba(16, 16, 16, 0.96);
     box-shadow:
       0 20px 56px rgba(0, 0, 0, 0.22),
-      inset 0 1px 0 rgba(244, 240, 231, 0.055);
+      inset 0 1px 0 rgba(255, 255, 255, 0.055);
   }
 
   .glass-card--ambient::before {
@@ -357,7 +357,7 @@ html[data-theme="light"] .app-logo-wordmark {
     z-index: -1;
     height: 1px;
     border-radius: 999px;
-    background: linear-gradient(90deg, transparent, rgba(234, 216, 172, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.2), transparent);
     pointer-events: none;
   }
 
@@ -416,16 +416,12 @@ html[data-theme="light"] .app-logo-wordmark {
   html[data-theme="light"] .settings-split-view .settings-sticky-header::before {
     background: linear-gradient(
       180deg,
-      rgba(245, 245, 242, 0.62) 0%,
-      rgba(245, 245, 242, 0.48) 74%,
-      rgba(245, 245, 242, 0.24) 88%,
-      rgba(245, 245, 242, 0) 100%
+      rgba(245, 245, 245, 0.62) 0%,
+      rgba(245, 245, 245, 0.48) 74%,
+      rgba(245, 245, 245, 0.24) 88%,
+      rgba(245, 245, 245, 0) 100%
     );
     border-bottom-color: rgba(255, 255, 255, 0.34);
-  }
-
-  html[data-theme="light"] .week-day-selected-secondary {
-    color: rgba(255, 255, 255, 0.58) !important;
   }
 
   .screen-shell {
@@ -536,7 +532,7 @@ html[data-theme="light"] .app-logo-wordmark {
 
     .desktop-nav-link[aria-current="page"] .desktop-nav-item,
     .desktop-nav-link:has([aria-current="page"]) .desktop-nav-item {
-      background: rgba(213, 190, 141, 0.11);
+      background: rgba(16, 185, 129, 0.11);
     }
 
     .desktop-nav-label {
@@ -598,8 +594,8 @@ html[data-theme="light"] .app-logo-wordmark {
 
     html[data-theme="light"] .settings-master-pane {
       border-right-color: rgba(0, 0, 0, 0.1);
-      background: rgba(239, 238, 233, 0.9);
-      box-shadow: 18px 0 54px rgba(55, 50, 35, 0.08);
+      background: rgba(239, 239, 239, 0.9);
+      box-shadow: 18px 0 54px rgba(0, 0, 0, 0.08);
     }
   }
 
@@ -607,13 +603,13 @@ html[data-theme="light"] .app-logo-wordmark {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    border: 1px solid rgba(234, 216, 172, 0.16);
+    border: 1px solid rgba(52, 211, 153, 0.16);
     background:
-      linear-gradient(145deg, rgba(244, 240, 231, 0.085), rgba(244, 240, 231, 0.018) 48%, transparent),
-      rgba(13, 12, 10, 0.78);
+      linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018) 48%, transparent),
+      rgba(13, 13, 13, 0.78);
     box-shadow:
       0 22px 60px rgba(0, 0, 0, 0.42),
-      inset 0 1px 0 rgba(244, 240, 231, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
       inset 0 -1px 0 rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(28px) saturate(125%) contrast(1.05);
     -webkit-backdrop-filter: blur(28px) saturate(125%) contrast(1.05);
@@ -623,7 +619,7 @@ html[data-theme="light"] .app-logo-wordmark {
     border-color: rgba(0, 0, 0, 0.12);
     background: rgba(255, 255, 255, 0.52);
     box-shadow:
-      0 22px 70px rgba(32, 32, 24, 0.16),
+      0 22px 70px rgba(32, 32, 32, 0.16),
       0 1px 0 rgba(255, 255, 255, 0.85),
       inset 0 1px 0 rgba(255, 255, 255, 0.86),
       inset 0 -1px 0 rgba(0, 0, 0, 0.05);
@@ -644,7 +640,7 @@ html[data-theme="light"] .app-logo-wordmark {
     z-index: -1;
     height: 1px;
     border-radius: 999px;
-    background: linear-gradient(90deg, transparent, rgba(234, 216, 172, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
     opacity: 0.72;
     pointer-events: none;
   }
@@ -656,7 +652,7 @@ html[data-theme="light"] .app-logo-wordmark {
     z-index: -1;
     height: 1px;
     border-radius: 999px;
-    background: rgba(213, 190, 141, 0.08);
+    background: rgba(16, 185, 129, 0.08);
     opacity: 0.7;
     pointer-events: none;
   }
@@ -787,11 +783,39 @@ html[data-theme="light"] .app-logo-wordmark {
   html[data-theme="light"] .settings-sticky-header::before {
     background: linear-gradient(
       180deg,
-      rgba(245, 245, 242, 0.92) 0%,
-      rgba(245, 245, 242, 0.88) 72%,
-      rgba(245, 245, 242, 0.52) 90%,
-      rgba(245, 245, 242, 0) 100%
+      rgba(245, 245, 245, 0.92) 0%,
+      rgba(245, 245, 245, 0.88) 72%,
+      rgba(245, 245, 245, 0.52) 90%,
+      rgba(245, 245, 245, 0) 100%
     );
+  }
+
+  html[data-theme="light"] .settings-sticky-header.dashboard-sticky-header.dashboard-home-header::before {
+    background: linear-gradient(
+      180deg,
+      rgba(225, 228, 226, 0.995) 0%,
+      rgba(225, 228, 226, 0.99) 82%,
+      rgba(225, 228, 226, 0.88) 90%,
+      rgba(225, 228, 226, 0) 100%
+    );
+    backdrop-filter: blur(22px) saturate(125%);
+    -webkit-backdrop-filter: blur(22px) saturate(125%);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.72) 94%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.72) 94%, transparent 100%);
+  }
+
+  html[data-theme="light"] .settings-sticky-header.dashboard-sticky-header.calendar-sticky-header::before {
+    background: linear-gradient(
+      180deg,
+      rgba(225, 228, 226, 0.995) 0%,
+      rgba(225, 228, 226, 0.99) 80%,
+      rgba(225, 228, 226, 0.86) 90%,
+      rgba(225, 228, 226, 0) 100%
+    );
+    backdrop-filter: blur(22px) saturate(125%);
+    -webkit-backdrop-filter: blur(22px) saturate(125%);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 86%, rgba(0, 0, 0, 0.7) 94%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 86%, rgba(0, 0, 0, 0.7) 94%, transparent 100%);
   }
 
   .hairline-text {
@@ -805,7 +829,7 @@ html[data-theme="light"] .app-logo-wordmark {
 }
 
 html[data-theme="light"] .bg-ink {
-  background-color: #f5f5f2;
+  background-color: #f5f5f5;
 }
 
 html[data-theme="light"] [class~="text-white"] {
@@ -816,18 +840,53 @@ html[data-theme="light"] [class*="text-white/"] {
   color: rgba(0, 0, 0, 0.56) !important;
 }
 
-html[data-theme="light"] [class*="text-[#f4f0e7]"],
-html[data-theme="light"] [class*="text-[#F4F0E7]"] {
-  color: #181713 !important;
+html[data-theme="light"] [class*="text-[#f5f5f5]"],
+html[data-theme="light"] [class*="text-[#f5f5f5]"] {
+  color: #181818 !important;
 }
 
-html[data-theme="light"] [class*="text-[#ead8ac]"],
-html[data-theme="light"] [class*="text-[#d5be8d]"] {
-  color: #745c2f !important;
+html[data-theme="light"] [class*="text-[#34d399]"],
+html[data-theme="light"] [class*="text-[#10b981]"] {
+  color: #047857 !important;
 }
 
 html[data-theme="light"] [class*="border-white/"] {
   border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme="light"] .dashboard-today-card,
+html[data-theme="light"] .dashboard-empty-day,
+html[data-theme="light"] .dashboard-empty-week {
+  border-color: rgba(0, 0, 0, 0.075);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+html[data-theme="light"] .dashboard-quick-add {
+  border-color: rgba(5, 150, 105, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: none;
+}
+
+.weekly-chart-bar {
+  background-color: rgba(255, 255, 255, 0.42);
+}
+
+.weekly-chart-bar.is-selected {
+  background-color: #34d399;
+}
+
+html[data-theme="light"] .weekly-chart-area {
+  background: rgba(0, 0, 0, 0.018);
+}
+
+html[data-theme="light"] .weekly-chart-track {
+  background: rgba(15, 23, 20, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 20, 0.035);
+}
+
+html[data-theme="light"] .weekly-chart-bar:not(.is-selected) {
+  background-color: rgba(15, 23, 20, 0.34) !important;
 }
 
 html[data-theme="light"] .landing-page {
@@ -899,13 +958,13 @@ html[data-theme="light"] [class*="bg-[#1"] {
 html[data-theme="light"] [class*="from-black"],
 html[data-theme="light"] [class*="to-black"],
 html[data-theme="light"] [class*="via-black"] {
-  --tw-gradient-from: #f5f5f2 var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgba(245, 245, 242, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-from: #f5f5f5 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(245, 245, 245, 0) var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
 
 html[data-theme="light"] [class*="ring-offset-[#050505]"] {
-  --tw-ring-offset-color: #f5f5f2 !important;
+  --tw-ring-offset-color: #f5f5f5 !important;
 }
 
 html[data-theme="light"] input,
@@ -919,25 +978,122 @@ html[data-theme="light"] textarea {
 html[data-theme="light"] input:focus,
 html[data-theme="light"] select:focus,
 html[data-theme="light"] textarea:focus {
-  border-color: rgba(116, 92, 47, 0.34) !important;
+  border-color: rgba(4, 120, 87, 0.34) !important;
   background-color: rgba(255, 255, 255, 0.96);
-  --tw-ring-color: rgba(140, 116, 65, 0.16) !important;
+  --tw-ring-color: rgba(4, 120, 87, 0.16) !important;
+}
+
+html[data-theme="light"] .work-type-picker-backdrop {
+  background-color: rgba(15, 23, 20, 0.2) !important;
+}
+
+html[data-theme="light"] .work-type-picker-panel {
+  border-color: rgba(4, 120, 87, 0.15) !important;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.99), rgba(246, 249, 247, 0.99)) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 20, 0.18) !important;
+}
+
+html[data-theme="light"] .work-record-editor-page .universal-glass-card,
+html[data-theme="light"] .work-record-editor-page .glass-card--ambient {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+html[data-theme="light"] .employment-create-form .universal-glass-card,
+html[data-theme="light"] .employment-create-form .glass-card--ambient {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+html[data-theme="light"] .employment-detail-page .universal-glass-card,
+html[data-theme="light"] .employment-detail-page .glass-card--ambient {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+html[data-theme="light"] .pdf-export-page .universal-glass-card,
+html[data-theme="light"] .pdf-export-page .glass-card--ambient {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+.pdf-period-input::-webkit-date-and-time-value {
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.pdf-period-input::-webkit-datetime-edit {
+  padding: 0;
+}
+
+html[data-theme="light"] .employment-tracking-choice {
+  border-color: rgba(0, 0, 0, 0.13) !important;
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+html[data-theme="light"] .employment-tracking-choice[aria-checked="true"] {
+  border-color: rgba(4, 120, 87, 0.45) !important;
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+html[data-theme="light"] .employment-radio {
+  border-color: rgba(0, 0, 0, 0.28) !important;
+  background-color: transparent !important;
+}
+
+html[data-theme="light"] .employment-radio.is-selected {
+  border-color: #059669 !important;
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] .employment-toggle {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+html[data-theme="light"] .employment-toggle.is-enabled {
+  border-color: #059669 !important;
+  background-color: #059669 !important;
+}
+
+html[data-theme="light"] .employment-toggle-knob {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22) !important;
+}
+
+html[data-theme="light"] .employment-create-form input[type="date"] {
+  color-scheme: light;
+}
+
+.employment-date-input::-webkit-date-and-time-value {
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.employment-date-input::-webkit-datetime-edit {
+  padding: 0;
 }
 
 html[data-theme="light"] .calendar-month-summary {
-  border-color: rgba(116, 92, 47, 0.16) !important;
+  border-color: rgba(4, 120, 87, 0.16) !important;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(248, 246, 239, 0.72) 54%, rgba(238, 234, 222, 0.7)) !important;
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(250, 250, 250, 0.72) 54%, rgba(238, 238, 238, 0.7)) !important;
   box-shadow:
-    0 24px 70px rgba(72, 60, 36, 0.11),
+    0 24px 70px rgba(0, 0, 0, 0.11),
     inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
 html[data-theme="light"] .calendar-payroll-panel {
-  border-color: rgba(116, 92, 47, 0.14) !important;
+  border-color: rgba(4, 120, 87, 0.14) !important;
   background:
-    linear-gradient(150deg, rgba(250, 248, 242, 0.84), rgba(238, 235, 225, 0.72)) !important;
-  box-shadow: 0 22px 64px rgba(72, 60, 36, 0.1) !important;
+    linear-gradient(150deg, rgba(255, 255, 255, 0.84), rgba(238, 238, 238, 0.72)) !important;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.1) !important;
 }
 
 .calendar-day-marker {
@@ -945,7 +1101,7 @@ html[data-theme="light"] .calendar-payroll-panel {
 }
 
 html[data-theme="light"] .calendar-day-marker {
-  color: color-mix(in srgb, var(--calendar-marker-color) 58%, #181713) !important;
+  color: color-mix(in srgb, var(--calendar-marker-color) 58%, #181818) !important;
 }
 
 html[data-theme="light"] input::placeholder,
@@ -1023,15 +1179,15 @@ html[data-theme="light"] .landing-page [class*="bg-black/"] {
 .auth-shell {
   color-scheme: dark;
   background:
-    radial-gradient(circle at 50% -8rem, rgba(213, 190, 141, 0.08), transparent 28rem),
+    radial-gradient(circle at 50% -8rem, rgba(16, 185, 129, 0.08), transparent 28rem),
     #050505 !important;
   color: #ffffff;
 }
 
 .auth-shell .universal-glass-card {
-  border-color: rgba(234, 216, 172, 0.1) !important;
+  border-color: rgba(52, 211, 153, 0.1) !important;
   border-radius: 30px !important;
-  background: rgba(17, 16, 14, 0.78) !important;
+  background: rgba(17, 17, 17, 0.78) !important;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
 }
 
@@ -1039,14 +1195,14 @@ html[data-theme="light"] .auth-shell {
   color-scheme: light;
   background:
     radial-gradient(circle at 50% -8rem, rgba(255, 255, 255, 0.98), transparent 28rem),
-    #f3f1eb !important;
+    #f5f5f5 !important;
   color: #151515;
 }
 
 html[data-theme="light"] .auth-shell .universal-glass-card {
-  border-color: rgba(35, 31, 22, 0.09) !important;
+  border-color: rgba(0, 0, 0, 0.09) !important;
   background: rgba(255, 255, 255, 0.72) !important;
-  box-shadow: 0 24px 70px rgba(57, 48, 30, 0.11);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.11);
 }
 
 html[data-theme="light"] .auth-shell [class~="text-white"] {
@@ -1078,7 +1234,7 @@ html[data-theme="light"] .auth-shell [class~="text-black"] {
 
 html[data-theme="light"] .auth-shell input {
   border-color: rgba(0, 0, 0, 0.11) !important;
-  background: #f7f7f5 !important;
+  background: #f7f7f7 !important;
   color: #151515 !important;
 }
 
@@ -1131,4 +1287,59 @@ html[data-theme="light"] .auth-shell input:focus {
 .statistics-export-button:active {
   transform: scale(0.96);
   background: rgb(255 255 255 / 0.11);
+}
+
+/* Semantic selection color stays identical across both themes. */
+html[data-theme="light"] .week-day-selected {
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .week-day-selected [class*="text-white"] {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .calendar-day-selected {
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] .calendar-day-selected [class*="text-white"],
+html[data-theme="light"] .calendar-day-selected .calendar-day-marker {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .calendar-day-today {
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .calendar-day-hoverable:hover {
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  html[data-theme="light"] .calendar-day-hoverable:hover {
+    background: rgba(0, 0, 0, 0.035);
+  }
+}
+.extra-pay-time-input {
+  line-height: normal;
+  padding-block: 0;
+}
+
+.extra-pay-time-input::-webkit-date-and-time-value {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+}
+
+.extra-pay-time-input::-webkit-datetime-edit {
+  padding: 0;
 }

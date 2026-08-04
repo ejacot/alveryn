@@ -59,8 +59,8 @@ export function CalendarMonthGrid({
       : "grid grid-cols-7 gap-x-1 gap-y-1.5 sm:gap-x-2 sm:gap-y-2";
   const cellClassName =
     rowCount === 6
-      ? "flex min-h-[49px] flex-col items-center justify-between rounded-[13px] px-0.5 py-0.5 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/30 sm:min-h-[54px]"
-      : "flex min-h-[54px] flex-col items-center justify-between rounded-[14px] px-0.5 py-1 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/30 sm:min-h-[59px]";
+      ? "flex min-h-[49px] flex-col items-center justify-between rounded-[13px] px-0.5 py-0.5 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[54px]"
+      : "flex min-h-[54px] flex-col items-center justify-between rounded-[14px] px-0.5 py-1 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[59px]";
 
   return (
     <section
@@ -72,10 +72,10 @@ export function CalendarMonthGrid({
           <ChevronLeft className="h-5 w-5" />
         </MonthButton>
         <div className="text-center">
-          <p className="text-[1.25rem] font-semibold tracking-[-0.045em] text-[#f4f0e7]">
+          <p className="text-[1.25rem] font-semibold tracking-[-0.045em] text-[#f5f5f5]">
             {monthLabel}
           </p>
-          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-[#d5be8d]/58">
+          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-[#10b981]/58">
             {t("calendarGrid.monthlyActivity")}
           </p>
         </div>
@@ -162,9 +162,8 @@ export function CalendarMonthGrid({
                   onClick={() => onSelect(day.date)}
                   className={cn(
                     cellClassName,
-                    selected && "bg-[#f4f0e7] shadow-[0_12px_34px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.8)]",
-                    !selected && day.inActiveMonth && meta.entriesCount > 0 && "bg-[#d5be8d]/[0.035]",
-                    !selected && day.inActiveMonth && "hover:bg-white/[0.055]",
+                    !selected && day.inActiveMonth && meta.entriesCount > 0 && "bg-[#10b981]/[0.035]",
+                    !selected && day.inActiveMonth && "calendar-day-hoverable",
                     !day.inActiveMonth && "opacity-30"
                   )}
                   style={resolveDaySurfaceStyle(meta, selected)}
@@ -173,12 +172,10 @@ export function CalendarMonthGrid({
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold",
                       selected
-                        ? "text-black"
+                        ? "calendar-day-selected border border-[#34d399]/55 bg-[#059669] text-white"
                         : current
-                          ? "border border-[#d5be8d]/35 bg-[#d5be8d]/10 text-[#f4f0e7]"
-                          : meta.noActivityInTrackedRange
-                            ? "text-[#d5be8d]/72"
-                            : "text-white/74"
+                          ? "calendar-day-today border border-[#34d399]/55 bg-[#059669] text-white"
+                          : "text-white/74"
                     )}
                   >
                     {day.dayNumber}
@@ -189,7 +186,7 @@ export function CalendarMonthGrid({
                         <span
                           className={cn(
                             "max-w-full truncate font-metric text-[8px] font-semibold tabular-nums",
-                            selected ? "text-black/64" : "text-[#ead8ac]/82"
+                            selected ? "text-white/82" : "text-[#34d399]/82"
                           )}
                         >
                           {meta.activityLabel}
@@ -197,7 +194,7 @@ export function CalendarMonthGrid({
                         {meta.earningsLabel ? (
                           <span className={cn(
                             "mt-0.5 max-w-full truncate font-metric text-[7px] font-medium tabular-nums",
-                            selected ? "text-black/42" : "text-white/32"
+                            selected ? "text-white/64" : "text-white/32"
                           )}>
                             {meta.earningsLabel}
                           </span>
@@ -208,7 +205,7 @@ export function CalendarMonthGrid({
                         <span
                           className={cn(
                             "calendar-day-marker max-w-[42px] truncate text-[7px] font-semibold leading-tight",
-                            selected && "text-black/52"
+                            selected && "text-white/72"
                           )}
                           style={!selected
                             ? {
@@ -246,7 +243,7 @@ function resolveDaySurfaceStyle(meta: DayMeta, selected: boolean) {
   if (meta.entriesCount > 0) {
     const opacity = 0.18 + Math.min(meta.intensity ?? 0, 1) * 0.52;
     return {
-      boxShadow: `inset 0 -2px 0 rgba(213,190,141,${opacity})`
+      boxShadow: `inset 0 -2px 0 rgba(16,185,129,${opacity})`
     };
   }
 

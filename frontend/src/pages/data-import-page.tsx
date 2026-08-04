@@ -584,8 +584,8 @@ export function DataImportPage() {
                 fileInput.current.click();
               }
             }}
-              className="group relative flex min-h-44 w-full flex-col items-center justify-center rounded-[26px] border border-dashed border-[#d5be8d]/25 bg-[radial-gradient(circle_at_50%_0%,rgba(213,190,141,0.12),transparent_58%)] p-6 text-center transition active:scale-[0.99]">
-              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[22px] border border-white/[0.12] bg-white/[0.07] text-[#d5be8d] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_40px_rgba(0,0,0,0.24)]">
+              className="group relative flex min-h-44 w-full flex-col items-center justify-center rounded-[26px] border border-dashed border-[#10b981]/25 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.12),transparent_58%)] p-6 text-center transition active:scale-[0.99]">
+              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[22px] border border-white/[0.12] bg-white/[0.07] text-[#10b981] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_40px_rgba(0,0,0,0.24)]">
                 {file ? <FileSpreadsheet className="h-7 w-7" />
                   : <Upload className="h-7 w-7" />}
               </span>
@@ -607,7 +607,7 @@ export function DataImportPage() {
           {file && activeEmployments.length !== 1 ? (
             <Card variant="ambient" className="overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#d5be8d]/10 text-[#d5be8d]"><BriefcaseBusiness className="h-5 w-5" /></span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#10b981]/10 text-[#10b981]"><BriefcaseBusiness className="h-5 w-5" /></span>
                 <label className="min-w-0 flex-1">
                   <span className="mb-1 block text-xs uppercase tracking-[0.18em] text-white/35">{t("settings:dataImport.employment")}</span>
                   <select value={employmentId}
@@ -650,7 +650,7 @@ export function DataImportPage() {
       ) : !preview ? (
         <>
           <header>
-            <p className="text-sm font-medium text-[#d5be8d]">
+            <p className="text-sm font-medium text-[#10b981]">
               {t("settings:dataImport.aiReadFile")}
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-white">
@@ -668,11 +668,11 @@ export function DataImportPage() {
           {!result.analysis.datesAreExplicit
             && result.analysis.sheets.length > 1 && !hasDetectedSheetPeriods(result) ? (
             <Card className="border-amber-300/20 p-5">
-              <div className="mb-4 rounded-2xl border border-[#d5be8d]/20 bg-[#d5be8d]/[0.08] px-4 py-3">
-                <p className="text-sm font-semibold text-[#e8d8b4]">
+              <div className="mb-4 rounded-2xl border border-[#10b981]/20 bg-[#10b981]/[0.08] px-4 py-3">
+                <p className="text-sm font-semibold text-[#6ee7b7]">
                   {result.analysis.sheets.length} of {result.analysis.sheetCount} sheets read
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#d5be8d]/60">
+                <p className="mt-1 text-xs leading-5 text-[#10b981]/60">
                   {result.analysis.rowCount} rows are stored. Confirming the periods below applies
                   to every sheet, not only the first visible ones.
                 </p>
@@ -764,7 +764,7 @@ export function DataImportPage() {
                   <div className="flex items-start gap-3">
                     {needsAnswer || needsAliasConfirmation
                       ? <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-300" />
-                      : <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#d5be8d]" />}
+                      : <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#10b981]" />}
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-white">{candidate.sourceLabel}</p>
                       <p className="mt-1 text-sm leading-5 text-white/50">
@@ -796,7 +796,7 @@ export function DataImportPage() {
                           <button type="button"
                             onClick={() => setConfirmedAliases((current) =>
                               new Set(current).add(candidate.normalizedLabel))}
-                            className="min-h-12 w-full rounded-xl bg-[#d5be8d] px-3 text-sm font-semibold text-black">
+                            className="min-h-12 w-full rounded-xl bg-[#10b981] px-3 text-sm font-semibold text-black">
                             {t("settings:dataImport.yesSameWorkType")}
                           </button>
                           <select value={draft?.workTypeId ?? ""}
@@ -830,7 +830,7 @@ export function DataImportPage() {
                                   onClick={() => updateDecision(candidate, { absenceType: type })}
                                   className={`min-h-12 rounded-xl border px-2 text-xs font-medium ${
                                     draft.absenceType === type
-                                      ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
+                                      ? "border-[#10b981]/40 bg-[#10b981]/15 text-[#6ee7b7]"
                                       : "border-white/10 bg-white/[0.05] text-white/70"
                                   }`}>
                                   {t(`settings:dataImport.absenceTypes.${type}`)}
@@ -847,7 +847,7 @@ export function DataImportPage() {
                               })}
                               className={`min-h-12 rounded-xl border text-sm ${
                                 draft.absencePaid === true
-                                  ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
+                                  ? "border-[#10b981]/40 bg-[#10b981]/15 text-[#6ee7b7]"
                                   : "border-white/10 bg-white/[0.05] text-white/70"
                               }`}>
                               {t("settings:dataImport.paidAbsence")}
@@ -859,7 +859,7 @@ export function DataImportPage() {
                               })}
                               className={`min-h-12 rounded-xl border text-sm ${
                                 draft.absencePaid === false
-                                  ? "border-[#d5be8d]/40 bg-[#d5be8d]/15 text-[#e8d8b4]"
+                                  ? "border-[#10b981]/40 bg-[#10b981]/15 text-[#6ee7b7]"
                                   : "border-white/10 bg-white/[0.05] text-white/70"
                               }`}>
                               {t("settings:dataImport.unpaidAbsence")}
@@ -890,7 +890,7 @@ export function DataImportPage() {
                               calculationMethod: "TIME_BASED",
                               compensationMethod: "HOURLY"
                             })}
-                            className="min-h-12 rounded-xl border border-[#d5be8d]/20 bg-[#d5be8d]/[0.08] px-2 text-xs font-medium text-[#e8d8b4]">
+                            className="min-h-12 rounded-xl border border-[#10b981]/20 bg-[#10b981]/[0.08] px-2 text-xs font-medium text-[#6ee7b7]">
                             {t("settings:dataImport.classifyWorkType")}
                           </button>
                           <button type="button"
@@ -975,7 +975,7 @@ export function DataImportPage() {
       ) : unresolvedQuestions.length > 0 ? (
         <>
           <header>
-            <p className="text-sm font-medium text-[#d5be8d]">
+            <p className="text-sm font-medium text-[#10b981]">
               {t("settings:dataImport.onlyExceptions", {
                 resolved: allQuestions.length - unresolvedQuestions.length,
                 total: allQuestions.length
@@ -989,9 +989,9 @@ export function DataImportPage() {
             </p>
           </header>
           <Card variant="ambient" className="overflow-hidden">
-            <div className="border-b border-white/[0.07] bg-[#d5be8d]/[0.045] p-5">
+            <div className="border-b border-white/[0.07] bg-[#10b981]/[0.045] p-5">
               <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-[#d5be8d]" />
+                <Sparkles className="mt-0.5 h-5 w-5 text-[#10b981]" />
                 <div>
                   <p className="font-metric text-sm font-semibold text-white">
                     {currentQuestion?.entry.date} · {currentQuestion?.question.sourceLabel
@@ -1014,7 +1014,7 @@ export function DataImportPage() {
                   <label className="block">
                     <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-white/35">{t("settings:dataImport.baseActivityLabel")}</span>
                     <select value={quickTargetId} onChange={(event) => setQuickTargetId(event.currentTarget.value)}
-                      className="h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 text-white outline-none focus:border-[#d5be8d]/40">
+                      className="h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 text-white outline-none focus:border-[#10b981]/40">
                       <option value="">{t("settings:dataImport.chooseBaseActivity")}</option>
                       {currentQuestion.entry.lines.filter((line) => line.calculationMethod === "TIME_BASED").map((line) => (
                         <option key={line.workTypeId} value={line.workTypeId}>{line.workTypeName} · {line.value} h</option>
@@ -1026,13 +1026,13 @@ export function DataImportPage() {
                     <div className="relative">
                       <input value={quickPercentage} onChange={(event) => setQuickPercentage(event.currentTarget.value)}
                         type="text" inputMode="decimal" placeholder="50"
-                        className="font-metric h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 pr-12 text-lg font-semibold text-white outline-none focus:border-[#d5be8d]/40" />
+                        className="font-metric h-14 w-full rounded-2xl border border-white/[0.09] bg-black/20 px-4 pr-12 text-lg font-semibold text-white outline-none focus:border-[#10b981]/40" />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/35">%</span>
                     </div>
                   </label>
                   <button type="button" onClick={resolveSurchargeQuickly}
                     disabled={!quickTargetId || !numberValue(quickPercentage)}
-                    className="min-h-14 w-full rounded-full bg-[#f1ede4] px-5 font-semibold text-black transition active:scale-[0.985] disabled:opacity-35">
+                    className="min-h-14 w-full rounded-full bg-[#f1f1f1] px-5 font-semibold text-black transition active:scale-[0.985] disabled:opacity-35">
                     {t("settings:dataImport.confirmSimilar", {
                       count: unresolvedQuestions.filter(({ question }) => question.type === "SURCHARGE" && question.sourceLabel === currentQuestion.question.sourceLabel).length
                     })}
@@ -1057,7 +1057,7 @@ export function DataImportPage() {
                   ))}
                   {assistantProposal ? (
                     <button type="button" onClick={applyProposalToSimilar}
-                      className="min-h-12 w-full rounded-2xl border border-[#d5be8d]/25 bg-[#d5be8d]/10 px-4 text-sm font-semibold text-[#e8d8b4]">
+                      className="min-h-12 w-full rounded-2xl border border-[#10b981]/25 bg-[#10b981]/10 px-4 text-sm font-semibold text-[#6ee7b7]">
                       {assistantProposal.confirmation ?? t("settings:dataImport.applyAiProposal")}
                     </button>
                   ) : null}
@@ -1066,7 +1066,7 @@ export function DataImportPage() {
                       placeholder={t("settings:dataImport.globalAiPlaceholder")}
                       className="min-h-14 flex-1 resize-none rounded-2xl border border-white/[0.09] bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25" />
                     <button type="button" onClick={() => void sendToAssistant()} disabled={!assistantInput.trim() || assistantPending}
-                      className="grid h-14 w-14 place-items-center rounded-2xl bg-[#d5be8d] text-black disabled:opacity-35"><Send className="h-5 w-5" /></button>
+                      className="grid h-14 w-14 place-items-center rounded-2xl bg-[#10b981] text-black disabled:opacity-35"><Send className="h-5 w-5" /></button>
                   </div>
                 </div>
               </details>
@@ -1077,7 +1077,7 @@ export function DataImportPage() {
       ) : (
         <>
           <header>
-            <p className="text-sm font-medium text-[#d5be8d]">
+            <p className="text-sm font-medium text-[#10b981]">
               {t("settings:dataImport.readyForImport")}
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-white">
@@ -1102,8 +1102,8 @@ export function DataImportPage() {
               value={`${extraEligibleHours} h`} />
             <SummaryRow label={t("settings:dataImport.duplicatesSkipped")}
               value={String(preview.duplicateCount)} />
-            <div className="rounded-2xl bg-[#d5be8d]/[0.08] p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#e8d8b4]">
+            <div className="rounded-2xl bg-[#10b981]/[0.08] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#6ee7b7]">
                 <CheckCircle2 className="h-5 w-5" />
                 {t("settings:dataImport.noUnresolvedData")}
               </div>
@@ -1116,7 +1116,7 @@ export function DataImportPage() {
             disabled={sourceOpening}
             className="flex min-h-14 w-full items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 text-left transition active:scale-[0.99] disabled:opacity-50">
             <span className="flex min-w-0 items-center gap-3">
-              <FileText className="h-5 w-5 shrink-0 text-[#d5be8d]" />
+              <FileText className="h-5 w-5 shrink-0 text-[#10b981]" />
               <span className="min-w-0">
                 <span className="block text-xs uppercase tracking-[0.16em] text-white/32">{t("settings:dataImport.originalDocument")}</span>
                 <span className="block truncate text-sm font-medium text-white/75">{result.filename}</span>
@@ -1165,7 +1165,7 @@ export function DataImportPage() {
                                 return { ...current, [entry.id]: { ...existing, lineValues } };
                               });
                             }}
-                            className="font-metric h-10 w-20 rounded-xl border border-white/[0.09] bg-black/20 px-2 text-right font-semibold text-white outline-none focus:border-[#d5be8d]/40" />
+                            className="font-metric h-10 w-20 rounded-xl border border-white/[0.09] bg-black/20 px-2 text-right font-semibold text-white outline-none focus:border-[#10b981]/40" />
                           <span className="text-xs text-white/35">{line.calculationMethod === "TIME_BASED" ? "h" : "u"}</span>
                         </span>
                       </div>
@@ -1183,7 +1183,7 @@ export function DataImportPage() {
                         }));
                       }}
                       placeholder="Notes"
-                      className="min-h-14 w-full resize-none rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white/60 outline-none placeholder:text-white/25 focus:border-[#d5be8d]/40" />
+                      className="min-h-14 w-full resize-none rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white/60 outline-none placeholder:text-white/25 focus:border-[#10b981]/40" />
                   </div>
                 </details>
               ))}
@@ -1211,7 +1211,7 @@ export function DataImportPage() {
           ) : null}
           {error ? <ErrorMessage message={error} /> : null}
           {importSummary ? (
-            <p className="rounded-2xl bg-[#d5be8d]/10 px-4 py-3 text-sm text-[#e8d8b4]">
+            <p className="rounded-2xl bg-[#10b981]/10 px-4 py-3 text-sm text-[#6ee7b7]">
               {importSummary}
             </p>
           ) : null}
@@ -1235,7 +1235,7 @@ function Progress({ stage }: { stage: number }) {
       {[1, 2, 3, 4, 5].map((item) => (
         <span key={item}
           className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-            item <= stage ? "bg-[#d5be8d] shadow-[0_0_12px_rgba(213,190,141,0.22)]" : "bg-white/[0.08]"
+            item <= stage ? "bg-[#10b981] shadow-[0_0_12px_rgba(16,185,129,0.22)]" : "bg-white/[0.08]"
           }`} />
       ))}
     </div>

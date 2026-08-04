@@ -45,7 +45,7 @@ export function BottomNav() {
               className={cn(
                 "desktop-nav-item flex h-[54px] w-full flex-col items-center justify-center gap-1 rounded-[22px] transition-[background,color,transform] duration-200",
                 isActive
-                  ? "bg-[rgba(213,190,141,0.12)] text-[#ead8ac]"
+                  ? "bg-[rgba(16,185,129,0.12)] text-[#34d399]"
                   : "text-white/42 active:scale-[0.96]"
               )}
               title={label}

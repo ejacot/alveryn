@@ -76,6 +76,7 @@ export function SettingsEmploymentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedEditId = searchParams.get("edit");
+  const requestedCreate = searchParams.get("create") === "true";
   const queryClient = useQueryClient();
   const safeBack = useSafeBackNavigation({ fallback: "/profile" });
   const [editorOpen, setEditorOpen] = useState(false);
@@ -111,6 +112,7 @@ export function SettingsEmploymentPage() {
     defaultValues: emptyFormValues()
   });
   const trackingFocus = useWatch({ control: form.control, name: "trackingFocus" });
+  const employmentName = useWatch({ control: form.control, name: "name" });
   const hourBalanceEnabled = useWatch({ control: form.control, name: "hourBalanceEnabled" });
 
   const submitEmployment = async (values: FormValues) => {
@@ -140,6 +142,15 @@ export function SettingsEmploymentPage() {
     form.reset(toFormValues(requested));
     setEditorOpen(true);
   }, [employmentsQuery.data, form, requestedEditId, selectedEmployment?.id]);
+
+  useEffect(() => {
+    if (!requestedCreate || employmentsQuery.isLoading) return;
+    setSelectedEmployment(null);
+    setSuccessMessage(null);
+    form.reset(emptyFormValues());
+    setEditorOpen(true);
+    navigate("/settings/employment", { replace: true });
+  }, [employmentsQuery.isLoading, form, navigate, requestedCreate]);
 
   const saveMutation = useMutation({
     mutationFn: (values: FormValues) => {
@@ -240,7 +251,7 @@ export function SettingsEmploymentPage() {
 
       {editorOpen ? (
         <form
-          className="space-y-6"
+          className="employment-create-form space-y-4"
           onSubmit={form.handleSubmit(submitEmployment)}
         >
           {showIdentity ? (
@@ -262,12 +273,15 @@ export function SettingsEmploymentPage() {
                       role="radio"
                       aria-checked={selected}
                       onClick={() => form.setValue("trackingFocus", focus, { shouldDirty: true, shouldValidate: true })}
-                      className={`flex min-h-14 items-center justify-between gap-3 rounded-[1.15rem] border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24 ${
+                      className={`employment-tracking-choice flex min-h-16 items-center justify-between gap-3 rounded-[1.15rem] border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/24 ${
                         selected ? "border-white/55 bg-white/[0.11]" : "border-white/[0.09] bg-white/[0.025]"
                       }`}
                     >
-                      <span className="font-medium text-white">{t(`settings:employment.tracking.${focus}.summaryTitle`)}</span>
-                      <span className={`h-4 w-4 shrink-0 rounded-full border ${selected ? "border-[5px] border-white" : "border-white/25"}`} aria-hidden="true" />
+                      <span>
+                        <span className="block font-medium text-white">{t(`settings:employment.tracking.${focus}.summaryTitle`)}</span>
+                        <span className="mt-1 block text-xs leading-4 text-white/42">{t(`settings:employment.tracking.${focus}.shortDescription`)}</span>
+                      </span>
+                      <span className={`employment-radio h-4 w-4 shrink-0 rounded-full border ${selected ? "is-selected border-[5px] border-white" : "border-white/25"}`} aria-hidden="true" />
                     </button>
                   );
                 })}
@@ -275,9 +289,25 @@ export function SettingsEmploymentPage() {
           </SettingsSection> : null}
 
           {!selectedEmployment ? <SettingsSection title={t("settings:employment.sections.period")}>
-            <div className="space-y-4">
-              <Input type="date" label={t("settings:employment.fields.startDate")} error={form.formState.errors.startDate?.message} {...form.register("startDate")} />
-              <Input type="date" label={t("settings:employment.fields.endDate")} error={form.formState.errors.endDate?.message} {...form.register("endDate")} />
+            <div className="grid min-w-0 grid-cols-2 gap-3">
+              <Input
+                type="date"
+                compactDate={false}
+                wrapperClassName="min-w-0 overflow-hidden"
+                className="employment-date-input !w-full !min-w-0 !max-w-full appearance-none overflow-hidden rounded-2xl px-1 text-center text-sm"
+                label={t("settings:employment.fields.startDate")}
+                error={form.formState.errors.startDate?.message}
+                {...form.register("startDate")}
+              />
+              <Input
+                type="date"
+                compactDate={false}
+                wrapperClassName="min-w-0 overflow-hidden"
+                className="employment-date-input !w-full !min-w-0 !max-w-full appearance-none overflow-hidden rounded-2xl px-1 text-center text-sm"
+                label={t("settings:employment.fields.endDateOptional")}
+                error={form.formState.errors.endDate?.message}
+                {...form.register("endDate")}
+              />
             </div>
           </SettingsSection> : null}
 
@@ -295,8 +325,8 @@ export function SettingsEmploymentPage() {
                     <span className="block font-medium text-white">{t("settings:employment.fields.hourBalance")}</span>
                     <span className="mt-1 block text-sm text-white/46">{t("settings:employment.help.hourBalance")}</span>
                   </span>
-                  <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${hourBalanceEnabled ? "bg-white" : "bg-white/[0.12]"}`}>
-                    <span className={`absolute top-1 h-5 w-5 rounded-full transition ${hourBalanceEnabled ? "left-6 bg-black" : "left-1 bg-white/55"}`} />
+                  <span className={`employment-toggle relative h-7 w-12 shrink-0 rounded-full border transition ${hourBalanceEnabled ? "is-enabled border-emerald-600 bg-emerald-600" : "border-black/15 bg-black/10"}`}>
+                    <span className={`employment-toggle-knob absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition ${hourBalanceEnabled ? "left-[23px]" : "left-[3px]"}`} />
                   </span>
                 </button>
                 {hourBalanceEnabled ? (
@@ -314,6 +344,7 @@ export function SettingsEmploymentPage() {
 
           <SettingsFormActions
             submitting={saveMutation.isPending}
+            submitDisabled={!selectedEmployment && !employmentName.trim()}
             successMessage={successMessage}
             submitLabel={selectedEmployment ? t("common:actions.saveChanges") : t("settings:employment.create")}
             onDelete={selectedEmployment && showIdentity ? () => setDeleteDialogOpen(true) : undefined}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiError } from "../api/api-errors";
@@ -47,12 +47,8 @@ export function HourlyRatesPage() {
         title={title}
         backLabel={t("common:actions.back")}
         onBack={safeBack}
-        action={rates.length > 0 ? {
-          label: t("settings:hourlyRateEditor.addTitle"),
-          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
-          onClick: () => navigate(newRatePath)
-        } : undefined}
       />
+      <EmploymentFeatureGuide feature="hourlyRates" onPrimaryAction={() => navigate(newRatePath)} />
       {rates.length === 0 ? (
         <SettingsEmptyState
           title={t("settings:hourlyRateList.emptyTitle")}
@@ -86,7 +82,6 @@ export function HourlyRatesPage() {
           ))}
         </section>
       )}
-      <EmploymentFeatureGuide feature="hourlyRates" />
     </div>
   );
 }

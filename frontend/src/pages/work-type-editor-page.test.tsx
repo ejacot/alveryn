@@ -208,24 +208,60 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /time based/i);
+    await chooseSetupMode(user, /by time/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "check");
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
     await user.click(screen.getByLabelText("Extra pay"));
     expect(screen.getByDisplayValue("check")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalled();
 	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual(expect.objectContaining({
 	        name: "check",
 	        calculationMethod: "TIME_BASED",
-	        color: "#A3E635",
+	        color: "#10b981",
 	        icon: null,
 	        defaultBreakMinutes: 30,
           extraPayEnabled: true
 	      }));
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types", { replace: true });
+    });
+  });
+
+  it("creates a category with one calculation method and opens it", async () => {
+    routeState.search = "?category=true";
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("heading", { name: "How will work types in this category be calculated?" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /by time/i }));
+
+    expect(await screen.findByRole("heading", { name: "Create category" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Category name")).toHaveAttribute("placeholder", "e.g. Cleaning services");
+    expect(screen.queryByRole("button", { name: "Advanced settings" })).not.toBeInTheDocument();
+    expect(screen.queryByText("How is this work type calculated?")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Category name"), "Cleaning services");
+    await user.click(screen.getByLabelText("Teamwork"));
+    await user.click(screen.getByLabelText("Extra pay"));
+    await user.click(screen.getByRole("button", { name: "Create category" }));
+
+    await waitFor(() => {
+      expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
+        name: "Cleaning services",
+        compositeEnabled: true,
+        calculationMethod: "TIME_BASED",
+        teamworkEnabled: true,
+        extraPayEnabled: true,
+        unitLabel: null,
+        unitSymbol: null,
+        unitsPerHour: null,
+        ratePerUnit: null,
+        currency: null
+      }));
+      expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/work-type-1", { replace: true });
     });
   });
 
@@ -238,12 +274,12 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
-    expect(screen.getByText("Time based")).toBeInTheDocument();
+    expect(screen.getByText("By time")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Default break")).toBeInTheDocument();
-    expect(screen.getByLabelText("Teamwork")).toBeInTheDocument();
-    expect(screen.getByLabelText("Extra pay")).toBeInTheDocument();
-    expect(screen.getByLabelText("Advanced")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Teamwork")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Extra pay")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Advanced settings" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Fixed price")).not.toBeInTheDocument();
   });
 
@@ -257,9 +293,9 @@ describe("WorkTypeEditorPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
     expect(screen.getByText("Fixed price")).toBeInTheDocument();
-    expect(screen.queryByText("Time based")).not.toBeInTheDocument();
+    expect(screen.queryByText("By time")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Default break")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Units")).not.toBeInTheDocument();
   });
 
   it("uses the URL mode before stale navigation state", async () => {
@@ -271,14 +307,14 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Add work type" })).toBeInTheDocument();
-    expect(screen.getByText("Time based")).toBeInTheDocument();
+    expect(screen.getByText("By time")).toBeInTheDocument();
     expect(screen.getByLabelText("Default break")).toBeInTheDocument();
     expect(screen.queryByText("Fixed price")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Check");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -290,7 +326,7 @@ describe("WorkTypeEditorPage", () => {
     });
   });
 
-  it("shows child time-based name and default break in the same block row", async () => {
+  it("does not expose category creation in the work type form", async () => {
     routeState.search = "?mode=TIME_HOURLY";
     routeState.setupMode = "TIME_HOURLY";
     routeState.calculationMethod = "TIME_BASED";
@@ -299,7 +335,12 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByLabelText("Advanced"));
+    await screen.findByRole("heading", { name: "Add work type" });
+    expect(screen.queryByLabelText("Multiple work lines")).not.toBeInTheDocument();
+    return;
+
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
+    await user.click(await screen.findByLabelText("Multiple work lines"));
 
     expect(screen.getByLabelText("Category name")).toBeInTheDocument();
     const childNameField = screen.getByLabelText("Name");
@@ -309,7 +350,7 @@ describe("WorkTypeEditorPage", () => {
     expect(childNameField.closest(".grid")).toBe(childDefaultBreakField.closest(".grid"));
   });
 
-  it("keeps time-based advanced parent fields and lets children define their default break", async () => {
+  it("keeps category controls out of the time-based advanced settings", async () => {
     routeState.search = "?mode=TIME_HOURLY";
     routeState.setupMode = "TIME_HOURLY";
     routeState.calculationMethod = "TIME_BASED";
@@ -318,14 +359,19 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
+    expect(screen.queryByLabelText("Multiple work lines")).not.toBeInTheDocument();
+    return;
+
     await user.clear(await screen.findByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Daily work");
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
     await user.click(screen.getByLabelText("Teamwork"));
-    await user.click(screen.getByLabelText("Advanced"));
+    await user.click(screen.getByLabelText("Multiple work lines"));
 
     expect(screen.getByLabelText("Category name")).toBeInTheDocument();
     expect(screen.getByLabelText("Teamwork")).toBeInTheDocument();
-    expect(screen.getByLabelText("Advanced")).toBeInTheDocument();
+    expect(screen.getByLabelText("Multiple work lines")).toBeInTheDocument();
     expect(screen.getAllByLabelText("Name")).toHaveLength(1);
     expect(screen.getAllByLabelText("Default break")).toHaveLength(1);
 
@@ -333,7 +379,7 @@ describe("WorkTypeEditorPage", () => {
     const childBreakField = screen.getByLabelText("Default break");
     await user.clear(childBreakField);
     await user.type(childBreakField, "15");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -341,7 +387,7 @@ describe("WorkTypeEditorPage", () => {
         calculationMethod: "TIME_BASED",
         teamworkEnabled: true,
         compositeEnabled: true,
-        color: "#A3E635",
+        color: "#10b981",
         defaultBreakMinutes: null
       }));
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -349,7 +395,7 @@ describe("WorkTypeEditorPage", () => {
         name: "Check",
         calculationMethod: "TIME_BASED",
         teamworkEnabled: true,
-        color: "#A3E635",
+        color: "#10b981",
         defaultBreakMinutes: 15
       }));
     });
@@ -369,20 +415,20 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /units converted to hours/i);
+    await chooseSetupMode(user, /units into hours/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Camere");
-    await user.type(screen.getByLabelText("Unit name"), "Room");
     await user.type(screen.getByLabelText("Units per hour"), "2,4");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
 	      expect(vi.mocked(createWorkType).mock.calls[0][0]).toEqual(expect.objectContaining({
 	        name: "Camere",
 	        calculationMethod: "UNITS_PER_HOUR_BASED",
-          unitLabel: "Room",
+          unitLabel: "units",
+          unitSymbol: "units",
           unitsPerHour: 2.4,
-	        color: "#A3E635",
+	        color: "#10b981",
 	        icon: null,
 	        defaultBreakMinutes: null
 	      }));
@@ -404,20 +450,20 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /units converted to hours/i);
+    await chooseSetupMode(user, /units into hours/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Rooms");
-    await user.type(screen.getByLabelText("Unit name"), "Room");
     await user.type(screen.getByLabelText("Units per hour"), "2");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
 	      expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
 	        name: "Rooms",
 	        calculationMethod: "UNITS_PER_HOUR_BASED",
-          unitLabel: "Room",
+          unitLabel: "units",
+          unitSymbol: "units",
           unitsPerHour: 2,
-	        color: "#A3E635",
+	        color: "#10b981",
 	        icon: null,
 	        defaultBreakMinutes: null
 	      }));
@@ -425,27 +471,30 @@ describe("WorkTypeEditorPage", () => {
     });
   });
 
-  it("treats advanced work types as parent-only containers", async () => {
+  it("keeps category controls out of unit-based work types", async () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /units converted to hours/i);
-    expect(screen.getByLabelText("Unit name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Symbol")).toBeInTheDocument();
+    await chooseSetupMode(user, /units into hours/i);
+    expect(screen.queryByLabelText("Units")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Symbol")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Multiple work lines")).not.toBeInTheDocument();
+    return;
 
-    await user.click(screen.getByLabelText("Advanced"));
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
+    await user.click(screen.getByLabelText("Multiple work lines"));
 
-    expect(screen.getByLabelText("Unit name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Symbol")).toBeInTheDocument();
+    expect(screen.getByLabelText("Units")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Symbol")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Units per hour")).toBeInTheDocument();
     expect(screen.getByLabelText("Teamwork")).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("Category name"));
     await user.type(screen.getByLabelText("Category name"), "Floor heating");
     await user.type(screen.getByLabelText("Name"), "Normal");
-    await user.type(screen.getByLabelText("Unit name"), "m2");
+    await user.type(screen.getByLabelText("Units"), "m2");
     await user.type(screen.getByLabelText("Units per hour"), "2");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -476,10 +525,10 @@ describe("WorkTypeEditorPage", () => {
     await chooseSetupMode(user, /fixed price/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Roof repair");
-    expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Units")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Rate per unit")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Default break")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -496,7 +545,7 @@ describe("WorkTypeEditorPage", () => {
     });
   });
 
-  it("does not show unit fields for fixed-price advanced children", async () => {
+  it("keeps category controls out of fixed-price work types", async () => {
     routeState.search = "?mode=FIXED_AMOUNT";
     routeState.setupMode = "FIXED_AMOUNT";
     routeState.calculationMethod = "FIXED_PRICE_BASED";
@@ -506,13 +555,16 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     expect(await screen.findByText("Fixed price")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Units")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Multiple work lines")).not.toBeInTheDocument();
+    return;
 
-    await user.click(screen.getByLabelText("Advanced"));
+    await user.click(screen.getByRole("button", { name: "Advanced settings" }));
+    await user.click(screen.getByLabelText("Multiple work lines"));
 
     expect(screen.getByLabelText("Category name")).toBeInTheDocument();
     expect(screen.getAllByLabelText("Name")).toHaveLength(1);
-    expect(screen.queryByLabelText("Unit name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Units")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Symbol")).not.toBeInTheDocument();
   });
 
@@ -521,10 +573,10 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /time based/i);
+    await chooseSetupMode(user, /by time/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Check");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     expect(await screen.findAllByText("A work type with this name already exists.")).toHaveLength(2);
     expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
@@ -536,10 +588,10 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /time based/i);
+    await chooseSetupMode(user, /by time/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Check");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     expect(await screen.findAllByText("Name already exists")).toHaveLength(2);
     expect(screen.getByDisplayValue("Check")).toBeInTheDocument();
@@ -551,10 +603,10 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /time based/i);
+    await chooseSetupMode(user, /by time/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Check");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
     expect(await screen.findByRole("button", { name: /saving/i })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: /saving/i }));
 
@@ -588,7 +640,7 @@ describe("WorkTypeEditorPage", () => {
 
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "president");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
@@ -603,7 +655,7 @@ describe("WorkTypeEditorPage", () => {
     vi.mocked(getWorkType).mockResolvedValue({
       id: "work-type-1",
       name: "ROOMS",
-      calculationMethod: "UNIT_BASED",
+      calculationMethod: "UNITS_PER_HOUR_BASED",
       unitLabel: "Room",
       unitSymbol: null,
       unitsPerHour: null,
@@ -621,14 +673,17 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     await screen.findByRole("heading", { name: "ROOMS" });
+    expect(screen.getByLabelText("Category name")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Advanced settings" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Color")).not.toBeInTheDocument();
+    expect(screen.getByText("Work types")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add work type" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Add formula" });
+    const dialog = screen.getByRole("dialog", { name: "Add work type" });
     expect(dialog).toBeInTheDocument();
+    expect(within(dialog).queryByRole("group", { name: "How is this work type calculated?" })).not.toBeInTheDocument();
 
-    await user.type(within(dialog).getByLabelText("Activity name"), "Normal rooms");
-    await user.click(within(dialog).getByRole("button", { name: /Units \/ units per hour/i }));
-    await user.type(within(dialog).getByLabelText("Unit name"), "Room");
+    await user.type(within(dialog).getByLabelText("Work type name"), "Normal rooms");
     await user.type(within(dialog).getByLabelText("Units per hour"), "2,4");
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
@@ -637,7 +692,8 @@ describe("WorkTypeEditorPage", () => {
         parentId: "work-type-1",
         name: "Normal rooms",
         calculationMethod: "UNITS_PER_HOUR_BASED",
-        unitLabel: "Room",
+        unitLabel: "units",
+        unitSymbol: "units",
         unitsPerHour: 2.4,
         color: "#FFFFFF",
         active: true
@@ -650,7 +706,7 @@ describe("WorkTypeEditorPage", () => {
     vi.mocked(getWorkType).mockResolvedValue({
       id: "work-type-1",
       name: "ROOMS",
-      calculationMethod: "UNIT_BASED",
+      calculationMethod: "UNITS_PER_HOUR_BASED",
       unitLabel: "Room",
       unitSymbol: null,
       unitsPerHour: null,
@@ -690,7 +746,7 @@ describe("WorkTypeEditorPage", () => {
     expect(await screen.findByText("2.4 Room per hour")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /normal rooms/i }));
 
-    const dialog = screen.getByRole("dialog", { name: "Edit formula" });
+    const dialog = screen.getByRole("dialog", { name: "Edit work type" });
     expect(within(dialog).getByDisplayValue("Normal rooms")).toBeInTheDocument();
     expect(within(dialog).getByDisplayValue("2.4")).toBeInTheDocument();
 
@@ -703,7 +759,8 @@ describe("WorkTypeEditorPage", () => {
         parentId: "work-type-1",
         name: "Normal rooms",
         calculationMethod: "UNITS_PER_HOUR_BASED",
-        unitLabel: "Room",
+        unitLabel: "units",
+        unitSymbol: "units",
         unitsPerHour: 3,
         displayOrder: 7,
         active: true
@@ -715,11 +772,11 @@ describe("WorkTypeEditorPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await chooseSetupMode(user, /time based/i);
+    await chooseSetupMode(user, /by time/i);
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Check");
     fireEvent.change(screen.getByLabelText("Color"), { target: { value: "#60A5FA" } });
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(createWorkType).toHaveBeenCalledWith(expect.objectContaining({
@@ -753,7 +810,7 @@ describe("WorkTypeEditorPage", () => {
 
     await screen.findByRole("heading", { name: "ROOMS" });
     expect(screen.getByLabelText("Color")).toHaveValue("#ffffff");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
@@ -785,14 +842,14 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     await screen.findByRole("heading", { name: "CHECK" });
-    expect(screen.getByLabelText("Color")).toHaveValue("#a3e635");
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    expect(screen.getByLabelText("Color")).toHaveValue("#10b981");
+    await user.click(screen.getByRole("button", { name: /save changes|add activity/i }));
 
     await waitFor(() => {
       expect(updateWorkType).toHaveBeenCalledWith("work-type-1", expect.objectContaining({
         name: "CHECK",
         calculationMethod: "TIME_BASED",
-        color: "#A3E635",
+        color: "#10b981",
         defaultBreakMinutes: 30
       }));
     });
@@ -904,8 +961,8 @@ describe("WorkTypeEditorPage", () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole("button", { name: /normal rooms/i }));
-    const dialog = screen.getByRole("dialog", { name: "Edit formula" });
-    await user.click(within(dialog).getByRole("button", { name: "Deactivate formula" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit work type" });
+    await user.click(within(dialog).getByRole("button", { name: "Deactivate work type" }));
 
     await waitFor(() => {
       expect(deleteWorkType).toHaveBeenCalledWith("config-normal");

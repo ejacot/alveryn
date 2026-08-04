@@ -29,7 +29,7 @@ export function SettingsGroup({ title, description, icon, children }: SettingsGr
         <div className="px-5 pt-4">
           <div className={`flex items-center gap-2.5 ${description ? "mb-2" : "mb-3"}`}>
             {icon ? (
-              <span className="grid h-7 w-7 place-items-center rounded-[10px] border border-[#d5be8d]/12 bg-[#d5be8d]/[0.07] text-[#d5be8d]">
+              <span className="grid h-7 w-7 place-items-center rounded-[10px] border border-[#10b981]/12 bg-[#10b981]/[0.07] text-[#10b981]">
                 {icon}
               </span>
             ) : null}

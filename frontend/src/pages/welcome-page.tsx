@@ -71,7 +71,7 @@ export function WelcomePage() {
       className="landing-page fixed inset-0 isolate overflow-y-auto overflow-x-hidden overscroll-y-contain bg-black text-white"
     >
       <div
-        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(circle_at_72%_8%,rgba(244,201,93,0.16),transparent_34%),radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.08),transparent_28%)]"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(circle_at_72%_8%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.08),transparent_28%)]"
         aria-hidden="true"
       />
 
@@ -132,7 +132,7 @@ export function WelcomePage() {
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {heroPoints.map((point) => (
               <span key={point} className="inline-flex items-center gap-2 text-sm text-white/58">
-                <Check className="h-4 w-4 text-[#f4c95d]" aria-hidden="true" />
+                <Check className="h-4 w-4 text-[#34d399]" aria-hidden="true" />
                 {point}
               </span>
             ))}
@@ -208,7 +208,7 @@ export function WelcomePage() {
               const Icon = audienceIcons[index] ?? BriefcaseBusiness;
               return (
                 <article key={item.title} className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-5">
-                  <Icon className="h-5 w-5 text-[#f4c95d]" aria-hidden="true" />
+                  <Icon className="h-5 w-5 text-[#34d399]" aria-hidden="true" />
                   <h3 className="mt-6 font-semibold text-white">{item.title}</h3>
                   <p className="mt-2.5 text-sm leading-6 text-white/54">{item.description}</p>
                 </article>
@@ -311,7 +311,7 @@ function PreviewMetric({
 }) {
   return (
     <div className={`rounded-[22px] border p-4 ${accent ? "border-amber-300/20 bg-amber-300/[0.07]" : "border-white/[0.07] bg-black/30"}`}>
-      <Icon className={`h-4 w-4 ${accent ? "text-[#f4c95d]" : "text-white/42"}`} aria-hidden="true" />
+      <Icon className={`h-4 w-4 ${accent ? "text-[#34d399]" : "text-white/42"}`} aria-hidden="true" />
       <p className="mt-4 text-xs text-white/38">{label}</p>
       <p className="mt-1 text-xl font-semibold text-white sm:text-2xl">{value}</p>
     </div>
@@ -338,7 +338,7 @@ function MonthPreview({ t }: { t: (key: string) => string }) {
           <p className="text-xs uppercase tracking-[0.18em] text-white/34">{t("monthPreview.period")}</p>
           <h3 className="mt-2 text-xl font-semibold text-white">{t("monthPreview.title")}</h3>
         </div>
-        <CalendarDays className="h-5 w-5 text-[#f4c95d]" aria-hidden="true" />
+        <CalendarDays className="h-5 w-5 text-[#34d399]" aria-hidden="true" />
       </div>
       <div className="mt-6 grid grid-cols-3 gap-3">
         <SmallStat label={t("monthPreview.days")} value="18" />
@@ -420,7 +420,7 @@ function SectionIntro({
 }) {
   return (
     <div className={`max-w-3xl space-y-4 ${centered ? "mx-auto text-center" : ""}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f4c95d]/80">{eyebrow}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#34d399]/80">{eyebrow}</p>
       <h2 className="text-balance text-3xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-5xl">{title}</h2>
       <p className="text-base leading-7 text-white/58 sm:text-lg">{body}</p>
     </div>

@@ -214,8 +214,8 @@ describe("ProfilePage", () => {
     ]);
     renderPage();
 
-    expect(await screen.findByText("2 employments")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Employment settings" })).toHaveAttribute("href", "/settings/employment");
+    expect(await screen.findByRole("link", { name: "Employment settings" })).toHaveAttribute("href", "/settings/employment");
+    expect(screen.queryByText("2 employments")).not.toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Choose employment" })).not.toBeInTheDocument();
   });
 });

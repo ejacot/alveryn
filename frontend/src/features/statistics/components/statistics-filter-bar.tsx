@@ -269,7 +269,7 @@ export function StatisticsFilterBar({ filters, workTypes, employments, employmen
 
 function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${active ? "border-[#d7bd86]/45 bg-[#d7bd86]/14 text-[#f2dfb6]" : "border-white/[0.08] bg-white/[0.035] text-white/55"}`}>
+    <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${active ? "border-[#10b981]/45 bg-[#10b981]/14 text-[#6ee7b7]" : "border-white/[0.08] bg-white/[0.035] text-white/55"}`}>
       {active ? <Check className="h-3.5 w-3.5" /> : null}{label}
     </button>
   );

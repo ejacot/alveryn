@@ -81,15 +81,10 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
     () => (employmentsQuery.data ?? []).filter((employment) => employment.active),
     [employmentsQuery.data]
   );
-  const employmentValue = useMemo(() => {
-    if (!activeEmployments.length) return t("settings:employment.none");
-    if (activeEmployments.length === 1) return activeEmployments[0].name;
-    return t("settings:employment.count", { count: activeEmployments.length });
-  }, [activeEmployments, t]);
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
   const matchesSearch = (...values: string[]) =>
     !normalizedSearch || values.some((value) => value.toLocaleLowerCase().includes(normalizedSearch));
-  const showWork = matchesSearch(t("settings:workEmployments"), t("settings:employment.settingsTitle"), employmentValue);
+  const showWork = matchesSearch(t("settings:workEmployments"), t("settings:employment.settingsTitle"));
   const showPreferences = matchesSearch(
     t("settings:appearanceRegion"),
     t("settings:preferencesSections.region"),
@@ -204,7 +199,7 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
           onChange={(event) => setSearchQuery(event.currentTarget.value)}
           placeholder={t("settings:searchPlaceholder")}
           aria-label={t("settings:searchPlaceholder")}
-          className="h-12 w-full rounded-[18px] border border-white/[0.08] bg-white/[0.045] pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition placeholder:text-white/28 focus:border-[#d5be8d]/25 focus:bg-white/[0.065] focus:ring-2 focus:ring-[#d5be8d]/12"
+          className="h-12 w-full rounded-[18px] border border-white/[0.08] bg-white/[0.045] pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition placeholder:text-white/28 focus:border-[#10b981]/25 focus:bg-white/[0.065] focus:ring-2 focus:ring-[#10b981]/12"
         />
       </label>
 
@@ -215,9 +210,8 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
         <SettingsRow
           to={activeEmployments.length === 1 ? `/settings/employment/${activeEmployments[0].id}` : "/settings/employment"}
           label={t("settings:employment.settingsTitle")}
-          value={employmentValue}
           icon={<BriefcaseBusiness className="h-[18px] w-[18px]" />}
-          iconClassName="bg-[#d5be8d]/[0.08] text-[#ead8ac]"
+          iconClassName="bg-[#10b981]/[0.08] text-[#34d399]"
         />
       </SettingsGroup> : null}
 
@@ -246,7 +240,7 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
           label={t("settings:preferencesSections.appearance")}
           value={t(`settings:preferencesOptions.${themeTranslationKey(preferences?.theme)}`)}
           icon={<Palette className="h-[18px] w-[18px]" />}
-          iconClassName="bg-[#d5be8d]/[0.09] text-[#ead8ac]"
+          iconClassName="bg-[#10b981]/[0.09] text-[#34d399]"
         />
       </SettingsGroup> : null}
 

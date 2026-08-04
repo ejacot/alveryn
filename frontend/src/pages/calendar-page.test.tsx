@@ -481,7 +481,7 @@ describe("CalendarPage", () => {
     expect(within(freeDay).getByText("13")).not.toHaveClass("text-red-300");
     expect(within(freeDay).getByText("Free")).toHaveStyle({ color: "#64748b" });
     expect(within(sickDay).getByText("14")).not.toHaveClass("text-red-300");
-    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#d5be8d]/35");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#34d399]/55");
     expect(todayWithoutActivity).not.toHaveAccessibleName(/day off/i);
     expect(futureVacation).toHaveAccessibleName(/vacation/i);
     expect(within(futureVacation).getByText("20")).not.toHaveClass("text-red-300");
@@ -597,7 +597,7 @@ describe("CalendarPage", () => {
     expect(within(flow).getByText("15")).toBeInTheDocument();
     expect(screen.getByTestId("flow-monthly-bar-2026-07-15")).toHaveStyle({
       height: "93.75%",
-      backgroundColor: "#ead8ac"
+      backgroundColor: "#34d399"
     });
 
     await user.click(screen.getByRole("button", { name: "Rhythm" }));
@@ -606,7 +606,7 @@ describe("CalendarPage", () => {
     expect(within(rhythm).getByText("15")).toBeInTheDocument();
     expect(screen.getByTestId("rhythm-monthly-bar-2026-07-15")).toHaveStyle({
       height: "93.75%",
-      backgroundColor: "#ead8ac"
+      backgroundColor: "#34d399"
     });
   });
 

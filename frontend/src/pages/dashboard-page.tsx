@@ -576,6 +576,10 @@ function toPhaseTwoWorkRecordActivity(
   );
   const displayCurrency = currencies.values().next().value ?? record.currency ?? "EUR";
   const extraMinutes = workLines.reduce((total, line) => {
+    if (line.extraPayDetails?.length) {
+      return total + line.extraPayDetails.reduce(
+        (detailTotal, detail) => detailTotal + Number(detail.eligibleMinutes), 0);
+    }
     const percentage = line.extraPayPercentage ?? 0;
     if (percentage <= 0) return total;
     return total + Number(line.calculatedMinutes);
@@ -663,6 +667,11 @@ function toPhaseTwoLineBreakdown(
       : hours,
     price,
     extraPayPercentage: line.extraPayPercentage,
+    extraPayDetails: line.extraPayDetails?.map((detail) => ({
+      name: detail.name,
+      eligibleMinutes: Number(detail.eligibleMinutes),
+      percentage: detail.percentage
+    })),
     displayOrder: line.displayOrder
   };
 

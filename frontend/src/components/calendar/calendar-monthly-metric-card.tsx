@@ -58,15 +58,15 @@ export function CalendarMonthlyMetricCard({
       <Card className="overflow-hidden">
         <div className="flex min-h-16 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-3">
           <div className="min-w-0">
-            <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f4f0e7]/34">
+            <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f5f5f5]/34">
               {t(variant === "flow" ? "monthlyCharts.dailyEarningsAverage" : "monthlyCharts.dailyHoursAverage")}
             </p>
-            <p className="mt-1 flex items-baseline gap-1.5 font-metric text-lg font-medium tabular-nums text-[#f4f0e7]">
-              <span className="text-sm text-[#f4f0e7]/44">
+            <p className="mt-1 flex items-baseline gap-1.5 font-metric text-lg font-medium tabular-nums text-[#f5f5f5]">
+              <span className="text-sm text-[#f5f5f5]/44">
                 {variant === "flow" ? currencySymbol : "h"}
               </span>
               <span>{numberFormatter.format(variant === "flow" ? average : average / 60)}</span>
-              <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#f4f0e7]/34">
+              <span className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#f5f5f5]/34">
                 {t("monthlyCharts.averageShort")}
               </span>
             </p>
@@ -74,10 +74,10 @@ export function CalendarMonthlyMetricCard({
           <div className="flex shrink-0 items-center gap-2">
             {selectedMetricDay && selectedMetricValue > 0 ? (
               <div className="text-right">
-                <p className="text-[0.55rem] font-medium uppercase tracking-[0.12em] text-[#f4f0e7]/30">
+                <p className="text-[0.55rem] font-medium uppercase tracking-[0.12em] text-[#f5f5f5]/30">
                   {t("monthlyCharts.day", { day: selectedMetricDay.dayNumber })}
                 </p>
-                <p className="mt-0.5 font-metric text-xs font-medium tabular-nums text-[#ead8ac]">
+                <p className="mt-0.5 font-metric text-xs font-medium tabular-nums text-[#34d399]">
                   {variant === "flow"
                     ? `${currencySymbol}${numberFormatter.format(selectedMetricValue)}`
                     : `${numberFormatter.format(selectedMetricValue / 60)} h`}
@@ -87,7 +87,7 @@ export function CalendarMonthlyMetricCard({
             <div className={cn(
               "flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
               change >= 0
-                ? "border-[#d5be8d]/15 bg-[#d5be8d]/[0.07] text-[#d5be8d]"
+                ? "border-[#10b981]/15 bg-[#10b981]/[0.07] text-[#10b981]"
                 : "border-red-400/15 bg-red-400/[0.06] text-red-300"
             )}>
               {change >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
@@ -108,7 +108,7 @@ export function CalendarMonthlyMetricCard({
             ))}
             {maximum > 0 ? (
               <div
-                className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#d5be8d]/55"
+                className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#10b981]/55"
                 style={{ bottom: `calc(1.5rem + ${(averagePercentage / 100) * 9}rem)` }}
                 aria-hidden="true"
               />
@@ -128,8 +128,8 @@ export function CalendarMonthlyMetricCard({
                     onClick={() => onDaySelect(day.key)}
                     aria-label={`${day.dayNumber}, ${value}`}
                     className={cn(
-                      "flex h-full min-w-0 flex-col items-center justify-end rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#d5be8d]",
-                      day.selected && "bg-[#d5be8d]/[0.055]"
+                      "flex h-full min-w-0 flex-col items-center justify-end rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981]",
+                      day.selected && "bg-[#10b981]/[0.055]"
                     )}
                   >
                     <span className="relative block h-36 w-full">
@@ -153,17 +153,17 @@ export function CalendarMonthlyMetricCard({
                           }}
                           className={cn(
                             "absolute bottom-0 left-1/2 z-[2] w-[clamp(3px,45%,7px)] -translate-x-1/2 rounded-full",
-                            day.selected && "shadow-[0_0_16px_rgba(213,190,141,0.24)]"
+                            day.selected && "shadow-[0_0_16px_rgba(16,185,129,0.24)]"
                           )}
                           style={{
                             height: `${height}%`,
                             backgroundColor: day.selected
-                              ? "#ead8ac"
+                              ? "#34d399"
                               : day.absenceColor
                                 ? day.absenceColor
                               : variant === "flow"
-                                ? "rgba(213, 190, 141, 0.82)"
-                                : "rgba(244, 240, 231, 0.72)"
+                                ? "rgba(16, 185, 129, 0.82)"
+                                : "rgba(255, 255, 255, 0.72)"
                           }}
                           data-testid={`${variant}-monthly-bar-${day.key}`}
                         />
@@ -171,7 +171,7 @@ export function CalendarMonthlyMetricCard({
                     </span>
                     <span className={cn(
                       "flex h-6 items-end text-[7px] font-medium tabular-nums",
-                      day.selected ? "text-[#ead8ac]" : "text-white/24"
+                      day.selected ? "text-[#34d399]" : "text-white/24"
                     )}>
                       {day.selected || day.dayNumber === 1 || day.dayNumber % 5 === 0 || day.dayNumber === days.length
                         ? day.dayNumber

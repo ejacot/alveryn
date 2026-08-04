@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, Coins, Ruler } from "lucide-react";
+import { Banknote, ChevronDown, Clock3, Coins, Ruler } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -35,7 +35,7 @@ import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import type { WorkType, WorkTypeFormula, WorkTypeFormulaMode } from "../types/configuration";
 import type { CalculationMethod, CompensationMethod } from "../types/work-calculation";
 
-const DEFAULT_WORK_TYPE_COLOR = "#A3E635";
+const DEFAULT_WORK_TYPE_COLOR = "#10b981";
 
 function createWorkTypeSchema(t: (key: string) => string) {
   return z.object({
@@ -65,9 +65,6 @@ function createWorkTypeSchema(t: (key: string) => string) {
     }
     if (value.calculationMethod === "TIME_BASED" || value.calculationMethod === "FIXED_PRICE_BASED") {
       return;
-    }
-    if (!value.unitLabel?.trim()) {
-      context.addIssue({ code: "custom", path: ["unitLabel"], message: t("workTypeFormulas.validation.unitLabel") });
     }
     if (value.calculationMethod === "UNITS_PER_HOUR_BASED" && !Number.isFinite(value.unitsPerHour)) {
       context.addIssue({ code: "custom", path: ["unitsPerHour"], message: t("workTypeFormulas.validation.unitsPerHour") });
@@ -136,9 +133,11 @@ export function WorkTypeEditorPage() {
   const queryClient = useQueryClient();
   const { workTypeId } = useParams();
   const isEditing = Boolean(workTypeId);
-  const requestedEmploymentId = new URLSearchParams(location.search).get("employmentId");
+  const locationSearch = new URLSearchParams(location.search);
+  const requestedEmploymentId = locationSearch.get("employmentId");
+  const isCategoryCreation = !isEditing && locationSearch.get("category") === "true";
   const setupModeFromSearch = !isEditing
-    ? parseSetupMode(new URLSearchParams(location.search).get("mode"))
+    ? parseSetupMode(locationSearch.get("mode"))
     : null;
   const setupState = !isEditing
     ? (location.state as {
@@ -161,8 +160,9 @@ export function WorkTypeEditorPage() {
   const [configurationDialogOpen, setConfigurationDialogOpen] = useState(false);
   const [selectedConfiguration, setSelectedConfiguration] = useState<WorkTypeFormula | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [suppressUnsavedGuard, setSuppressUnsavedGuard] = useState(false);
-  const [draftChildren, setDraftChildren] = useState<DraftChildWorkType[]>([]);
+  const [draftChildren] = useState<DraftChildWorkType[]>([]);
   const navigationTimeoutRef = useRef<number | null>(null);
   const workTypesPath = requestedEmploymentId
     ? `/settings/work-types?employmentId=${encodeURIComponent(requestedEmploymentId)}`
@@ -208,7 +208,7 @@ export function WorkTypeEditorPage() {
           currency: "EUR",
           teamworkEnabled: false,
           extraPayEnabled: false,
-          compositeEnabled: false,
+          compositeEnabled: isCategoryCreation,
 		      color: DEFAULT_WORK_TYPE_COLOR,
 	      defaultBreakMinutes: 30,
 	      active: true
@@ -294,7 +294,9 @@ export function WorkTypeEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const normalizedValues: FormValues = !isEditing && initialSetupOption
+      const normalizedValues: FormValues = isCategoryCreation
+        ? { ...values, compositeEnabled: true }
+        : !isEditing && initialSetupOption
         ? {
           ...values,
           calculationMethod: initialSetupOption.calculationMethod,
@@ -369,7 +371,10 @@ export function WorkTypeEditorPage() {
 
   const createConfigurationMutation = useMutation({
     mutationFn: (values: ConfigurationDialogValues) =>
-      createWorkType(buildChildWorkTypePayload(values, {
+      createWorkType(buildChildWorkTypePayload({
+        ...values,
+        calculationMode: workTypeSetupMode(workTypeQuery.data?.calculationMethod) ?? values.calculationMode
+      }, {
         parentId: workTypeId!,
         color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
         teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
@@ -398,7 +403,10 @@ export function WorkTypeEditorPage() {
     mutationFn: ({ configuration, values }: { configuration: WorkTypeFormula; values: ConfigurationDialogValues }) =>
       updateWorkType(
         configuration.id,
-        buildChildWorkTypePayload(values, {
+        buildChildWorkTypePayload({
+          ...values,
+          calculationMode: workTypeSetupMode(workTypeQuery.data?.calculationMethod) ?? values.calculationMode
+        }, {
           parentId: workTypeId!,
           color: workTypeQuery.data?.color ?? DEFAULT_WORK_TYPE_COLOR,
           teamworkEnabled: workTypeQuery.data?.teamworkEnabled ?? false,
@@ -442,9 +450,12 @@ export function WorkTypeEditorPage() {
   });
 
   function resetConfigurationDialog() {
+    const inheritedMode = workTypeQuery.data?.compositeEnabled
+      ? workTypeSetupMode(workTypeQuery.data.calculationMethod)
+      : null;
     configurationForm.reset({
       name: "",
-      calculationMode: selectedSetupMode ?? "TIME_HOURLY",
+      calculationMode: selectedSetupMode ?? inheritedMode ?? "TIME_HOURLY",
       unitLabel: "",
       unitSymbol: "",
       unitsPerHour: "",
@@ -457,7 +468,10 @@ export function WorkTypeEditorPage() {
   }
 
   function openConfigurationDialog(mode?: WorkTypeFormulaMode) {
-    const nextMode = mode ?? selectedSetupMode ?? "TIME_HOURLY";
+    const inheritedMode = workTypeQuery.data?.compositeEnabled
+      ? workTypeSetupMode(workTypeQuery.data.calculationMethod)
+      : null;
+    const nextMode = mode ?? selectedSetupMode ?? inheritedMode ?? "TIME_HOURLY";
     configurationForm.clearErrors();
     configurationForm.reset({
       name: "",
@@ -518,14 +532,13 @@ export function WorkTypeEditorPage() {
 
   const headerTitle = isEditing
     ? workTypeQuery.data?.name ?? t("settings:workTypeEditor.editTitle")
-    : t("settings:workTypeEditor.addTitle");
+    : t(isCategoryCreation ? "settings:workTypeEditor.addCategoryTitle" : "settings:workTypeEditor.addTitle");
   const watchedCalculationMethod = form.watch("calculationMethod");
   const selectedCalculationMethod = !isEditing && initialSetupOption
     ? initialSetupOption.calculationMethod
     : watchedCalculationMethod;
   const compositeEnabled = form.watch("compositeEnabled");
-  const parentOnly = Boolean(compositeEnabled);
-  const childDraftMode = selectedSetupMode ?? workTypeSetupMode(selectedCalculationMethod) ?? "TIME_HOURLY";
+  const parentOnly = isCategoryCreation || Boolean(compositeEnabled);
   const editorSectionTitle = workTypeEditorSectionTitle(selectedCalculationMethod, t);
   const deletionMode = workTypeQuery.data?.deletable ? "delete" : "deactivate";
   const unitsPerHourField = form.register("unitsPerHour");
@@ -536,6 +549,9 @@ export function WorkTypeEditorPage() {
     .sort((left, right) => {
     return left.displayOrder - right.displayOrder || left.name.localeCompare(right.name);
   });
+  const categoryCalculationMode = workTypeQuery.data?.compositeEnabled
+    ? workTypeSetupMode(workTypeQuery.data.calculationMethod)
+    : null;
 
   function normalizeFormForCurrentMode() {
     const calculationMethod = selectedCalculationMethod;
@@ -589,16 +605,18 @@ export function WorkTypeEditorPage() {
   if (!isEditing && !selectedSetupMode) {
     return (
       <WorkTypeEditorShell
-          title={t("settings:workTypeEditor.chooseModeTitle")}
+          title={t(isCategoryCreation
+            ? "settings:workTypeEditor.chooseCategoryModeTitle"
+            : "settings:workTypeEditor.chooseModeTitle")}
           backLabel={t("common:actions.back")}
           onBack={safeBack}
       >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             {setupModeOptions(t).map((option) => (
               <button
                 key={option.mode}
                 type="button"
-                className="min-h-[9.4rem] rounded-[26px] border border-white/[0.08] bg-white/[0.045] px-3.5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-white/24"
+                className="w-full rounded-[22px] border border-white/[0.08] bg-white/[0.045] p-4 text-left transition hover:bg-white/[0.075] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-white/24"
                 onClick={() => {
                   setSelectedSetupMode(option.mode);
                   form.setValue("calculationMethod", option.calculationMethod, {
@@ -611,25 +629,20 @@ export function WorkTypeEditorPage() {
                     shouldTouch: true,
                     shouldValidate: true
                   });
-                  form.setValue("name", option.suggestedName, {
-                    shouldDirty: true,
-                    shouldTouch: false,
-                    shouldValidate: false
-                  });
                 }}
               >
-                <span className="flex h-full flex-col justify-between gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.07] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  {option.icon}
-                </span>
-                <span className="min-w-0 space-y-2">
-                  <span className="block text-[1rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white">
-                    {option.title}
+                <span className="flex items-center gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.07] text-white/72">
+                    {option.icon}
                   </span>
-                  <span className="block min-h-8 text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.11em] text-white/34">
-                    {option.formula}
+                  <span className="min-w-0">
+                    <span className="block text-[0.95rem] font-semibold leading-5 tracking-[-0.025em] text-white">
+                      {option.title}
+                    </span>
+                    <span className="mt-1.5 block text-xs leading-[1.15rem] text-white/48">
+                      {option.description}
+                    </span>
                   </span>
-                </span>
                 </span>
               </button>
             ))}
@@ -653,6 +666,13 @@ export function WorkTypeEditorPage() {
             event.preventDefault();
             form.setError("root", { message: t("settings:employment.choose") });
             return;
+          }
+          if (isCategoryCreation) {
+            form.setValue("compositeEnabled", true, {
+              shouldDirty: false,
+              shouldTouch: false,
+              shouldValidate: false
+            });
           }
           normalizeFormForCurrentMode();
           void form.handleSubmit(
@@ -700,43 +720,39 @@ export function WorkTypeEditorPage() {
         <SettingsSection title={t("settings:workTypeEditor.sections.name")}>
           <Input
             label={parentOnly ? t("settings:workTypeEditor.fields.categoryName") : t("settings:workTypeEditor.fields.name")}
+            placeholder={t(parentOnly ? "settings:workTypeEditor.fields.categoryPlaceholder" : "settings:workTypeEditor.fields.namePlaceholder")}
             error={form.formState.errors.name?.message}
             {...form.register("name")}
           />
         </SettingsSection>
-        <SettingsSection title={editorSectionTitle}>
+        {parentOnly ? (
+          <SettingsSection title={t("settings:workTypeEditor.categoryOptionsTitle")}>
+            <div className="space-y-3">
+              <p className="text-sm leading-6 text-white/54">
+                {t("settings:workTypeEditor.categoryOptionsDescription")}
+              </p>
+              <label className="flex items-center gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                <input type="checkbox" className="h-4 w-4 accent-emerald-500" {...form.register("teamworkEnabled")} />
+                <span className="block font-semibold text-white/78">{t("settings:workTypeEditor.fields.teamworkEnabled")}</span>
+              </label>
+              <label className="flex items-center gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                <input type="checkbox" className="h-4 w-4 accent-emerald-500" {...form.register("extraPayEnabled")} />
+                <span className="block font-semibold text-white/78">{t("settings:workTypeEditor.fields.extraPayEnabled")}</span>
+              </label>
+            </div>
+          </SettingsSection>
+        ) : null}
+        {!parentOnly ? <SettingsSection title={editorSectionTitle}>
           <div className="space-y-4">
-              <Input
-                label={t("settings:workTypeEditor.fields.color")}
-                type="color"
-                className="h-12 p-2"
-                error={form.formState.errors.color?.message}
-                {...form.register("color")}
-              />
-	            {!parentOnly && selectedCalculationMethod === "TIME_BASED" ? (
-	              <Input
-	                type="number"
-	                inputMode="numeric"
-	                min={0}
-	                label={t("settings:workTypeEditor.fields.defaultBreakMinutes")}
-	                error={form.formState.errors.defaultBreakMinutes?.message}
-	                {...form.register("defaultBreakMinutes")}
-	              />
-	            ) : null}
-              {!parentOnly && selectedCalculationMethod !== "TIME_BASED" && selectedCalculationMethod !== "FIXED_PRICE_BASED" ? (
-                <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
-                  <Input
-                    label={t("settings:workTypeFormulas.fields.unitLabel")}
-                    error={form.formState.errors.unitLabel?.message}
-                    {...form.register("unitLabel")}
-                  />
-                  <Input
-                    label={t("settings:workTypeFormulas.fields.unitSymbol")}
-                    placeholder={t("settings:workTypeFormulas.symbolPlaceholder")}
-                    error={form.formState.errors.unitSymbol?.message}
-                    {...form.register("unitSymbol")}
-                  />
-                </div>
+              {!parentOnly && selectedCalculationMethod === "TIME_BASED" ? (
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  label={t("settings:workTypeEditor.fields.defaultBreakMinutes")}
+                  error={form.formState.errors.defaultBreakMinutes?.message}
+                  {...form.register("defaultBreakMinutes")}
+                />
               ) : null}
               {!parentOnly && selectedCalculationMethod === "UNITS_PER_HOUR_BASED" ? (
                 <Input
@@ -785,73 +801,40 @@ export function WorkTypeEditorPage() {
                   />
                 </div>
               ) : null}
-              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 accent-white"
-                  {...form.register("teamworkEnabled")}
-                />
-                <span>
-                  <span className="block font-semibold text-white/78">
-                    {t("settings:workTypeEditor.fields.teamworkEnabled")}
-                  </span>
-                </span>
-              </label>
-              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 accent-white"
-                  {...form.register("extraPayEnabled")}
-                />
-                <span className="block font-semibold text-white/78">
-                  {t("settings:workTypeEditor.fields.extraPayEnabled")}
-                </span>
-              </label>
-              <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 accent-white"
-                  aria-label={t("settings:workTypeEditor.fields.compositeEnabled")}
-                  checked={Boolean(compositeEnabled)}
-                  onChange={(event) => {
-                    form.setValue("compositeEnabled", event.currentTarget.checked, {
-                      shouldDirty: true,
-                      shouldTouch: true,
-                      shouldValidate: true
-                    });
-                    if (event.currentTarget.checked && draftChildren.length === 0) {
-                      setDraftChildren([createDraftChildWorkType()]);
-                    }
-                  }}
-                />
-                <span>
-                  <span className="block font-semibold text-white/78">
-                    {t("settings:workTypeEditor.fields.compositeEnabled")}
-                  </span>
-                </span>
-              </label>
-              {!isEditing && parentOnly ? (
-                <DraftChildWorkTypes
-                  mode={childDraftMode}
-                  childrenDrafts={draftChildren.length ? draftChildren : [createDraftChildWorkType()]}
-                  onChange={setDraftChildren}
-                  labels={{
-                    add: t("settings:workSetup.addWorkType"),
-                    name: t("settings:workTypeEditor.fields.name"),
-                    unitLabel: t("settings:workTypeFormulas.fields.unitLabel"),
-                    unitSymbol: t("settings:workTypeFormulas.fields.unitSymbol"),
-                    unitsPerHour: t("settings:workTypeFormulas.fields.unitsPerHour"),
-                    ratePerUnit: t("settings:workTypeFormulas.fields.ratePerUnit"),
-                    currency: t("settings:workTypeFormulas.fields.currency"),
-                    defaultBreakMinutes: t("settings:workTypeFormulas.fields.defaultBreakMinutes"),
-                    symbolPlaceholder: t("settings:workTypeFormulas.symbolPlaceholder"),
-                    unitsPerHourPlaceholder: t("settings:workTypeFormulas.unitsPerHourPlaceholder"),
-                    ratePerUnitPlaceholder: t("settings:workTypeFormulas.ratePerUnitPlaceholder")
-                  }}
-                />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-expanded={advancedSettingsOpen}
+                  onClick={() => setAdvancedSettingsOpen((current) => !current)}
+                  className="flex min-h-12 min-w-0 flex-1 items-center justify-between rounded-[22px] border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-left text-sm font-semibold text-white/64 transition hover:bg-white/[0.055] hover:text-white"
+                >
+                  {t("settings:workTypeEditor.advancedSettings")}
+                  <ChevronDown className={`h-4 w-4 transition ${advancedSettingsOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
+                <label className="shrink-0">
+                  <span className="sr-only">{t("settings:workTypeEditor.fields.color")}</span>
+                  <input
+                    type="color"
+                    aria-label={t("settings:workTypeEditor.fields.color")}
+                    className="h-12 w-12 cursor-pointer overflow-hidden rounded-full border-2 border-white/20 bg-transparent p-0 [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                    {...form.register("color")}
+                  />
+                </label>
+              </div>
+              {advancedSettingsOpen ? (
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                    <input type="checkbox" className="mt-1 h-4 w-4 accent-white" {...form.register("teamworkEnabled")} />
+                    <span className="block font-semibold text-white/78">{t("settings:workTypeEditor.fields.teamworkEnabled")}</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+                    <input type="checkbox" className="mt-1 h-4 w-4 accent-white" {...form.register("extraPayEnabled")} />
+                    <span className="block font-semibold text-white/78">{t("settings:workTypeEditor.fields.extraPayEnabled")}</span>
+                  </label>
+                </div>
               ) : null}
 	          </div>
-        </SettingsSection>
+        </SettingsSection> : null}
 
         {isEditing && compositeEnabled ? (
           <SettingsSection title={t("settings:workTypeFormulas.sectionTitle")}>
@@ -859,6 +842,13 @@ export function WorkTypeEditorPage() {
               <p className="text-sm leading-6 text-white/54">
                 {t("settings:workTypeFormulas.sectionDescription")}
               </p>
+              {categoryCalculationMode ? (
+                <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.07] px-4 py-3 text-sm font-semibold text-emerald-300">
+                  {t("settings:workTypeFormulas.categoryCalculation", {
+                    method: configurationModeMeta(categoryCalculationMode, t).label
+                  })}
+                </p>
+              ) : null}
               {orderedConfigurations.length ? (
                 <div className="space-y-3">
                   {orderedConfigurations.map((configuration) => (
@@ -904,6 +894,9 @@ export function WorkTypeEditorPage() {
 
         <SettingsFormActions
           submitting={saveMutation.isPending}
+          submitLabel={!isEditing
+            ? t(isCategoryCreation ? "settings:workTypeEditor.createCategory" : "settings:workTypeEditor.addActivity")
+            : undefined}
           onDelete={isEditing ? () => setShowConfirm(true) : undefined}
           deleteLabel={isEditing ? t(`settings:workTypeEditor.${deletionMode}`) : undefined}
           deleteDisabled={deleteMutation.isPending}
@@ -928,7 +921,7 @@ export function WorkTypeEditorPage() {
           deleteConfigurationMutation.isPending
         }
         form={configurationForm}
-        selectedSetupMode={selectedSetupMode ?? (workTypeQuery.data?.compositeEnabled ? null : workTypeSetupMode(workTypeQuery.data?.calculationMethod))}
+        selectedSetupMode={selectedSetupMode ?? workTypeSetupMode(workTypeQuery.data?.calculationMethod)}
         onClose={closeConfigurationDialog}
         onSubmit={(values) =>
           selectedConfiguration
@@ -966,7 +959,7 @@ function WorkTypeEditorShell({
   );
 }
 
-function DraftChildWorkTypes({
+function _DraftChildWorkTypes({
   mode,
   childrenDrafts,
   labels,
@@ -1194,21 +1187,6 @@ function WorkTypeFormulaDialog({
               </div>
             </fieldset>
           ) : null}
-          {modeField !== "TIME_HOURLY" && modeField !== "FIXED_AMOUNT" ? (
-            <div className="grid grid-cols-[minmax(0,1fr),5.5rem] gap-3">
-              <Input
-                label={t("settings:workTypeFormulas.fields.unitLabel")}
-                error={form.formState.errors.unitLabel?.message}
-                {...form.register("unitLabel")}
-              />
-              <Input
-                label={t("settings:workTypeFormulas.fields.unitSymbol")}
-                placeholder={t("settings:workTypeFormulas.symbolPlaceholder")}
-                error={form.formState.errors.unitSymbol?.message}
-                {...form.register("unitSymbol")}
-              />
-            </div>
-          ) : null}
           {modeField === "UNITS_PER_HOUR" ? (
             <Input
               type="text"
@@ -1411,8 +1389,6 @@ function buildWorkTypePayload(
   values: FormValues,
   options: { color: string; displayOrder?: number; active: boolean; employmentId?: string | null }
 ) {
-  const unitLabel = values.unitLabel?.trim();
-  const unitSymbol = values.unitSymbol?.trim();
   const currency = values.currency?.trim();
   const parentOnly = Boolean(values.compositeEnabled);
   return {
@@ -1423,11 +1399,11 @@ function buildWorkTypePayload(
     unitLabel:
       parentOnly || values.calculationMethod === "TIME_BASED" || values.calculationMethod === "FIXED_PRICE_BASED"
         ? null
-        : unitLabel || null,
+        : "units",
     unitSymbol:
       parentOnly || values.calculationMethod === "TIME_BASED" || values.calculationMethod === "FIXED_PRICE_BASED"
         ? null
-        : unitSymbol || null,
+        : "units",
     unitsPerHour:
       !parentOnly && values.calculationMethod === "UNITS_PER_HOUR_BASED"
         ? normalizeOptionalNumber(values.unitsPerHour)
@@ -1524,7 +1500,7 @@ function setupModeOptions(t: ReturnType<typeof useTranslation<["settings", "comm
       description: t("settings:workTypeEditor.modes.perUnitDescription"),
       formula: t("settings:workTypeEditor.modes.perUnitFormula"),
       suggestedName: t("settings:workTypeEditor.modes.perUnitSuggestedName"),
-      icon: <Coins className="h-5 w-5" aria-hidden="true" />
+      icon: <Banknote className="h-5 w-5" aria-hidden="true" />
     },
     {
       mode: "FIXED_AMOUNT" as const,

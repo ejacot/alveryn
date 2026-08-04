@@ -662,7 +662,7 @@ export function CalendarPage() {
 
       <h1
         ref={largeTitleRef}
-        className={`order-0 text-3xl font-semibold leading-none tracking-[-0.07em] text-[#f4f0e7] transition duration-200 ${
+        className={`order-0 text-3xl font-semibold leading-none tracking-[-0.07em] text-[#f5f5f5] transition duration-200 ${
           compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
         }`}
       >
@@ -767,8 +767,8 @@ export function CalendarPage() {
         </div>
       ) : null}
 
-      <section className="calendar-payroll-panel order-3 relative -mt-6 overflow-hidden rounded-b-[30px] border border-t border-[#d5be8d]/[0.14] bg-[linear-gradient(150deg,#10100d_0%,#090a09_72%)] shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#d5be8d]/[0.07] blur-3xl" />
+      <section className="calendar-payroll-panel order-3 relative -mt-6 overflow-hidden rounded-b-[30px] border border-t border-[#10b981]/[0.14] bg-[linear-gradient(150deg,#101010_0%,#090a09_72%)] shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#10b981]/[0.07] blur-3xl" />
         <input ref={payrollInputRef} type="file"
           accept="application/pdf,image/jpeg,image/png,image/webp"
           className="hidden"
@@ -810,14 +810,14 @@ export function CalendarPage() {
           }} />
         <div className="relative p-5">
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#d5be8d]/62">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#10b981]/62">
               {t("payroll.eyebrow", { month: formatMonthLabel(activeMonth) })}
             </p>
             {payrollComparison ? (
               <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${
                 payrollComparison.differenceCount === 0
                   ? "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-200/80"
-                  : "border-[#d5be8d]/20 bg-[#d5be8d]/[0.09] text-[#ead8ac]"
+                  : "border-[#10b981]/20 bg-[#10b981]/[0.09] text-[#34d399]"
               }`}>
                 <ShieldCheck className="h-3 w-3" />
                 {payrollComparison.differenceCount === 0
@@ -830,12 +830,12 @@ export function CalendarPage() {
           <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-[18px] border ${
             payrollSaved
               ? "border-emerald-300/15 bg-emerald-300/[0.09] text-emerald-200"
-              : "border-[#d5be8d]/15 bg-[#d5be8d]/[0.07] text-[#ead8ac]"
+              : "border-[#10b981]/15 bg-[#10b981]/[0.07] text-[#34d399]"
           }`}>
             {payrollSaved ? <FileCheck2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[1.05rem] font-semibold tracking-[-0.035em] text-[#f4f0e7]">
+            <p className="text-[1.05rem] font-semibold tracking-[-0.035em] text-[#f5f5f5]">
               {payrollComparison
                 ? payrollComparison.differenceCount === 0
                   ? t("payroll.title.matches")
@@ -863,7 +863,7 @@ export function CalendarPage() {
           ) : (
             <button type="button" disabled={payrollPending}
               onClick={() => payrollInputRef.current?.click()}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d5be8d]/16 bg-[#d5be8d]/[0.08] text-[#ead8ac] transition active:scale-95 disabled:opacity-50"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#10b981]/16 bg-[#10b981]/[0.08] text-[#34d399] transition active:scale-95 disabled:opacity-50"
               aria-label={t("payroll.actions.scanAria")}>
               <Upload className="h-[18px] w-[18px]" />
             </button>
@@ -877,14 +877,14 @@ export function CalendarPage() {
               <div className={`rounded-[22px] border px-4 py-4 ${
                 payrollComparison.differenceCount === 0
                   ? "border-emerald-300/15 bg-emerald-300/[0.055]"
-                  : "border-[#d5be8d]/15 bg-[#d5be8d]/[0.055]"
+                  : "border-[#10b981]/15 bg-[#10b981]/[0.055]"
               }`}>
                 <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/36">
                   {t("payroll.result.label")}
                 </p>
                 <div className="mt-2 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-lg font-semibold tracking-[-0.04em] text-[#f4f0e7]">
+                    <p className="text-lg font-semibold tracking-[-0.04em] text-[#f5f5f5]">
                       {payrollComparison.differenceCount === 0
                         ? t("payroll.result.everythingMatches")
                         : t("payroll.result.found", { count: payrollComparison.differenceCount })}
@@ -898,7 +898,7 @@ export function CalendarPage() {
                   <p className={`shrink-0 font-metric text-lg font-medium tabular-nums ${
                     payrollComparison.grossDifference === 0
                       ? "text-emerald-200"
-                      : "text-[#ead8ac]"
+                      : "text-[#34d399]"
                   }`}>
                     {payrollComparison.grossDifference === 0
                       ? "✓"
@@ -1043,7 +1043,7 @@ export function CalendarPage() {
 
       <section className="order-4" aria-label={t("monthlyCharts.sectionLabel")}>
         <div className="mb-3 flex items-center justify-between gap-4 px-1">
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/56">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#10b981]/56">
             {t("monthlyCharts.title")}
           </p>
           <div
@@ -1063,14 +1063,14 @@ export function CalendarPage() {
                   : undefined}
                 className={`relative isolate flex h-8 min-w-[4.35rem] items-center justify-center rounded-full px-3 text-[0.7rem] font-medium transition-colors duration-150 active:scale-[0.97] ${
                   monthlyView === view
-                    ? "text-[#ead8ac]"
-                    : "text-[#f4f0e7]/36 hover:text-[#f4f0e7]/58"
+                    ? "text-[#34d399]"
+                    : "text-[#f5f5f5]/36 hover:text-[#f5f5f5]/58"
                 } disabled:cursor-not-allowed disabled:opacity-30`}
               >
                 {monthlyView === view ? (
                   <motion.span
                     layoutId="calendar-monthly-view"
-                    className="absolute inset-0 -z-10 rounded-full border border-[#d5be8d]/18 bg-[#d5be8d]/[0.09]"
+                    className="absolute inset-0 -z-10 rounded-full border border-[#10b981]/18 bg-[#10b981]/[0.09]"
                     transition={{ type: "spring", stiffness: 620, damping: 40, mass: 0.58 }}
                   />
                 ) : null}
@@ -1080,7 +1080,7 @@ export function CalendarPage() {
           </div>
         </div>
         {!monthlyFlowAvailable ? (
-          <p className="-mt-1 mb-3 px-1 text-xs leading-5 text-[#f4f0e7]/34">
+          <p className="-mt-1 mb-3 px-1 text-xs leading-5 text-[#f5f5f5]/34">
             {t("monthlyCharts.flowUnavailable")}
           </p>
         ) : null}
@@ -1111,7 +1111,7 @@ export function CalendarPage() {
             <Upload className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f4f0e7]">{t("settings:dataImport.menuLabel")}</span>
+            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f5f5f5]">{t("settings:dataImport.menuLabel")}</span>
             <span className="mt-1 line-clamp-1 block text-xs text-white/34">{t("settings:dataImport.menuDescription")}</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden="true" />
@@ -1121,11 +1121,11 @@ export function CalendarPage() {
           onClick={() => navigate(`/settings/export-pdf?from=${monthStartKey}&to=${monthEndKey}&returnTo=/calendar`)}
           className="flex min-h-[4.5rem] w-full items-center gap-3.5 px-4 text-left transition hover:bg-white/[0.025] active:bg-white/[0.045]"
         >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#d5be8d]/[0.075] text-[#ead8ac]/75">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#10b981]/[0.075] text-[#34d399]/75">
             <FileText className="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f4f0e7]">{t("settings:pdfExport.menuLabel")}</span>
+            <span className="block text-[0.95rem] font-semibold tracking-[-0.025em] text-[#f5f5f5]">{t("settings:pdfExport.menuLabel")}</span>
             <span className="mt-1 line-clamp-1 block text-xs text-white/34">{t("settings:pageInfo.pdfExport.description")}</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden="true" />
@@ -1154,13 +1154,13 @@ function PayrollComparisonRow({
   return (
     <article className={`rounded-[20px] border px-4 py-3.5 ${
       difference && !matches
-        ? "border-[#d5be8d]/18 bg-[#d5be8d]/[0.05]"
+        ? "border-[#10b981]/18 bg-[#10b981]/[0.05]"
         : "border-white/[0.07] bg-white/[0.025]"
     }`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold tracking-[-0.02em] text-[#f4f0e7]">{label}</p>
+        <p className="text-sm font-semibold tracking-[-0.02em] text-[#f5f5f5]">{label}</p>
         <span className={`font-metric text-xs font-semibold tabular-nums ${
-          matches ? "text-emerald-200/80" : difference ? "text-[#ead8ac]" : "text-white/28"
+          matches ? "text-emerald-200/80" : difference ? "text-[#34d399]" : "text-white/28"
         }`}>
           {difference ?? "—"}
         </span>
@@ -1179,7 +1179,7 @@ function PayrollComparisonRow({
             Lohn
           </p>
           <p className={`mt-1 truncate font-metric text-sm font-medium tabular-nums ${
-            currency && difference && !matches ? "text-[#ead8ac]" : "text-[#f4f0e7]"
+            currency && difference && !matches ? "text-[#34d399]" : "text-[#f5f5f5]"
           }`}>
             {payroll}
           </p>

@@ -290,7 +290,7 @@ export function OnboardingPage() {
 
   return (
     <section className="dashboard-glass-preview relative min-h-[calc(100dvh-2rem)] overflow-hidden pb-10 pt-5">
-      <div className="pointer-events-none absolute left-1/2 top-[-9rem] h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-[#d5be8d]/[0.055] blur-[90px]" />
+      <div className="pointer-events-none absolute left-1/2 top-[-9rem] h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-[#10b981]/[0.055] blur-[90px]" />
       <div className="relative mx-auto max-w-md">
         <div className="mb-10 flex items-center justify-between px-1">
           <AppLogo wordmark />
@@ -300,7 +300,7 @@ export function OnboardingPage() {
         </div>
         <div className="mb-7 grid gap-2" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0, 1fr))` }}>
           {Array.from({ length: totalSteps }, (_, index) => (
-            <span key={index} className={`h-[3px] rounded-full transition-colors duration-300 ${index < currentStep ? "bg-[#d5be8d]" : "bg-white/[0.09]"}`} />
+            <span key={index} className={`h-[3px] rounded-full transition-colors duration-300 ${index < currentStep ? "bg-[#10b981]" : "bg-white/[0.09]"}`} />
           ))}
           <motion.div
             className="sr-only"
@@ -474,8 +474,8 @@ function StepHeader({
 }) {
   return (
     <div className="space-y-2.5">
-      {eyebrow ? <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#d5be8d]/65">{eyebrow}</p> : null}
-      <h1 className="text-[2rem] font-semibold leading-[1.04] tracking-[-0.055em] text-[#f4f0e7]">{title}</h1>
+      {eyebrow ? <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#10b981]/65">{eyebrow}</p> : null}
+      <h1 className="text-[2rem] font-semibold leading-[1.04] tracking-[-0.055em] text-[#f5f5f5]">{title}</h1>
       {description ? (
         <p className="text-sm leading-6 text-white/62">{description}</p>
       ) : null}

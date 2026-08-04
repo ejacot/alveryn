@@ -48,7 +48,7 @@ const workType = {
   name: "Regular shift",
   calculationMethod: "TIME_BASED" as const,
   compensationMethod: "HOURLY" as const,
-  color: "#87C95A",
+  color: "#10b981",
   icon: null,
   defaultBreakMinutes: 0,
   displayOrder: 0,

@@ -23,7 +23,7 @@ export function HomePage() {
       >
         <div className="dashboard-home-header-content pb-4">
           <div className="relative flex h-10 items-center justify-between">
-            <span className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#d5be8d]/70">
+            <span className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-[#10b981]/70">
               {monthLabel}
             </span>
             <AppLogo

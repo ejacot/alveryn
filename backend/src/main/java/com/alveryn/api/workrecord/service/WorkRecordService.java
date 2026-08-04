@@ -12,6 +12,9 @@ import com.alveryn.api.salary.service.SalaryCalculationService;
 import com.alveryn.api.employment.entity.CompensationType;
 import com.alveryn.api.employment.extrapay.EmploymentExtraPayRuleRepository;
 import com.alveryn.api.employment.extrapay.EmploymentExtraPayRule;
+import com.alveryn.api.employment.extrapay.EmploymentExtraPayTimeRule;
+import com.alveryn.api.employment.extrapay.EmploymentExtraPayTimeRuleRepository;
+import com.alveryn.api.workrecord.line.dto.ExtraPayDetailResponse;
 import com.alveryn.api.time.TimeCalculator;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
@@ -32,6 +35,7 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -53,6 +57,7 @@ public class WorkRecordService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final EmploymentRestDayRepository restDays;
   private final EmploymentExtraPayRuleRepository extraPayRules;
+  private final EmploymentExtraPayTimeRuleRepository extraPayTimeRules;
 
   @Transactional
   public WorkRecordResponse create(@Valid WorkRecordRequest request) {
@@ -296,7 +301,7 @@ public class WorkRecordService {
         breakMinutes,
         salary.hourlyRate(),
         salary.currency(),
-        resolveExtraPayPercentage(record, workType, request),
+        resolveExtraPayPercentage(record, workType, request, workedMinutes.intValueExact()),
         request.notes());
   }
 
@@ -327,10 +332,12 @@ public class WorkRecordService {
       WorkRecordLineRequest request,
       int displayOrder) {
     BigDecimal quantity = requireQuantity(request);
+    int workers = teamworkEnabled(workType) ? requireTeamSize(record) : 1;
     BigDecimal calculatedMinutes =
         quantity
             .multiply(BigDecimal.valueOf(60), WorkCalculation.TIME_MATH_CONTEXT)
             .divide(workType.getUnitsPerHour(), WorkCalculation.TIME_MATH_CONTEXT)
+            .divide(BigDecimal.valueOf(workers), WorkCalculation.TIME_MATH_CONTEXT)
             .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
     SalaryCalculationService.SalarySnapshot salary =
         salaryCalculationService.calculateForDate(userId, requireEmploymentId(record), record.getWorkDate(), calculatedMinutes);
@@ -339,10 +346,23 @@ public class WorkRecordService {
         workType,
         displayOrder,
         quantity,
+        workers,
         salary.hourlyRate(),
         salary.currency(),
         resolveExtraPayPercentage(record, workType, request),
         request.notes());
+  }
+
+  private boolean teamworkEnabled(WorkType workType) {
+    return workType.isTeamworkEnabled()
+        || (workType.getParent() != null && workType.getParent().isTeamworkEnabled());
+  }
+
+  private int requireTeamSize(WorkRecord record) {
+    if (record.getTeamSize() == null || record.getTeamSize() <= 0) {
+      throw new IllegalArgumentException("teamSize is required for teamwork work types");
+    }
+    return record.getTeamSize();
   }
 
   private WorkRecordLine toUnitsPerUnitLine(
@@ -383,13 +403,59 @@ public class WorkRecordService {
 
   private BigDecimal resolveExtraPayPercentage(
       WorkRecord record, WorkType workType, WorkRecordLineRequest request) {
-    BigDecimal manual = workType.isExtraPayEnabled()
+    return resolveExtraPayPercentage(record, workType, request, null);
+  }
+
+  private BigDecimal resolveExtraPayPercentage(
+      WorkRecord record, WorkType workType, WorkRecordLineRequest request,
+      Integer actualWorkedMinutes) {
+    boolean extraPayEnabled = workType.isExtraPayEnabled()
+        || (workType.getParent() != null && workType.getParent().isExtraPayEnabled());
+    BigDecimal manual = extraPayEnabled
         ? normalizeExtraPayPercentage(request.extraPayPercentage()) : BigDecimal.ZERO;
     if (record.getEmployment() == null) return manual;
     BigDecimal recurring = extraPayRules.findByEmploymentIdAndWeekday(
             record.getEmployment().getId(), record.getWorkDate().getDayOfWeek())
         .map(EmploymentExtraPayRule::getPercentage).orElse(BigDecimal.ZERO);
+    if (request.startTime() != null && request.endTime() != null) {
+      int workedMinutes = actualWorkedMinutes != null
+          ? actualWorkedMinutes
+          : TimeCalculator.intervalMinutes(request.startTime(), request.endTime())
+              - (request.unpaidBreakMinutes() == null ? 0 : request.unpaidBreakMinutes());
+      if (workedMinutes > 0) {
+        BigDecimal intervalPercentage = extraPayTimeRules.findAllByEmploymentIdOrderByStartTime(record.getEmployment().getId())
+            .stream()
+            .map(rule -> effectiveIntervalPercentage(request.startTime(), request.endTime(), workedMinutes, rule))
+            .max(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+        recurring = recurring.max(intervalPercentage);
+      }
+    }
     return manual.max(recurring);
+  }
+
+  private BigDecimal effectiveIntervalPercentage(LocalTime workStart, LocalTime workEnd, int workedMinutes,
+      EmploymentExtraPayTimeRule rule) {
+    int overlap = overlapMinutes(workStart, workEnd, workedMinutes, rule);
+    return rule.getPercentage().multiply(BigDecimal.valueOf(overlap))
+        .divide(BigDecimal.valueOf(workedMinutes), 6, RoundingMode.HALF_UP);
+  }
+
+  private int overlapMinutes(LocalTime workStart, LocalTime workEnd, int workedMinutes,
+      EmploymentExtraPayTimeRule rule) {
+    int workStartMinute = workStart.toSecondOfDay() / 60;
+    int workEndMinute = workEnd.toSecondOfDay() / 60;
+    if (workEndMinute <= workStartMinute) workEndMinute += 1440;
+    int ruleStart = rule.getStartTime().toSecondOfDay() / 60;
+    int ruleEnd = rule.getEndTime().toSecondOfDay() / 60;
+    if (ruleEnd <= ruleStart) ruleEnd += 1440;
+    int overlap = 0;
+    for (int offset : new int[] {-1440, 0, 1440}) {
+      overlap = Math.max(overlap,
+          Math.max(0, Math.min(workEndMinute, ruleEnd + offset) - Math.max(workStartMinute, ruleStart + offset)));
+    }
+    overlap = Math.min(overlap, workedMinutes);
+    return overlap;
   }
 
   private WorkRecordResponse toResponse(WorkRecord record) {
@@ -478,7 +544,24 @@ public class WorkRecordService {
         line.getExtraGrossAmount(),
         line.getTotalGrossAmount(),
         line.getExtraPayPercentage(),
+        extraPayDetails(line),
         line.getNotes());
+  }
+
+  private List<ExtraPayDetailResponse> extraPayDetails(WorkRecordLine line) {
+    if (line.getStartTime() == null || line.getEndTime() == null
+        || line.getWorkRecord().getEmployment() == null) return List.of();
+    int workedMinutes = line.getWorkedMinutes().intValue();
+    if (workedMinutes <= 0) return List.of();
+    return extraPayTimeRules.findAllByEmploymentIdOrderByStartTime(
+            line.getWorkRecord().getEmployment().getId()).stream()
+        .map(rule -> new ExtraPayDetailResponse(
+            rule.getName(),
+            BigDecimal.valueOf(overlapMinutes(
+                line.getStartTime(), line.getEndTime(), workedMinutes, rule)),
+            rule.getPercentage()))
+        .filter(detail -> detail.eligibleMinutes().signum() > 0)
+        .toList();
   }
 
 }

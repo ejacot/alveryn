@@ -13,7 +13,7 @@ import { SettingsNavigationHeader } from "../components/settings/settings-naviga
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import {
-  buildPdfReportRows, generateAlverynPdf,
+  buildPdfReportRows, generateAlverynPdf, getPdfWorkTypeColumns,
   type PdfExportField, type PdfExportSelection, type PdfReportRow
 } from "../features/pdf-export/pdf-report";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
@@ -130,6 +130,7 @@ export function PdfExportPage() {
           totalHours: fixedT("settings:pdfExport.pdf.totalHours"), totalExtraHours: fixedT("settings:pdfExport.pdf.totalExtraHours"),
           totalEarnings: fixedT("settings:pdfExport.pdf.totalEarnings"),
           date: fixedT("settings:pdfExport.fields.date"), activity: fixedT("settings:pdfExport.fields.activity"),
+          status: fixedT("settings:pdfExport.fields.status"),
           intervals: fixedT("settings:pdfExport.fields.intervals"), hours: fixedT("settings:pdfExport.fields.hours"),
           quantity: fixedT("settings:pdfExport.fields.quantity"), extra: fixedT("settings:pdfExport.fields.extra"),
           workDetails: fixedT("settings:pdfExport.fields.workDetails"),
@@ -147,12 +148,10 @@ export function PdfExportPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[760px] space-y-6 pb-28 pt-5">
+    <div className="pdf-export-page mx-auto w-full max-w-[760px] space-y-5 pb-28 pt-5">
       <SettingsNavigationHeader title={t("settings:pdfExport.title")} backLabel={t("common:actions.back")} onBack={safeBack} />
       <header className="px-1">
         <p className="hairline-text">{t("settings:pdfExport.employerReport")}</p>
-        <h1 className="mt-2 text-[2.35rem] font-semibold tracking-[-0.07em] text-white">{t("settings:pdfExport.createTitle")}</h1>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-white/48">{t("settings:pdfExport.createHint")}</p>
       </header>
 
       <Card className="space-y-5 p-5">
@@ -161,7 +160,7 @@ export function PdfExportPage() {
           <input type="month" aria-label={t("settings:pdfExport.period")} value={month} onChange={(event) => {
             const next = event.currentTarget.value; if (!next) return;
             const range = monthRange(next); setMonth(next); setFrom(range.from); setTo(range.to); invalidatePreview();
-          }} className="font-metric mt-3 h-14 w-full rounded-2xl border border-white/10 bg-black/20 px-4 font-semibold text-white outline-none" />
+          }} className="pdf-period-input font-metric mt-3 block h-14 w-full min-w-0 max-w-full appearance-none overflow-hidden rounded-2xl border border-white/10 bg-black/20 px-4 text-center font-semibold text-white outline-none" />
           <details className="mt-3 border-t border-white/[0.06] pt-3">
             <summary className="cursor-pointer text-sm text-white/42">{t("settings:pdfExport.customPeriod")}</summary>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -202,7 +201,7 @@ export function PdfExportPage() {
                 setSelection((current) => ({ ...current, [field]: checked }));
                 invalidatePreview();
               }} className="peer sr-only" />
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/[0.18] text-transparent peer-checked:border-[#d5be8d] peer-checked:bg-[#d5be8d] peer-checked:text-black"><Check className="h-3.5 w-3.5" /></span>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/[0.18] text-transparent peer-checked:border-[#10b981] peer-checked:bg-[#10b981] peer-checked:text-black"><Check className="h-3.5 w-3.5" /></span>
               <span className="text-sm font-semibold text-white/68">{t(`settings:pdfExport.fields.${field}`)}</span>
             </label>
           ))}
@@ -223,14 +222,16 @@ export function PdfExportPage() {
 }
 
 function Choice({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${active ? "border-[#d5be8d]/45 bg-[#d5be8d]/12 text-[#ead8b2]" : "border-white/[0.08] bg-white/[0.035] text-white/50"}`}>{active ? <Check className="h-3.5 w-3.5" /> : null}{label}</button>;
+  return <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${active ? "border-[#10b981]/45 bg-[#10b981]/12 text-[#6ee7b7]" : "border-white/[0.08] bg-white/[0.035] text-white/50"}`}>{active ? <Check className="h-3.5 w-3.5" /> : null}{label}</button>;
 }
 
 function ReportPreview({ rows, userName, employmentName, from, to, selection, t }: { rows: PdfReportRow[]; userName: string; employmentName: string; from: string; to: string; selection: PdfExportSelection; t: ReturnType<typeof useTranslation<["settings", "common"]>>["t"] }) {
+  const workTypes = getPdfWorkTypeColumns(rows);
+  const columns = `7rem 8rem repeat(${Math.max(workTypes.length, 1)}, minmax(10rem, 1fr))${selection.notes ? " minmax(10rem, 1fr)" : ""}${selection.earnings ? " 8rem" : ""}`;
   return (
     <section id="pdf-preview" className="space-y-2">
       <div className="flex items-center justify-between px-1"><p className="hairline-text">{t("settings:pdfExport.preview")}</p><span className="flex items-center gap-1 text-xs text-white/35"><FileText className="h-3.5 w-3.5" />A4</span></div>
-      <div className="overflow-hidden rounded-[26px] bg-[#f4f3ef] text-[#111] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+      <div className="overflow-hidden rounded-[26px] bg-[#f4f4f4] text-[#111] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
         <div className="flex items-start justify-between bg-[#111] px-5 py-5 text-white">
           <div>
             <div className="flex items-center gap-2.5">
@@ -242,9 +243,20 @@ function ReportPreview({ rows, userName, employmentName, from, to, selection, t 
           <div className="text-right text-[0.65rem] text-white/55"><p>{employmentName}</p><p>{from} – {to}</p></div>
         </div>
         <div className="max-h-[34rem] overflow-auto p-3">
-          <div className="min-w-[620px]">
-            {rows.map((row) => <div key={row.key} className="grid grid-cols-[6.5rem_1.4fr_1.5fr_.7fr_1fr_1.2fr] gap-2 border-b border-black/[0.07] px-2 py-2 text-[0.64rem]">
-              <span className="font-semibold">{row.date}</span><span>{row.kind === "empty" ? "—" : row.activity}</span><span>{row.workDetails}</span><span>{selection.extra ? row.extra : ""}</span><span>{selection.earnings ? row.earnings : ""}</span><span className="truncate">{selection.notes ? row.notes : ""}</span>
+          <div className="min-w-max">
+            <div className="grid gap-2 rounded-t-xl bg-[#111] px-2 py-2 text-[0.62rem] font-bold uppercase text-white" style={{ gridTemplateColumns: columns }}>
+              <span>{t("settings:pdfExport.fields.date")}</span>
+              <span>{t("settings:pdfExport.fields.status")}</span>
+              {workTypes.length ? workTypes.map((type) => <span key={type.id}>{type.name}</span>) : <span>{t("settings:pdfExport.fields.activity")}</span>}
+              {selection.notes ? <span>{t("settings:pdfExport.fields.notes")}</span> : null}
+              {selection.earnings ? <span>{t("settings:pdfExport.fields.earnings")}</span> : null}
+            </div>
+            {rows.map((row) => <div key={row.key} className="grid gap-2 border-b border-black/[0.07] px-2 py-2 text-[0.64rem]" style={{ gridTemplateColumns: columns }}>
+              <span className="font-semibold">{row.date}</span>
+              <span>{row.status}</span>
+              {workTypes.length ? workTypes.map((type) => <span key={type.id}>{row.workTypeCells.find((cell) => cell.workTypeId === type.id)?.value ?? ""}</span>) : <span />}
+              {selection.notes ? <span>{row.notes}</span> : null}
+              {selection.earnings ? <span>{row.earnings}</span> : null}
             </div>)}
           </div>
         </div>

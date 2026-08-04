@@ -424,7 +424,7 @@ export function SettingsProfilePage() {
 function ProfilePlaceholder({ title, description }: { title: string; description: string }) {
   return (
     <Card as="section" className="px-5 py-6">
-      <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#d5be8d]">
+      <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#10b981]">
         <BadgeCheck className="h-5 w-5" />
       </div>
       <p className="text-[1.15rem] font-semibold tracking-[-0.05em] text-white">{title}</p>

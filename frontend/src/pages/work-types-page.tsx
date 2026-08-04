@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Clock3, Coins, Plus, Ruler, X } from "lucide-react";
+import { Banknote, ChevronDown, ChevronRight, Clock3, Coins, Folder, Ruler, Tag, X } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -61,6 +61,12 @@ export function WorkTypesPage() {
     });
   }
 
+  function openNewCategory() {
+    const params = new URLSearchParams({ category: "true" });
+    if (employmentId) params.set("employmentId", employmentId);
+    navigate(`/settings/work-types/new?${params.toString()}`);
+  }
+
   if (workTypesQuery.isLoading) {
     return <SettingsPageSkeleton />;
   }
@@ -91,11 +97,12 @@ export function WorkTypesPage() {
         title={title}
         backLabel={t("common:actions.back")}
         onBack={safeBack}
-        action={parentItems.length ? {
-          label: t("settings:workSetup.addWorkType"),
-          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
-          onClick: () => setAddDialogOpen(true)
-        } : undefined}
+      />
+
+      <EmploymentFeatureGuide
+        feature="workTypes"
+        onPrimaryAction={() => setAddDialogOpen(true)}
+        onSecondaryAction={openNewCategory}
       />
 
       {!parentItems.length ? (
@@ -112,12 +119,11 @@ export function WorkTypesPage() {
           onToggle={toggleParent}
           childrenByParentId={childrenByParentId}
           expandedParentIds={expandedParentIds}
-          childCountLabel={(count) => t("settings:workSetup.formulaCount", { count })}
+          categoryLabel={t("settings:workSetup.category")}
+          childCountLabel={(count) => t("settings:workSetup.workTypeCount", { count })}
           inactiveLabel={t("settings:status.inactive")}
         />
       )}
-
-      <EmploymentFeatureGuide feature="workTypes" />
 
       <AddWorkTypeDialog
         open={addDialogOpen}
@@ -137,8 +143,6 @@ type WorkTypeSetupOption = {
   compensationMethod: CompensationMethod;
   title: string;
   description: string;
-  formula: string;
-  suggestedName: string;
   icon: React.ReactNode;
 };
 
@@ -189,27 +193,24 @@ function AddWorkTypeDialog({
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {options.map((option) => (
             <button
               key={option.mode}
               type="button"
-              className="min-h-[12rem] rounded-[26px] border border-white/[0.08] bg-white/[0.045] px-3.5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-white/24 sm:px-4"
+              className="w-full rounded-[22px] border border-white/[0.08] bg-white/[0.045] p-4 text-left transition hover:bg-white/[0.075] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-white/24"
               onClick={() => onSelect(option)}
             >
-              <span className="flex h-full flex-col justify-between gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.07] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <span className="flex items-center gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.07] text-white/72">
                   {option.icon}
                 </span>
-                <span className="min-w-0 space-y-2">
-                  <span className="block text-[1rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[1.05rem]">
+                <span className="min-w-0">
+                  <span className="block text-[0.95rem] font-semibold leading-5 tracking-[-0.025em] text-white">
                     {option.title}
                   </span>
-                  <span className="block text-xs leading-4 text-white/48">
+                  <span className="mt-1 block text-xs leading-[1.15rem] text-white/48">
                     {option.description}
-                  </span>
-                  <span className="block min-h-8 text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.11em] text-white/34">
-                    {option.formula}
                   </span>
                 </span>
               </span>
@@ -227,6 +228,7 @@ function WorkTypeList({
   onToggle,
   childrenByParentId,
   expandedParentIds,
+  categoryLabel,
   childCountLabel,
   inactiveLabel
 }: {
@@ -235,6 +237,7 @@ function WorkTypeList({
   onToggle: (workTypeId: string) => void;
   childrenByParentId: Record<string, WorkType[]>;
   expandedParentIds: Set<string>;
+  categoryLabel: string;
   childCountLabel: (count: number) => string;
   inactiveLabel: string;
 }) {
@@ -242,7 +245,8 @@ function WorkTypeList({
     <section className="space-y-4">
       {items.map((item) => {
           const children = childrenByParentId[item.id] ?? [];
-          const expandable = children.length > 0;
+          const isCategory = Boolean(item.compositeEnabled);
+          const expandable = isCategory && children.length > 0;
           const expanded = expandedParentIds.has(item.id);
           return (
             <Card key={item.id} className="overflow-hidden">
@@ -253,11 +257,14 @@ function WorkTypeList({
                   className="flex min-h-[5.25rem] min-w-0 flex-1 items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/24 focus:ring-inset"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className={`font-name block truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${item.active ? "text-white" : "text-white/42"}`}>
-                      {item.name}
+                    <span className={`font-name flex items-center gap-2 truncate text-[1.05rem] font-semibold tracking-[-0.04em] ${item.active ? "text-white" : "text-white/42"}`}>
+                      {isCategory
+                        ? <Folder className="h-4 w-4 shrink-0 text-white/42" aria-hidden="true" />
+                        : <Tag className="h-4 w-4 shrink-0 text-white/42" aria-hidden="true" />}
+                      <span className="truncate">{item.name}</span>
                     </span>
                     <span className="mt-1 block truncate text-sm text-white/48">
-                      {expandable ? childCountLabel(children.length) : workTypeSummary(item)}
+                      {isCategory ? `${categoryLabel} · ${childCountLabel(children.length)}` : workTypeSummary(item)}
                       {!item.active ? ` · ${inactiveLabel}` : ""}
                     </span>
                   </span>
@@ -288,7 +295,10 @@ function WorkTypeList({
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <p className={`font-name truncate text-sm font-semibold tracking-[-0.03em] ${child.active ? "text-white/82" : "text-white/38"}`}>
-                              {child.name}
+                              <span className="flex items-center gap-2">
+                                <Tag className="h-3.5 w-3.5 shrink-0 text-white/36" aria-hidden="true" />
+                                <span className="truncate">{child.name}</span>
+                              </span>
                             </p>
                             <p className="mt-0.5 text-xs text-white/34">{workTypeSummary(child)}</p>
                           </div>
@@ -332,8 +342,6 @@ function workTypeSetupOptions(t: ReturnType<typeof useTranslation<["common", "se
       compensationMethod: "HOURLY",
       title: t("settings:workTypeEditor.modes.timeTitle"),
       description: t("settings:workTypeEditor.modes.timeDescription"),
-      formula: t("settings:workTypeEditor.modes.timeFormula"),
-      suggestedName: t("settings:workTypeEditor.modes.timeSuggestedName"),
       icon: <Clock3 className="h-5 w-5" aria-hidden="true" />
     },
     {
@@ -342,8 +350,6 @@ function workTypeSetupOptions(t: ReturnType<typeof useTranslation<["common", "se
       compensationMethod: "HOURLY",
       title: t("settings:workTypeEditor.modes.unitsPerHourTitle"),
       description: t("settings:workTypeEditor.modes.unitsPerHourDescription"),
-      formula: t("settings:workTypeEditor.modes.unitsPerHourFormula"),
-      suggestedName: t("settings:workTypeEditor.modes.unitsPerHourSuggestedName"),
       icon: <Ruler className="h-5 w-5" aria-hidden="true" />
     },
     {
@@ -352,8 +358,6 @@ function workTypeSetupOptions(t: ReturnType<typeof useTranslation<["common", "se
       compensationMethod: "PER_UNIT",
       title: t("settings:workTypeEditor.modes.perUnitTitle"),
       description: t("settings:workTypeEditor.modes.perUnitDescription"),
-      formula: t("settings:workTypeEditor.modes.perUnitFormula"),
-      suggestedName: t("settings:workTypeEditor.modes.perUnitSuggestedName"),
       icon: <Coins className="h-5 w-5" aria-hidden="true" />
     },
     {
@@ -362,9 +366,7 @@ function workTypeSetupOptions(t: ReturnType<typeof useTranslation<["common", "se
       compensationMethod: "HOURLY",
       title: t("settings:workTypeEditor.modes.fixedTitle"),
       description: t("settings:workTypeEditor.modes.fixedDescription"),
-      formula: t("settings:workTypeEditor.modes.fixedFormula"),
-      suggestedName: t("settings:workTypeEditor.modes.fixedSuggestedName"),
-      icon: <Coins className="h-5 w-5" aria-hidden="true" />
+      icon: <Banknote className="h-5 w-5" aria-hidden="true" />
     }
   ];
 }

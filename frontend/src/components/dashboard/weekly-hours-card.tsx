@@ -128,18 +128,18 @@ export function WeeklyHoursCard({
         <Card className="overflow-hidden">
           <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-5 py-2.5 dark:border-white/10">
             <div>
-              <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f4f0e7]/34">
+              <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f5f5f5]/34">
                 {t(variant === "flow"
                   ? "weeklyHours.dailyEarningsAverage"
                   : "weeklyHours.dailyAverage")}
               </p>
-              <p className="mt-1 flex items-baseline gap-1 font-metric text-lg font-medium tabular-nums text-[#f4f0e7]">
+              <p className="mt-1 flex items-baseline gap-1 font-metric text-lg font-medium tabular-nums text-[#f5f5f5]">
                 {variant === "flow" ? (
-                  <span className="text-sm text-[#f4f0e7]/44">{currencySymbol}</span>
+                  <span className="text-sm text-[#f5f5f5]/44">{currencySymbol}</span>
                 ) : null}
                 <span>{numberFormatter.format(variant === "flow" ? dailyAverage : dailyAverage / 60)}</span>
                 {variant === "rhythm" ? (
-                  <span className="text-xs text-[#f4f0e7]/44">h</span>
+                  <span className="text-xs text-[#f5f5f5]/44">h</span>
                 ) : null}
               </p>
             </div>
@@ -147,7 +147,7 @@ export function WeeklyHoursCard({
               <div className={cn(
                   "flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold tabular-nums",
                   weekChange >= 0
-                  ? "border-[#d5be8d]/15 bg-[#d5be8d]/[0.07] text-[#d5be8d]"
+                  ? "border-[#10b981]/15 bg-[#10b981]/[0.07] text-[#10b981]"
                   : "border-red-400/15 bg-red-400/[0.06] text-red-300"
               )}>
                 {weekChange >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
@@ -155,7 +155,7 @@ export function WeeklyHoursCard({
               </div>
             ) : null}
           </div>
-          <div className="px-4 py-4">
+          <div className="weekly-chart-area px-4 py-4">
           <div className="relative h-52 touch-pan-y overflow-hidden">
             <div className="grid h-52 grid-cols-7 items-end gap-1.5 opacity-0" aria-hidden="true">
               {days.map((day) => (
@@ -194,7 +194,7 @@ export function WeeklyHoursCard({
               >
 	                {maximumDailyValue > 0 ? (
                     <div
-                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#d5be8d]/55"
+                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#10b981]/55"
                       style={{ bottom: `calc(2.5rem + ${(averagePercentage / 100) * 7}rem)` }}
                       aria-hidden="true"
                     />
@@ -232,9 +232,9 @@ export function WeeklyHoursCard({
                         onDaySelect?.(day.key);
                       }}
                       className={cn(
-                        "flex h-full min-w-0 flex-col items-center gap-2 rounded-2xl px-1 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d5be8d]",
+                        "flex h-full min-w-0 flex-col items-center gap-2 rounded-2xl px-1 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10b981]",
                         day.selected
-                          ? "bg-[#d5be8d]/[0.075] shadow-[inset_0_0_0_1px_rgba(213,190,141,0.1)]"
+                          ? "bg-[#10b981]/[0.075] shadow-[inset_0_0_0_1px_rgba(16,185,129,0.1)]"
                           : "bg-transparent"
                       )}
                       aria-label={isAbsenceOnly
@@ -242,13 +242,13 @@ export function WeeklyHoursCard({
                         : `${day.label}, ${variant === "flow" ? metricValue : day.value}`}
                     >
                       <p className={`truncate text-[0.64rem] font-semibold uppercase tracking-[0.1em] ${
-                        day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/38"
+                        day.selected ? "text-[#34d399]" : "text-[#f5f5f5]/38"
                       }`}>
                         {day.label}
                       </p>
                       <div className="relative h-28 w-full">
                         <span
-                          className="absolute bottom-0 left-1/2 h-28 w-full max-w-6 -translate-x-1/2 rounded-full bg-white/[0.065]"
+                          className="weekly-chart-track absolute bottom-0 left-1/2 h-28 w-full max-w-6 -translate-x-1/2 rounded-full bg-white/[0.065]"
                           aria-hidden="true"
                         />
                         {metricValue > 0 && (!day.absence || variant === "flow") ? (
@@ -258,10 +258,10 @@ export function WeeklyHoursCard({
                                 className={cn(
                                   "absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[0.55rem] font-bold tabular-nums",
                                   variant === "flow"
-                                    ? "text-[#d5be8d]"
+                                    ? "text-[#10b981]"
                                     : day.selected
-                                      ? "text-[#ead8ac]"
-                                      : "text-[#d5be8d]"
+                                      ? "text-[#34d399]"
+                                      : "text-[#10b981]"
                                 )}
                                 style={{
                                   bottom: `clamp(0.8rem, calc(${barHeight}% + 0.15rem), calc(100% - 0.9rem))`
@@ -281,19 +281,15 @@ export function WeeklyHoursCard({
                                 {flowExtraPercentage > 0 ? (
                                   <span
                                     data-segment="extra"
-                                    className="w-full bg-[#d5be8d]"
+                                    className="w-full bg-[#10b981]"
                                     style={{ height: `${flowExtraPercentage}%` }}
                                     aria-hidden="true"
                                   />
                                 ) : null}
                                 <span
                                   data-segment="worked"
-                                  className="w-full flex-1"
-                                  style={{
-                                    backgroundColor: day.selected
-                                      ? "#ead8ac"
-                                      : "rgba(244, 240, 231, 0.42)"
-                                  }}
+                                  className={cn("weekly-chart-bar w-full flex-1", day.selected && "is-selected")}
+                                  style={{ backgroundColor: day.selected ? "#34d399" : "rgba(255, 255, 255, 0.42)" }}
                                   aria-hidden="true"
                                 />
                               </motion.div>
@@ -304,16 +300,12 @@ export function WeeklyHoursCard({
                                 animate={{ height: `${barHeight}%`, opacity: 1 }}
                                 transition={{ duration: 0.22, delay: index * 0.018, ease: [0.22, 1, 0.36, 1] }}
                                 className={cn(
-                                  "absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 overflow-hidden rounded-full transition-colors",
+                                  "weekly-chart-bar absolute bottom-0 left-1/2 w-full max-w-6 -translate-x-1/2 overflow-hidden rounded-full transition-colors",
                                   day.selected
-                                    ? "shadow-[0_0_18px_rgba(213,190,141,0.18)]"
+                                    ? "is-selected shadow-[0_0_18px_rgba(16,185,129,0.18)]"
                                     : ""
                                 )}
-                                style={{
-                                  backgroundColor: day.selected
-                                    ? "#ead8ac"
-                                    : "rgba(244, 240, 231, 0.42)"
-                                }}
+                                style={{ backgroundColor: day.selected ? "#34d399" : "rgba(255, 255, 255, 0.42)" }}
                               />
                             )}
                           </>
@@ -331,14 +323,14 @@ export function WeeklyHoursCard({
                         ) : variant === "flow" ? (
                           <p className={cn(
                             "whitespace-nowrap text-[0.66rem] font-semibold tabular-nums",
-                            day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/42"
+                            day.selected ? "text-[#34d399]" : "text-[#f5f5f5]/42"
                           )}>
                             {currencySymbol}{numberFormatter.format(day.amount)}
                           </p>
                         ) : (
                           <p className={cn(
                             "text-xs font-semibold tabular-nums",
-                            day.selected ? "text-[#ead8ac]" : "text-[#f4f0e7]/38"
+                            day.selected ? "text-[#34d399]" : "text-[#f5f5f5]/38"
                           )}>
                             {new Intl.NumberFormat(i18n.resolvedLanguage, {
                               maximumFractionDigits: 2
@@ -361,10 +353,10 @@ export function WeeklyHoursCard({
           >
             {weeklySummary.map((item, index) => (
               <div key={item.label} className={cn("min-w-0", index === 1 && "text-right")}>
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[#f4f0e7]/36">
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[#f5f5f5]/36">
                   {item.label}
                 </p>
-                <p className="mt-1.5 break-words font-metric text-base font-medium tabular-nums text-[#f4f0e7]">
+                <p className="mt-1.5 break-words font-metric text-base font-medium tabular-nums text-[#f5f5f5]">
                   {item.value}
                 </p>
               </div>
@@ -372,8 +364,8 @@ export function WeeklyHoursCard({
           </div>
         </Card>
       ) : (
-        <Card className="flex min-h-32 items-center px-5 py-6">
-          <p className="max-w-[18rem] text-sm leading-6 text-[#f4f0e7]/38">
+        <Card className="dashboard-empty-week flex min-h-24 items-center px-5 py-4">
+          <p className="max-w-[18rem] text-sm font-medium leading-5 text-[#f5f5f5]/48">
             {t("weeklyHours.emptyDescription")}
           </p>
         </Card>

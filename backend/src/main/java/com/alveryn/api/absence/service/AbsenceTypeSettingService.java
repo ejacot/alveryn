@@ -123,7 +123,7 @@ public class AbsenceTypeSettingService {
       return toResponse(repository.save(setting));
     }
     String color = switch (type) {
-      case VACATION -> "#10B981";
+      case VACATION -> "#3B82F6";
       case SICK_LEAVE -> "#EF4444";
       case DAY_OFF -> "#737373";
       case PUBLIC_HOLIDAY -> "#F59E0B";

@@ -149,7 +149,7 @@ async function seedDemoData() {
   const clientShifts = await apiPost(api, "/api/work-types", {
     name: "Client shifts",
     calculationMethod: "TIME_BASED",
-    color: "#F4C95D",
+    color: "#34d399",
     icon: "C",
     defaultBreakMinutes: 30,
     displayOrder: 1

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, Boxes, Check, Clock3, PencilLine, Play, Receipt, Timer, WalletCards } from "lucide-react";
+import { Banknote, Check, Clock3, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
+import { Select } from "../components/ui/select";
 import { useAuth } from "../features/auth/use-auth";
 import { APP_HOME_PATH } from "../routes/app-paths";
 import type { CompensationType, Employment, TrackingFocus } from "../types/configuration";
@@ -28,6 +29,8 @@ const trackingOptions: Array<{
   { value: "TIME", icon: Clock3 },
   { value: "EARNINGS", icon: WalletCards }
 ];
+
+const CURRENCY_OPTIONS = ["EUR", "USD", "GBP", "CHF", "PLN", "RON"];
 
 export function TrackingSetupPage() {
   const { t } = useTranslation("onboarding");
@@ -155,7 +158,7 @@ export function TrackingSetupPage() {
   );
 }
 
-type TimeEntryMode = "TIMER_AND_MANUAL" | "MANUAL";
+type InitialCompensationType = Extract<CompensationType, "HOURLY" | "FIXED_SALARY">;
 
 function NewAccountSetup() {
   const { t, i18n } = useTranslation("onboarding");
@@ -165,20 +168,13 @@ function NewAccountSetup() {
   const [step, setStep] = useState(1);
   const [firstName, setFirstName] = useState(user?.profile?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.profile?.lastName ?? "");
-  const [employmentName, setEmploymentName] = useState("");
-  const [startDate, setStartDate] = useState(firstDayOfCurrentMonthLocalIsoDate());
-  const [compensationType, setCompensationType] = useState<CompensationType>("HOURLY");
+  const employmentName = t("setup.workplace.defaultName");
+  const startDate = firstDayOfCurrentMonthLocalIsoDate();
+  const [compensationType, setCompensationType] = useState<InitialCompensationType>("HOURLY");
   const [hourlyRate, setHourlyRate] = useState("");
   const [fixedSalaryAmount, setFixedSalaryAmount] = useState("");
   const [currency, setCurrency] = useState(user?.preferences?.currency ?? "EUR");
-  const [timeEntryMode, setTimeEntryMode] = useState<TimeEntryMode>("TIMER_AND_MANUAL");
-  const [hourBalanceEnabled, setHourBalanceEnabled] = useState(false);
-  const [targetHours, setTargetHours] = useState("160");
-  const [validityMonths, setValidityMonths] = useState("12");
-  const [workTypeName, setWorkTypeName] = useState("");
-  const [unitLabel, setUnitLabel] = useState("");
-  const [unitSymbol, setUnitSymbol] = useState("");
-  const [ratePerUnit, setRatePerUnit] = useState("");
+  const workTypeName = t("setup.timeEntry.preview.regularShift");
   const [paidSickLeave, setPaidSickLeave] = useState(
     user?.preferences?.paidSickLeave ?? true
   );
@@ -192,7 +188,6 @@ function NewAccountSetup() {
     String((user?.preferences?.preferredDailyMinutes ?? 480) / 60)
   );
   const [validationError, setValidationError] = useState<string | null>(null);
-  const supportsTimeTracking = compensationType === "HOURLY" || compensationType === "FIXED_SALARY";
 
   const finishMutation = useMutation({
     mutationFn: async () => {
@@ -212,28 +207,22 @@ function NewAccountSetup() {
         defaultBreakMinutes: preferences.defaultBreakMinutes,
         preferredDailyMinutes: preferences.preferredDailyMinutes ?? 480,
         paidSickLeave,
-        sickLeavePaidMinutesPerDay: paidSickLeave
-          ? Math.round(parseNumber(sickLeavePaidHours) * 60)
-          : 0,
+        sickLeavePaidMinutesPerDay: paidSickLeave ? Math.round(parseNumber(sickLeavePaidHours) * 60) : 0,
         paidVacation,
-        vacationPaidMinutesPerDay: paidVacation
-          ? Math.round(parseNumber(vacationPaidHours) * 60)
-          : 0,
+        vacationPaidMinutesPerDay: paidVacation ? Math.round(parseNumber(vacationPaidHours) * 60) : 0,
         employmentName: employmentName.trim(),
         startDate,
         compensationType,
         hourlyRate: compensationType === "HOURLY" ? parseNumber(hourlyRate) : null,
         fixedSalaryAmount: compensationType === "FIXED_SALARY" ? parseNumber(fixedSalaryAmount) : null,
-        timerEnabled: supportsTimeTracking && timeEntryMode === "TIMER_AND_MANUAL",
-        hourBalanceEnabled: supportsTimeTracking && (hourBalanceEnabled || compensationType === "FIXED_SALARY"),
-        targetMinutes: supportsTimeTracking && (hourBalanceEnabled || compensationType === "FIXED_SALARY")
-          ? Math.round(Number(targetHours) * 60) : null,
-        hourBalanceValidityMonths: supportsTimeTracking && (hourBalanceEnabled || compensationType === "FIXED_SALARY")
-          ? Number(validityMonths) : null,
+        timerEnabled: false,
+        hourBalanceEnabled: compensationType === "FIXED_SALARY",
+        targetMinutes: compensationType === "FIXED_SALARY" ? 160 * 60 : null,
+        hourBalanceValidityMonths: compensationType === "FIXED_SALARY" ? 12 : null,
         workTypeName: workTypeName.trim(),
-        unitLabel: compensationType === "PER_UNIT" ? unitLabel.trim() : null,
-        unitSymbol: compensationType === "PER_UNIT" ? unitSymbol.trim() || null : null,
-        ratePerUnit: compensationType === "PER_UNIT" ? parseNumber(ratePerUnit) : null
+        unitLabel: null,
+        unitSymbol: null,
+        ratePerUnit: null
       });
     },
     onSuccess: async () => {
@@ -254,24 +243,19 @@ function NewAccountSetup() {
     const error = validateSetupStep(step, {
       firstName,
       lastName,
-      employmentName,
-      startDate,
       compensationType,
       hourlyRate,
       fixedSalaryAmount,
-      hourBalanceEnabled,
-      targetHours,
-      validityMonths,
-      workTypeName,
-      unitLabel,
-      ratePerUnit,
       paidSickLeave,
       sickLeavePaidHours,
       paidVacation,
       vacationPaidHours
     }, t);
     setValidationError(error);
-    if (!error) setStep((current) => Math.min(7, current + 1));
+    if (!error) {
+      if (step === 3) finishMutation.mutate();
+      else setStep((current) => Math.min(3, current + 1));
+    }
   };
 
   return (
@@ -279,10 +263,10 @@ function NewAccountSetup() {
       <div className="mx-auto max-w-md space-y-5">
         <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
           <span>{t("setup.label")}</span>
-          <span>{step} / 7</span>
+          <span>{step} / 3</span>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${step / 7 * 100}%` }} />
+          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${step / 3 * 100}%` }} />
         </div>
 
         <Card variant="section" className="space-y-5 rounded-[2rem] p-6">
@@ -296,95 +280,31 @@ function NewAccountSetup() {
 
           {step === 2 ? (
             <>
-              <SetupHeader title={t("setup.workplace.title")} description={t("setup.workplace.description")} />
-              <Input label={t("setup.workplace.name")} value={employmentName} autoComplete="organization" placeholder={t("setup.workplace.placeholder")} onChange={(event) => setEmploymentName(event.currentTarget.value)} />
-              <Input
-                label={t("setup.workplace.startDate")}
-                type="date"
-                wrapperClassName="mx-auto w-full max-w-[15rem]"
-                value={startDate}
-                onChange={(event) => setStartDate(event.currentTarget.value)}
-              />
-              <p className="text-xs leading-5 text-white/45">{t("setup.workplace.startDateHint")}</p>
-            </>
-          ) : null}
-
-          {step === 3 ? (
-            <>
               <SetupHeader title={t("setup.payment.title")} />
               <div className="grid grid-cols-2 gap-3">
                 <ChoiceCard compact selected={compensationType === "HOURLY"} icon={Clock3} title={t("setup.payment.hourly.title")} description={t("setup.payment.hourly.description")} onClick={() => setCompensationType("HOURLY")} />
                 <ChoiceCard compact selected={compensationType === "FIXED_SALARY"} icon={Banknote} title={t("setup.payment.fixed.title")} description={t("setup.payment.fixed.description")} onClick={() => setCompensationType("FIXED_SALARY")} />
-                <ChoiceCard compact selected={compensationType === "PER_UNIT"} icon={Boxes} title={t("setup.payment.perUnit.title")} description={t("setup.payment.perUnit.description")} onClick={() => setCompensationType("PER_UNIT")} />
-                <ChoiceCard compact selected={compensationType === "FIXED_AMOUNT"} icon={Receipt} title={t("setup.payment.fixedAmount.title")} description={t("setup.payment.fixedAmount.description")} onClick={() => setCompensationType("FIXED_AMOUNT")} />
               </div>
               {compensationType === "HOURLY" ? (
                 <div className="grid grid-cols-[1fr_6.5rem] gap-3">
-                  <Input label={t("setup.payment.rate")} inputMode="decimal" value={hourlyRate} placeholder="17.50" onChange={(event) => setHourlyRate(event.currentTarget.value)} />
-                  <Input label={t("setup.payment.currency")} value={currency} maxLength={3} onChange={(event) => setCurrency(event.currentTarget.value.toUpperCase())} />
+                  <Input label={t("setup.payment.rate")} inputMode="decimal" value={hourlyRate} placeholder=".../h" onChange={(event) => setHourlyRate(event.currentTarget.value)} />
+                  <Select label={t("setup.payment.currency")} value={currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
+                    {CURRENCY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </Select>
                 </div>
               ) : null}
               {compensationType === "FIXED_SALARY" ? (
                 <div className="grid grid-cols-[1fr_6.5rem] gap-3">
-                  <Input label={t("setup.payment.salary")} inputMode="decimal" value={fixedSalaryAmount} placeholder="3000" onChange={(event) => setFixedSalaryAmount(event.currentTarget.value)} />
-                  <Input label={t("setup.payment.currency")} value={currency} maxLength={3} onChange={(event) => setCurrency(event.currentTarget.value.toUpperCase())} />
+                  <Input label={t("setup.payment.salary")} inputMode="decimal" value={fixedSalaryAmount} placeholder=".../month" onChange={(event) => setFixedSalaryAmount(event.currentTarget.value)} />
+                  <Select label={t("setup.payment.currency")} value={currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
+                    {CURRENCY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </Select>
                 </div>
               ) : null}
             </>
           ) : null}
 
-          {step === 4 ? (
-            <>
-              <SetupHeader title={t("setup.timeEntry.title")} description={t("setup.timeEntry.description")} />
-              {supportsTimeTracking ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <TimeEntryChoiceCard
-                    mode="TIMER_AND_MANUAL"
-                    selected={timeEntryMode === "TIMER_AND_MANUAL"}
-                    title={t("setup.timeEntry.timer.title")}
-                    description={t("setup.timeEntry.timer.description")}
-                    onClick={() => setTimeEntryMode("TIMER_AND_MANUAL")}
-                    t={t}
-                  />
-                  <TimeEntryChoiceCard
-                    mode="MANUAL"
-                    selected={timeEntryMode === "MANUAL"}
-                    title={t("setup.timeEntry.manual.title")}
-                    description={t("setup.timeEntry.manual.description")}
-                    onClick={() => setTimeEntryMode("MANUAL")}
-                    t={t}
-                  />
-                </div>
-              ) : (
-                <ChoiceCard horizontal selected icon={PencilLine} title={t("setup.timeEntry.job.title")} description={t("setup.timeEntry.job.description")} onClick={() => setTimeEntryMode("MANUAL")} />
-              )}
-            </>
-          ) : null}
-
-          {step === 5 ? (
-            <>
-              <SetupHeader title={t("setup.balance.title")} description={t("setup.balance.description")} />
-              {supportsTimeTracking ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <ChoiceCard compact selected={!hourBalanceEnabled && compensationType !== "FIXED_SALARY"} title={t("setup.balance.no.title")} description={t("setup.balance.no.description")} onClick={() => setHourBalanceEnabled(false)} />
-                    <ChoiceCard compact selected={hourBalanceEnabled || compensationType === "FIXED_SALARY"} title={t("setup.balance.yes.title")} description={t("setup.balance.yes.description")} onClick={() => setHourBalanceEnabled(true)} />
-                  </div>
-                  <HoursBalancePreview t={t} />
-                </>
-              ) : (
-                <ChoiceCard horizontal selected title={t("setup.balance.notNeeded.title")} description={t("setup.balance.notNeeded.description")} onClick={() => setHourBalanceEnabled(false)} />
-              )}
-              {supportsTimeTracking && (hourBalanceEnabled || compensationType === "FIXED_SALARY") ? (
-                <Input label={t("setup.balance.target")} type="number" inputMode="decimal" min="1" value={targetHours} onChange={(event) => setTargetHours(event.currentTarget.value)} helperText={t("setup.balance.targetHint")} />
-              ) : null}
-              {supportsTimeTracking && hourBalanceEnabled ? (
-                <Input label={t("setup.balance.validity")} type="number" inputMode="numeric" min="1" value={validityMonths} onChange={(event) => setValidityMonths(event.currentTarget.value)} helperText={t("setup.balance.validityHint")} />
-              ) : null}
-            </>
-          ) : null}
-
-          {step === 6 ? (
+          {step === 3 ? (
             <>
               <SetupHeader
                 title={t("setup.absences.title")}
@@ -406,31 +326,6 @@ function NewAccountSetup() {
                 onPaidHoursChange={setVacationPaidHours}
                 t={t}
               />
-              <p className="text-xs leading-5 text-white/42">
-                {t("setup.absences.hint")}
-              </p>
-            </>
-          ) : null}
-
-          {step === 7 ? (
-            <>
-              <SetupHeader title={t("setup.workType.title")} description={t("setup.workType.description")} />
-              <Input label={t("setup.workType.name")} value={workTypeName} placeholder={t("setup.workType.placeholder")} onChange={(event) => setWorkTypeName(event.currentTarget.value)} />
-              {compensationType === "PER_UNIT" ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input label={t("setup.workType.unitLabel")} value={unitLabel} placeholder="Room" onChange={(event) => setUnitLabel(event.currentTarget.value)} />
-                    <Input label={t("setup.workType.unitSymbol")} value={unitSymbol} placeholder="room" onChange={(event) => setUnitSymbol(event.currentTarget.value)} />
-                  </div>
-                  <div className="grid grid-cols-[1fr_6.5rem] gap-3">
-                    <Input label={t("setup.workType.ratePerUnit")} inputMode="decimal" value={ratePerUnit} placeholder="25" onChange={(event) => setRatePerUnit(event.currentTarget.value)} />
-                    <Input label={t("setup.payment.currency")} value={currency} maxLength={3} onChange={(event) => setCurrency(event.currentTarget.value.toUpperCase())} />
-                  </div>
-                </>
-              ) : null}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-white/62">
-                {t("setup.workType.colorHint")}
-              </div>
             </>
           ) : null}
 
@@ -439,8 +334,8 @@ function NewAccountSetup() {
 
           <div className={`grid gap-3 ${step > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
             {step > 1 ? <Button variant="ghost" onClick={() => { setValidationError(null); setStep((current) => current - 1); }}>{t("setup.actions.back")}</Button> : null}
-            <Button disabled={finishMutation.isPending} onClick={() => step === 7 ? finishMutation.mutate() : next()}>
-              {finishMutation.isPending ? t("setup.actions.saving") : step === 7 ? t("setup.actions.finish") : t("setup.actions.continue")}
+            <Button disabled={finishMutation.isPending} onClick={next}>
+              {finishMutation.isPending ? t("setup.actions.saving") : step === 3 ? t("setup.actions.finish") : t("setup.actions.continue")}
             </Button>
           </div>
         </Card>
@@ -490,9 +385,10 @@ function PaidAbsenceChoice({
   t: (key: string) => string;
 }) {
   return (
-    <section className="space-y-2.5 rounded-[1.35rem] border border-white/[0.08] bg-white/[0.025] p-4">
-      <p className="font-semibold text-white">{title}</p>
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={title}>
+    <section className="space-y-3 rounded-[1.35rem] border border-white/[0.08] bg-white/[0.025] p-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 font-semibold text-white">{title}</p>
+        <div className="grid w-[11rem] shrink-0 grid-cols-2 gap-2" role="radiogroup" aria-label={title}>
         {([true, false] as const).map((value) => (
           <button
             key={String(value)}
@@ -509,6 +405,7 @@ function PaidAbsenceChoice({
             {t(value ? "setup.absences.paid" : "setup.absences.unpaid")}
           </button>
         ))}
+        </div>
       </div>
       {paid ? (
         <Input
@@ -520,155 +417,22 @@ function PaidAbsenceChoice({
           step="0.25"
           value={paidHours}
           onChange={(event) => onPaidHoursChange(event.currentTarget.value)}
-          helperText={t("setup.absences.paidHoursHint")}
         />
       ) : null}
     </section>
   );
 }
 
-function TimeEntryChoiceCard({
-  mode,
-  selected,
-  title,
-  description,
-  onClick,
-  t
-}: {
-  mode: TimeEntryMode;
-  selected: boolean;
-  title: string;
-  description: string;
-  onClick: () => void;
-  t: (key: string) => string;
-}) {
-  const timer = mode === "TIMER_AND_MANUAL";
-
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
-      className={`min-w-0 rounded-[1.35rem] border p-3 text-left transition active:scale-[0.985] ${
-        selected
-          ? "border-white/55 bg-white/[0.12]"
-          : "border-white/10 bg-white/[0.025]"
-      }`}
-    >
-      <span className="flex items-center justify-between gap-2">
-        {timer ? (
-          <Timer className="h-4 w-4 text-white/72" aria-hidden="true" />
-        ) : (
-          <PencilLine className="h-4 w-4 text-white/72" aria-hidden="true" />
-        )}
-        <span
-          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-            selected ? "border-white bg-white text-black" : "border-white/25"
-          }`}
-        >
-          {selected ? <Check className="h-3.5 w-3.5" /> : null}
-        </span>
-      </span>
-
-      <span className="mt-2 block text-sm font-semibold leading-5 text-white">{title}</span>
-      <span className="mt-1 block text-[0.68rem] leading-4 text-white/46">{description}</span>
-
-      {timer ? (
-        <span className="mt-3 block rounded-2xl border border-white/[0.09] bg-black/25 p-2.5">
-          <span className="block truncate text-[0.65rem] font-semibold text-white/65">
-            {t("setup.timeEntry.preview.activity")}
-          </span>
-          <span className="mt-1.5 block text-center text-lg font-semibold tabular-nums tracking-[-0.04em] text-white">
-            00:00:00
-          </span>
-          <span className="mt-2 flex h-8 items-center justify-center gap-1.5 rounded-full bg-white text-[0.68rem] font-semibold text-black">
-            <Play className="h-3 w-3 fill-current" aria-hidden="true" />
-            {t("setup.timeEntry.preview.checkIn")}
-          </span>
-        </span>
-      ) : (
-        <span className="mt-3 block rounded-2xl border border-white/[0.09] bg-black/25 p-2.5">
-          <span className="block text-[0.58rem] uppercase tracking-[0.12em] text-white/38">
-            {t("setup.timeEntry.preview.shift")}
-          </span>
-          <span className="mt-1 flex h-7 items-center rounded-lg border border-white/[0.09] bg-white/[0.05] px-2 text-[0.65rem] font-semibold text-white/72">
-            {t("setup.timeEntry.preview.regularShift")}
-          </span>
-          <span className="mt-2 grid grid-cols-2 gap-1.5">
-            <span>
-              <span className="block text-[0.55rem] text-white/38">
-                {t("setup.timeEntry.preview.start")}
-              </span>
-              <span className="mt-1 flex h-7 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.05] text-[0.68rem] font-semibold tabular-nums text-white">
-                08:00
-              </span>
-            </span>
-            <span>
-              <span className="block text-[0.55rem] text-white/38">
-                {t("setup.timeEntry.preview.end")}
-              </span>
-              <span className="mt-1 flex h-7 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.05] text-[0.68rem] font-semibold tabular-nums text-white">
-                16:30
-              </span>
-            </span>
-          </span>
-        </span>
-      )}
-    </button>
-  );
-}
-
-function HoursBalancePreview({ t }: { t: (key: string) => string }) {
-  return (
-    <Card className="overflow-hidden p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white/40">
-            {t("setup.balance.preview.current")}
-          </p>
-          <p className="mt-1.5 text-2xl font-semibold leading-none tracking-[-0.05em] text-emerald-400">
-            +2 h 30 min
-          </p>
-        </div>
-        <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[0.65rem] font-semibold text-emerald-400">
-          {t("setup.balance.preview.ahead")}
-        </span>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-        <span className="block h-full w-[78%] rounded-full bg-emerald-400" />
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-[0.65rem] text-white/40">{t("setup.balance.preview.worked")}</p>
-          <p className="mt-0.5 text-sm font-semibold text-white">42 h 30 min</p>
-        </div>
-        <div>
-          <p className="text-[0.65rem] text-white/40">{t("setup.balance.preview.target")}</p>
-          <p className="mt-0.5 text-sm font-semibold text-white">40 h</p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 function validateSetupStep(step: number, values: {
-  firstName: string; lastName: string; employmentName: string; startDate: string;
-  compensationType: CompensationType; hourlyRate: string; fixedSalaryAmount: string; hourBalanceEnabled: boolean;
-  targetHours: string; validityMonths: string; workTypeName: string; unitLabel: string; ratePerUnit: string;
+  firstName: string; lastName: string;
+  compensationType: InitialCompensationType; hourlyRate: string; fixedSalaryAmount: string;
   paidSickLeave: boolean; sickLeavePaidHours: string; paidVacation: boolean; vacationPaidHours: string;
 }, t: (key: string) => string) {
   if (step === 1 && (!values.firstName.trim() || !values.lastName.trim())) return t("setup.errors.name");
-  if (step === 2 && (!values.employmentName.trim() || !values.startDate)) return t("setup.errors.workplace");
-  if (step === 3 && values.compensationType === "HOURLY" && (!(Number(values.hourlyRate.replace(",", ".")) >= 0))) return t("setup.errors.rate");
-  if (step === 3 && values.compensationType === "FIXED_SALARY" && (!(Number(values.fixedSalaryAmount.replace(",", ".")) >= 0))) return t("setup.errors.salary");
-  const supportsTimeTracking = values.compensationType === "HOURLY" || values.compensationType === "FIXED_SALARY";
-  if (step === 5 && supportsTimeTracking && (values.hourBalanceEnabled || values.compensationType === "FIXED_SALARY") && !(Number(values.targetHours) > 0)) return t("setup.errors.target");
-  if (step === 5 && supportsTimeTracking && values.hourBalanceEnabled && !(Number(values.validityMonths) > 0)) return t("setup.errors.validity");
-  if (step === 6 && values.paidSickLeave && !validPaidHours(values.sickLeavePaidHours)) return t("setup.errors.paidHours");
-  if (step === 6 && values.paidVacation && !validPaidHours(values.vacationPaidHours)) return t("setup.errors.paidHours");
-  if (step === 7 && !values.workTypeName.trim()) return t("setup.errors.workType");
-  if (step === 7 && values.compensationType === "PER_UNIT" && (!values.unitLabel.trim() || !(parseNumber(values.ratePerUnit) > 0))) return t("setup.errors.perUnit");
+  if (step === 2 && values.compensationType === "HOURLY" && (!(Number(values.hourlyRate.replace(",", ".")) >= 0))) return t("setup.errors.rate");
+  if (step === 2 && values.compensationType === "FIXED_SALARY" && (!(Number(values.fixedSalaryAmount.replace(",", ".")) >= 0))) return t("setup.errors.salary");
+  if (step === 3 && values.paidSickLeave && !validPaidHours(values.sickLeavePaidHours)) return t("setup.errors.paidHours");
+  if (step === 3 && values.paidVacation && !validPaidHours(values.vacationPaidHours)) return t("setup.errors.paidHours");
   return null;
 }
 

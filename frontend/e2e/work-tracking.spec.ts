@@ -30,36 +30,32 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   await loginThroughUi(page, user);
 
   await page.goto("/settings/work-types/new");
-  await page.getByRole("button", { name: /time based/i }).click();
+  await page.getByRole("button", { name: /by time/i }).click();
   await page.getByLabel("Name", { exact: true }).fill("Check");
-  await page.getByRole("button", { name: /save changes/i }).click();
+  await page.getByRole("button", { name: /add activity/i }).click();
   await expect(page.getByText("Check")).toBeVisible();
 
   await page.goto("/settings/work-types/new");
-  await page.getByRole("button", { name: /direct per-unit pay/i }).click();
-  await page.getByLabel("Advanced").check();
-  await page.getByLabel("Category name").fill("Montaj pardoseala");
+  await page.getByRole("button", { name: /paid per unit/i }).click();
   await page.getByLabel("Name", { exact: true }).fill("2 Lagen");
-  await page.getByLabel("Unit name").fill("Metru patrat");
-  await page.getByLabel("Symbol").fill("m2");
   await page.getByLabel("Rate per unit").fill("50");
   await page.getByLabel("Currency").fill("EUR");
   const workTypeRequest = page.waitForResponse((response) =>
     response.url().includes("/api/work-types") && response.request().method() === "POST"
   );
-  await page.getByRole("button", { name: /save changes/i }).click();
+  await page.getByRole("button", { name: /add activity/i }).click();
   const workTypeResponse = await workTypeRequest;
   expect(workTypeResponse.ok()).toBeTruthy();
-  const workTypeId = (await workTypeResponse.json()).data.id as string;
-  await expect(page).toHaveURL(new RegExp(`/settings/work-types/${workTypeId}$`));
+  await workTypeResponse.json();
+  await expect(page).toHaveURL(/\/settings\/work-types$/);
 
   await expect(page.getByText("2 Lagen")).toBeVisible();
 
   await page.goto("/records/new?date=2026-07-16");
-  await expect(page.getByRole("heading", { name: "New job" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New activity" })).toBeVisible();
   await page.getByRole("button", { name: "Add activity" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
-  await page.getByLabel("Metru patrat Units").fill("300");
+  await page.getByRole("dialog").getByRole("button", { name: /2 lagen/i }).click();
+  await page.getByLabel("units Units").fill("300");
   await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   const recordRequest = page.waitForResponse((response) =>
@@ -75,14 +71,14 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   });
   expect(recordBody.data.workLines[0]).toMatchObject({
     calculationMode: "UNITS_PER_UNIT",
-    unitSymbol: "m2",
+    unitSymbol: "units",
     ratePerUnitSnapshot: 50,
     grossAmount: 15000
   });
 
-  await expect(page.getByText("Job saved")).toBeVisible();
+  await expect(page.getByText("Activity saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
-  await expect(page.getByRole("button", { name: /2 lagen 300 m2 earnings/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /2 lagen 300 units earnings/i })).toBeVisible();
   await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   expect(requests.some((item) => item.includes("POST") && item.includes("/api/work-types"))).toBe(true);
@@ -98,38 +94,30 @@ test("updates per-unit formula rates without changing existing job snapshots", a
   await loginThroughUi(page, user);
 
   await page.goto("/settings/work-types/new");
-  await page.getByRole("button", { name: /direct per-unit pay/i }).click();
-  await page.getByLabel("Advanced").check();
-  await page.getByLabel("Category name").fill("Montaj pardoseala");
+  await page.getByRole("button", { name: /paid per unit/i }).click();
   await page.getByLabel("Name", { exact: true }).fill("2 Lagen");
-  await page.getByLabel("Unit name").fill("Metru patrat");
-  await page.getByLabel("Symbol").fill("m2");
   await page.getByLabel("Rate per unit").fill("50");
   await page.getByLabel("Currency").fill("EUR");
-  await page.getByRole("button", { name: /save changes/i }).click();
-  await expect(page.getByText("50 EUR / m2")).toBeVisible();
+  await page.getByRole("button", { name: /add activity/i }).click();
+  await expect(page).toHaveURL(/\/settings\/work-types$/);
+  await expect(page.getByText("2 Lagen")).toBeVisible();
 
   await page.goto("/records/new?date=2026-07-15");
-  await page.getByRole("button", { name: "Add activity" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
-  await page.getByLabel("Metru patrat Units").fill("300");
+  await page.getByLabel("units Units").fill("300");
   await expect(page.getByText("€15,000.00").first()).toBeVisible();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.waitForURL(/\/app$/);
-  await page.getByRole("button", { name: /2 lagen 300 m2 earnings/i }).click();
-  await expect(page.getByRole("heading", { name: "Edit job" })).toBeVisible();
+  await page.getByRole("button", { name: /2 lagen 300 units earnings/i }).click();
+  await expect(page.getByRole("heading", { name: "Edit activity" })).toBeVisible();
   await expect(page.getByText("€15,000.00").first()).toBeVisible();
 
   await page.goto("/settings/work-types");
-  await page.getByRole("button", { name: /expand montaj pardoseala/i }).click();
   await page.getByRole("button", { name: /2 lagen/i }).click();
   await page.getByLabel("Rate per unit").fill("60");
   await page.getByRole("button", { name: /save changes/i }).click();
 
   await page.goto("/records/new?date=2026-07-16");
-  await page.getByRole("button", { name: "Add activity" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /montaj pardoseala/i }).click();
-  await page.getByLabel("Metru patrat Units").fill("10");
+  await page.getByLabel("units Units").fill("10");
   await expect(page.getByText("€600.00").first()).toBeVisible();
 });
 
@@ -149,12 +137,11 @@ test("creates a configured work type from an iPhone-sized viewport", async ({ pa
   });
 
   await page.goto("/settings/work-types/new");
-  await page.getByRole("button", { name: /units converted to hours/i }).click();
+  await page.getByRole("button", { name: /units into hours/i }).click();
   await page.getByLabel("Name", { exact: true }).fill("Rooms");
-  await page.getByLabel("Unit name").fill("Room");
   await page.getByLabel("Units per hour").fill("2.4");
 
-  const saveButton = page.getByRole("button", { name: /save changes/i });
+  const saveButton = page.getByRole("button", { name: /add activity/i });
   await expect(saveButton).toBeVisible();
   await saveButton.click();
 
@@ -174,7 +161,7 @@ test("settings subpage hides bottom navigation and protects dirty forms", async 
   await expect(page).toHaveURL(/\/settings\/work-types$/);
 
   await page.goto("/settings/work-types/new");
-  await page.getByRole("button", { name: /time based/i }).click();
+  await page.getByRole("button", { name: /by time/i }).click();
   await page.getByLabel("Name").fill("Dirty type");
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("dialog", { name: "Discard changes?" })).toBeVisible();

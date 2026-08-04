@@ -20,7 +20,7 @@
     "employerReport": "Bericht für den Arbeitgeber", "createTitle": "Bericht vorbereiten", "createHint": "Prüfe Zeitraum und Inhalt und sieh dir anschließend das genaue Dokument an.",
     "customPeriod": "Benutzerdefinierten Zeitraum wählen", "documentLanguage": "Dokumentsprache", "allDaysIncluded": "Alle Tage enthalten",
     "preview": "Bericht ansehen", "preparing": "Wird vorbereitet…", "onePageConfirmed": "Dieser Monat wird auf einer A4-Seite im Hochformat exportiert.", "multiPageHint": "Der Zeitraum wird auf nummerierte A4-Seiten verteilt.",
-    "fields": { "date": "Datum", "activity": "Aktivität", "intervals": "Arbeitsintervalle", "hours": "Arbeitsstunden", "quantity": "Erledigte Menge", "workDetails": "Geleistete Arbeit", "extra": "Extra-Prozentsatz", "earnings": "Verdienst", "notes": "Notizen" },
+    "fields": { "date": "Datum", "activity": "Aktivität", "status": "Tagesstatus", "intervals": "Arbeitsintervalle", "hours": "Arbeitsstunden", "quantity": "Erledigte Menge", "workDetails": "Geleistete Arbeit", "extra": "Extra-Prozentsatz", "earnings": "Verdienst", "notes": "Notizen" },
     "errors": { "dateRange": "Das Enddatum darf nicht vor dem Startdatum liegen.", "fields": "Wähle mindestens ein Feld für den Bericht aus.", "empty": "Für diese Beschäftigung und diesen Zeitraum gibt es keine Arbeit zum Exportieren.", "generation": "Das PDF konnte nicht erstellt werden: {{reason}}" },
     "pdf": { "report": "Arbeitsbericht", "employment": "Beschäftigung", "period": "Zeitraum", "generated": "Erstellt", "workedDays": "Arbeitstage", "absences": "Abwesenheiten", "totalHours": "Stunden gesamt", "totalExtraHours": "Extrastunden gesamt", "totalEarnings": "Gesamtverdienst", "generatedWith": "Erstellt mit Alveryn.com", "mixedCurrencies": "Mehrere Währungen", "restDay": "Freier Tag", "noActivity": "Keine Aktivität", "page": "Seite" }
   },
@@ -45,25 +45,34 @@
       "example": { "title": "Montag · Reinigung", "detail": "08:00–17:00 · 30 Min. Pause", "result": "Geplant" }
     },
     "hourlyRates": {
-      "title": "So funktionieren Stundensätze",
-      "description": "Alveryn nutzt den Satz, der am Arbeitstag gültig war.",
+      "title": "Stundensätze",
+      "description": "Füge einen Satz und sein Startdatum hinzu. Alveryn verwendet automatisch den richtigen Satz für jeden Arbeitstag.",
+      "addRate": "Stundensatz hinzufügen",
       "steps": { "hours": "Gearbeitet", "rate": "Satz", "earnings": "Verdienst" },
       "values": { "hours": "8 Std.", "rate": "20 €/Std.", "earnings": "160 €" },
       "example": { "title": "Aktueller Stundensatz", "detail": "Ab 1. Juli 2026", "result": "20 €/Std." }
     },
     "workTypes": {
-      "title": "So funktionieren Arbeitstypen",
-      "description": "Erstelle deine Tätigkeiten und wähle, wie jede davon gemessen wird.",
+      "title": "Organisiere deine erfasste Arbeit",
+      "description": "Erstelle eine Arbeitsart für eine einzelne Tätigkeit. Nutze eine Kategorie, wenn mehrere Arbeitsarten dieselbe Berechnung sowie Teamwork- und Zusatzvergütungsoptionen verwenden.",
+      "addWorkType": "Arbeitsart hinzufügen",
+      "createCategory": "Kategorie erstellen",
       "steps": { "activity": "Tätigkeit", "method": "Gemessen in", "result": "Erfasst als" },
       "values": { "activity": "Reinigung", "method": "Zeit", "result": "8 Std." },
       "example": { "title": "Reinigung", "detail": "Zeitbasierte Tätigkeit", "result": "8 Std." }
     },
     "absences": {
-      "title": "So funktionieren Abwesenheiten",
-      "description": "Definiere jede Abwesenheit einmal und wähle sie später für freie Tage aus.",
+      "title": "Abwesenheitsarten",
+      "description": "Erstelle Arten von Abwesenheit wie Urlaub oder Krankheit. Lege fest, ob sie bezahlt sind, und wähle sie später beim Erfassen eines freien Tages aus.",
+      "addAbsence": "Abwesenheitsart hinzufügen",
       "steps": { "type": "Art", "date": "Datum", "impact": "Tageswert" },
       "values": { "type": "Urlaub", "date": "27. Juli", "impact": "8 Std. bezahlt" },
       "example": { "title": "Urlaub", "detail": "Montag, 27. Juli", "result": "8 Std. bezahlt" }
+    },
+    "recurringExtraPay": {
+      "title": "Wiederkehrende Zuschläge",
+      "description": "Wähle einmal Wochentag und Prozentsatz. Alveryn fügt den Zuschlag automatisch zu berechtigter Arbeit an diesem Wochentag hinzu.",
+      "addRule": "Regel für wiederkehrenden Zuschlag hinzufügen"
     }
   },
   "status": {
@@ -120,11 +129,13 @@
       "TIME": {
         "title": "Meine Arbeitszeit erfassen",
         "summaryTitle": "Zeiterfassung",
+        "shortDescription": "Stunden im Fokus; Verdienst wird weiter berechnet.",
         "description": "Arbeitsstunden, Check-in und optional ein Stundenkonto im Blick behalten."
       },
       "EARNINGS": {
         "title": "Meine Einnahmen erfassen",
         "summaryTitle": "Verdiensterfassung",
+        "shortDescription": "Verdienst im Fokus; Arbeit wird weiter erfasst.",
         "description": "Sieh, wie viel du verdienst und aus welcher Arbeit der Betrag stammt."
       }
     },
@@ -153,6 +164,7 @@
       "termsValidFrom": "Bedingungen gültig ab",
       "startDate": "Startdatum",
       "endDate": "Enddatum",
+      "endDateOptional": "Enddatum (optional)",
       "salaryAmount": "Festgehalt (optional)",
       "currency": "Währung",
       "targetHours": "Sollstunden",
@@ -219,8 +231,11 @@
     "emptyTitle": "Noch keine Arbeitsarten",
     "description": "Konfiguriere die Aktivitaten, die zu einem Job hinzugefugt werden konnen. Ein Job kann mehrere Arbeitszeilen enthalten, und jede Zeile behalt ihre eigene Formel.",
     "addWorkType": "Arbeitsart hinzufugen",
+    "createCategory": "Kategorie erstellen",
     "emptyDescription": "Erstelle die erste Formel fur deine Arbeit: Stunden, Einheiten in Stunden oder direkte Bezahlung pro Einheit.",
-    "formulaCount": "{{count}} Formeln",
+    "category": "Kategorie",
+    "workTypeCount_one": "{{count}} Arbeitsart",
+    "workTypeCount_other": "{{count}} Arbeitsarten",
     "formulas": {
       "time": "Stunden",
       "unitsToHours": "Einheiten zu Stunden",
@@ -229,13 +244,20 @@
   },
   "workTypeEditor": {
     "addTitle": "Arbeitsart hinzufugen",
+    "addCategoryTitle": "Kategorie erstellen",
     "editTitle": "Arbeitsart bearbeiten",
-    "chooseModeTitle": "Berechnung wahlen",
+    "chooseModeTitle": "Wie wird diese Arbeitsart berechnet?",
+    "chooseCategoryModeTitle": "Wie werden die Arbeitsarten in dieser Kategorie berechnet?",
     "chooseModeDescription": "Beginne mit der Formel. Der nachste Schritt zeigt nur die Felder, die fur diese Arbeitsart notwendig sind.",
     "created": "Arbeitsart erstellt.",
     "updated": "Arbeitsart aktualisiert.",
     "unavailableTitle": "Arbeitsart ist nicht verfugbar",
     "editorDescription": "Wahle, wie diese Arbeit gezahlt wird.",
+    "advancedSettings": "Erweiterte Einstellungen",
+    "categoryOptionsTitle": "Optionen für alle Arbeitsarten",
+    "categoryOptionsDescription": "Diese Einstellungen gelten automatisch für jede Arbeitsart in dieser Kategorie.",
+    "addActivity": "Aktivität hinzufügen",
+    "createCategory": "Kategorie erstellen",
     "coreSettings": "Arbeitsart",
     "deactivate": "Arbeitsart deaktivieren",
     "deactivateTitle": "Arbeitsart deaktivieren?",
@@ -249,7 +271,10 @@
     "sections": { "name": "Name" },
     "fields": {
       "name": "Name",
+      "namePlaceholder": "z. B. Reguläre Schicht",
+      "unitExamples": "z. B. km, m², Zimmer, Lieferungen",
       "categoryName": "Kategoriename",
+      "categoryPlaceholder": "z. B. Reinigungsdienste",
       "calculationMethod": "Berechnungsmethode",
       "compensationMethod": "Zahlungsmethode",
       "color": "Farbe",
@@ -257,7 +282,7 @@
       "teamworkEnabled": "Teamarbeit",
       "extraPayEnabled": "Zusatzvergütung",
       "teamworkDescription": "Fragt die Teamgröße ab und teilt direkte Einheitszahlung durch die Anzahl der Arbeiter.",
-      "compositeEnabled": "Erweitert",
+      "compositeEnabled": "Mehrere Arbeitszeilen",
       "compositeDescription": "Diese Arbeitsart kann mehrere interne Formeln enthalten.",
       "status": "Status"
     },
@@ -294,38 +319,39 @@
       "fixedResultValue": "Den genauen Betrag für diese Aufgabe."
     },
     "modes": {
-      "timeTitle": "Zeitbasiert",
-      "timeDescription": "Fur Arbeit, die nach Start- und Endzeit bezahlt oder verfolgt wird.",
+      "timeTitle": "Nach Zeit",
+      "timeDescription": "Start- und Endzeit eingeben.",
       "timeFormula": "Stunden x Stundensatz",
       "timeSuggestedName": "ZEITARBEIT",
       "unitsPerHourTitle": "Einheiten in Stunden",
-      "unitsPerHourDescription": "Fur Arbeit, bei der Mengen in entsprechende Zeit umgerechnet werden.",
+      "unitsPerHourDescription": "Erledigte Einheiten in Arbeitsstunden umrechnen.",
       "unitsPerHourFormula": "Einheiten / Einheiten pro Stunde = Stunden",
       "unitsPerHourSuggestedName": "EINHEITSARBEIT",
-      "perUnitTitle": "Direkt pro Einheit",
-      "perUnitDescription": "Fur m², Lieferungen, Zimmer, Aufgaben oder jede direkt bezahlte Einheit.",
+      "perUnitTitle": "Pro Einheit bezahlt",
+      "perUnitDescription": "Menge mit dem Preis pro Einheit multiplizieren.",
       "perUnitFormula": "Menge x Satz pro Einheit",
       "perUnitSuggestedName": "ARBEIT PRO EINHEIT",
       "fixedTitle": "Festpreis",
-      "fixedDescription": "Fur Arbeiten, bei denen du den festen Betrag beim Speichern des Jobs eintragst.",
+      "fixedDescription": "Jedes Mal einen festen Betrag eingeben.",
       "fixedFormula": "fester Betrag",
       "fixedSuggestedName": "FESTPREISARBEIT"
     }
   },
   "workTypeFormulas": {
-    "sectionTitle": "Arbeitszeilen und Formeln",
-    "sectionDescription": "Diese Aktivitaten erscheinen in einem neuen Job. Fuge eine Zeile fur jede Arbeit hinzu, die du an einem Arbeitstag erledigen kannst.",
-    "add": "Formel hinzufugen",
-    "addFirst": "Erste Formel hinzufugen",
-    "addTitle": "Formel hinzufugen",
-    "editTitle": "Formel bearbeiten",
-    "emptyTitle": "Noch keine Formeln",
-    "emptyDescription": "Fuge die erste Zeile hinzu, die beim Erstellen eines Jobs erscheinen soll.",
-    "deactivate": "Formel deaktivieren",
+    "sectionTitle": "Arbeitsarten",
+    "sectionDescription": "Die in dieser Kategorie gruppierten Arbeitsarten.",
+    "categoryCalculation": "Berechnung für alle: {{method}}",
+    "add": "Arbeitsart hinzufügen",
+    "addFirst": "Erste Arbeitsart hinzufügen",
+    "addTitle": "Arbeitsart hinzufügen",
+    "editTitle": "Arbeitsart bearbeiten",
+    "emptyTitle": "Keine Arbeitsarten in dieser Kategorie",
+    "emptyDescription": "Füge die erste Arbeitsart hinzu, die du hier gruppieren möchtest.",
+    "deactivate": "Arbeitsart deaktivieren",
     "fields": {
-      "name": "Aktivitat",
-      "calculationMode": "Formel",
-      "unitLabel": "Einheitsname",
+      "name": "Name der Arbeitsart",
+      "calculationMode": "Wie wird diese Arbeitsart berechnet?",
+      "unitLabel": "Einheiten",
       "unitSymbol": "Symbol",
       "unitsPerHour": "Einheiten pro Stunde",
       "ratePerUnit": "Satz pro Einheit",
@@ -349,8 +375,8 @@
       "fixed": "Fester Betrag pro Job"
     },
     "symbolPlaceholder": "Beispiel: m²",
-    "unitsPerHourPlaceholder": "Beispiel: 2.4",
-    "ratePerUnitPlaceholder": "Beispiel: 50",
+    "unitsPerHourPlaceholder": "... Einheiten/Stunde",
+    "ratePerUnitPlaceholder": "Zahlung/Einheit",
     "validation": {
       "nameRequired": "Name ist erforderlich",
       "nameTooLong": "Name ist zu lang",
@@ -613,7 +639,20 @@
     "title": "Wiederkehrende Zuschläge",
     "description": "Wendet an ausgewählten Wochentagen automatisch einen Zuschlag auf jeden Arbeitseintrag an.",
     "add": "Wochentagsregel hinzufügen oder aktualisieren",
-    "percentage": "Zuschlag in Prozent"
+    "weekday": "Wochentag",
+    "percentage": "Zuschlag in Prozent",
+    "percentageFor": "Zuschlag in Prozent für {{day}}",
+    "chooseDay": "Wochentag auswählen",
+    "noDaysLeft": "Alle Wochentage wurden hinzugefügt",
+    "addDay": "Wochentag hinzufügen",
+    "timeInterval": "Zuschlag nach Zeitintervall",
+    "timeIntervalHint": "Zum Beispiel 30 % Zuschlag für Arbeit zwischen 22:00 und 06:00.",
+    "from": "Von",
+    "to": "Bis",
+    "addInterval": "Zeitintervall hinzufügen",
+    "intervalName": "Name",
+    "intervalNamePlaceholder": "Nachtschicht",
+    "percentageShort": "Zuschlag"
   },
   "dataImport": {
     "title": "Daten importieren", "menuLabel": "Daten importieren", "menuDescription": "Bestehende Arbeitsdaten sicher nach Alveryn übertragen.",

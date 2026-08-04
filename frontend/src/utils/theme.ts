@@ -1,7 +1,7 @@
 import type { ThemePreference } from "../types/configuration";
 
 const darkThemeColor = "#000000";
-const lightThemeColor = "#f5f5f2";
+const lightThemeColor = "#f5f5f5";
 const mediaQuery = "(prefers-color-scheme: dark)";
 
 let currentPreference: ThemePreference = "SYSTEM";

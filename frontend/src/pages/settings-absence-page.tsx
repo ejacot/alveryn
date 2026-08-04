@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -151,12 +151,9 @@ export function SettingsAbsencePage() {
         title={title}
         backLabel={t("common:actions.back")}
         onBack={safeBack}
-        action={absenceTypes.length ? {
-          label: t("settings:absenceSettings.addType"),
-          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
-          onClick: openCreate
-        } : undefined}
       />
+
+      <EmploymentFeatureGuide feature="absences" onPrimaryAction={openCreate} />
 
       <SettingsSuccessMessage message={!editorOpen ? successMessage : null} />
 
@@ -191,8 +188,6 @@ export function SettingsAbsencePage() {
           />
         )}
       </section>
-
-      <EmploymentFeatureGuide feature="absences" />
 
       <AbsenceTypeDialog
         open={editorOpen}

@@ -4,6 +4,7 @@ import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.UUID;
+import java.util.List;
 
 public record WorkRecordLineResponse(
     UUID id,
@@ -34,4 +35,5 @@ public record WorkRecordLineResponse(
     BigDecimal extraGrossAmount,
     BigDecimal totalGrossAmount,
     BigDecimal extraPayPercentage,
+    List<ExtraPayDetailResponse> extraPayDetails,
     String notes) {}

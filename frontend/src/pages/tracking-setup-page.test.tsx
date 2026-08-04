@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AuthContext, type AuthContextValue } from "../features/auth/auth-context";
 import type { Employment } from "../types/configuration";
+import { firstDayOfCurrentMonthLocalIsoDate } from "../utils/date";
 import { TrackingSetupPage } from "./tracking-setup-page";
 
 const apiMocks = vi.hoisted(() => ({
@@ -114,25 +115,26 @@ describe("TrackingSetupPage", () => {
     await user.type(await screen.findByLabelText(/first name/i), "Mia");
     await user.type(screen.getByLabelText(/last name/i), "Taylor");
     await user.click(screen.getByRole("button", { name: /continue/i }));
-    await user.type(screen.getByLabelText(/business or work name/i), "Mia's Cleaning");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByRole("radio", { name: /per unit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /per job/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /currency/i })).toHaveValue("EUR");
     await user.type(screen.getByLabelText(/hourly rate/i), "35");
     await user.click(screen.getByRole("button", { name: /continue/i }));
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-    await user.click(screen.getByRole("button", { name: /continue/i }));
     expect(await screen.findAllByRole("radio", { name: "Paid", checked: true })).toHaveLength(2);
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-    await user.type(screen.getByLabelText(/service or work type/i), "Standard cleaning");
     await user.click(screen.getByRole("button", { name: /finish setup/i }));
 
     await waitFor(() => expect(apiMocks.completeInitialSetup).toHaveBeenCalledOnce());
     expect(apiMocks.completeInitialSetup).toHaveBeenCalledWith(expect.objectContaining({
       firstName: "Mia",
-      employmentName: "Mia's Cleaning",
+      employmentName: "Primary employment",
+      startDate: firstDayOfCurrentMonthLocalIsoDate(),
       compensationType: "HOURLY",
       hourlyRate: 35,
-      workTypeName: "Standard cleaning",
-      timerEnabled: true,
+      workTypeName: "Regular shift",
+      timerEnabled: false,
+      hourBalanceEnabled: false,
+      targetMinutes: null,
       paidSickLeave: true,
       sickLeavePaidMinutesPerDay: 480,
       paidVacation: true,

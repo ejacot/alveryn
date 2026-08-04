@@ -422,6 +422,35 @@ export async function deleteEmploymentExtraPayRule(
   await http.delete(`/api/employments/${employmentId}/extra-pay-rules/${weekday}`);
 }
 
+export type EmploymentExtraPayTimeRule = {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  percentage: number;
+};
+
+export async function listEmploymentExtraPayTimeRules(employmentId: string) {
+  const response = await http.get<ApiResponse<EmploymentExtraPayTimeRule[]>>(
+    `/api/employments/${employmentId}/extra-pay-rules/time-intervals`
+  );
+  return response.data.data;
+}
+
+export async function createEmploymentExtraPayTimeRule(
+  employmentId: string,
+  payload: Pick<EmploymentExtraPayTimeRule, "name" | "startTime" | "endTime" | "percentage">
+) {
+  const response = await http.post<ApiResponse<EmploymentExtraPayTimeRule>>(
+    `/api/employments/${employmentId}/extra-pay-rules/time-intervals`, payload
+  );
+  return response.data.data;
+}
+
+export async function deleteEmploymentExtraPayTimeRule(employmentId: string, ruleId: string) {
+  await http.delete(`/api/employments/${employmentId}/extra-pay-rules/time-intervals/${ruleId}`);
+}
+
 export async function deleteEmployment(id: string) {
   await http.delete(`/api/employments/${id}`);
 }

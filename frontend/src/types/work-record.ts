@@ -54,6 +54,11 @@ export type WorkRecordLine = {
   extraGrossAmount?: string;
   totalGrossAmount?: string;
   extraPayPercentage: number;
+  extraPayDetails?: Array<{
+    name: string;
+    eligibleMinutes: string;
+    percentage: number;
+  }>;
   notes?: string | null;
 };
 

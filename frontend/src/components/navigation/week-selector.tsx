@@ -166,13 +166,13 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                   className={cn(
                     "flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]",
                     selected
-                      ? "week-day-selected rounded-[18px] bg-white text-black shadow-[0_12px_34px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.8)]"
+                      ? "week-day-selected rounded-[18px] bg-[#059669] text-white"
                       : "rounded-[24px]"
                   )}
                 >
                   <span className={cn(
                     "text-[10px] font-semibold tracking-[0.2em]",
-                    selected ? "week-day-selected-secondary text-black/55" : "text-white/34"
+                    selected ? "week-day-selected-secondary text-white/72" : "text-white/34"
                   )}>
                     {day.weekday.slice(0, 3)}
                   </span>
@@ -182,7 +182,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                     className={cn(
                       "relative flex h-8 w-full items-center justify-center text-[15px] font-semibold transition",
                       selected
-                        ? "text-black"
+                        ? "text-white"
                         : current
                           ? cn(
                               "mx-auto w-11 rounded-full border border-white/[0.08] bg-white/[0.1]",

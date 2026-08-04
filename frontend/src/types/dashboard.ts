@@ -64,6 +64,11 @@ export type SelectedDayActivity = {
     quantity?: string | null;
     price?: string | null;
     extraPayPercentage?: number | null;
+    extraPayDetails?: Array<{
+      name: string;
+      eligibleMinutes: number;
+      percentage: number;
+    }>;
     displayOrder?: number | null;
   }>;
   marker?: "free" | "sick" | "vacation";

@@ -29,7 +29,7 @@ public class TrackingSetupController {
   @GetMapping("/current")
   @Operation(summary = "Get the required tracking setup version", security = @SecurityRequirement(name = "bearerAuth"))
   public ApiResponse<TrackingSetupStatusResponse> current() {
-    UserPreferencesResponse preferences = preferencesService.get();
+    UserPreferencesResponse preferences = preferencesService.get();;
     return ApiResponse.of(status(preferences));
   }
 

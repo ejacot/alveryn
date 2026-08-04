@@ -86,10 +86,10 @@ describe("WorkTypesPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Add work type" }));
-    expect(await screen.findByRole("dialog")).toHaveTextContent("Choose calculation");
+    await user.click(await screen.findByRole("button", { name: "Add a work type" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("How is this work type calculated?");
 
-    await user.click(screen.getByRole("button", { name: /time based/i }));
+    await user.click(screen.getByRole("button", { name: /by time/i }));
 
     expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/new?mode=TIME_HOURLY", {
       state: {
@@ -98,6 +98,15 @@ describe("WorkTypesPage", () => {
         compensationMethod: "HOURLY"
       }
     });
+  });
+
+  it("opens category creation separately from the work type flow", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Create a category" }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/new?category=true");
   });
 
   it("opens an existing work type on its dedicated setup page", async () => {
@@ -157,5 +166,25 @@ describe("WorkTypesPage", () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith("/settings/work-types/child-normal");
     });
+  });
+
+  it("labels an empty category as a category instead of a time-based work type", async () => {
+    vi.mocked(listWorkTypes).mockResolvedValue([{
+      id: "category-cleaning",
+      name: "Cleaning",
+      calculationMethod: "TIME_BASED",
+      compensationMethod: "HOURLY",
+      color: "#10b981",
+      icon: null,
+      defaultBreakMinutes: 30,
+      displayOrder: 0,
+      active: true,
+      compositeEnabled: true
+    }]);
+    renderPage();
+
+    const category = await screen.findByRole("button", { name: /cleaning/i });
+    expect(category).toHaveTextContent("Category · 0 work types");
+    expect(category).not.toHaveTextContent("default break");
   });
 });

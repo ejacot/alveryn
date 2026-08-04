@@ -2,8 +2,11 @@ import {
   CalendarDays,
   Clock3,
   Coins,
+  FolderPlus,
   Layers3,
   PencilLine,
+  Percent,
+  Plus,
   Repeat2,
   Sparkles,
   Tag,
@@ -14,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./settings-group";
 import { Card } from "../ui/card";
 
-type EmploymentFeature = "schedule" | "hourlyRates" | "workTypes" | "absences";
+type EmploymentFeature = "schedule" | "hourlyRates" | "workTypes" | "absences" | "recurringExtraPay";
 
 const featureSteps = {
   schedule: [
@@ -36,12 +39,143 @@ const featureSteps = {
     { key: "type", icon: Umbrella },
     { key: "date", icon: CalendarDays },
     { key: "impact", icon: Clock3 }
+  ],
+  recurringExtraPay: [
+    { key: "type", icon: Percent },
+    { key: "date", icon: CalendarDays },
+    { key: "impact", icon: Coins }
   ]
 } as const;
 
-export function EmploymentFeatureGuide({ feature }: { feature: EmploymentFeature }) {
+export function EmploymentFeatureGuide({
+  feature,
+  onPrimaryAction,
+  onSecondaryAction
+}: {
+  feature: EmploymentFeature;
+  onPrimaryAction?: () => void;
+  onSecondaryAction?: () => void;
+}) {
   const { t } = useTranslation("settings");
   const baseKey = `employmentFeatureGuides.${feature}`;
+
+  if (feature === "workTypes") {
+    return (
+      <Card variant="ambient" className="overflow-hidden p-5">
+        <span className="grid h-14 w-14 place-items-center rounded-[18px] border border-emerald-400/15 bg-emerald-400/[0.09] text-emerald-400">
+          <Layers3 className="h-7 w-7" aria-hidden="true" />
+        </span>
+        <h2 className="font-name mt-4 text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
+          {t(`${baseKey}.title`)}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-white/48">
+          {t(`${baseKey}.description`)}
+        </p>
+        {onPrimaryAction || onSecondaryAction ? (
+          <div className="mt-5 overflow-hidden rounded-[22px] border border-white/[0.08] bg-white/[0.025]">
+            {onPrimaryAction ? (
+              <button
+                type="button"
+                onClick={onPrimaryAction}
+                className="flex min-h-14 w-full items-center gap-3 px-4 text-left text-sm font-semibold text-white transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:ring-inset"
+              >
+                <Plus className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+                {t(`${baseKey}.addWorkType`)}
+              </button>
+            ) : null}
+            {onSecondaryAction ? (
+              <button
+                type="button"
+                onClick={onSecondaryAction}
+                className="flex min-h-14 w-full items-center gap-3 border-t border-white/[0.07] px-4 text-left text-sm font-semibold text-white transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:ring-inset"
+              >
+                <FolderPlus className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+                {t(`${baseKey}.createCategory`)}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </Card>
+    );
+  }
+
+  if (feature === "hourlyRates") {
+    return (
+      <Card variant="ambient" className="overflow-hidden p-5">
+        <span className="grid h-14 w-14 place-items-center rounded-[18px] border border-emerald-400/15 bg-emerald-400/[0.09] text-emerald-400">
+          <Coins className="h-7 w-7" aria-hidden="true" />
+        </span>
+        <h2 className="font-name mt-4 text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
+          {t(`${baseKey}.title`)}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-white/48">
+          {t(`${baseKey}.description`)}
+        </p>
+        {onPrimaryAction ? (
+          <button
+            type="button"
+            onClick={onPrimaryAction}
+            className="mt-5 flex min-h-14 w-full items-center gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.025] px-4 text-left text-sm font-semibold text-white transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:ring-inset"
+          >
+            <Plus className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+            {t(`${baseKey}.addRate`)}
+          </button>
+        ) : null}
+      </Card>
+    );
+  }
+
+  if (feature === "absences") {
+    return (
+      <Card variant="ambient" className="overflow-hidden p-5">
+        <span className="grid h-14 w-14 place-items-center rounded-[18px] border border-emerald-400/15 bg-emerald-400/[0.09] text-emerald-400">
+          <Umbrella className="h-7 w-7" aria-hidden="true" />
+        </span>
+        <h2 className="font-name mt-4 text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
+          {t(`${baseKey}.title`)}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-white/48">
+          {t(`${baseKey}.description`)}
+        </p>
+        {onPrimaryAction ? (
+          <button
+            type="button"
+            onClick={onPrimaryAction}
+            className="mt-5 flex min-h-14 w-full items-center gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.025] px-4 text-left text-sm font-semibold text-white transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:ring-inset"
+          >
+            <Plus className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+            {t(`${baseKey}.addAbsence`)}
+          </button>
+        ) : null}
+      </Card>
+    );
+  }
+
+  if (feature === "recurringExtraPay") {
+    return (
+      <Card variant="ambient" className="overflow-hidden p-5">
+        <span className="grid h-14 w-14 place-items-center rounded-[18px] border border-emerald-400/15 bg-emerald-400/[0.09] text-emerald-400">
+          <Percent className="h-7 w-7" aria-hidden="true" />
+        </span>
+        <h2 className="font-name mt-4 text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
+          {t(`${baseKey}.title`)}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-white/48">
+          {t(`${baseKey}.description`)}
+        </p>
+        {onPrimaryAction ? (
+          <button
+            type="button"
+            onClick={onPrimaryAction}
+            className="mt-5 flex min-h-14 w-full items-center gap-3 rounded-[22px] border border-white/[0.08] bg-white/[0.025] px-4 text-left text-sm font-semibold text-white transition hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:ring-inset"
+          >
+            <Plus className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+            {t(`${baseKey}.addRule`)}
+          </button>
+        ) : null}
+      </Card>
+    );
+  }
 
   return (
     <SettingsGroup

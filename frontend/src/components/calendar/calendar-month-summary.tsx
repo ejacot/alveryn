@@ -32,16 +32,16 @@ export function CalendarMonthSummary({
 
   return (
     <section
-      className="calendar-month-summary relative overflow-hidden rounded-t-[30px] border border-b-0 border-[#d5be8d]/[0.16] bg-[linear-gradient(145deg,#151510_0%,#0b0c0b_52%,#10100d_100%)] px-5 pb-5 pt-5 shadow-[0_30px_90px_rgba(0,0,0,0.38)]"
+      className="calendar-month-summary relative overflow-hidden rounded-t-[30px] border border-b-0 border-[#10b981]/[0.16] bg-[linear-gradient(145deg,#151515_0%,#0b0c0b_52%,#101010_100%)] px-5 pb-5 pt-5 shadow-[0_30px_90px_rgba(0,0,0,0.38)]"
       aria-label={t("monthlySummaryLabel")}
     >
       <div
-        className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#d5be8d]/[0.08] blur-3xl"
+        className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#10b981]/[0.08] blur-3xl"
         aria-hidden="true"
       />
       <div className="relative">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#d5be8d]/65">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#10b981]/65">
             {t("monthlySummaryLabel")}
           </p>
           <p className="text-[10px] font-medium tabular-nums text-white/38">
@@ -54,7 +54,7 @@ export function CalendarMonthSummary({
             <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/38">
               {t("monthlySummary.grossPay")}
             </p>
-            <p className="mt-2 break-words font-metric text-[clamp(2rem,10vw,2.65rem)] font-medium leading-none tracking-[-0.075em] tabular-nums text-[#f4f0e7]">
+            <p className="mt-2 break-words font-metric text-[clamp(2rem,10vw,2.65rem)] font-medium leading-none tracking-[-0.075em] tabular-nums text-[#f5f5f5]">
               {workGrossAmount}
             </p>
           </article>
@@ -62,7 +62,7 @@ export function CalendarMonthSummary({
             <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/38">
               {t("monthlySummary.worked")}
             </p>
-            <p className="whitespace-nowrap font-metric text-[1.65rem] font-medium leading-none tracking-[-0.06em] tabular-nums text-[#f4f0e7]">
+            <p className="whitespace-nowrap font-metric text-[1.65rem] font-medium leading-none tracking-[-0.06em] tabular-nums text-[#f5f5f5]">
               {workedHours}
             </p>
           </article>
@@ -110,8 +110,8 @@ function MiniMetric({
   return (
     <article>
       <p className={accent
-        ? "font-metric text-[1.25rem] font-medium tabular-nums text-[#d5be8d]"
-        : "font-metric text-[1.25rem] font-medium tabular-nums text-[#f4f0e7]"
+        ? "font-metric text-[1.25rem] font-medium tabular-nums text-[#10b981]"
+        : "font-metric text-[1.25rem] font-medium tabular-nums text-[#f5f5f5]"
       }>
         {value}
       </p>
@@ -137,7 +137,7 @@ function DetailMetric({
         <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/34">{label}</p>
         <p className="mt-1 font-metric text-sm font-medium tabular-nums text-white/72">{value}</p>
       </div>
-      <p className="truncate font-metric text-sm font-medium tabular-nums text-[#d5be8d]">{amount}</p>
+      <p className="truncate font-metric text-sm font-medium tabular-nums text-[#10b981]">{amount}</p>
     </article>
   );
 }

@@ -28,7 +28,7 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await loginThroughUi(page, user);
   await page.goto("/records/new?date=2026-07-16");
 
-  await expect(page.getByRole("heading", { name: "New job" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New activity" })).toBeVisible();
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /montaj/i }).click();
   await page.getByLabel("Team size").fill("2");
@@ -42,7 +42,7 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await page.getByLabel("Break (minutes)", { exact: true }).last().fill("0");
 
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByText("Job saved")).toBeVisible();
+  await expect(page.getByText("Activity saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
   await page.getByRole("button", { name: /thu 16/i }).click();
   const activity = page.getByRole("button", { name: /2 lagen 300 m2 check hours/i });
@@ -51,9 +51,9 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await expect(page.getByText("€7,660.00").first()).toBeVisible();
 
   await activity.click();
-  await expect(page.getByRole("heading", { name: "Edit job" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Edit activity" })).toBeVisible();
   await page.getByLabel("Team size").fill("3");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByText("Job saved")).toBeVisible();
+  await expect(page.getByText("Activity saved")).toBeVisible();
   await page.waitForURL(/\/app$/);
 });

@@ -105,7 +105,7 @@ describe("PDF report data", () => {
     expect(rows.map((row) => row.isoDate)).toEqual(["2026-07-01", "2026-07-02", "2026-07-03"]);
     expect(rows[0]).toMatchObject({ key: "empty:2026-07-01", activity: "", hours: "" });
     expect(rows[1]).toMatchObject({
-      key: "record-1",
+      key: "day:2026-07-02",
       activity: "Housekeeping · Public areas",
       intervals: "08:00–16:00 · 16:30–18:00",
       hours: "9h 00m",
@@ -113,6 +113,10 @@ describe("PDF report data", () => {
       workDetails: "Housekeeping: 08:00–16:00 · 7h 30m · 20; Public areas: 16:30–18:00 · 1h 30m · 10",
       earnings: "€200.00"
     });
+    expect(rows[1].workTypeCells).toEqual([
+      { workTypeId: "work-type-1", workTypeName: "Housekeeping", value: "08:00–16:00 · 7h 30m · 20 rooms · +50%" },
+      { workTypeId: "work-type-2", workTypeName: "Public areas", value: "16:30–18:00 · 1h 30m · 10 areas" }
+    ]);
     expect(rows[2]).toMatchObject({ key: "empty:2026-07-03", activity: "", hours: "" });
   });
 

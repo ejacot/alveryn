@@ -8,6 +8,7 @@ import {
   Clock3,
   Gauge,
   Percent,
+  Plus,
   Scale,
   Tags,
   Timer,
@@ -116,11 +117,16 @@ export function SettingsEmploymentDetailPage() {
   const employment = employmentQuery.data;
   const suffix = `employmentId=${encodeURIComponent(employment.id)}`;
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
+    <div className="employment-detail-page mx-auto w-full max-w-[560px] space-y-5 pb-10 pt-8">
       <SettingsNavigationHeader
         title={t("settings:employment.editTitle")}
         backLabel={t("common:actions.back")}
         onBack={safeBack}
+        action={{
+          label: t("settings:employment.add"),
+          icon: <Plus className="h-5 w-5" aria-hidden="true" />,
+          onClick: () => navigate("/settings/employment?create=true")
+        }}
       />
 
       <section className="space-y-2">

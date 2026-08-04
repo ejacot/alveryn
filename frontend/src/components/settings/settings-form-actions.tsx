@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 type Props = {
   submitting?: boolean;
   submitLabel?: string;
+  submitDisabled?: boolean;
   successMessage?: string | null;
   onDelete?: () => void;
   deleteLabel?: string;
@@ -14,6 +15,7 @@ type Props = {
 export function SettingsFormActions({
   submitting = false,
   submitLabel,
+  submitDisabled = false,
   successMessage,
   onDelete,
   deleteLabel,
@@ -37,7 +39,7 @@ export function SettingsFormActions({
         ) : (
           <span />
         )}
-        <Button type="submit" disabled={submitting} className="sm:min-w-[170px]">
+        <Button type="submit" disabled={submitting || submitDisabled} className="sm:min-w-[170px]">
           {submitting ? t("actions.saving") : submitLabel ?? t("actions.saveChanges")}
         </Button>
       </div>

@@ -459,7 +459,7 @@ describe("dashboard components", () => {
     const flowBar = screen.getByTestId("flow-segmented-bar-2026-07-15");
     expect(flowBar.querySelector('[data-segment="worked"]')).toBeInTheDocument();
     expect(flowBar.querySelector('[data-segment="worked"]')).toHaveStyle({
-      backgroundColor: "#ead8ac"
+      backgroundColor: "#34d399"
     });
     expect(flowBar.querySelector('[data-segment="extra"]')).toHaveStyle({
       height: `${(20 / 170) * 100}%`
@@ -469,7 +469,7 @@ describe("dashboard components", () => {
         .getByTestId("flow-segmented-bar-2026-07-14")
         .querySelector('[data-segment="worked"]')
     ).toHaveStyle({
-      backgroundColor: "rgba(244, 240, 231, 0.42)"
+      backgroundColor: "rgba(255, 255, 255, 0.42)"
     });
   });
 
@@ -518,10 +518,10 @@ describe("dashboard components", () => {
     expect(screen.getByText("Tagesdurchschnitt")).toBeInTheDocument();
     expect(screen.getByText("25%")).toBeInTheDocument();
     expect(screen.getByTestId("rhythm-bar-2026-07-15")).toHaveStyle({
-      backgroundColor: "#ead8ac"
+      backgroundColor: "#34d399"
     });
     expect(screen.getByTestId("rhythm-bar-2026-07-14")).toHaveStyle({
-      backgroundColor: "rgba(244, 240, 231, 0.42)"
+      backgroundColor: "rgba(255, 255, 255, 0.42)"
     });
     expect(screen.queryByTestId("rhythm-bar-2026-07-13")).not.toBeInTheDocument();
     expect(screen.queryByTestId("rhythm-bar-2026-07-16")).not.toBeInTheDocument();

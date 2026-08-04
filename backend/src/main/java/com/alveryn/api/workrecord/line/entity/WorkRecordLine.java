@@ -208,6 +208,7 @@ public class WorkRecordLine extends BaseEntity {
       WorkType workType,
       int displayOrder,
       BigDecimal quantity,
+      int teamSize,
       BigDecimal hourlyRate,
       String currency,
       BigDecimal extraPayPercentage,
@@ -216,6 +217,7 @@ public class WorkRecordLine extends BaseEntity {
         quantity
             .multiply(BigDecimal.valueOf(60), MathContext.DECIMAL128)
             .divide(workType.getUnitsPerHour(), MathContext.DECIMAL128)
+            .divide(BigDecimal.valueOf(teamSize), MathContext.DECIMAL128)
             .setScale(WorkCalculation.TIME_SCALE, RoundingMode.HALF_UP);
     BigDecimal baseGross = WorkCalculation.calculateGross(minutes, hourlyRate, 0);
     WorkRecordLine line = unitBase(record, workType, displayOrder, quantity, extraPayPercentage, notes);

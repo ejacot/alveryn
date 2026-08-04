@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, ChevronRight, MapPin, Plus, ReceiptText, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, Folder, MapPin, Plus, ReceiptText, Settings, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -394,7 +394,11 @@ export function WorkRecordEditorPage() {
     return groups;
   }, [lines, workTypes]);
   const hasTeamworkLine = useMemo(
-    () => lines.some((line) => workTypes.find((workType) => workType.id === line.workTypeId)?.teamworkEnabled),
+    () => lines.some((line) => {
+      const workType = workTypes.find((item) => item.id === line.workTypeId);
+      const parent = workType?.parentId ? workTypes.find((item) => item.id === workType.parentId) : null;
+      return Boolean(workType?.teamworkEnabled || parent?.teamworkEnabled);
+    }),
     [lines, workTypes]
   );
   const liveSummary = useMemo(
@@ -534,7 +538,7 @@ export function WorkRecordEditorPage() {
   const pageTitle = isEditing ? t("records:job.editTitle") : t("records:job.title");
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-[560px] space-y-6 overflow-x-clip pb-6 pt-8">
+    <div className="work-record-editor-page mx-auto min-w-0 w-full max-w-[560px] space-y-6 overflow-x-clip pb-6 pt-8">
       <header className="settings-sticky-header dashboard-sticky-header editor-sticky-header fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[560px] items-start px-5 pt-2">
         <button
           ref={backButtonRef}
@@ -568,7 +572,7 @@ export function WorkRecordEditorPage() {
       <section>
         <Card variant="ambient" className="space-y-4 p-5">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#ead8ac]">
+            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#34d399]">
               <CalendarDays className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
@@ -681,6 +685,20 @@ export function WorkRecordEditorPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <p className="hairline-text">{t("records:job.lines")}</p>
+          <button
+            type="button"
+            onClick={() => {
+              const suffix = recordEmploymentId
+                ? `?employmentId=${encodeURIComponent(recordEmploymentId)}`
+                : "";
+              navigate(`/settings/work-types${suffix}`);
+            }}
+            aria-label={t("records:job.manageWorkTypes")}
+            title={t("records:job.manageWorkTypes")}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.04] text-white/58 transition hover:bg-white/[0.09] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
+          >
+            <Settings className="h-[1.1rem] w-[1.1rem]" aria-hidden="true" />
+          </button>
         </div>
         {lines.length === 0 ? (
           <Card
@@ -733,6 +751,35 @@ export function WorkRecordEditorPage() {
                       />
                     ))}
                   </div>
+                  {(group.parent.extraPayEnabled || group.lines.some((line) =>
+                    workTypes.find((item) => item.id === line.workTypeId)?.extraPayEnabled)) ? (
+                    <div className="border-t border-white/[0.07] pt-3">
+                      <Input
+                        label={t("records:fields.extraPay")}
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={1000}
+                        step="0.01"
+                        value={group.lines[0]?.extraPayPercentage ?? "0"}
+                        onFocus={() => {
+                          if (group.lines[0]?.extraPayPercentage === "0") {
+                            const ids = new Set(group.lines.map((line) => line.id));
+                            setLines((current) => current.map((line) => ids.has(line.id)
+                              ? { ...line, extraPayPercentage: "" }
+                              : line));
+                          }
+                        }}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          const ids = new Set(group.lines.map((line) => line.id));
+                          setLines((current) => current.map((line) => ids.has(line.id)
+                            ? { ...line, extraPayPercentage: value }
+                            : line));
+                        }}
+                      />
+                    </div>
+                  ) : null}
                   <WorkTypeGroupSummary
                     lines={group.lines}
                     workTypes={workTypes}
@@ -805,7 +852,7 @@ export function WorkRecordEditorPage() {
       {liveSummary ? (
         <Card as="section" variant="ambient" className="overflow-hidden p-5">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#d5be8d]/15 bg-[#d5be8d]/[0.08] text-[#ead8ac]">
+            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#34d399]">
               <ReceiptText className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
@@ -814,7 +861,7 @@ export function WorkRecordEditorPage() {
                 {formatMinutesAsDuration(liveSummary.actualMinutes + liveSummary.equivalentMinutes)}
               </p>
             </div>
-            <div className="shrink-0 text-right font-metric text-base font-medium text-[#ead8ac]">
+            <div className="shrink-0 text-right font-metric text-base font-medium text-[#34d399]">
               {liveSummary.amounts.map((amount) => (
                 <p key={amount.currency}>{formatCurrency(String(amount.value), amount.currency)}</p>
               ))}
@@ -830,7 +877,7 @@ export function WorkRecordEditorPage() {
           onClick={() => setDetailsExpanded((value) => !value)}
           className="universal-glass-card glass-card--ambient flex w-full items-center gap-3 rounded-[24px] p-4 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
         >
-          <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-white/[0.08] bg-white/[0.05] text-[#ead8ac]">
+          <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-white/[0.08] bg-white/[0.05] text-[#34d399]">
             <MapPin className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
@@ -866,7 +913,10 @@ export function WorkRecordEditorPage() {
       {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
       {saveError ? <p className="text-sm text-red-300">{saveError}</p> : null}
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 -mx-1 space-y-3 rounded-[28px] border border-white/[0.09] bg-black/55 p-2 backdrop-blur-2xl">
+      <div className={isEditing
+        ? "sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 -mx-1 space-y-3 rounded-[28px] border border-white/[0.09] bg-black/55 p-2 backdrop-blur-2xl"
+        : "sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30"
+      }>
         <Button className="w-full" type="button" disabled={saveMutation.isPending || createAddressMutation.isPending || success} onClick={() => void handleSubmit()}>
           {saveMutation.isPending || createAddressMutation.isPending
             ? t("records:job.saving")
@@ -970,33 +1020,36 @@ function WorkTypePickerDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation("records");
-  const parents = workTypes
-    .filter((item) => item.active && !item.parentId)
-    .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name));
-  const childrenByParent = workTypes.reduce<Record<string, WorkType[]>>((groups, item) => {
+  const activeWorkTypes = workTypes.filter((item) => item.active);
+  const childrenByParent = activeWorkTypes.reduce<Record<string, WorkType[]>>((groups, item) => {
     if (item.active && item.parentId) {
       groups[item.parentId] = [...(groups[item.parentId] ?? []), item]
         .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name));
     }
     return groups;
   }, {});
+  // Only top-level choices belong in Add activity. Children are opened together
+  // through their category and must never be duplicated as standalone choices.
+  const topLevelChoices = activeWorkTypes
+    .filter((item) => !item.parentId)
+    .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name));
 
   return (
-    <LockedModalViewport className="items-end bg-black/52 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur-md">
+    <LockedModalViewport className="work-type-picker-backdrop items-end bg-black/52 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur-md">
       <button type="button" className="absolute inset-0" onClick={onClose} aria-label={t("job.closePicker")} />
       <ModalPanel
         as="section"
         role="dialog"
         aria-modal="true"
         aria-labelledby="work-type-picker-title"
-        className="flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] max-w-[430px] flex-col overflow-hidden !rounded-[30px] !border-[#d5be8d]/[0.14] !bg-[linear-gradient(150deg,rgba(22,22,17,0.98),rgba(8,10,9,0.98))] !p-0 shadow-[0_28px_90px_rgba(0,0,0,0.7)]"
+        className="work-type-picker-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] max-w-[430px] flex-col overflow-hidden !rounded-[30px] !border-[#10b981]/[0.14] !bg-[linear-gradient(150deg,rgba(22,22,22,0.98),rgba(8,10,9,0.98))] !p-0 shadow-[0_28px_90px_rgba(0,0,0,0.7)]"
       >
         <header className="relative flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 pb-4 pt-5">
           <div>
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#d5be8d]/60">
+            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#10b981]/60">
               {t("job.lines")}
             </p>
-            <h2 id="work-type-picker-title" className="mt-1 text-[1.35rem] font-semibold tracking-[-0.055em] text-[#f4f0e7]">
+            <h2 id="work-type-picker-title" className="mt-1 text-[1.35rem] font-semibold tracking-[-0.055em] text-[#f5f5f5]">
               {t("job.chooseActivity")}
             </h2>
           </div>
@@ -1010,17 +1063,20 @@ function WorkTypePickerDialog({
           </button>
         </header>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {parents.map((parent) => {
+          {topLevelChoices.map((parent) => {
             const children = childrenByParent[parent.id] ?? [];
+            const isCategory = parent.compositeEnabled || children.length > 0;
             return (
               <div key={parent.id} className="overflow-hidden rounded-[20px] border border-white/[0.075] bg-white/[0.035]">
                 <button
                   type="button"
                   onClick={() => children.length ? onSelectGroup(parent) : onSelect(parent)}
-                  className="flex min-h-[3.65rem] w-full items-center gap-3 px-4 py-2.5 text-left transition active:scale-[0.99] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-[#d5be8d]/25 focus:ring-inset"
+                  className="flex min-h-[3.65rem] w-full items-center gap-3 px-4 py-2.5 text-left transition active:scale-[0.99] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-[#10b981]/25 focus:ring-inset"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[13px] border border-white/[0.08] bg-white/[0.045]">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: parent.color }} />
+                    {isCategory
+                      ? <Folder className="h-4 w-4 text-white/42" aria-hidden="true" />
+                      : <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: parent.color }} />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="font-name block truncate text-base font-semibold text-white">{parent.name}</span>
@@ -1269,8 +1325,8 @@ function WorkRecordLineCard({
         </div>
       ) : null}
 
-      {selectedWorkType?.extraPayEnabled &&
-      (embedded || line.calculationMode === "UNITS_PER_UNIT" || line.calculationMode === "FIXED_AMOUNT") ? (
+      {selectedWorkType?.extraPayEnabled && !embedded &&
+      (line.calculationMode === "UNITS_PER_UNIT" || line.calculationMode === "FIXED_AMOUNT") ? (
         <Input
           label={t("records:fields.extraPay")}
           type="number"
@@ -1324,7 +1380,7 @@ function CollapsedWorkLine({
     >
       <span
         className="h-3 w-3 shrink-0 rounded-full"
-        style={{ backgroundColor: selectedWorkType?.color ?? "#d5be8d" }}
+        style={{ backgroundColor: selectedWorkType?.color ?? "#10b981" }}
       />
       <span className="min-w-0 flex-1">
         <span className="font-name block truncate font-semibold text-white">
@@ -1333,7 +1389,7 @@ function CollapsedWorkLine({
         <span className="mt-1 block truncate text-xs text-white/42">{preview?.label ?? "—"}</span>
       </span>
       {preview?.amount ? (
-        <span className="shrink-0 font-metric text-sm font-medium text-[#ead8ac]">{preview.amount}</span>
+        <span className="shrink-0 font-metric text-sm font-medium text-[#34d399]">{preview.amount}</span>
       ) : null}
       <ChevronRight className="h-4 w-4 shrink-0 text-white/30" aria-hidden="true" />
     </button>
@@ -1412,7 +1468,12 @@ function buildGroupSummary(
     if (mode === "UNITS_PER_HOUR") {
       const quantity = parseDecimalInput(line.quantity);
       const unitsPerHour = Number(workType.unitsPerHour);
-      const minutes = unitsPerHour > 0 ? Math.round((quantity / unitsPerHour) * 60) : 0;
+      const parent = workType.parentId ? workTypes.find((item) => item.id === workType.parentId) : null;
+      const teamworkEnabled = workType.teamworkEnabled || parent?.teamworkEnabled;
+      const workers = teamworkEnabled ? Number(teamSize) : 1;
+      const minutes = unitsPerHour > 0 && workers > 0
+        ? Math.round((quantity / unitsPerHour / workers) * 60)
+        : 0;
       equivalentMinutes += minutes;
       if (hourlyRate) addAmount(calculateGrossAmount(minutes, hourlyRate.hourlyRate) * extraMultiplier, hourlyRate.currency);
       continue;
@@ -1421,7 +1482,8 @@ function buildGroupSummary(
     if (mode === "UNITS_PER_UNIT") {
       const quantity = parseDecimalInput(line.quantity);
       const rate = Number(workType.ratePerUnit);
-      const workers = workType.teamworkEnabled ? Number(teamSize) : 1;
+      const parent = workType.parentId ? workTypes.find((item) => item.id === workType.parentId) : null;
+      const workers = workType.teamworkEnabled || parent?.teamworkEnabled ? Number(teamSize) : 1;
       if (Number.isFinite(rate) && workers > 0) addAmount(((quantity * rate) / workers) * extraMultiplier, workType.currency);
       const unitsPerHour = Number(workType.unitsPerHour);
       if (unitsPerHour > 0) equivalentMinutes += Math.round((quantity / unitsPerHour) * 60);
@@ -1568,9 +1630,11 @@ function buildPayload({
     return { error: t("records:validation.addActivity") };
   }
 
-  const hasTeamworkLine = lines.some(
-    (line) => workTypes.find((workType) => workType.id === line.workTypeId)?.teamworkEnabled
-  );
+  const hasTeamworkLine = lines.some((line) => {
+    const workType = workTypes.find((item) => item.id === line.workTypeId);
+    const parent = workType?.parentId ? workTypes.find((item) => item.id === workType.parentId) : null;
+    return Boolean(workType?.teamworkEnabled || parent?.teamworkEnabled);
+  });
   const normalizedTeamSize = Number(teamSize);
   if (hasTeamworkLine && (!Number.isInteger(normalizedTeamSize) || normalizedTeamSize <= 0)) {
     return { error: t("records:validation.teamSizeRequired") };
@@ -1582,6 +1646,10 @@ function buildPayload({
     if (!workType) {
       return { error: t("records:validation.chooseWorkType") };
     }
+    const parentWorkType = workType.parentId
+      ? workTypes.find((item) => item.id === workType.parentId)
+      : null;
+    const extraPayEnabled = workType.extraPayEnabled || Boolean(parentWorkType?.extraPayEnabled);
     if (workType.parentId && !hasMeaningfulLineInput(line)) {
       continue;
     }
@@ -1599,7 +1667,7 @@ function buildPayload({
         payloadLines.push({
           ...baseLine,
           durationMinutes,
-          extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
+          extraPayPercentage: extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
         });
         continue;
       }
@@ -1611,7 +1679,7 @@ function buildPayload({
         startTime: line.startTime,
         endTime: line.endTime,
         unpaidBreakMinutes: Number(line.unpaidBreakMinutes || 0),
-        extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
+        extraPayPercentage: extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
       });
       continue;
     }
@@ -1628,7 +1696,7 @@ function buildPayload({
         ...baseLine,
         fixedAmount,
         currency,
-        extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
+        extraPayPercentage: extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
       });
       continue;
     }
@@ -1639,7 +1707,7 @@ function buildPayload({
     payloadLines.push({
       ...baseLine,
       quantity,
-      extraPayPercentage: workType.extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
+      extraPayPercentage: extraPayEnabled ? Number(line.extraPayPercentage || 0) : 0
     });
   }
 

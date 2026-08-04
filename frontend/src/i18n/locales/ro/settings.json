@@ -20,7 +20,7 @@
     "employerReport": "Raport pentru angajator", "createTitle": "Pregătește raportul", "createHint": "Verifică perioada și conținutul, apoi previzualizează exact documentul pe care îl vei trimite.",
     "customPeriod": "Alege un interval personalizat", "documentLanguage": "Limba documentului", "allDaysIncluded": "Toate zilele sunt incluse",
     "preview": "Previzualizează raportul", "preparing": "Se pregătește…", "onePageConfirmed": "Această lună va fi exportată pe o singură pagină A4 portret.", "multiPageHint": "Perioada va fi împărțită în pagini A4 numerotate.",
-    "fields": { "date": "Data", "activity": "Activitate", "intervals": "Intervale de muncă", "hours": "Ore lucrate", "quantity": "Cantitate efectuată", "workDetails": "Muncă efectuată", "extra": "Procentaj extra", "earnings": "Bani", "notes": "Notițe" },
+    "fields": { "date": "Data", "activity": "Activitate", "status": "Statusul zilei", "intervals": "Intervale de muncă", "hours": "Ore lucrate", "quantity": "Cantitate efectuată", "workDetails": "Muncă efectuată", "extra": "Procentaj extra", "earnings": "Bani", "notes": "Notițe" },
     "errors": { "dateRange": "Data de sfârșit nu poate fi înaintea datei de început.", "fields": "Selectează cel puțin un câmp pentru raport.", "empty": "Nu există date de exportat pentru acest employment și interval.", "generation": "PDF-ul nu a putut fi generat: {{reason}}" },
     "pdf": { "report": "Raport de lucru", "employment": "Employment", "period": "Interval", "generated": "Generat", "workedDays": "Zile lucrate", "absences": "Absențe", "totalHours": "Total ore", "totalExtraHours": "Total ore extra", "totalEarnings": "Câștig total", "generatedWith": "Generat cu Alveryn.com", "mixedCurrencies": "Valute diferite", "restDay": "Zi liberă", "noActivity": "Fără activitate", "page": "Pagina" }
   },
@@ -45,25 +45,34 @@
       "example": { "title": "Luni · Curățenie", "detail": "08:00–17:00 · pauză 30 min", "result": "Planificat" }
     },
     "hourlyRates": {
-      "title": "Cum funcționează tarifele",
-      "description": "Alveryn folosește tariful valabil în ziua în care ai lucrat.",
+      "title": "Tarife orare",
+      "description": "Adaugă un tarif și data de la care se aplică. Alveryn folosește automat tariful corect pentru fiecare zi lucrată.",
+      "addRate": "Adaugă un tarif orar",
       "steps": { "hours": "Lucrat", "rate": "Tarif", "earnings": "Câștig" },
       "values": { "hours": "8 h", "rate": "20 €/h", "earnings": "160 €" },
       "example": { "title": "Tariful actual", "detail": "Din 1 iulie 2026", "result": "20 €/h" }
     },
     "workTypes": {
-      "title": "Cum funcționează activitățile",
-      "description": "Creezi activitățile tale și alegi cum este măsurată fiecare.",
+      "title": "Organizează munca pe care o înregistrezi",
+      "description": "Creează un tip de muncă pentru o activitate individuală. Folosește o categorie când mai multe tipuri au același calcul și aceleași setări Teamwork și Extra pay.",
+      "addWorkType": "Adaugă un tip de muncă",
+      "createCategory": "Creează o categorie",
       "steps": { "activity": "Activitate", "method": "Măsurată în", "result": "Înregistrată ca" },
       "values": { "activity": "Curățenie", "method": "Timp", "result": "8 h" },
       "example": { "title": "Curățenie", "detail": "Activitate calculată după timp", "result": "8 h" }
     },
     "absences": {
-      "title": "Cum funcționează absențele",
-      "description": "Definești fiecare absență o dată, apoi o selectezi când adaugi o zi liberă.",
+      "title": "Tipuri de absență",
+      "description": "Creează tipurile de zile libere pe care le folosești, precum concediu sau medical. Alege dacă sunt plătite, apoi selectează tipul când înregistrezi absența.",
+      "addAbsence": "Adaugă un tip de absență",
       "steps": { "type": "Tip", "date": "Dată", "impact": "Valoarea zilei" },
       "values": { "type": "Concediu", "date": "27 iul.", "impact": "8 h plătite" },
       "example": { "title": "Concediu", "detail": "Luni, 27 iulie", "result": "8 h plătite" }
+    },
+    "recurringExtraPay": {
+      "title": "Sporuri recurente",
+      "description": "Alege o zi a săptămânii și procentul o singură dată. Alveryn adaugă automat sporul muncii eligibile înregistrate în acea zi.",
+      "addRule": "Adaugă o regulă de spor recurent"
     }
   },
   "status": {
@@ -120,11 +129,13 @@
       "TIME": {
         "title": "Urmăresc timpul lucrat",
         "summaryTitle": "Urmărirea timpului",
+        "shortDescription": "Orele primele; câștigurile se calculează în continuare.",
         "description": "Vezi orele lucrate, folosește check-in și opțional soldul de ore."
       },
       "EARNINGS": {
         "title": "Urmăresc câștigurile",
         "summaryTitle": "Urmărirea câștigurilor",
+        "shortDescription": "Câștigurile primele; munca este înregistrată în continuare.",
         "description": "Vezi câți bani câștigi și din ce activitate provin."
       }
     },
@@ -153,6 +164,7 @@
       "termsValidFrom": "Condiții valabile din",
       "startDate": "Data începerii",
       "endDate": "Data încheierii",
+      "endDateOptional": "Data încheierii (opțional)",
       "salaryAmount": "Salariu fix (opțional)",
       "currency": "Monedă",
       "targetHours": "Ore țintă",
@@ -219,8 +231,11 @@
     "emptyTitle": "Nu există încă tipuri de muncă",
     "description": "Configureaza activitatile care pot fi adaugate intr-un job. Un job poate contine mai multe linii de lucru, iar fiecare linie pastreaza formula ei.",
     "addWorkType": "Adauga tip de lucru",
+    "createCategory": "Creează categorie",
     "emptyDescription": "Creeaza prima formula pe care o folosesti la munca: ore, unitati transformate in ore sau plata directa pe unitate.",
-    "formulaCount": "{{count}} formule",
+    "category": "Categorie",
+    "workTypeCount_one": "{{count}} tip de muncă",
+    "workTypeCount_other": "{{count}} tipuri de muncă",
     "formulas": {
       "time": "Ore",
       "unitsToHours": "Unitati in ore",
@@ -229,13 +244,20 @@
   },
   "workTypeEditor": {
     "addTitle": "Adauga tip de lucru",
+    "addCategoryTitle": "Creează categorie",
     "editTitle": "Editeaza tipul de lucru",
-    "chooseModeTitle": "Alege calculul",
+    "chooseModeTitle": "Cum se calculează acest tip de muncă?",
+    "chooseCategoryModeTitle": "Cum se vor calcula tipurile de muncă din categorie?",
     "chooseModeDescription": "Incepe cu formula. Pasul urmator arata doar campurile necesare pentru acel tip de lucru.",
     "created": "Tip de lucru creat.",
     "updated": "Tip de lucru actualizat.",
     "unavailableTitle": "Tipul de lucru nu este disponibil",
     "editorDescription": "Alege cum se numara aceasta munca.",
+    "advancedSettings": "Setări avansate",
+    "categoryOptionsTitle": "Opțiuni pentru toate tipurile de muncă",
+    "categoryOptionsDescription": "Aceste setări se aplică automat fiecărui tip de muncă din categorie.",
+    "addActivity": "Adaugă activitatea",
+    "createCategory": "Creează categoria",
     "coreSettings": "Tip de lucru",
     "deactivate": "Dezactiveaza tipul de lucru",
     "deactivateTitle": "Dezactivezi tipul de lucru?",
@@ -249,7 +271,10 @@
     "sections": { "name": "Nume" },
     "fields": {
       "name": "Nume",
+      "namePlaceholder": "de ex. Tură normală",
+      "unitExamples": "de ex. km, m², camere, livrări",
       "categoryName": "Nume categorie",
+      "categoryPlaceholder": "de ex. Servicii de curățenie",
       "calculationMethod": "Metoda de calcul",
       "compensationMethod": "Metoda de plata",
       "color": "Culoare",
@@ -257,7 +282,7 @@
       "teamworkEnabled": "Lucru in echipa",
       "extraPayEnabled": "Plată extra",
       "teamworkDescription": "Cere numarul de lucratori si imparte plata directa per unitate la echipa.",
-      "compositeEnabled": "Avansat",
+      "compositeEnabled": "Mai multe linii de lucru",
       "compositeDescription": "Acest tip de lucru poate contine mai multe formule interne.",
       "status": "Status"
     },
@@ -294,38 +319,39 @@
       "fixedResultValue": "Suma exactă salvată pentru acea lucrare."
     },
     "modes": {
-      "timeTitle": "Bazat pe timp",
-      "timeDescription": "Pentru activitati platite sau urmarite dupa ora de inceput si sfarsit.",
+      "timeTitle": "După timp",
+      "timeDescription": "Completezi ora de început și de sfârșit.",
       "timeFormula": "ore x tarif orar",
       "timeSuggestedName": "LUCRU PE ORE",
-      "unitsPerHourTitle": "Unitati transformate in ore",
-      "unitsPerHourDescription": "Pentru activitati unde cantitatea devine timp echivalent, apoi se foloseste tariful orar.",
+      "unitsPerHourTitle": "Unități în ore",
+      "unitsPerHourDescription": "Transformi unitățile finalizate în ore lucrate.",
       "unitsPerHourFormula": "unitati / unitati pe ora = ore",
       "unitsPerHourSuggestedName": "LUCRU PE UNITATI",
-      "perUnitTitle": "Plata directa per unitate",
-      "perUnitDescription": "Pentru m², livrari, camere, taskuri sau orice unitate platita direct.",
+      "perUnitTitle": "Plată per unitate",
+      "perUnitDescription": "Cantitatea este înmulțită cu tariful pe unitate.",
       "perUnitFormula": "cantitate x tarif per unitate",
       "perUnitSuggestedName": "LUCRU PER UNITATE",
       "fixedTitle": "Pret fix",
-      "fixedDescription": "Pentru activitati unde introduci suma fixa primita la inregistrarea jobului.",
+      "fixedDescription": "Introduci o sumă fixă de fiecare dată.",
       "fixedFormula": "suma fixa",
       "fixedSuggestedName": "LUCRU CU PRET FIX"
     }
   },
   "workTypeFormulas": {
-    "sectionTitle": "Linii de lucru si formule",
-    "sectionDescription": "Acestea sunt activitatile care apar intr-un Job nou. Adauga cate o linie pentru fiecare lucru pe care il poti face intr-o zi.",
-    "add": "Adauga formula",
-    "addFirst": "Adauga prima formula",
-    "addTitle": "Adauga formula",
-    "editTitle": "Editeaza formula",
-    "emptyTitle": "Nu exista formule inca",
-    "emptyDescription": "Adauga prima linie care trebuie sa apara cand creezi un job.",
-    "deactivate": "Dezactiveaza formula",
+    "sectionTitle": "Tipuri de muncă",
+    "sectionDescription": "Tipurile de muncă grupate în această categorie.",
+    "categoryCalculation": "Calcul pentru toate: {{method}}",
+    "add": "Adaugă tip de muncă",
+    "addFirst": "Adaugă primul tip de muncă",
+    "addTitle": "Adaugă tip de muncă",
+    "editTitle": "Editează tipul de muncă",
+    "emptyTitle": "Categoria nu conține tipuri de muncă",
+    "emptyDescription": "Adaugă primul tip de muncă pe care vrei să îl grupezi aici.",
+    "deactivate": "Dezactivează tipul de muncă",
     "fields": {
-      "name": "Numele activitatii",
-      "calculationMode": "Formula",
-      "unitLabel": "Numele unitatii",
+      "name": "Numele tipului de muncă",
+      "calculationMode": "Cum se calculează acest tip de muncă?",
+      "unitLabel": "Unități",
       "unitSymbol": "Simbol",
       "unitsPerHour": "Unitati pe ora",
       "ratePerUnit": "Tarif per unitate",
@@ -349,8 +375,8 @@
       "fixed": "Suma fixa introdusa per job"
     },
     "symbolPlaceholder": "Exemplu: m²",
-    "unitsPerHourPlaceholder": "Exemplu: 2.4",
-    "ratePerUnitPlaceholder": "Exemplu: 50",
+    "unitsPerHourPlaceholder": "... unități/oră",
+    "ratePerUnitPlaceholder": "plată/unitate",
     "validation": {
       "nameRequired": "Numele este obligatoriu",
       "nameTooLong": "Numele este prea lung",
@@ -613,7 +639,20 @@
     "title": "Sporuri recurente",
     "description": "Aplică automat un procent extra fiecărui pontaj din zilele săptămânii selectate.",
     "add": "Adaugă sau actualizează regula",
-    "percentage": "Procent extra"
+    "weekday": "Ziua",
+    "percentage": "Procent extra",
+    "percentageFor": "Procent extra pentru {{day}}",
+    "chooseDay": "Alege o zi",
+    "noDaysLeft": "Toate zilele au fost adăugate",
+    "addDay": "Adaugă ziua",
+    "timeInterval": "Spor pentru interval orar",
+    "timeIntervalHint": "De exemplu, adaugă 30% pentru munca efectuată între 22:00 și 06:00.",
+    "from": "De la",
+    "to": "Până la",
+    "addInterval": "Adaugă intervalul",
+    "intervalName": "Nume",
+    "intervalNamePlaceholder": "Tură de noapte",
+    "percentageShort": "Spor"
   },
   "dataImport": {
     "title": "Importă date", "menuLabel": "Importă date", "menuDescription": "Transferă în siguranță istoricul muncii în Alveryn.",
