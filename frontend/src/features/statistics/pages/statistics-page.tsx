@@ -4,17 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { listEmployments, listWorkTypes } from "../../../api/endpoints";
 import { queryKeys } from "../../../api/query-keys";
-import { Card } from "../../../components/ui/card";
 import { SectionHeading } from "../../../components/ui/section-heading";
 import { Download, FileText } from "lucide-react";
 import { StatisticsLineChart } from "../charts/statistics-line-chart";
 import { StatisticsDrilldownPanel } from "../components/statistics-drilldown-panel";
 import { StatisticsFilterBar } from "../components/statistics-filter-bar";
-import { StatisticsHeatmap } from "../components/statistics-heatmap";
-import {
-  StatisticsPrimarySummary,
-  StatisticsSummaryCards
-} from "../components/statistics-summary";
+import { StatisticsSummaryCards } from "../components/statistics-summary";
 import {
   StatisticsForecastSection,
   StatisticsHighlightsSection,
@@ -28,15 +23,13 @@ import {
 } from "../components/statistics-states";
 import { WorkTypeBreakdown } from "../components/work-type-breakdown";
 import {
-  createDefaultStatisticsFilters,
-  updateStatisticsCustomRange
+  createDefaultStatisticsFilters
 } from "../filters/statistics-filter-state";
 import { useStatistics } from "../hooks/use-statistics";
 import type {
   ProductivityGrouping,
   ProductivityMetric,
   StatisticsFilters,
-  StatisticsHeatmapMetric,
   StatisticsMetric,
   StatisticsPeriod,
   StatisticsTimeSeriesPoint
@@ -70,17 +63,10 @@ function parseFilters(searchParams: URLSearchParams): StatisticsFilters {
   };
 
   if (from && to && to >= from) {
-    return updateStatisticsCustomRange(parsed, from, to);
+    return { ...parsed, from, to };
   }
 
   return parsed;
-}
-
-function parseHeatmapMetric(searchParams: URLSearchParams): StatisticsHeatmapMetric {
-  const value = searchParams.get("heatmapMetric");
-  return value && ["WORKED_HOURS", "WORKED_MINUTES", "ENTRIES", "GROSS"].includes(value)
-    ? (value as StatisticsHeatmapMetric)
-    : "WORKED_HOURS";
 }
 
 function parseProductivityMetric(searchParams: URLSearchParams): ProductivityMetric {
@@ -100,8 +86,6 @@ function parseProductivityGrouping(searchParams: URLSearchParams): ProductivityG
 
 function writeFilters(
   filters: StatisticsFilters,
-  heatmapMetric: StatisticsHeatmapMetric,
-  heatmapCurrency: string | null,
   productivityMetric: ProductivityMetric,
   productivityGrouping: ProductivityGrouping,
   currentParams: URLSearchParams
@@ -111,16 +95,12 @@ function writeFilters(
   params.set("from", filters.from);
   params.set("to", filters.to);
   params.set("metric", filters.metric);
-  params.set("heatmapMetric", heatmapMetric);
   params.set("productivityMetric", productivityMetric);
   params.set("productivityGrouping", productivityGrouping);
+  params.delete("heatmapMetric");
   params.delete("heatmapCurrency");
   params.delete("workTypeIds");
   params.delete("calculationMethods");
-
-  if (heatmapCurrency) {
-    params.set("heatmapCurrency", heatmapCurrency);
-  }
 
   for (const workTypeId of filters.workTypeIds) {
     params.append("workTypeIds", workTypeId);
@@ -142,21 +122,16 @@ export function StatisticsPage() {
   const { t } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFiltersState] = useState(() => parseFilters(searchParams));
-  const [heatmapMetric, setHeatmapMetricState] = useState(() =>
-    parseHeatmapMetric(searchParams)
-  );
-  const [heatmapCurrency, setHeatmapCurrencyState] = useState(() =>
-    searchParams.get("heatmapCurrency")
-  );
   const [productivityMetric, setProductivityMetricState] = useState(() =>
     parseProductivityMetric(searchParams)
   );
   const [productivityGrouping, setProductivityGroupingState] = useState(() =>
     parseProductivityGrouping(searchParams)
   );
-  const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<string | null>(null);
   const [selectedChartPoint, setSelectedChartPoint] =
     useState<StatisticsTimeSeriesPoint | null>(null);
+  const [comparisonPeriodB, setComparisonPeriodB] =
+    useState<{ from: string; to: string } | null>(null);
   const [employmentIds, setEmploymentIds] = useState<string[]>([]);
   const workTypes = useQuery({
     queryKey: queryKeys.workTypes.all(),
@@ -180,16 +155,13 @@ export function StatisticsPage() {
   }, [employmentIds, filters, workTypes.data]);
   const statistics = useStatistics(
     effectiveFilters,
-    heatmapMetric,
-    heatmapCurrency,
     productivityMetric,
-    productivityGrouping
+    productivityGrouping,
+    comparisonPeriodB
   );
 
   useEffect(() => {
     setFiltersState(parseFilters(searchParams));
-    setHeatmapMetricState(parseHeatmapMetric(searchParams));
-    setHeatmapCurrencyState(searchParams.get("heatmapCurrency"));
     setProductivityMetricState(parseProductivityMetric(searchParams));
     setProductivityGroupingState(parseProductivityGrouping(searchParams));
   }, [searchParams]);
@@ -199,8 +171,6 @@ export function StatisticsPage() {
     setSearchParams(
       writeFilters(
         next,
-        heatmapMetric,
-        heatmapCurrency,
         productivityMetric,
         productivityGrouping,
         latestSearchParams(searchParams)
@@ -208,22 +178,7 @@ export function StatisticsPage() {
       { replace: false }
     );
     setSelectedChartPoint(null);
-  }
-
-  function setHeatmapOptions(metric: StatisticsHeatmapMetric, currency: string | null) {
-    setHeatmapMetricState(metric);
-    setHeatmapCurrencyState(currency);
-    setSearchParams(
-      writeFilters(
-        filters,
-        metric,
-        currency,
-        productivityMetric,
-        productivityGrouping,
-        latestSearchParams(searchParams)
-      ),
-      { replace: false }
-    );
+    setComparisonPeriodB(null);
   }
 
   function setProductivityOptions(
@@ -235,8 +190,6 @@ export function StatisticsPage() {
     setSearchParams(
       writeFilters(
         filters,
-        heatmapMetric,
-        heatmapCurrency,
         metric,
         grouping,
         latestSearchParams(searchParams)
@@ -253,6 +206,12 @@ export function StatisticsPage() {
   const timeSeries = statistics.timeSeries.data;
   const breakdown = statistics.workTypes.data ?? [];
   const hasEntries = Boolean(overview && overview.entries > 0);
+  const showForecast = statistics.forecast.isLoading
+    || statistics.forecast.isError
+    || Boolean(statistics.forecast.data?.forecasts.some((item) => item.available));
+  const showProductivity = statistics.productivity.isLoading
+    || statistics.productivity.isError
+    || Boolean(statistics.productivity.data?.available);
 
   return (
     <div className="statistics-workspace space-y-6 pb-8">
@@ -281,23 +240,15 @@ export function StatisticsPage() {
         <StatisticsEmptyState />
       ) : (
         <>
-          <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.28fr)_minmax(19rem,0.72fr)]">
-            <Card
-              as="section"
-              variant="section"
-              className="flex min-h-[17rem] flex-col justify-center overflow-hidden px-6 sm:px-8"
-            >
-              <StatisticsPrimarySummary overview={overview} />
-            </Card>
-            <StatisticsSummaryCards overview={overview} />
-          </div>
-
           <StatisticsLineChart
             points={timeSeries?.points ?? []}
             comparison={statistics.comparison?.data}
             metric={timeSeries?.metric ?? filters.metric}
             granularity={timeSeries?.granularity ?? "DAILY"}
             onPointSelect={setSelectedChartPoint}
+            comparisonPeriod={filters.period}
+            comparisonPeriodB={comparisonPeriodB}
+            onComparisonPeriodBChange={setComparisonPeriodB}
           />
           <StatisticsDrilldownPanel
             filters={filters}
@@ -305,56 +256,46 @@ export function StatisticsPage() {
             onClose={() => setSelectedChartPoint(null)}
           />
 
-          <div className="grid items-start gap-4 lg:grid-cols-2">
+          <StatisticsSummaryCards overview={overview} />
+
+          <div className={`grid items-start gap-4 ${showForecast ? "lg:grid-cols-2" : ""}`}>
             <StatisticsInsightsSection
               data={statistics.insights.data}
               isLoading={statistics.insights.isLoading}
               isError={statistics.insights.isError}
               onRetry={() => void statistics.insights.refetch()}
             />
-            <StatisticsForecastSection
-              data={statistics.forecast.data}
-              isLoading={statistics.forecast.isLoading}
-              isError={statistics.forecast.isError}
-              onRetry={() => void statistics.forecast.refetch()}
-            />
+            {showForecast ? (
+              <StatisticsForecastSection
+                data={statistics.forecast.data}
+                isLoading={statistics.forecast.isLoading}
+                isError={statistics.forecast.isError}
+                onRetry={() => void statistics.forecast.refetch()}
+              />
+            ) : null}
           </div>
 
-          <div className="grid items-start gap-4 lg:grid-cols-2">
+          <div className={`grid items-start gap-4 ${showProductivity ? "lg:grid-cols-2" : ""}`}>
             <WorkTypeBreakdown items={breakdown} />
-            <StatisticsProductivitySection
-              data={statistics.productivity.data}
-              isLoading={statistics.productivity.isLoading}
-              isError={statistics.productivity.isError}
-              onRetry={() => void statistics.productivity.refetch()}
-              metric={productivityMetric}
-              grouping={productivityGrouping}
-              onOptionsChange={setProductivityOptions}
-            />
+            {showProductivity ? (
+              <StatisticsProductivitySection
+                data={statistics.productivity.data}
+                isLoading={statistics.productivity.isLoading}
+                isError={statistics.productivity.isError}
+                onRetry={() => void statistics.productivity.refetch()}
+                metric={productivityMetric}
+                grouping={productivityGrouping}
+                onOptionsChange={setProductivityOptions}
+              />
+            ) : null}
           </div>
 
-          <div className="grid items-start gap-4 xl:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)]">
-            <StatisticsHighlightsSection
-              data={statistics.highlights.data}
-              isLoading={statistics.highlights.isLoading}
-              isError={statistics.highlights.isError}
-              onRetry={() => void statistics.highlights.refetch()}
-            />
-            <StatisticsHeatmap
-              heatmap={statistics.heatmap.data}
-              isLoading={statistics.heatmap.isLoading}
-              isError={statistics.heatmap.isError}
-              onRetry={() => void statistics.heatmap.refetch()}
-              metric={heatmapMetric}
-              currency={heatmapCurrency}
-              availableCurrencies={overview.grossByCurrency.map(
-                (amount) => amount.currency
-              )}
-              onOptionsChange={setHeatmapOptions}
-              selectedDay={selectedHeatmapDay}
-              onSelectDay={setSelectedHeatmapDay}
-            />
-          </div>
+          <StatisticsHighlightsSection
+            data={statistics.highlights.data}
+            isLoading={statistics.highlights.isLoading}
+            isError={statistics.highlights.isError}
+            onRetry={() => void statistics.highlights.refetch()}
+          />
         </>
       )}
     </div>

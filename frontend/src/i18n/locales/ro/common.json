@@ -60,15 +60,20 @@
       "employment": "Loc de muncă",
       "allEmployments": "Toate locurile de muncă",
       "all": "Toate",
-      "selectedCount": "{{count}} selectate"
+      "selectedCount": "{{count}} selectate",
+      "previousPeriod": "Perioada precedentă",
+      "nextPeriod": "Perioada următoare",
+      "month": "Lună",
+      "year": "An",
+      "choosePeriod": "Alege perioada"
     },
     "export": { "csv": "Exportă CSV", "pdf": "Exportă PDF" },
     "periods": {
       "today": "Astăzi",
-      "week": "Săptămâna aceasta",
-      "month": "Luna aceasta",
-      "year": "Anul acesta",
-      "custom": "Personalizat"
+      "week": "Săptămână",
+      "month": "Lună",
+      "year": "An",
+      "custom": "Perioadă"
     },
     "methods": {
       "time": "Muncă bazată pe timp",
@@ -124,6 +129,10 @@
       "current": "Curentă",
       "previous": "Precedentă",
       "changeLabel": "Diferență",
+      "compareWith": "Compară cu",
+      "compareMonth": "Lună",
+      "compareYear": "An",
+      "allMonths": "Toate lunile",
       "periodTitle": "Perioada selectată",
       "modes": {
         "trend": "Evoluție",

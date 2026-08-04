@@ -30,16 +30,16 @@ vi.mock("../hooks/use-statistics", () => ({
     insights: { data: null, isLoading: false, isError: false, refetch: vi.fn() },
     forecast: { data: null, isLoading: false, isError: false, refetch: vi.fn() },
     productivity: { data: null, isLoading: false, isError: false, refetch: vi.fn() },
-    highlights: { data: null, isLoading: false, isError: false, refetch: vi.fn() },
-    heatmap: { data: null, isLoading: false, isError: false, refetch: vi.fn() }
+    highlights: { data: null, isLoading: false, isError: false, refetch: vi.fn() }
   }))
 }));
 
 vi.mock("../components/statistics-filter-bar", () => ({
-  StatisticsFilterBar: () => <div>Statistics filters</div>
+  StatisticsFilterBar: ({ filters }: { filters: { period: string } }) => (
+    <div>Statistics filters: {filters.period}</div>
+  )
 }));
 vi.mock("../components/statistics-summary", () => ({
-  StatisticsPrimarySummary: () => <div>Primary summary</div>,
   StatisticsSummaryCards: () => <div>Summary cards</div>
 }));
 vi.mock("../charts/statistics-line-chart", () => ({
@@ -53,9 +53,6 @@ vi.mock("../components/statistics-comparison-panel", () => ({
 }));
 vi.mock("../components/work-type-breakdown", () => ({
   WorkTypeBreakdown: () => <div>Work type breakdown</div>
-}));
-vi.mock("../components/statistics-heatmap", () => ({
-  StatisticsHeatmap: () => <div>Activity heatmap</div>
 }));
 vi.mock("../components/statistics-v2b-sections", () => ({
   StatisticsInsightsSection: () => <div>Insights</div>,
@@ -79,12 +76,37 @@ describe("StatisticsPage", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Statistics" })).toBeInTheDocument();
-    expect(screen.getByText("Statistics filters")).toBeInTheDocument();
-    expect(screen.getByText("Primary summary")).toBeInTheDocument();
+    expect(screen.getByText("Statistics filters: year")).toBeInTheDocument();
+    expect(screen.queryByText("Primary summary")).not.toBeInTheDocument();
+    expect(screen.getByText("Summary cards")).toBeInTheDocument();
     expect(screen.getByText("Trend chart")).toBeInTheDocument();
-    expect(screen.getByText("Forecast")).toBeInTheDocument();
-    expect(screen.getByText("Productivity")).toBeInTheDocument();
-    expect(screen.getByText("Activity heatmap")).toBeInTheDocument();
+    expect(
+      screen.getByText("Statistics filters: year").compareDocumentPosition(screen.getByText("Trend chart"))
+        & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Trend chart").compareDocumentPosition(screen.getByText("Summary cards"))
+        & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.queryByText("Forecast")).not.toBeInTheDocument();
+    expect(screen.queryByText("Productivity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Activity heatmap")).not.toBeInTheDocument();
     expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+  });
+
+  it("keeps a preset period when its explicit dates are present in the URL", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } }
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/statistics?period=week&from=2026-08-03&to=2026-08-09"]}>
+        <QueryClientProvider client={queryClient}>
+          <StatisticsPage />
+        </QueryClientProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Statistics filters: week")).toBeInTheDocument();
   });
 });

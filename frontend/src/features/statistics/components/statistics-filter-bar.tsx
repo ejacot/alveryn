@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BriefcaseBusiness, Check, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { useRef, useState } from "react";
+import { BriefcaseBusiness, Check, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/ui/select";
 import { Card } from "../../../components/ui/card";
@@ -29,11 +29,10 @@ export function StatisticsFilterBar({ filters, workTypes, employments, employmen
   const [draftFrom, setDraftFrom] = useState(filters.from);
   const [draftTo, setDraftTo] = useState(filters.to);
   const [advancedOpen, setAdvancedOpen] = useState(
-    filters.period === "custom" ||
-      filters.workTypeIds.length > 0 ||
+    filters.workTypeIds.length > 0 ||
       filters.calculationMethods.length > 0
   );
-  const periods: StatisticsPeriod[] = ["today", "week", "month", "year"];
+  const periods: StatisticsPeriod[] = ["week", "month", "year", "custom"];
   const activeAdvancedFilters =
     filters.workTypeIds.length + filters.calculationMethods.length;
   const activeWorkTypeLabel =
@@ -59,7 +58,6 @@ export function StatisticsFilterBar({ filters, workTypes, employments, employmen
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="hairline-text">{t("statistics.filters.period")}</p>
-          <p className="mt-1 text-sm font-medium text-white/62">{formatPeriod(filters.from, filters.to, t("statistics.periods.year"))}</p>
         </div>
         {employments.length > 1 ? (
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/62">
@@ -68,38 +66,31 @@ export function StatisticsFilterBar({ filters, workTypes, employments, employmen
           </span>
         ) : null}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        role="group"
+        aria-label={t("statistics.filters.period")}
+        className="grid grid-cols-4 gap-[3px] rounded-[15px] border border-white/[0.07] bg-black/25 p-[3px] shadow-inner"
+      >
         {periods.map((period) => (
           <button
             key={period}
             type="button"
             aria-pressed={filters.period === period}
             onClick={() => onChange(updateStatisticsPeriod(filters, period))}
-            className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition ${
+            className={`min-h-9 min-w-0 rounded-[12px] px-1.5 text-[0.78rem] font-semibold transition duration-200 sm:px-3 sm:text-sm ${
               filters.period === period
-                ? "bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
-                : "bg-white/[0.055] text-white/58 hover:bg-white/[0.09] hover:text-white"
+                ? "bg-white/[0.14] text-white shadow-[0_1px_4px_rgba(0,0,0,0.35),inset_0_0_0_0.5px_rgba(255,255,255,0.12)]"
+                : "text-white/48 active:bg-white/[0.07]"
             }`}
           >
             {t(`statistics.periods.${period}`)}
           </button>
         ))}
-        <button
-          type="button"
-          aria-pressed={filters.period === "custom"}
-          onClick={() => {
-            onChange(updateStatisticsPeriod(filters, "custom"));
-            setAdvancedOpen(true);
-          }}
-          className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition ${
-            filters.period === "custom"
-              ? "bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
-              : "bg-white/[0.055] text-white/58 hover:bg-white/[0.09] hover:text-white"
-          }`}
-        >
-          {t("statistics.periods.custom")}
-        </button>
       </div>
+
+      {filters.period !== "custom" && filters.period !== "today" ? (
+        <PeriodNavigator filters={filters} onChange={onChange} />
+      ) : null}
 
       {employments.length > 1 ? (
         <div className="border-t border-white/[0.07] pt-4">
@@ -186,24 +177,24 @@ export function StatisticsFilterBar({ filters, workTypes, employments, employmen
       ) : null}
 
       {filters.period === "custom" ? (
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-xs font-medium text-white/60">
-              {t("statistics.customRange.from")}
+        <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.025] p-2.5">
+          <div className="grid gap-1.5">
+            <label className="flex min-h-11 items-center justify-between gap-3 rounded-[13px] bg-black/15 px-3 text-xs font-semibold text-white/55">
+              <span>{t("statistics.customRange.from")}</span>
               <input
                 type="date"
                 value={draftFrom}
                 onChange={(event) => setDraftFrom(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-base text-white outline-none focus:border-white/30"
+                className="h-9 w-[9.75rem] max-w-[65%] rounded-[10px] border border-white/[0.08] bg-black/20 px-2 text-right text-[0.78rem] font-medium text-white [color-scheme:dark] outline-none transition focus:border-white/25 focus:bg-white/[0.04]"
               />
             </label>
-            <label className="text-xs font-medium text-white/60">
-              {t("statistics.customRange.to")}
+            <label className="flex min-h-11 items-center justify-between gap-3 rounded-[13px] bg-black/15 px-3 text-xs font-semibold text-white/55">
+              <span>{t("statistics.customRange.to")}</span>
               <input
                 type="date"
                 value={draftTo}
                 onChange={(event) => setDraftTo(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-base text-white outline-none focus:border-white/30"
+                className="h-9 w-[9.75rem] max-w-[65%] rounded-[10px] border border-white/[0.08] bg-black/20 px-2 text-right text-[0.78rem] font-medium text-white [color-scheme:dark] outline-none transition focus:border-white/25 focus:bg-white/[0.04]"
               />
             </label>
           </div>
@@ -275,7 +266,176 @@ function FilterChip({ active, label, onClick }: { active: boolean; label: string
   );
 }
 
-function formatPeriod(from: string, to: string, fallback: string) {
-  if (from.slice(0, 4) === to.slice(0, 4) && from.endsWith("-01-01") && to.endsWith("-12-31")) return `${fallback} ${from.slice(0, 4)}`;
-  return `${from} – ${to}`;
+function parseDate(value: string) {
+  return new Date(`${value}T12:00:00`);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function periodRange(period: StatisticsPeriod, anchor: Date) {
+  if (period === "week") {
+    const day = anchor.getDay() || 7;
+    const from = addDays(anchor, 1 - day);
+    return { from: formatStatisticsDate(from), to: formatStatisticsDate(addDays(from, 6)) };
+  }
+  if (period === "month") {
+    const from = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    return { from: formatStatisticsDate(from), to: formatStatisticsDate(to) };
+  }
+  const year = anchor.getFullYear();
+  return { from: `${year}-01-01`, to: `${year}-12-31` };
+}
+
+function shiftedRange(filters: StatisticsFilters, direction: -1 | 1) {
+  const anchor = parseDate(filters.from);
+  if (filters.period === "week") anchor.setDate(anchor.getDate() + direction * 7);
+  if (filters.period === "month") anchor.setMonth(anchor.getMonth() + direction);
+  if (filters.period === "year") anchor.setFullYear(anchor.getFullYear() + direction);
+  return { ...filters, ...periodRange(filters.period, anchor) };
+}
+
+function periodOptions(period: StatisticsPeriod, locale: string) {
+  const now = new Date();
+  if (period === "week") {
+    return Array.from({ length: 104 }, (_, index) => {
+      const range = periodRange(period, addDays(now, -index * 7));
+      const from = parseDate(range.from);
+      const to = parseDate(range.to);
+      const format = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
+      return { value: range.from, label: `${format.format(from)} – ${format.format(to)}`, range };
+    });
+  }
+  if (period === "month") {
+    return Array.from({ length: 60 }, (_, index) => {
+      const anchor = new Date(now.getFullYear(), now.getMonth() - index, 1);
+      const range = periodRange(period, anchor);
+      return {
+        value: range.from.slice(0, 7),
+        label: new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(anchor),
+        range
+      };
+    });
+  }
+  return Array.from({ length: 10 }, (_, index) => {
+    const anchor = new Date(now.getFullYear() - index, 0, 1);
+    const range = periodRange("year", anchor);
+    return { value: String(anchor.getFullYear()), label: String(anchor.getFullYear()), range };
+  });
+}
+
+function PeriodNavigator({ filters, onChange }: { filters: StatisticsFilters; onChange: (filters: StatisticsFilters) => void }) {
+  const { t, i18n } = useTranslation("common");
+  const touchStart = useRef<number | null>(null);
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const options = periodOptions(filters.period, locale);
+  const selectedDate = parseDate(filters.from);
+  const value = filters.period === "week"
+    ? filters.from
+    : filters.period === "month"
+      ? filters.from.slice(0, 7)
+      : filters.from.slice(0, 4);
+  const next = shiftedRange(filters, 1);
+  const canMoveNext = next.from <= formatStatisticsDate(new Date());
+
+  const move = (direction: -1 | 1) => {
+    if (direction === 1 && !canMoveNext) return;
+    onChange(shiftedRange(filters, direction));
+  };
+
+  return (
+    <div
+      className="flex touch-pan-y items-center gap-2 rounded-[18px] border border-white/[0.07] bg-white/[0.025] p-1.5"
+      onTouchStart={(event) => { touchStart.current = event.touches[0]?.clientX ?? null; }}
+      onTouchEnd={(event) => {
+        if (touchStart.current === null) return;
+        const distance = event.changedTouches[0]?.clientX - touchStart.current;
+        touchStart.current = null;
+        if (Math.abs(distance) < 45) return;
+        move(distance > 0 ? -1 : 1);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => move(-1)}
+        aria-label={t("statistics.filters.previousPeriod")}
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] text-white/55 transition active:bg-white/10 active:text-white"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      {filters.period === "month" || filters.period === "year" ? (
+        <div className={`grid min-w-0 flex-1 gap-1.5 ${filters.period === "month" ? "grid-cols-2" : "grid-cols-1"}`}>
+          {filters.period === "month" ? (
+          <label className="min-w-0 text-[0.6rem] font-semibold uppercase tracking-[0.07em] text-white/35">
+            {t("statistics.filters.month")}
+            <select
+              aria-label={t("statistics.filters.month")}
+              value={selectedDate.getMonth()}
+              onChange={(event) => onChange({
+                ...filters,
+                ...periodRange("month", new Date(selectedDate.getFullYear(), Number(event.target.value), 1))
+              })}
+              className="mt-0.5 h-9 w-full rounded-[10px] border border-white/[0.07] bg-white/[0.035] px-1.5 text-xs font-semibold capitalize text-white outline-none disabled:opacity-60"
+            >
+              {Array.from({ length: 12 }, (_, month) => (
+                <option key={month} value={month} className="bg-neutral-900">
+                  {new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(2026, month, 1))}
+                </option>
+              ))}
+            </select>
+          </label>
+          ) : null}
+          <label className="min-w-0 text-[0.6rem] font-semibold uppercase tracking-[0.07em] text-white/35">
+            {t("statistics.filters.year")}
+            <select
+              aria-label={t("statistics.filters.year")}
+              value={selectedDate.getFullYear()}
+              onChange={(event) => onChange({
+                ...filters,
+                ...periodRange(filters.period, new Date(Number(event.target.value), selectedDate.getMonth(), 1))
+              })}
+              className="mt-0.5 h-9 w-full rounded-[10px] border border-white/[0.07] bg-white/[0.035] px-1.5 text-xs font-semibold text-white outline-none"
+            >
+              {Array.from({ length: 10 }, (_, index) => new Date().getFullYear() - index).map((year) => (
+                <option key={year} value={year} className="bg-neutral-900">{year}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : (
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">{t("statistics.filters.choosePeriod")}</span>
+          <select
+            value={value}
+            aria-label={t("statistics.filters.choosePeriod")}
+            onChange={(event) => {
+              const option = options.find((item) => item.value === event.target.value);
+              if (option) onChange({ ...filters, ...option.range });
+            }}
+            className="h-10 w-full appearance-none bg-transparent px-8 text-center text-base font-semibold capitalize text-white outline-none"
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value} className="bg-neutral-900 text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        </label>
+      )}
+      <button
+        type="button"
+        disabled={!canMoveNext}
+        onClick={() => move(1)}
+        aria-label={t("statistics.filters.nextPeriod")}
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] text-white/55 transition active:bg-white/10 active:text-white disabled:opacity-20"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
+    </div>
+  );
 }

@@ -1,15 +1,8 @@
 import {
   ArrowRight,
-  Banknote,
-  BarChart3,
-  BriefcaseBusiness,
   Check,
-  CheckCircle2,
-  Clock3,
-  Layers3,
   Languages,
-  Sparkles,
-  TimerReset
+  Sparkles
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
@@ -28,23 +21,12 @@ import {
   SUPPORTED_LANGUAGES
 } from "../i18n/language";
 
-type TextItem = {
-  title: string;
-  description: string;
-};
-
-const capabilityIcons = [Clock3, Banknote, BarChart3];
-const audienceIcons = [BriefcaseBusiness, Layers3, TimerReset];
-
 export function WelcomePage() {
   const { t } = useTranslation("welcome");
   const { isAuthenticated, isHydrating, user } = useAuth();
   const location = useLocation();
   const reduceMotion = useReducedMotion();
   const heroPoints = t("hero.points", { returnObjects: true }) as string[];
-  const capabilities = t("capabilities.items", { returnObjects: true }) as TextItem[];
-  const workflowSteps = t("workflow.steps", { returnObjects: true }) as TextItem[];
-  const audiences = t("audience.items", { returnObjects: true }) as TextItem[];
   const isInstalledApp = isStandaloneDisplayMode();
 
   useEffect(() => {
@@ -76,10 +58,10 @@ export function WelcomePage() {
       />
 
       <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-black/80 pt-[env(safe-area-inset-top)] backdrop-blur-2xl">
-        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+        <nav className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:h-16 sm:gap-4 sm:px-8 lg:px-10">
           <AppLogo className="justify-start" />
           <div className="hidden items-center gap-7 text-sm font-medium text-white/58 md:flex">
-            <a href="#product" className="transition hover:text-white">{t("nav.product")}</a>
+            <a href="#product-tour" className="transition hover:text-white">{t("nav.product")}</a>
             <a href="#how-it-works" className="transition hover:text-white">{t("nav.how")}</a>
             <a href="#for-who" className="transition hover:text-white">{t("nav.forWho")}</a>
           </div>
@@ -107,24 +89,25 @@ export function WelcomePage() {
             </label>
             <Link
               to="/login"
-              className="inline-flex min-h-10 items-center justify-center rounded-full px-3 text-sm font-semibold text-white/68 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30 sm:px-4"
+              className="hidden min-h-10 items-center justify-center rounded-full px-3 text-sm font-semibold text-white/68 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30 sm:inline-flex sm:px-4"
             >
               {t("nav.login")}
             </Link>
             <Link
               to="/register"
               onClick={() => recordMarketingEvent("REGISTRATION_STARTED")}
-              className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-full bg-white px-3.5 text-xs font-semibold text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60 sm:px-5 sm:text-sm"
+              className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-full bg-white px-4 text-xs font-semibold text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60 sm:px-5 sm:text-sm"
             >
-              {t("nav.register")}
+              <span className="sm:hidden">{t("nav.registerShort")}</span>
+              <span className="hidden sm:inline">{t("nav.register")}</span>
             </Link>
           </div>
         </nav>
       </header>
 
-      <section className="mx-auto grid min-h-[calc(100dvh-4rem)] w-full max-w-7xl gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10 lg:py-20">
+      <section id="product" className="mx-auto grid min-h-[calc(100dvh-4rem)] w-full max-w-7xl gap-12 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10 lg:py-20">
         <div className="space-y-7">
-          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-4 py-2 text-sm font-medium text-emerald-200">
+          <p className="landing-hero-badge inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-4 py-2 text-sm font-medium text-emerald-200">
             <Sparkles className="h-4 w-4" aria-hidden="true" />
             {t("hero.eyebrow")}
           </p>
@@ -144,7 +127,7 @@ export function WelcomePage() {
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
             <a
-              href="#product"
+              href="#product-tour"
               className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.055] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-white/30"
             >
               {t("hero.secondaryCta")}
@@ -176,73 +159,33 @@ export function WelcomePage() {
         </div>
       </div>
 
-      <LandingSection id="product" reduceMotion={reduceMotion}>
-        <SectionIntro
-          eyebrow={t("capabilities.eyebrow")}
-          title={t("capabilities.title")}
-          body={t("capabilities.body")}
-          centered
-        />
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
-          {capabilities.map((item, index) => {
-            const Icon = capabilityIcons[index] ?? CheckCircle2;
-            return (
-              <article key={item.title} className="rounded-[30px] border border-white/[0.08] bg-white/[0.04] p-6 sm:p-7">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-300">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <h3 className="mt-7 text-xl font-semibold text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/56">{item.description}</p>
-              </article>
-            );
-          })}
+      <LandingSection id="product-tour" reduceMotion={reduceMotion}>
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500">{t("marketingTour.eyebrow")}</p>
+          <h2 className="mt-5 text-balance text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">{t("marketingTour.title")}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/56 sm:text-lg">{t("marketingTour.body")}</p>
+        </div>
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          {(["dashboard", "calendar", "statistics"] as const).map((product) => (
+            <Link key={product} to={`/welcome/${product}`} className="group overflow-hidden rounded-[30px] border border-white/[0.09] bg-white/[0.035] transition hover:-translate-y-1 hover:border-emerald-400/25">
+              <div className="p-3">
+                {product === "dashboard" ? <DashboardCardImage name="day" /> : null}
+                {product === "calendar" ? <CalendarCardImage name="month" /> : null}
+                {product === "statistics" ? <StatisticsCardImage name="trend" /> : null}
+              </div>
+              <div className="border-t border-white/[0.08] px-5 py-5">
+                <h3 className="flex items-center justify-between text-xl font-semibold capitalize text-white">{t(`marketingTour.${product}.title`)}<ArrowRight className="h-4 w-4 text-emerald-500 transition group-hover:translate-x-1" /></h3>
+                <p className="mt-2 text-sm leading-6 text-white/52">{t(`marketingTour.${product}.body`)}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </LandingSection>
 
-      <LandingSection reduceMotion={reduceMotion} className="border-b border-white/[0.07] bg-emerald-400/[0.025]">
-        <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-          <SectionIntro eyebrow={t("payslip.eyebrow")} title={t("payslip.title")} body={t("payslip.body")} />
+      <LandingSection id="for-who" reduceMotion={reduceMotion} className="border-y border-white/[0.07] bg-emerald-400/[0.025]">
+        <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <PayslipPreview t={t} />
-        </div>
-      </LandingSection>
-
-      <LandingSection id="how-it-works" reduceMotion={reduceMotion} className="border-y border-white/[0.07] bg-white/[0.025]">
-        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div>
-            <SectionIntro eyebrow={t("workflow.eyebrow")} title={t("workflow.title")} body={t("workflow.body")} />
-            <div className="mt-9 space-y-7">
-              {workflowSteps.map((step, index) => (
-                <div key={step.title} className="grid grid-cols-[auto_1fr] gap-4">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-xs font-semibold text-white">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <h3 className="font-semibold text-white">{step.title}</h3>
-                    <p className="mt-1.5 text-sm leading-6 text-white/54">{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <MonthPreview t={t} />
-        </div>
-      </LandingSection>
-
-      <LandingSection id="for-who" reduceMotion={reduceMotion}>
-        <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
-          <SectionIntro eyebrow={t("audience.eyebrow")} title={t("audience.title")} body={t("audience.body")} />
-          <div className="grid gap-4 sm:grid-cols-3">
-            {audiences.map((item, index) => {
-              const Icon = audienceIcons[index] ?? BriefcaseBusiness;
-              return (
-                <article key={item.title} className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-5">
-                  <Icon className="h-5 w-5 text-[#34d399]" aria-hidden="true" />
-                  <h3 className="mt-6 font-semibold text-white">{item.title}</h3>
-                  <p className="mt-2.5 text-sm leading-6 text-white/54">{item.description}</p>
-                </article>
-              );
-            })}
-          </div>
+          <ProductChapter t={t} section="lohn" number="04" />
         </div>
       </LandingSection>
 
@@ -253,6 +196,14 @@ export function WelcomePage() {
             {t("final.title")}
           </h2>
           <p className="relative mx-auto mt-5 max-w-2xl text-base leading-7 text-white/58 sm:text-lg">{t("final.subtitle")}</p>
+          <div className="relative mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="rounded-[20px] border border-white/[0.09] bg-white/[0.04] px-4 py-4 text-sm font-semibold text-white/70">
+                <Check className="mx-auto mb-2 h-4 w-4 text-emerald-500" aria-hidden="true" />
+                {t(`final.points.${index}`)}
+              </div>
+            ))}
+          </div>
           <Link
             to="/register"
             onClick={() => recordMarketingEvent("REGISTRATION_STARTED")}
@@ -267,6 +218,25 @@ export function WelcomePage() {
   );
 }
 
+function ProductChapter({ t, section, number }: { t: (key: string) => string; section: string; number: string }) {
+  return (
+    <div className="max-w-xl">
+      <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500">
+        <span>{number}</span><span className="h-px w-8 bg-emerald-500/50" />{t(`tour.${section}.eyebrow`)}
+      </div>
+      <h2 className="mt-5 text-balance text-4xl font-semibold leading-[1.04] tracking-[-0.03em] text-white sm:text-5xl">{t(`tour.${section}.title`)}</h2>
+      <p className="mt-5 text-base leading-7 text-white/56 sm:text-lg">{t(`tour.${section}.body`)}</p>
+      <div className="mt-7 flex flex-wrap gap-2">
+        {[0, 1, 2].map((index) => (
+          <span key={index} className="rounded-full border border-white/[0.1] bg-white/[0.045] px-3.5 py-2 text-xs font-semibold text-white/65">
+            {t(`tour.${section}.points.${index}`)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DashboardPreview({ t }: { t: (key: string) => string }) {
   return (
     <div
@@ -274,36 +244,78 @@ function DashboardPreview({ t }: { t: (key: string) => string }) {
       aria-label={t("preview.dashboardAlt")}
       className="relative rounded-[34px] border border-white/[0.12] bg-[#070b09] p-3 shadow-[0_35px_120px_rgba(0,0,0,0.62)] sm:p-4"
     >
-      <div className="space-y-3 overflow-hidden rounded-[26px]">
-        <img src="/landing/today-summary.webp" alt="" className="block h-auto w-full rounded-[22px]" />
-        <img src="/landing/activity-detail.webp" alt="" className="block h-auto w-full rounded-[22px]" />
+      <div className="grid gap-3 overflow-hidden rounded-[26px] sm:grid-cols-2">
+        <div className="space-y-3"><DashboardCardImage name="day" /><DashboardCardImage name="activity" /></div>
+        <DashboardCardImage name="flow" className="h-full object-cover object-top" />
       </div>
     </div>
   );
 }
 
-function MonthPreview({ t }: { t: (key: string) => string }) {
+export function DashboardCardImage({ name, className = "" }: { name: "day" | "activity" | "flow" | "rhythm"; className?: string }) {
   return (
-    <div
-      role="img"
-      aria-label={t("monthPreview.alt")}
-      className="grid gap-3 rounded-[32px] border border-white/[0.1] bg-[#070b09] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.4)] sm:grid-cols-[1.15fr_0.85fr] sm:p-4"
-    >
-      <img src="/landing/monthly-summary.webp" alt="" className="block h-full w-full rounded-[22px] object-cover object-top" />
-      <img src="/landing/month-in-motion.webp" alt="" className="block h-full w-full rounded-[22px] object-cover" />
+    <div className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
+      <img src={`/landing/dashboard/${name}-dark.jpg`} alt="" loading="lazy" decoding="async" className={`landing-theme-dark block h-auto w-full ${className}`} />
+      <img src={`/landing/dashboard/${name}-light.jpg`} alt="" loading="lazy" decoding="async" className={`landing-theme-light hidden h-auto w-full ${className}`} />
+    </div>
+  );
+}
+
+export function StatisticsCardImage({ name }: { name: "filters" | "trend" | "kpis" | "compare" | "selected" }) {
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
+      <img src={`/landing/statistics-tour/${name}-dark.jpg`} alt="" loading="lazy" decoding="async" className="landing-theme-dark block h-auto w-full" />
+      <img src={`/landing/statistics-tour/${name}-light.jpg`} alt="" loading="lazy" decoding="async" className="landing-theme-light hidden h-auto w-full" />
+    </div>
+  );
+}
+
+export function CalendarCardImage({ name }: { name: "month" | "summary" | "payroll" | "flow" | "rhythm" | "tools" }) {
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
+      <img src={`/landing/calendar/${name}-dark.jpg`} alt="" loading="lazy" decoding="async" className="landing-theme-dark block h-auto w-full" />
+      <img src={`/landing/calendar/${name}-light.jpg`} alt="" loading="lazy" decoding="async" className="landing-theme-light hidden h-auto w-full" />
     </div>
   );
 }
 
 function PayslipPreview({ t }: { t: (key: string) => string }) {
+  const rows = [
+    [t("payslip.hours"), "168h", "160h", "+8h"],
+    [t("payslip.gross"), "€3,850.00", "€3,640.00", "+€210.00"],
+    [t("payslip.workedDays"), "23", "22", "+1"]
+  ];
+
   return (
     <div
       role="img"
       aria-label={t("payslip.alt")}
-      className="rounded-[32px] border border-white/[0.1] bg-[#070b09] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.4)] sm:p-4"
+      className="overflow-hidden rounded-[32px] border border-white/[0.1] bg-[#070b09] shadow-[0_28px_90px_rgba(0,0,0,0.4)]"
     >
-      <img src="/landing/payslip-match.webp" alt="" className="block h-auto w-full rounded-[24px]" />
-      <p className="mt-4 text-center text-xs leading-5 text-white/34">{t("payslip.disclaimer")}</p>
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.1] px-5 py-5 sm:px-7">
+        <div>
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40">{t("payslip.document")}</p>
+          <p className="mt-2 text-xl font-semibold text-white">{t("payslip.comparisonTitle")}</p>
+        </div>
+        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-500">{t("payslip.resultLabel")}</span>
+      </div>
+      <div className="grid grid-cols-[1.1fr_1fr_1fr_0.9fr] border-b border-white/[0.1] px-5 py-3 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white/38 sm:px-7">
+        <span>{t("payslip.item")}</span><span>Alveryn</span><span>Lohn</span><span className="text-right">{t("payslip.difference")}</span>
+      </div>
+      {rows.map(([label, alveryn, lohn, difference]) => (
+        <div key={label} className="grid grid-cols-[1.1fr_1fr_1fr_0.9fr] items-center border-b border-white/[0.07] px-5 py-4 text-xs sm:px-7 sm:text-sm">
+          <span className="text-white/52">{label}</span><strong className="text-white">{alveryn}</strong><strong className="text-white">{lohn}</strong><strong className="text-right text-emerald-500">{difference}</strong>
+        </div>
+      ))}
+      <div className="grid grid-cols-3 gap-px bg-white/[0.08]">
+        {[[t("payslip.net"), "€2,487.16"], [t("payslip.tax"), "€512.84"], [t("payslip.social"), "€640.00"]].map(([label, value]) => (
+          <div key={label} className="bg-[#070b09] px-2 py-5 text-center">
+            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.06em] text-white/38">{label}</p>
+            <p className="mt-2 text-sm font-semibold text-white sm:text-base">{value}</p>
+          </div>
+        ))}
+      </div>
+      <p className="px-5 py-4 text-center text-xs leading-5 text-white/34 sm:px-7">{t("payslip.disclaimer")}</p>
     </div>
   );
 }
@@ -339,25 +351,5 @@ function LandingSection({
     >
       <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 lg:px-10 lg:py-24">{children}</div>
     </motion.section>
-  );
-}
-
-function SectionIntro({
-  eyebrow,
-  title,
-  body,
-  centered = false
-}: {
-  eyebrow: string;
-  title: string;
-  body: string;
-  centered?: boolean;
-}) {
-  return (
-    <div className={`max-w-3xl space-y-4 ${centered ? "mx-auto text-center" : ""}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#34d399]/80">{eyebrow}</p>
-      <h2 className="text-balance text-3xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-5xl">{title}</h2>
-      <p className="text-base leading-7 text-white/58 sm:text-lg">{body}</p>
-    </div>
   );
 }

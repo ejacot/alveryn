@@ -113,20 +113,26 @@ public class StatisticsService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     List<StatEntry> entries = findEntries(userId, filters);
     StatisticsGranularity granularity = resolveGranularity(filters.from(), filters.to());
+    LocalDate seriesTo = filters.to().isAfter(LocalDate.now(clock)) ? LocalDate.now(clock) : filters.to();
     Map<BucketCurrencyKey, BigDecimal> grouped = new LinkedHashMap<>();
     Map<BucketCurrencyKey, Set<LocalDate>> workedDays = new LinkedHashMap<>();
     for (StatEntry entry : entries) {
-      Bucket bucket = bucketFor(entry.getWorkDate(), granularity, filters.to());
+      if (entry.getWorkDate().isAfter(seriesTo)) {
+        continue;
+      }
+      Bucket bucket = bucketFor(entry.getWorkDate(), granularity, seriesTo);
       String currency = metric == StatisticsMetric.GROSS ? entry.getCurrencySnapshot() : null;
       BucketCurrencyKey key = new BucketCurrencyKey(bucket.start(), bucket.end(), currency);
-      if (metric == StatisticsMetric.WORKED_DAYS) {
+      if (metric == StatisticsMetric.WORKED_DAYS
+          || metric == StatisticsMetric.AVERAGE_MINUTES_PER_WORKED_DAY) {
         workedDays.computeIfAbsent(key, ignored -> new LinkedHashSet<>()).add(entry.getWorkDate());
-      } else {
+      }
+      if (metric != StatisticsMetric.WORKED_DAYS) {
         grouped.merge(key, metricValue(entry, metric), BigDecimal::add);
       }
     }
     List<StatisticsTimeSeriesPointResponse> points = new ArrayList<>();
-    for (Bucket bucket : completeBuckets(filters.from(), filters.to(), granularity)) {
+    for (Bucket bucket : completeBuckets(filters.from(), seriesTo, granularity)) {
       if (metric == StatisticsMetric.GROSS) {
         List<String> currencies = currenciesFor(entries);
         if (currencies.isEmpty()) {
@@ -138,10 +144,17 @@ public class StatisticsService {
         }
       } else {
         BucketCurrencyKey key = new BucketCurrencyKey(bucket.start(), bucket.end(), null);
-        BigDecimal value =
-            metric == StatisticsMetric.WORKED_DAYS
-                ? BigDecimal.valueOf(workedDays.getOrDefault(key, Set.of()).size()).setScale(SCALE)
-                : grouped.getOrDefault(key, BigDecimal.ZERO.setScale(SCALE));
+        int bucketWorkedDays = workedDays.getOrDefault(key, Set.of()).size();
+        BigDecimal value;
+        if (metric == StatisticsMetric.WORKED_DAYS) {
+          value = BigDecimal.valueOf(bucketWorkedDays).setScale(SCALE);
+        } else if (metric == StatisticsMetric.AVERAGE_MINUTES_PER_WORKED_DAY && bucketWorkedDays > 0) {
+          value = grouped.getOrDefault(key, BigDecimal.ZERO.setScale(SCALE))
+              .divide(BigDecimal.valueOf(bucketWorkedDays), MATH_CONTEXT)
+              .setScale(SCALE, RoundingMode.HALF_UP);
+        } else {
+          value = grouped.getOrDefault(key, BigDecimal.ZERO.setScale(SCALE));
+        }
         points.add(point(bucket, value, metric, null));
       }
     }
@@ -1199,7 +1212,7 @@ public class StatisticsService {
     if (longest <= 31) {
       return StatisticsGranularity.DAILY;
     }
-    if (longest <= 370) {
+    if (longest <= 92) {
       return StatisticsGranularity.WEEKLY;
     }
     return StatisticsGranularity.MONTHLY;
@@ -1332,10 +1345,10 @@ public class StatisticsService {
 
   private StatisticsGranularity resolveGranularity(LocalDate from, LocalDate to) {
     long days = ChronoUnit.DAYS.between(from, to) + 1;
-    if (days <= 62) {
+    if (days <= 31) {
       return StatisticsGranularity.DAILY;
     }
-    if (days <= 370) {
+    if (days <= 92) {
       return StatisticsGranularity.WEEKLY;
     }
     return StatisticsGranularity.MONTHLY;

@@ -6,7 +6,8 @@
     "forWho": "Who it is for",
     "language": "Choose language",
     "login": "Sign in",
-    "register": "Create free account"
+    "register": "Create free account",
+    "registerShort": "Get started"
   },
   "hero": {
     "eyebrow": "Your own record of work and pay",
@@ -21,6 +22,43 @@
     "unit": "Work paid per unit",
     "fixed": "Fixed-price jobs",
     "absence": "Leave and absences"
+  },
+  "tour": {
+    "dashboard": { "eyebrow": "Dashboard", "title": "Your day, already organized.", "body": "Open Alveryn and immediately see the work, time and money that matter today.", "points": ["Today's total", "Every activity", "Earnings as you work"] },
+    "calendar": { "eyebrow": "Calendar", "title": "The whole month, without reconstructing it.", "body": "Workdays, hours, income and absences stay together in one clear timeline.", "points": ["Daily history", "Monthly totals", "Absences separated"] },
+    "statistics": { "eyebrow": "Statistics", "title": "See the pattern behind the numbers.", "body": "Move from a single day to a full year and compare periods with one touch.", "points": ["Day to year", "Income trends", "Period comparison"] },
+    "lohn": { "eyebrow": "Lohn", "title": "Your record beside their document.", "body": "Compare Alveryn with your payslip and spot differences before they disappear into paperwork.", "points": ["Hours compared", "Gross compared", "Lohn details extracted"] }
+  },
+  "marketingTour": { "eyebrow": "Explore Alveryn", "title": "Three places. One complete work record.", "body": "Start with the overview, then open the part of the product you want to understand.", "dashboard": { "title": "Dashboard", "body": "Today’s work and the week around it." }, "calendar": { "title": "Calendar", "body": "Every day, monthly total and Lohn match." }, "statistics": { "title": "Statistics", "body": "Trends, essential numbers and comparisons." } },
+  "productPages": { "back": "Back to Alveryn", "ctaTitle": "Ready to make your own record?", "dashboard": { "eyebrow": "Dashboard tour" }, "calendar": { "eyebrow": "Calendar tour" }, "statistics": { "eyebrow": "Statistics tour" } },
+  "dashboardTour": {
+    "title": "Everything important, before your first scroll.",
+    "body": "Dashboard connects today’s work with the week around it. Every card answers one useful question.",
+    "cards": {
+      "day": { "tag": "Today + this week", "title": "What did today add to your week?", "body": "See today’s hours and earnings beside the weekly flow, daily average, gross total and extra amount." },
+      "activity": { "tag": "Activity", "title": "Where did those numbers come from?", "body": "Every activity keeps its schedule, duration, work type and calculated earnings together." },
+      "rhythm": { "tag": "Rhythm", "title": "Is your week balanced?", "body": "Compare daily hours with your normal rhythm and see worked time and extra time instantly." }
+    }
+  },
+  "calendarTour": {
+    "title": "A month you can actually read.", "body": "Calendar turns every workday, payment and document into one connected monthly story.",
+    "cards": {
+      "month": { "tag": "Monthly activity", "title": "Every day has context.", "body": "Spot workdays, rest days, hours, earnings and vacation without opening each entry." },
+      "summary": { "tag": "Monthly summary", "title": "The answer at the end of the month.", "body": "Gross, hours, days, absences and extra pay stay in one compact balance." },
+      "payroll": { "tag": "Payroll match", "title": "Alveryn and Lohn, line by line.", "body": "Compare worked hours, extra pay and gross, then inspect the items extracted from Lohn." },
+      "flow": { "tag": "Flow", "title": "See how income moved.", "body": "Daily earnings reveal strong days, gaps and the month’s real average." },
+      "rhythm": { "tag": "Rhythm", "title": "See how your time moved.", "body": "Daily hours make workload and unusual days visible at a glance." },
+      "tools": { "tag": "Your data", "title": "Bring it in. Take it with you.", "body": "Import historical work and export a clear PDF whenever you need to share it." }
+    }
+  },
+  "statisticsTour": {
+    "title": "Numbers that answer back.", "body": "Choose the question, see the trend and compare the answer across any period.",
+    "cards": {
+      "filters": { "tag": "Period + metric", "title": "Ask exactly what you want to know.", "body": "Switch between week, month, year or a custom range, then choose the value that matters." },
+      "trend": { "tag": "Trend + essentials", "title": "The big picture and the facts beneath it.", "body": "Follow gross income over time, then read hours, worked days, entries and daily average together." },
+      "compare": { "tag": "Compare", "title": "Put two periods on the same scale.", "body": "Current, previous and change stay aligned so a difference is immediately understandable." },
+      "selected": { "tag": "Touch a point", "title": "Zoom into the moment that changed the curve.", "body": "Select any day or month to reveal both values and the exact difference at that point." }
+    }
   },
   "capabilities": {
     "eyebrow": "What Alveryn does",
@@ -81,6 +119,7 @@
   },
   "preview": {
     "dashboardAlt": "Alveryn dashboard preview showing worked time, earnings, activities and an upcoming absence.",
+    "statisticsAlt": "Alveryn statistics showing income trends and period comparisons.",
     "today": "Thursday, 23 July",
     "greeting": "Your work today",
     "synced": "Up to date",
@@ -116,11 +155,15 @@
     "resultLabel": "Analysis ready",
     "result": "Review possible differences",
     "resultHint": "Compare recorded hours, earnings and payslip details in one place.",
+    "comparisonTitle": "Alveryn vs. Lohn",
+    "item": "Item", "difference": "Difference", "hours": "Paid hours", "gross": "Gross", "workedDays": "Worked days",
+    "net": "Net pay", "tax": "Tax", "social": "Social insurance",
     "disclaimer": "Alveryn helps you review the information; it does not replace professional payroll or legal advice."
   },
   "final": {
     "title": "Stop reconstructing your work at the end of the month.",
     "subtitle": "Start building a clear, reliable history of your time, output and earnings today.",
+    "points": ["One record you control", "Every way you work", "Proof when numbers differ"],
     "primaryCta": "Start tracking for free"
   }
 }

@@ -15,6 +15,9 @@ describe("preview routes", () => {
 
     expect(hasRoutePath("/", routes)).toBe(true);
     expect(hasRoutePath("/welcome", routes)).toBe(true);
+    expect(hasRoutePath("/welcome/dashboard", routes)).toBe(true);
+    expect(hasRoutePath("/welcome/calendar", routes)).toBe(true);
+    expect(hasRoutePath("/welcome/statistics", routes)).toBe(true);
     expect(hasRoutePath(APP_HOME_PATH, routes)).toBe(true);
   });
 

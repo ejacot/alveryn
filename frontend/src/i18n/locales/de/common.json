@@ -60,15 +60,20 @@
       "employment": "Beschäftigung",
       "allEmployments": "Alle Beschäftigungen",
       "all": "Alle",
-      "selectedCount": "{{count}} ausgewählt"
+      "selectedCount": "{{count}} ausgewählt",
+      "previousPeriod": "Vorheriger Zeitraum",
+      "nextPeriod": "Nächster Zeitraum",
+      "month": "Monat",
+      "year": "Jahr",
+      "choosePeriod": "Zeitraum auswählen"
     },
     "export": { "csv": "CSV exportieren", "pdf": "PDF exportieren" },
     "periods": {
       "today": "Heute",
-      "week": "Diese Woche",
-      "month": "Dieser Monat",
-      "year": "Dieses Jahr",
-      "custom": "Benutzerdefiniert"
+      "week": "Woche",
+      "month": "Monat",
+      "year": "Jahr",
+      "custom": "Zeitraum"
     },
     "methods": {
       "time": "Zeitbasierte Arbeit",
@@ -124,6 +129,10 @@
       "current": "Aktuell",
       "previous": "Vorher",
       "changeLabel": "Veränderung",
+      "compareWith": "Vergleichen mit",
+      "compareMonth": "Monat",
+      "compareYear": "Jahr",
+      "allMonths": "Alle Monate",
       "periodTitle": "Ausgewählter Zeitraum",
       "modes": {
         "trend": "Trend",

@@ -125,7 +125,11 @@ export function StatisticsForecastSection({
 }: { data: StatisticsForecast | undefined } & SectionStateProps) {
   const { t } = useTranslation("common");
   const forecasts = data?.forecasts ?? [];
+  const availableForecasts = forecasts.filter((item) => item.available);
   const status = <SectionStatus isLoading={isLoading} isError={isError} onRetry={onRetry} />;
+  if (!isLoading && !isError && availableForecasts.length === 0) {
+    return null;
+  }
   return (
     <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-forecast-title">
       <div>
@@ -136,11 +140,9 @@ export function StatisticsForecastSection({
       </div>
       {isLoading || isError ? (
         status
-      ) : forecasts.length === 0 ? (
-        <p className="text-sm text-white/50">{t("statistics.forecast.empty")}</p>
       ) : (
         <div className="space-y-3">
-          {forecasts.map((item) => (
+          {availableForecasts.map((item) => (
             <div key={item.currency ?? "none"} className="rounded-[26px] bg-white/[0.035] p-4">
               {item.available ? (
                 <>
@@ -230,13 +232,7 @@ export function StatisticsProductivitySection({
     );
   }
   if (!data?.available) {
-    return (
-      <Card as="section" variant="section">
-        <p className="hairline-text">{t("statistics.productivity.eyebrow")}</p>
-        <h2 className="mt-1 text-base font-semibold text-white">{t("statistics.productivity.title")}</h2>
-        <p className="mt-3 text-sm text-white/50">{t("statistics.productivity.empty")}</p>
-      </Card>
-    );
+    return null;
   }
   return (
     <Card as="section" variant="section" className="space-y-4" aria-labelledby="statistics-productivity-title">

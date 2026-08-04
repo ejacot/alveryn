@@ -6,7 +6,8 @@
     "forWho": "Pentru cine",
     "language": "Alege limba",
     "login": "Intră în cont",
-    "register": "Începe gratuit"
+    "register": "Începe gratuit",
+    "registerShort": "Începe acum"
   },
   "hero": {
     "eyebrow": "Propria evidență a muncii și plății",
@@ -21,6 +22,43 @@
     "unit": "Plată pe unitate",
     "fixed": "Lucrări cu preț fix",
     "absence": "Concedii și absențe"
+  },
+  "tour": {
+    "dashboard": { "eyebrow": "Dashboard", "title": "Ziua ta, deja organizată.", "body": "Deschizi Alveryn și vezi imediat munca, timpul și venitul care contează astăzi.", "points": ["Totalul zilei", "Fiecare activitate", "Venit calculat imediat"] },
+    "calendar": { "eyebrow": "Calendar", "title": "Toată luna, fără să o reconstruiești.", "body": "Zilele lucrate, orele, venitul și absențele rămân împreună într-un istoric clar.", "points": ["Istoric zilnic", "Totaluri lunare", "Absențe separate"] },
+    "statistics": { "eyebrow": "Statistici", "title": "Vezi povestea din spatele numerelor.", "body": "Treci de la o singură zi la un an întreg și compari perioadele cu o atingere.", "points": ["De la zi la an", "Evoluția venitului", "Compararea perioadelor"] },
+    "lohn": { "eyebrow": "Lohn", "title": "Evidența ta lângă documentul lor.", "body": "Compari Alveryn cu Lohnabrechnung și observi diferențele înainte să se piardă în hârtii.", "points": ["Ore comparate", "Brut comparat", "Detalii Lohn extrase"] }
+  },
+  "marketingTour": { "eyebrow": "Descoperă Alveryn", "title": "Trei locuri. O evidență completă a muncii.", "body": "Începe cu imaginea de ansamblu, apoi deschide partea produsului pe care vrei să o înțelegi.", "dashboard": { "title": "Dashboard", "body": "Munca de astăzi și săptămâna din jurul ei." }, "calendar": { "title": "Calendar", "body": "Fiecare zi, totalul lunar și comparația Lohn." }, "statistics": { "title": "Statistici", "body": "Evoluții, cifre esențiale și comparații." } },
+  "productPages": { "back": "Înapoi la Alveryn", "ctaTitle": "Ești gata să ai propria evidență?", "dashboard": { "eyebrow": "Tur Dashboard" }, "calendar": { "eyebrow": "Tur Calendar" }, "statistics": { "eyebrow": "Tur Statistici" } },
+  "dashboardTour": {
+    "title": "Tot ce contează, înainte de primul scroll.",
+    "body": "Dashboard conectează munca de astăzi cu întreaga săptămână. Fiecare card răspunde unei întrebări utile.",
+    "cards": {
+      "day": { "tag": "Astăzi + săptămâna", "title": "Ce a adăugat ziua de azi săptămânii tale?", "body": "Vezi orele și venitul zilei lângă Flow, media zilnică, brutul săptămânal și suma extra." },
+      "activity": { "tag": "Activitate", "title": "De unde provin aceste cifre?", "body": "Fiecare activitate păstrează împreună programul, durata, tipul muncii și venitul calculat." },
+      "rhythm": { "tag": "Ritm", "title": "Este săptămâna ta echilibrată?", "body": "Compari orele fiecărei zile cu ritmul obișnuit și vezi imediat timpul lucrat și orele extra." }
+    }
+  },
+  "calendarTour": {
+    "title": "O lună pe care chiar o poți înțelege.", "body": "Calendar transformă fiecare zi, plată și document într-o singură poveste lunară.",
+    "cards": {
+      "month": { "tag": "Activitate lunară", "title": "Fiecare zi are context.", "body": "Vezi zile lucrate, zile libere, ore, venit și concediu fără să deschizi fiecare înregistrare." },
+      "summary": { "tag": "Rezumat lunar", "title": "Răspunsul de la sfârșitul lunii.", "body": "Brutul, orele, zilele, absențele și plata extra rămân într-un singur bilanț." },
+      "payroll": { "tag": "Comparare Lohn", "title": "Alveryn și Lohn, rând cu rând.", "body": "Compari orele, plata extra și brutul, apoi verifici elementele extrase din Lohn." },
+      "flow": { "tag": "Flow", "title": "Vezi cum a evoluat venitul.", "body": "Venitul zilnic scoate la vedere zilele puternice, pauzele și media reală a lunii." },
+      "rhythm": { "tag": "Rhythm", "title": "Vezi cum a evoluat timpul.", "body": "Orele zilnice fac vizibile volumul de muncă și zilele neobișnuite." },
+      "tools": { "tag": "Datele tale", "title": "Le aduci. Le iei cu tine.", "body": "Importi istoricul și exporți un PDF clar atunci când trebuie să îl trimiți." }
+    }
+  },
+  "statisticsTour": {
+    "title": "Cifre care îți răspund.", "body": "Alegi întrebarea, vezi evoluția și compari răspunsul pentru orice perioadă.",
+    "cards": {
+      "filters": { "tag": "Perioadă + metrică", "title": "Întrebi exact ce vrei să afli.", "body": "Alegi săptămâna, luna, anul sau o perioadă proprie, apoi valoarea care contează." },
+      "trend": { "tag": "Trend + esențial", "title": "Imaginea mare și cifrele din spatele ei.", "body": "Urmărești venitul brut, apoi vezi împreună orele, zilele lucrate, înregistrările și media zilnică." },
+      "compare": { "tag": "Comparare", "title": "Pui două perioade pe aceeași scară.", "body": "Perioada curentă, cea comparată și diferența rămân aliniate și ușor de înțeles." },
+      "selected": { "tag": "Atinge un punct", "title": "Mărești momentul care a schimbat curba.", "body": "Selectezi orice zi sau lună și vezi ambele valori plus diferența exactă din acel punct." }
+    }
   },
   "capabilities": {
     "eyebrow": "Ce face Alveryn",
@@ -81,6 +119,7 @@
   },
   "preview": {
     "dashboardAlt": "Preview dashboard Alveryn cu timpul lucrat, venitul, activitățile și o absență viitoare.",
+    "statisticsAlt": "Statistici Alveryn cu evoluția veniturilor și comparații între perioade.",
     "today": "Joi, 23 iulie",
     "greeting": "Munca ta de astăzi",
     "synced": "Actualizat",
@@ -116,11 +155,15 @@
     "resultLabel": "Analiză finalizată",
     "result": "Verifică posibilele diferențe",
     "resultHint": "Compară orele, venitul calculat și informațiile din document într-un singur loc.",
+    "comparisonTitle": "Alveryn vs. Lohn",
+    "item": "Element", "difference": "Diferență", "hours": "Ore plătite", "gross": "Brut", "workedDays": "Zile lucrate",
+    "net": "Salariu net", "tax": "Impozit", "social": "Asigurări sociale",
     "disclaimer": "Alveryn te ajută să verifici informațiile; nu înlocuiește consultanța profesională de salarizare sau juridică."
   },
   "final": {
     "title": "Nu-ți mai reconstrui munca la sfârșitul lunii.",
     "subtitle": "Începe astăzi un istoric clar și corect al timpului, rezultatelor și veniturilor tale.",
+    "points": ["O evidență controlată de tine", "Orice mod în care lucrezi", "Dovadă când cifrele diferă"],
     "primaryCta": "Începe gratuit evidența"
   }
 }

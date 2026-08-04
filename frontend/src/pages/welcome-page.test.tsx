@@ -37,12 +37,14 @@ describe("WelcomePage", () => {
 
     expect(screen.getByRole("heading", { name: /know what you did/i })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /create free account/i })[0]).toHaveAttribute("href", "/register");
-    expect(screen.getByRole("link", { name: /explore the product/i })).toHaveAttribute("href", "#product");
+    expect(screen.getByRole("link", { name: /explore the product/i })).toHaveAttribute("href", "#product-tour");
     expect(screen.getByText("Hourly shifts")).toBeInTheDocument();
     expect(screen.getByText("Work paid per unit")).toBeInTheDocument();
-    expect(screen.getByText("From a complicated workday to a clear answer.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /dashboard preview showing worked time/i })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /monthly overview showing workdays/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /three places.*one complete work record/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute("href", "/welcome/dashboard");
+    expect(screen.getByRole("link", { name: /calendar/i })).toHaveAttribute("href", "/welcome/calendar");
+    expect(screen.getByRole("link", { name: /statistics/i })).toHaveAttribute("href", "/welcome/statistics");
     expect(screen.getByRole("img", { name: /payslip upload and analysis/i })).toBeInTheDocument();
     expect(screen.queryByText(/clock-in/i)).not.toBeInTheDocument();
     expect(screen.getByTestId("welcome-scroll")).toHaveClass("overflow-y-auto");

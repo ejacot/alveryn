@@ -215,7 +215,32 @@ class StatisticsIntegrationTest {
                 .param("to", "2026-04-30")
                 .param("metric", "ENTRIES"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.granularity").value("WEEKLY"));
+        .andExpect(jsonPath("$.data.granularity").value("MONTHLY"))
+        .andExpect(jsonPath("$.data.points.length()").value(4));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-07-01")
+                .param("to", "2026-07-31")
+                .param("metric", "ENTRIES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.granularity").value("DAILY"))
+        .andExpect(jsonPath("$.data.points.length()").value(14))
+        .andExpect(jsonPath("$.data.points[13].bucketEnd").value("2026-07-14"));
+
+    mockMvc
+        .perform(
+            get("/api/statistics/timeseries")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                .param("from", "2026-01-01")
+                .param("to", "2026-12-31")
+                .param("metric", "ENTRIES"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.granularity").value("MONTHLY"))
+        .andExpect(jsonPath("$.data.points.length()").value(7))
+        .andExpect(jsonPath("$.data.points[6].bucketEnd").value("2026-07-14"));
 
     mockMvc
         .perform(

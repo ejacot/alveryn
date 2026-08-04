@@ -4,7 +4,6 @@ import {
   getStatisticsOverview,
   getStatisticsTimeSeries,
   getStatisticsWorkTypes,
-  getStatisticsHeatmap,
   getStatisticsForecast,
   getStatisticsProductivity,
   getStatisticsHighlights,
@@ -12,7 +11,6 @@ import {
   getStatisticsComparison
 } from "../api/statistics-api";
 import type { StatisticsFilters } from "../types/statistics";
-import type { StatisticsHeatmapMetric } from "../types/statistics";
 import type { ProductivityGrouping, ProductivityMetric } from "../types/statistics";
 import { previousRange } from "../filters/statistics-filter-state";
 
@@ -33,42 +31,34 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function trendComparisonPeriods(filters: StatisticsFilters, now = new Date()) {
+function trendComparisonPeriods(filters: StatisticsFilters) {
   const filterFrom = parseDate(filters.from);
   const filterTo = parseDate(filters.to);
-  const today = parseDate(localDate(now));
-  const includesToday = filterFrom <= today && today <= filterTo;
-  const periodATo = includesToday ? today : filterTo;
-  const elapsedDays = Math.round((periodATo.getTime() - filterFrom.getTime()) / 86_400_000);
 
   if (filters.period === "month") {
     const previousFrom = new Date(filterFrom.getFullYear(), filterFrom.getMonth() - 1, 1, 12);
     const previousMonthEnd = new Date(filterFrom.getFullYear(), filterFrom.getMonth(), 0, 12);
-    const previousTo = new Date(Math.min(
-      addDays(previousFrom, elapsedDays).getTime(),
-      previousMonthEnd.getTime()
-    ));
     return {
-      periodA: { from: filters.from, to: localDate(periodATo) },
-      periodB: { from: localDate(previousFrom), to: localDate(previousTo) }
+      periodA: { from: filters.from, to: filters.to },
+      periodB: { from: localDate(previousFrom), to: localDate(previousMonthEnd) }
     };
   }
 
   if (filters.period === "week") {
     return {
-      periodA: { from: filters.from, to: localDate(periodATo) },
+      periodA: { from: filters.from, to: filters.to },
       periodB: {
         from: localDate(addDays(filterFrom, -7)),
-        to: localDate(addDays(periodATo, -7))
+        to: localDate(addDays(filterTo, -7))
       }
     };
   }
 
   if (filters.period === "year") {
     const previousFrom = new Date(filterFrom.getFullYear() - 1, filterFrom.getMonth(), filterFrom.getDate(), 12);
-    const previousTo = new Date(periodATo.getFullYear() - 1, periodATo.getMonth(), periodATo.getDate(), 12);
+    const previousTo = new Date(filterTo.getFullYear() - 1, filterTo.getMonth(), filterTo.getDate(), 12);
     return {
-      periodA: { from: filters.from, to: localDate(periodATo) },
+      periodA: { from: filters.from, to: filters.to },
       periodB: { from: localDate(previousFrom), to: localDate(previousTo) }
     };
   }
@@ -99,13 +89,11 @@ function normalizedFilters(filters: StatisticsFilters) {
 
 export function useStatistics(
   filters: StatisticsFilters,
-  heatmapMetric: StatisticsHeatmapMetric = "WORKED_HOURS",
-  heatmapCurrency: string | null = null,
   productivityMetric: ProductivityMetric = "TOTAL_UNITS",
-  productivityGrouping: ProductivityGrouping = "TOTAL"
+  productivityGrouping: ProductivityGrouping = "TOTAL",
+  comparisonPeriodB?: { from: string; to: string } | null
 ) {
   const keyFilters = normalizedFilters(filters);
-  const heatmapKeyFilters = { ...keyFilters, heatmapMetric, heatmapCurrency };
   const productivityKeyFilters = { ...keyFilters, productivityMetric, productivityGrouping };
   const overview = useQuery({
     queryKey: queryKeys.statistics.overview(keyFilters),
@@ -118,6 +106,7 @@ export function useStatistics(
   const trendPeriods = trendComparisonPeriods(filters);
   const comparisonRequest = {
     ...trendPeriods,
+    ...(comparisonPeriodB ? { periodB: comparisonPeriodB } : {}),
     metric: filters.metric,
     workTypeIds: filters.workTypeIds,
     calculationMethods: filters.calculationMethods
@@ -134,11 +123,6 @@ export function useStatistics(
   const workTypes = useQuery({
     queryKey: queryKeys.statistics.workTypes(keyFilters),
     queryFn: () => getStatisticsWorkTypes(filters)
-  });
-  const heatmap = useQuery({
-    queryKey: queryKeys.statistics.heatmap(heatmapKeyFilters),
-    queryFn: () => getStatisticsHeatmap(filters, heatmapMetric, heatmapCurrency),
-    retry: false
   });
   const forecast = useQuery({
     queryKey: queryKeys.statistics.forecast(keyFilters),
@@ -166,7 +150,6 @@ export function useStatistics(
     timeSeries,
     comparison,
     workTypes,
-    heatmap,
     forecast,
     productivity,
     highlights,
@@ -178,7 +161,6 @@ export function useStatistics(
       void timeSeries.refetch();
       void comparison.refetch();
       void workTypes.refetch();
-      void heatmap.refetch();
       void forecast.refetch();
       void productivity.refetch();
       void highlights.refetch();

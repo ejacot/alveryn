@@ -60,15 +60,20 @@
       "employment": "Employment",
       "allEmployments": "All employments",
       "all": "All",
-      "selectedCount": "{{count}} selected"
+      "selectedCount": "{{count}} selected",
+      "previousPeriod": "Previous period",
+      "nextPeriod": "Next period",
+      "month": "Month",
+      "year": "Year",
+      "choosePeriod": "Choose period"
     },
     "export": { "csv": "Export CSV", "pdf": "Export PDF" },
     "periods": {
       "today": "Today",
-      "week": "This Week",
-      "month": "This Month",
-      "year": "This Year",
-      "custom": "Custom"
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "custom": "Range"
     },
     "methods": {
       "time": "Time-based work",
@@ -124,6 +129,10 @@
       "current": "Current",
       "previous": "Previous",
       "changeLabel": "Change",
+      "compareWith": "Compare with",
+      "compareMonth": "Month",
+      "compareYear": "Year",
+      "allMonths": "All months",
       "periodTitle": "Selected period",
       "modes": {
         "trend": "Trend",

@@ -80,7 +80,7 @@ export function StatisticsSummaryCards({ overview }: Props) {
 
   return (
     <section aria-label={t("statistics.cards.label")} className="flex h-full flex-col gap-3">
-      <div className="grid flex-1 grid-cols-2 gap-3">
+      <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((card) => (
           <Card
             as="article"

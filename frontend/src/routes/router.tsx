@@ -26,6 +26,9 @@ const WelcomePage = lazy(() =>
     default: module.WelcomePage
   }))
 );
+const WelcomeProductPage = lazy(() =>
+  import("../pages/welcome-product-page").then((module) => ({ default: module.WelcomeProductPage }))
+);
 const CalendarPage = lazy(() =>
   import("../pages/calendar-page").then((module) => ({
     default: module.CalendarPage
@@ -182,6 +185,11 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       element: withSuspense(<WelcomePage />),
       errorElement: <RouteErrorPage />
     },
+    ...(["dashboard", "calendar", "statistics"] as const).map((product) => ({
+      path: `/welcome/${product}`,
+      element: withSuspense(<WelcomeProductPage product={product} />),
+      errorElement: <RouteErrorPage />
+    })),
     {
       element: <AuthLayout />,
       errorElement: <RouteErrorPage />,

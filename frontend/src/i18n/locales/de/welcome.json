@@ -6,7 +6,8 @@
     "forWho": "Für wen",
     "language": "Sprache auswählen",
     "login": "Einloggen",
-    "register": "Kostenlos starten"
+    "register": "Kostenlos starten",
+    "registerShort": "Loslegen"
   },
   "hero": {
     "eyebrow": "Dein eigener Nachweis über Arbeit und Bezahlung",
@@ -21,6 +22,43 @@
     "unit": "Bezahlung pro Einheit",
     "fixed": "Aufträge zum Festpreis",
     "absence": "Urlaub und Abwesenheiten"
+  },
+  "tour": {
+    "dashboard": { "eyebrow": "Dashboard", "title": "Dein Tag, bereits organisiert.", "body": "Öffne Alveryn und sieh sofort Arbeit, Zeit und Einkommen, die heute zählen.", "points": ["Tagessumme", "Jede Tätigkeit", "Einkommen in Echtzeit"] },
+    "calendar": { "eyebrow": "Kalender", "title": "Der ganze Monat, ohne Rekonstruktion.", "body": "Arbeitstage, Stunden, Einkommen und Abwesenheiten bleiben in einer klaren Übersicht zusammen.", "points": ["Tagesverlauf", "Monatssummen", "Abwesenheiten getrennt"] },
+    "statistics": { "eyebrow": "Statistiken", "title": "Erkenne das Muster hinter den Zahlen.", "body": "Wechsle vom einzelnen Tag zum ganzen Jahr und vergleiche Zeiträume mit einer Berührung.", "points": ["Tag bis Jahr", "Einkommensverlauf", "Zeiträume vergleichen"] },
+    "lohn": { "eyebrow": "Lohn", "title": "Deine Aufzeichnung neben ihrem Dokument.", "body": "Vergleiche Alveryn mit deiner Lohnabrechnung und erkenne Unterschiede rechtzeitig.", "points": ["Stundenvergleich", "Bruttovergleich", "Lohndetails extrahiert"] }
+  },
+  "marketingTour": { "eyebrow": "Alveryn entdecken", "title": "Drei Bereiche. Eine vollständige Arbeitsaufzeichnung.", "body": "Beginne mit dem Überblick und öffne dann den Produktbereich, den du verstehen möchtest.", "dashboard": { "title": "Dashboard", "body": "Die heutige Arbeit und die Woche darum." }, "calendar": { "title": "Kalender", "body": "Jeder Tag, die Monatssumme und der Lohnabgleich." }, "statistics": { "title": "Statistiken", "body": "Verläufe, Kennzahlen und Vergleiche." } },
+  "productPages": { "back": "Zurück zu Alveryn", "ctaTitle": "Bereit für deine eigene Aufzeichnung?", "dashboard": { "eyebrow": "Dashboard-Tour" }, "calendar": { "eyebrow": "Kalender-Tour" }, "statistics": { "eyebrow": "Statistik-Tour" } },
+  "dashboardTour": {
+    "title": "Alles Wichtige vor dem ersten Scrollen.",
+    "body": "Das Dashboard verbindet die heutige Arbeit mit der ganzen Woche. Jede Karte beantwortet eine konkrete Frage.",
+    "cards": {
+      "day": { "tag": "Heute + Woche", "title": "Was hat heute zu deiner Woche beigetragen?", "body": "Sieh Stunden und Einkommen des Tages neben Flow, Tagesdurchschnitt, Wochenbrutto und Extra." },
+      "activity": { "tag": "Aktivität", "title": "Woher kommen diese Zahlen?", "body": "Jede Aktivität hält Zeitplan, Dauer, Arbeitsart und berechnetes Einkommen zusammen." },
+      "rhythm": { "tag": "Rhythmus", "title": "Ist deine Woche ausgeglichen?", "body": "Vergleiche tägliche Stunden mit deinem Rhythmus und erkenne Arbeits- und Extrazeit sofort." }
+    }
+  },
+  "calendarTour": {
+    "title": "Ein Monat, den du wirklich lesen kannst.", "body": "Der Kalender verbindet jeden Arbeitstag, jede Zahlung und jedes Dokument zu einer Monatsübersicht.",
+    "cards": {
+      "month": { "tag": "Monatsaktivität", "title": "Jeder Tag hat Kontext.", "body": "Erkenne Arbeitstage, freie Tage, Stunden, Einkommen und Urlaub ohne jeden Eintrag zu öffnen." },
+      "summary": { "tag": "Monatsübersicht", "title": "Die Antwort am Monatsende.", "body": "Brutto, Stunden, Tage, Abwesenheiten und Extra bleiben in einer kompakten Bilanz." },
+      "payroll": { "tag": "Lohnabgleich", "title": "Alveryn und Lohn, Zeile für Zeile.", "body": "Vergleiche Stunden, Extra und Brutto und prüfe die aus dem Lohn extrahierten Positionen." },
+      "flow": { "tag": "Flow", "title": "Sieh, wie sich Einkommen bewegt.", "body": "Tageseinnahmen zeigen starke Tage, Lücken und den echten Monatsdurchschnitt." },
+      "rhythm": { "tag": "Rhythmus", "title": "Sieh, wie sich deine Zeit bewegt.", "body": "Tägliche Stunden machen Belastung und ungewöhnliche Tage sofort sichtbar." },
+      "tools": { "tag": "Deine Daten", "title": "Importieren und mitnehmen.", "body": "Importiere frühere Arbeit und exportiere bei Bedarf ein klares PDF." }
+    }
+  },
+  "statisticsTour": {
+    "title": "Zahlen, die dir antworten.", "body": "Wähle die Frage, erkenne den Verlauf und vergleiche die Antwort für jeden Zeitraum.",
+    "cards": {
+      "filters": { "tag": "Zeitraum + Metrik", "title": "Frage genau das, was du wissen willst.", "body": "Wähle Woche, Monat, Jahr oder einen eigenen Zeitraum und danach den relevanten Wert." },
+      "trend": { "tag": "Trend + Kennzahlen", "title": "Das Gesamtbild und die Fakten darunter.", "body": "Verfolge das Brutto und sieh Stunden, Arbeitstage, Einträge und Tagesdurchschnitt zusammen." },
+      "compare": { "tag": "Vergleich", "title": "Zwei Zeiträume auf derselben Skala.", "body": "Aktuell, vorher und Differenz bleiben ausgerichtet und sofort verständlich." },
+      "selected": { "tag": "Punkt berühren", "title": "Zoome in den Moment der Veränderung.", "body": "Wähle Tag oder Monat und sieh beide Werte sowie die exakte Differenz dieses Punkts." }
+    }
   },
   "capabilities": {
     "eyebrow": "Was Alveryn macht",
@@ -81,6 +119,7 @@
   },
   "preview": {
     "dashboardAlt": "Alveryn Dashboard-Vorschau mit Arbeitszeit, Einnahmen, Tätigkeiten und einer kommenden Abwesenheit.",
+    "statisticsAlt": "Alveryn-Statistiken mit Einkommensentwicklung und Zeitvergleichen.",
     "today": "Donnerstag, 23. Juli",
     "greeting": "Deine Arbeit heute",
     "synced": "Aktuell",
@@ -116,11 +155,15 @@
     "resultLabel": "Analyse bereit",
     "result": "Mögliche Abweichungen prüfen",
     "resultHint": "Vergleiche erfasste Stunden, Einkommen und Dokumentangaben an einem Ort.",
+    "comparisonTitle": "Alveryn vs. Lohn",
+    "item": "Position", "difference": "Differenz", "hours": "Bezahlte Stunden", "gross": "Brutto", "workedDays": "Arbeitstage",
+    "net": "Netto", "tax": "Steuer", "social": "Sozialversicherung",
     "disclaimer": "Alveryn unterstützt bei der Prüfung und ersetzt keine professionelle Lohn- oder Rechtsberatung."
   },
   "final": {
     "title": "Rekonstruiere deine Arbeit nicht erst am Monatsende.",
     "subtitle": "Baue ab heute einen klaren, verlässlichen Verlauf über Zeit, Leistung und Einkommen auf.",
+    "points": ["Deine eigene Aufzeichnung", "Jede Art zu arbeiten", "Nachweis bei Abweichungen"],
     "primaryCta": "Kostenlos mit Tracking starten"
   }
 }
