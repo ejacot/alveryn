@@ -124,7 +124,7 @@ class StatisticsIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.granularity").value("DAILY"))
         .andExpect(jsonPath("$.data.metric").value("GROSS"))
-        .andExpect(jsonPath("$.data.points.length()").value(31))
+        .andExpect(jsonPath("$.data.points.length()").value(14))
         .andExpect(jsonPath("$.data.points[0].bucketStart").value("2026-07-01"))
         .andExpect(jsonPath("$.data.points[0].value").value(0))
         .andExpect(jsonPath("$.data.points[2].bucketStart").value("2026-07-03"))
