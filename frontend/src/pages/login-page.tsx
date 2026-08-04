@@ -51,6 +51,10 @@ export function LoginPage() {
   return (
     <AuthCard
       title={t("auth:login.title")}
+      backLink={{
+        to: "/welcome",
+        label: t("auth:login.backHome")
+      }}
       footer={
         <span>
           {t("auth:login.footer")}{" "}

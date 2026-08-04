@@ -4,16 +4,17 @@
     "product": "Produkt",
     "how": "So funktioniert es",
     "forWho": "Für wen",
+    "language": "Sprache auswählen",
     "login": "Einloggen",
     "register": "Kostenlos starten"
   },
   "hero": {
-    "eyebrow": "Arbeitszeiterfassung, die deine Bezahlung versteht",
-    "title": "Arbeit erfassen. Stunden kennen. Einkommen verstehen.",
-    "subtitle": "Alveryn hält Stunden, erledigte Arbeit, Tarife und Abwesenheiten in einem verlässlichen Verlauf zusammen — auch wenn jeder Arbeitstag anders ist.",
+    "eyebrow": "Dein eigener Nachweis über Arbeit und Bezahlung",
+    "title": "Wisse, was du geleistet hast. Wisse, was du verdient hast.",
+    "subtitle": "Erfasse Tätigkeiten, Stunden, Leistung und Abwesenheiten direkt während des Monats. Am Monatsende gibt dir Alveryn einen klaren Verlauf für den Vergleich mit deiner Lohnabrechnung.",
     "primaryCta": "Kostenloses Konto erstellen",
     "secondaryCta": "Produkt ansehen",
-    "points": ["In wenigen Minuten eingerichtet", "Mehrere Arbeitsmodelle", "Ein verlässlicher Verlauf"]
+    "points": ["Manuelle Erfassung in Sekunden", "Zeit, Einheiten und Festpreisarbeit", "Dein eigener Monatsnachweis"]
   },
   "formats": {
     "time": "Arbeit nach Stunden",
@@ -28,7 +29,7 @@
     "items": [
       {
         "title": "Arbeit passend erfassen",
-        "description": "Nutze Ein- und Ausstempeln, trage eine Dauer ein, ergänze erledigte Einheiten oder erfasse einen Festpreisauftrag. Mehrere Tätigkeiten passen in denselben Tag."
+        "description": "Trage ein Zeitintervall, erledigte Einheiten oder Festpreisarbeit ein. Gruppiere zusammengehörige Arbeitstypen und erfasse mehrere Tätigkeiten am selben Tag."
       },
       {
         "title": "Bedeutung der Arbeit berechnen",
@@ -47,11 +48,11 @@
     "steps": [
       {
         "title": "Beschreibe deine Arbeit",
-        "description": "Füge Job, Bezahlmodell, Tarif und deine Arbeitstypen hinzu."
+        "description": "Füge dein Arbeitsverhältnis hinzu, wähle die Bezahlungsart und erstelle deine Arbeitstypen."
       },
       {
         "title": "Erfasse jeden Arbeitstag",
-        "description": "Tracke eine laufende Schicht oder trage Zeit, Einheiten und erledigte Aufträge manuell ein."
+        "description": "Wähle eine Tätigkeit und trage Zeit, Einheiten oder erledigte Arbeit in wenigen Sekunden manuell ein."
       },
       {
         "title": "Nutze deinen Verlauf",
@@ -93,7 +94,7 @@
       { "name": "Frühschicht", "detail": "6 Std. 30 Min. · 19,20 €/Std.", "value": "124,80 €" },
       { "name": "Erledigte Lieferungen", "detail": "24 Einheiten · 1,82 €/Einheit", "value": "43,60 €" }
     ],
-    "nextAbsence": "Urlaub genehmigt",
+    "nextAbsence": "Urlaub erfasst",
     "nextAbsenceDate": "3.–7. August"
   },
   "monthPreview": {
@@ -103,7 +104,19 @@
     "days": "Arbeitstage",
     "hours": "Gesamtstunden",
     "earnings": "Einnahmen",
-    "absence": "Genehmigte Abwesenheiten erscheinen im selben Verlauf"
+    "absence": "Freie Tage und Abwesenheiten bleiben von der Arbeit getrennt"
+  },
+  "payslip": {
+    "eyebrow": "Lohnabrechnung prüfen",
+    "title": "Vergleiche deinen Arbeitsmonat mit dem erhaltenen Dokument.",
+    "body": "Lade deine Lohnabrechnung hoch. Alveryn liest die Angaben aus, damit mögliche Abweichungen zu deinem eigenen Arbeitsverlauf leichter erkennbar werden.",
+    "alt": "Vorschau für Upload und Analyse einer Lohnabrechnung in Alveryn.",
+    "uploadLabel": "Hochladen",
+    "document": "Lohnabrechnung · Juli 2026",
+    "resultLabel": "Analyse bereit",
+    "result": "Mögliche Abweichungen prüfen",
+    "resultHint": "Vergleiche erfasste Stunden, Einkommen und Dokumentangaben an einem Ort.",
+    "disclaimer": "Alveryn unterstützt bei der Prüfung und ersetzt keine professionelle Lohn- oder Rechtsberatung."
   },
   "final": {
     "title": "Rekonstruiere deine Arbeit nicht erst am Monatsende.",

@@ -14,6 +14,7 @@ describe("preview routes", () => {
     const routes = buildRoutes(false);
 
     expect(hasRoutePath("/", routes)).toBe(true);
+    expect(hasRoutePath("/welcome", routes)).toBe(true);
     expect(hasRoutePath(APP_HOME_PATH, routes)).toBe(true);
   });
 

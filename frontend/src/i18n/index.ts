@@ -33,9 +33,11 @@ import errorsRo from "./locales/ro/errors.json";
 import welcomeRo from "./locales/ro/welcome.json";
 
 import commonRu from "./locales/ru/common.json";
+import authRu from "./locales/ru/auth.json";
 import dashboardRu from "./locales/ru/dashboard.json";
 import calendarRu from "./locales/ru/calendar.json";
 import settingsRu from "./locales/ru/settings.json";
+import welcomeRu from "./locales/ru/welcome.json";
 
 const resources = {
   en: {
@@ -73,14 +75,14 @@ const resources = {
   },
   ru: {
     common: commonRu,
-    auth: authEn,
+    auth: authRu,
     onboarding: onboardingEn,
     dashboard: dashboardRu,
     calendar: calendarRu,
     records: recordsEn,
     settings: settingsRu,
     errors: errorsEn,
-    welcome: welcomeEn
+    welcome: welcomeRu
   }
 } as const;
 

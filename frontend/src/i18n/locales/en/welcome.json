@@ -4,16 +4,17 @@
     "product": "Product",
     "how": "How it works",
     "forWho": "Who it is for",
+    "language": "Choose language",
     "login": "Sign in",
     "register": "Create free account"
   },
   "hero": {
-    "eyebrow": "Work tracking that understands how you get paid",
-    "title": "Track the work. Know the hours. Understand the money.",
-    "subtitle": "Alveryn keeps your hours, completed work, rates and absences in one reliable record — even when every day is different.",
+    "eyebrow": "Your own record of work and pay",
+    "title": "Know what you did. Know what you earned.",
+    "subtitle": "Record your activities, hours, output and absences as you work. At the end of the month, Alveryn gives you a clear record to review against your payslip.",
     "primaryCta": "Create free account",
     "secondaryCta": "Explore the product",
-    "points": ["Set up in minutes", "Multiple ways of working", "A history you can trust"]
+    "points": ["Manual entry in seconds", "Time, units and fixed work", "A monthly record you control"]
   },
   "formats": {
     "time": "Hourly shifts",
@@ -28,7 +29,7 @@
     "items": [
       {
         "title": "Record work your way",
-        "description": "Use clock-in and clock-out, enter a duration, add completed units or record a fixed-price job. Different activities can live in the same day."
+        "description": "Enter a time interval, completed units or fixed-price work. Group related work types and keep different activities in the same day."
       },
       {
         "title": "Calculate what the work means",
@@ -47,11 +48,11 @@
     "steps": [
       {
         "title": "Describe how you work",
-        "description": "Add your job, payment model, rate and the types of work you perform."
+        "description": "Add your employment, choose how you are paid and create the work types you perform."
       },
       {
         "title": "Record each working day",
-        "description": "Track a live session or enter time, units and completed jobs manually."
+        "description": "Select an activity and manually enter its time, units or completed work in seconds."
       },
       {
         "title": "Use the history",
@@ -93,7 +94,7 @@
       { "name": "Morning shift", "detail": "6h 30m · €19.20/hour", "value": "€124.80" },
       { "name": "Completed deliveries", "detail": "24 units · €1.82/unit", "value": "€43.60" }
     ],
-    "nextAbsence": "Vacation approved",
+    "nextAbsence": "Vacation recorded",
     "nextAbsenceDate": "3–7 August"
   },
   "monthPreview": {
@@ -103,7 +104,19 @@
     "days": "Worked days",
     "hours": "Total hours",
     "earnings": "Earnings",
-    "absence": "Approved absence appears in the same timeline"
+    "absence": "Rest days and absences stay separate from work"
+  },
+  "payslip": {
+    "eyebrow": "Payslip review",
+    "title": "Compare the month you worked with the document you received.",
+    "body": "Upload your payslip and let Alveryn extract its details, so possible differences are easier to identify against your own work history.",
+    "alt": "Payslip upload and analysis preview in Alveryn.",
+    "uploadLabel": "Upload",
+    "document": "Payslip · July 2026",
+    "resultLabel": "Analysis ready",
+    "result": "Review possible differences",
+    "resultHint": "Compare recorded hours, earnings and payslip details in one place.",
+    "disclaimer": "Alveryn helps you review the information; it does not replace professional payroll or legal advice."
   },
   "final": {
     "title": "Stop reconstructing your work at the end of the month.",

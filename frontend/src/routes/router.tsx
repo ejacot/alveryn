@@ -178,6 +178,11 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       errorElement: <RouteErrorPage />
     },
     {
+      path: "/welcome",
+      element: withSuspense(<WelcomePage />),
+      errorElement: <RouteErrorPage />
+    },
+    {
       element: <AuthLayout />,
       errorElement: <RouteErrorPage />,
       children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]

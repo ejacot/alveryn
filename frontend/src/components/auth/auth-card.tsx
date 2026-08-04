@@ -30,7 +30,13 @@ export function AuthCard({
       <div className="relative mx-auto flex min-h-screen min-h-[100dvh] w-full max-w-[520px] items-center px-5 py-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="w-full py-3">
         <div className="mb-8 flex justify-center">
-          <AppLogo wordmark />
+          <Link
+            to="/welcome"
+            aria-label={t("homeLink")}
+            className="rounded-xl transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-emerald-300/45"
+          >
+            <AppLogo wordmark />
+          </Link>
         </div>
         <Card variant="auth" className="rounded-[30px] border-white/[0.085] bg-white/[0.035] p-5 shadow-[0_28px_90px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:p-6">
         <div className="space-y-2 text-center">

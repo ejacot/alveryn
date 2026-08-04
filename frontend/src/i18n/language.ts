@@ -2,6 +2,8 @@ export const SUPPORTED_LANGUAGES = ["en", "de", "ro", "ru"] as const;
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
+export const LANGUAGE_STORAGE_KEY = "alveryn.language";
+
 const LANGUAGE_ALIASES: Record<string, SupportedLanguage> = {
   en: "en",
   "en-us": "en",
@@ -29,11 +31,34 @@ export function normalizeLanguage(value?: string | null): SupportedLanguage {
 }
 
 export function detectBrowserLanguage(): SupportedLanguage {
+  if (typeof window !== "undefined") {
+    try {
+      const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (storedLanguage) {
+        return normalizeLanguage(storedLanguage);
+      }
+    } catch {
+      // Storage can be unavailable in private or restricted browsing contexts.
+    }
+  }
+
   if (typeof navigator === "undefined") {
     return "en";
   }
 
   return normalizeLanguage(navigator.language);
+}
+
+export function storeLanguagePreference(language: SupportedLanguage) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch {
+    // The active session can still use the selected language without persistence.
+  }
 }
 
 export function getNativeLanguageName(language: SupportedLanguage) {

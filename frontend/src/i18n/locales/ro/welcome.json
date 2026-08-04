@@ -4,16 +4,17 @@
     "product": "Produs",
     "how": "Cum funcționează",
     "forWho": "Pentru cine",
+    "language": "Alege limba",
     "login": "Intră în cont",
     "register": "Începe gratuit"
   },
   "hero": {
-    "eyebrow": "Evidența muncii care înțelege cum ești plătit",
-    "title": "Înregistrează munca. Cunoaște orele. Înțelege banii.",
-    "subtitle": "Alveryn păstrează orele, munca efectuată, tarifele și absențele într-un singur istoric corect — chiar dacă fiecare zi este diferită.",
+    "eyebrow": "Propria evidență a muncii și plății",
+    "title": "Știi ce ai făcut. Știi cât ai câștigat.",
+    "subtitle": "Înregistrezi activitățile, orele, rezultatele și absențele pe măsură ce lucrezi. La sfârșitul lunii, Alveryn îți oferă un istoric clar pe care îl poți verifica față de Lohnabrechnung.",
     "primaryCta": "Creează cont gratuit",
     "secondaryCta": "Descoperă produsul",
-    "points": ["Configurare în câteva minute", "Mai multe moduri de lucru", "Un istoric de încredere"]
+    "points": ["Introducere manuală în câteva secunde", "Timp, unități și lucrări fixe", "Un istoric lunar controlat de tine"]
   },
   "formats": {
     "time": "Muncă plătită la oră",
@@ -28,7 +29,7 @@
     "items": [
       {
         "title": "Înregistrezi munca în modul potrivit",
-        "description": "Folosești check-in și check-out, introduci o durată, adaugi unități finalizate sau o lucrare cu preț fix. Activități diferite pot exista în aceeași zi."
+        "description": "Introduci un interval, unitățile finalizate sau o lucrare cu preț fix. Grupezi tipurile de muncă asociate și păstrezi activități diferite în aceeași zi."
       },
       {
         "title": "Calculezi ce înseamnă munca",
@@ -47,11 +48,11 @@
     "steps": [
       {
         "title": "Descrii cum lucrezi",
-        "description": "Adaugi jobul, modelul de plată, tariful și tipurile de muncă efectuate."
+        "description": "Adaugi employment-ul, alegi cum ești plătit și creezi tipurile de muncă efectuate."
       },
       {
         "title": "Înregistrezi fiecare zi",
-        "description": "Urmărești o sesiune live sau introduci manual timpul, unitățile și lucrările finalizate."
+        "description": "Selectezi activitatea și introduci manual timpul, unitățile sau lucrarea finalizată în câteva secunde."
       },
       {
         "title": "Folosești istoricul",
@@ -93,7 +94,7 @@
       { "name": "Tura de dimineață", "detail": "6h 30m · 19,20 €/oră", "value": "124,80 €" },
       { "name": "Livrări finalizate", "detail": "24 unități · 1,82 €/unitate", "value": "43,60 €" }
     ],
-    "nextAbsence": "Concediu aprobat",
+    "nextAbsence": "Concediu înregistrat",
     "nextAbsenceDate": "3–7 august"
   },
   "monthPreview": {
@@ -103,7 +104,19 @@
     "days": "Zile lucrate",
     "hours": "Total ore",
     "earnings": "Venit",
-    "absence": "Absența aprobată apare în același istoric"
+    "absence": "Zilele libere și absențele rămân separate de muncă"
+  },
+  "payslip": {
+    "eyebrow": "Verificarea Lohnabrechnung",
+    "title": "Compară luna lucrată cu documentul primit.",
+    "body": "Încarci Lohnabrechnung, iar Alveryn extrage informațiile pentru ca eventualele diferențe față de istoricul tău să fie mai ușor de identificat.",
+    "alt": "Previzualizare Alveryn pentru încărcarea și analiza Lohnabrechnung.",
+    "uploadLabel": "Încarcă",
+    "document": "Lohnabrechnung · iulie 2026",
+    "resultLabel": "Analiză finalizată",
+    "result": "Verifică posibilele diferențe",
+    "resultHint": "Compară orele, venitul calculat și informațiile din document într-un singur loc.",
+    "disclaimer": "Alveryn te ajută să verifici informațiile; nu înlocuiește consultanța profesională de salarizare sau juridică."
   },
   "final": {
     "title": "Nu-ți mai reconstrui munca la sfârșitul lunii.",

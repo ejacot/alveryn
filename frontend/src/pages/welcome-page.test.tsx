@@ -35,7 +35,7 @@ describe("WelcomePage", () => {
   it("renders the conversion-focused public landing page", () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: /track the work/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /know what you did/i })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /create free account/i })[0]).toHaveAttribute("href", "/register");
     expect(screen.getByRole("link", { name: /explore the product/i })).toHaveAttribute("href", "#product");
     expect(screen.getByText("Hourly shifts")).toBeInTheDocument();
@@ -43,6 +43,8 @@ describe("WelcomePage", () => {
     expect(screen.getByText("From a complicated workday to a clear answer.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /dashboard preview showing worked time/i })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /monthly overview showing workdays/i })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /payslip upload and analysis/i })).toBeInTheDocument();
+    expect(screen.queryByText(/clock-in/i)).not.toBeInTheDocument();
     expect(screen.getByTestId("welcome-scroll")).toHaveClass("overflow-y-auto");
   });
 
@@ -76,6 +78,24 @@ describe("WelcomePage", () => {
     );
 
     expect(screen.getByText("Installed app home")).toBeInTheDocument();
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("keeps the dedicated welcome route visible inside an installed app", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+
+    render(
+      <MemoryRouter initialEntries={["/welcome"]}>
+        <Routes>
+          <Route path="/welcome" element={<WelcomePage />} />
+          <Route path={APP_HOME_PATH} element={<p>Installed app home</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("heading", { name: /know what you did/i })).toBeInTheDocument();
+    expect(screen.queryByText("Installed app home")).not.toBeInTheDocument();
     window.matchMedia = originalMatchMedia;
   });
 });
