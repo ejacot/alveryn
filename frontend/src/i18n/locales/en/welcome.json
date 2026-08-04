@@ -1,7 +1,8 @@
 {
   "loading": "Loading Alveryn...",
   "nav": {
-    "product": "Product",
+    "aria": "Public navigation",
+    "features": "Features",
     "how": "How it works",
     "forWho": "Who it is for",
     "language": "Choose language",
@@ -10,13 +11,49 @@
     "registerShort": "Get started"
   },
   "hero": {
-    "eyebrow": "Your own record of work and pay",
-    "title": "Know what you did. Know what you earned.",
-    "subtitle": "Record your activities, hours, output and absences as you work. At the end of the month, Alveryn gives you a clear record to review against your payslip.",
-    "primaryCta": "Create free account",
-    "secondaryCta": "Explore the product",
-    "points": ["Manual entry in seconds", "Time, units and fixed work", "A monthly record you control"]
+    "eyebrow": "Work and earnings, in one place",
+    "title": "Track your work. See exactly what you earned.",
+    "subtitle": "Record hours, shifts, completed units, fixed-price jobs and absences. Alveryn calculates your estimated earnings and keeps every job in one clear monthly record.",
+    "primaryCta": "Start tracking for free",
+    "secondaryCta": "See how it works",
+    "points": ["Hourly, per-unit and fixed-price work", "Multiple jobs and rates", "No spreadsheet calculations"],
+    "previewAlt": "Examples showing recorded hourly and per-unit work converted into estimated earnings",
+    "dayAlt": "Daily summary with six and a half worked hours and estimated earnings",
+    "activityAlt": "Recorded work activity with schedule, hours and calculated earnings",
+    "examples": { "hourly": { "label": "Hourly shift", "work": "6h 30m × €17.50/hour", "result": "€113.75 estimated" }, "unit": { "label": "Completed units", "work": "24 deliveries × €1.80", "result": "€43.20 estimated" } }
   },
+  "problem": { "eyebrow": "Real working days", "title": "Your work is more than a start time and an end time.", "body": "Different activities and payment rules make a simple timer or a note difficult to verify at the end of the month.", "points": ["More than one activity in a day", "Hourly, unit and job-based pay", "Rates that change", "More than one job", "Manual calculations spread across notes and sheets"] },
+  "workModes": { "eyebrow": "Fits the way you work", "title": "Record the work in the form it actually takes.", "body": "Use time, output or an agreed amount. Alveryn keeps the calculation understandable.", "items": [
+    { "title": "Hourly work", "body": "Track a shift with check-in/check-out or enter the time manually.", "example": "8h × €18/hour = €144" },
+    { "title": "Per-unit work", "body": "Record rooms, deliveries, pieces, kilometres, square metres or another unit.", "example": "24 deliveries × €1.80 = €43.20" },
+    { "title": "Fixed-price jobs", "body": "Record a completed job with the amount agreed for that work.", "example": "Installation completed = €250" },
+    { "title": "Multiple jobs and activities", "body": "Keep separate rates and activities without splitting your history across tools.", "example": "Morning job + evening job" }
+  ] },
+  "how": { "eyebrow": "How it works", "title": "Set it up once. Record in seconds.", "body": "The everyday workflow stays simple even when the rules behind the work are not.", "steps": [
+    { "title": "Set up how you work", "body": "Add a job, choose how you are paid and define the activities you perform." },
+    { "title": "Record the work", "body": "Enter time, completed units or a finished job in seconds." },
+    { "title": "Review hours and earnings", "body": "See daily and monthly totals without rebuilding everything manually." }
+  ] },
+  "proof": { "eyebrow": "Product proof", "title": "A clear answer at every level.", "body": "The interface follows the same record from today to the complete month and long-term trends.",
+    "dashboard": { "title": "See today’s work and earnings immediately.", "body": "Activities, hours, calculated earnings and the week around them.", "link": "Explore Dashboard", "alt": "Alveryn Dashboard daily work and earnings card" },
+    "calendar": { "title": "Understand the complete month day by day.", "body": "Workdays, rest days, absences, totals and payroll document checks.", "link": "Explore Calendar", "alt": "Alveryn Calendar showing a month of workdays and earnings" },
+    "statistics": { "title": "See how your hours and income change over time.", "body": "Move from a week to a year and compare periods on the same scale.", "link": "Explore Statistics", "alt": "Alveryn Statistics gross income trend chart" }
+  },
+  "multipleJobs": { "eyebrow": "More than one job", "title": "One record, even when you have more than one job.", "body": "Each job keeps its own activities, rates, payment rules and history. You can review separate totals or the complete picture.", "jobs": [
+    { "label": "Job one", "title": "Morning cleaning", "points": ["Hourly shifts", "Room-based work", "Weekend extra pay"] },
+    { "label": "Job two", "title": "Evening deliveries", "points": ["Pay per delivery", "A different rate", "Separate and combined totals"] }
+  ] },
+  "data": { "eyebrow": "Import and export", "title": "Your existing records can come with you.", "body": "Bring in XLSX, TXT, PDF or images, review what Alveryn found before saving, and export a clear PDF when you need it.", "import": { "title": "Review before import", "body": "Nothing is silently added. Confirm clear days, correct questions and skip duplicates before saving." }, "export": { "title": "A record you can share", "body": "Choose a period and export the work details you want in a clear PDF." } },
+  "forWho": { "eyebrow": "Who it’s for", "title": "For people whose work does not fit one simple timer.", "body": "Alveryn is a personal record for workers, not management software for companies.", "items": [
+    { "title": "Hourly and shift workers", "body": "Keep shifts, breaks, overtime context and absences together." },
+    { "title": "People with multiple jobs", "body": "Separate activities and rates while keeping one history." },
+    { "title": "Delivery and piece-based workers", "body": "Record completed units beside time-based work." },
+    { "title": "Cleaning, installation and field workers", "body": "Track changing places, jobs and payment rules." },
+    { "title": "Freelancers with mixed rates", "body": "Use hourly, unit and fixed amounts in the same month." },
+    { "title": "Anyone who wants an independent record", "body": "Know what you recorded before checking another document." }
+  ] },
+  "theme": { "light": "Use light mode", "dark": "Use dark mode" },
+  "footer": { "description": "A personal work and earnings tracker for people whose working days and payment rules are not always simple." },
   "formats": {
     "time": "Hourly shifts",
     "unit": "Work paid per unit",
@@ -27,9 +64,9 @@
     "dashboard": { "eyebrow": "Dashboard", "title": "Your day, already organized.", "body": "Open Alveryn and immediately see the work, time and money that matter today.", "points": ["Today's total", "Every activity", "Earnings as you work"] },
     "calendar": { "eyebrow": "Calendar", "title": "The whole month, without reconstructing it.", "body": "Workdays, hours, income and absences stay together in one clear timeline.", "points": ["Daily history", "Monthly totals", "Absences separated"] },
     "statistics": { "eyebrow": "Statistics", "title": "See the pattern behind the numbers.", "body": "Move from a single day to a full year and compare periods with one touch.", "points": ["Day to year", "Income trends", "Period comparison"] },
-    "lohn": { "eyebrow": "Lohn", "title": "Your record beside their document.", "body": "Compare Alveryn with your payslip and spot differences before they disappear into paperwork.", "points": ["Hours compared", "Gross compared", "Lohn details extracted"] }
+    "lohn": { "eyebrow": "Payslip check", "title": "Your record beside their document.", "body": "Compare Alveryn with your payslip and spot differences before they disappear into paperwork.", "points": ["Hours compared", "Gross compared", "Payslip details extracted"] }
   },
-  "marketingTour": { "eyebrow": "Explore Alveryn", "title": "Three places. One complete work record.", "body": "Start with the overview, then open the part of the product you want to understand.", "dashboard": { "title": "Dashboard", "body": "Today’s work and the week around it." }, "calendar": { "title": "Calendar", "body": "Every day, monthly total and Lohn match." }, "statistics": { "title": "Statistics", "body": "Trends, essential numbers and comparisons." } },
+  "marketingTour": { "eyebrow": "Explore Alveryn", "title": "Three places. One complete work record.", "body": "Start with the overview, then open the part of the product you want to understand.", "dashboard": { "title": "Dashboard", "body": "Today’s work and the week around it." }, "calendar": { "title": "Calendar", "body": "Every day, monthly total and payslip match." }, "statistics": { "title": "Statistics", "body": "Trends, essential numbers and comparisons." } },
   "productPages": { "back": "Back to Alveryn", "ctaTitle": "Ready to make your own record?", "dashboard": { "eyebrow": "Dashboard tour" }, "calendar": { "eyebrow": "Calendar tour" }, "statistics": { "eyebrow": "Statistics tour" } },
   "dashboardTour": {
     "title": "Everything important, before your first scroll.",
@@ -45,7 +82,7 @@
     "cards": {
       "month": { "tag": "Monthly activity", "title": "Every day has context.", "body": "Spot workdays, rest days, hours, earnings and vacation without opening each entry." },
       "summary": { "tag": "Monthly summary", "title": "The answer at the end of the month.", "body": "Gross, hours, days, absences and extra pay stay in one compact balance." },
-      "payroll": { "tag": "Payroll match", "title": "Alveryn and Lohn, line by line.", "body": "Compare worked hours, extra pay and gross, then inspect the items extracted from Lohn." },
+      "payroll": { "tag": "Payslip match", "title": "Your record and payslip, line by line.", "body": "Compare worked hours, extra pay and gross, then inspect the items extracted from your payslip." },
       "flow": { "tag": "Flow", "title": "See how income moved.", "body": "Daily earnings reveal strong days, gaps and the month’s real average." },
       "rhythm": { "tag": "Rhythm", "title": "See how your time moved.", "body": "Daily hours make workload and unusual days visible at a glance." },
       "tools": { "tag": "Your data", "title": "Bring it in. Take it with you.", "body": "Import historical work and export a clear PDF whenever you need to share it." }
@@ -151,19 +188,19 @@
     "body": "Upload your payslip and let Alveryn extract its details, so possible differences are easier to identify against your own work history.",
     "alt": "Payslip upload and analysis preview in Alveryn.",
     "uploadLabel": "Upload",
-    "document": "Payslip · July 2026",
+    "document": "Payslip · July 2026", "documentShort": "Payslip",
     "resultLabel": "Analysis ready",
     "result": "Review possible differences",
     "resultHint": "Compare recorded hours, earnings and payslip details in one place.",
-    "comparisonTitle": "Alveryn vs. Lohn",
+    "comparisonTitle": "Your record vs. payslip",
     "item": "Item", "difference": "Difference", "hours": "Paid hours", "gross": "Gross", "workedDays": "Worked days",
     "net": "Net pay", "tax": "Tax", "social": "Social insurance",
     "disclaimer": "Alveryn helps you review the information; it does not replace professional payroll or legal advice."
   },
   "final": {
-    "title": "Stop reconstructing your work at the end of the month.",
-    "subtitle": "Start building a clear, reliable history of your time, output and earnings today.",
-    "points": ["One record you control", "Every way you work", "Proof when numbers differ"],
+    "title": "Stop calculating your work from memory.",
+    "subtitle": "Start building a clear record of your hours, activities and earnings.",
+    "points": ["Free account", "Works in the browser and as an installable PWA", "No spreadsheet required"],
     "primaryCta": "Start tracking for free"
   }
 }

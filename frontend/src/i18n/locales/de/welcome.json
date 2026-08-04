@@ -1,7 +1,8 @@
 {
   "loading": "Alveryn wird geladen...",
   "nav": {
-    "product": "Produkt",
+    "aria": "Öffentliche Navigation",
+    "features": "Funktionen",
     "how": "So funktioniert es",
     "forWho": "Für wen",
     "language": "Sprache auswählen",
@@ -10,13 +11,49 @@
     "registerShort": "Loslegen"
   },
   "hero": {
-    "eyebrow": "Dein eigener Nachweis über Arbeit und Bezahlung",
-    "title": "Wisse, was du geleistet hast. Wisse, was du verdient hast.",
-    "subtitle": "Erfasse Tätigkeiten, Stunden, Leistung und Abwesenheiten direkt während des Monats. Am Monatsende gibt dir Alveryn einen klaren Verlauf für den Vergleich mit deiner Lohnabrechnung.",
-    "primaryCta": "Kostenloses Konto erstellen",
-    "secondaryCta": "Produkt ansehen",
-    "points": ["Manuelle Erfassung in Sekunden", "Zeit, Einheiten und Festpreisarbeit", "Dein eigener Monatsnachweis"]
+    "eyebrow": "Arbeit und Einkommen an einem Ort",
+    "title": "Erfasse deine Arbeit. Sieh genau, was du verdient hast.",
+    "subtitle": "Erfasse Stunden, Schichten, fertige Einheiten, Festpreisaufträge und Abwesenheiten. Alveryn berechnet dein geschätztes Einkommen und hält alle Jobs in einer klaren Monatsübersicht fest.",
+    "primaryCta": "Kostenlos erfassen",
+    "secondaryCta": "So funktioniert es",
+    "points": ["Stunden-, Einheiten- und Festpreisarbeit", "Mehrere Jobs und Tarife", "Keine Tabellenkalkulation"],
+    "previewAlt": "Beispiele für Stunden- und Einheitenarbeit mit berechnetem Einkommen",
+    "dayAlt": "Tagesübersicht mit sechseinhalb Arbeitsstunden und geschätztem Einkommen",
+    "activityAlt": "Erfasste Tätigkeit mit Zeitplan, Stunden und berechnetem Einkommen",
+    "examples": { "hourly": { "label": "Stundenschicht", "work": "6h 30m × 17,50 €/Stunde", "result": "113,75 € geschätzt" }, "unit": { "label": "Fertige Einheiten", "work": "24 Lieferungen × 1,80 €", "result": "43,20 € geschätzt" } }
   },
+  "problem": { "eyebrow": "Echte Arbeitstage", "title": "Deine Arbeit ist mehr als eine Start- und Endzeit.", "body": "Verschiedene Tätigkeiten und Zahlungsregeln machen Timer und Notizen am Monatsende schwer prüfbar.", "points": ["Mehrere Tätigkeiten pro Tag", "Bezahlung nach Stunde, Einheit oder Auftrag", "Wechselnde Tarife", "Mehrere Jobs", "Manuelle Berechnungen in Notizen und Tabellen"] },
+  "workModes": { "eyebrow": "Passt zu deiner Arbeit", "title": "Erfasse Arbeit so, wie sie wirklich anfällt.", "body": "Nutze Zeit, Ergebnis oder vereinbarten Betrag. Alveryn hält die Berechnung nachvollziehbar.", "items": [
+    { "title": "Stundenarbeit", "body": "Erfasse eine Schicht per Check-in/Check-out oder trage die Zeit manuell ein.", "example": "8h × 18 €/Stunde = 144 €" },
+    { "title": "Arbeit pro Einheit", "body": "Erfasse Zimmer, Lieferungen, Stücke, Kilometer, Quadratmeter oder andere Einheiten.", "example": "24 Lieferungen × 1,80 € = 43,20 €" },
+    { "title": "Festpreisaufträge", "body": "Erfasse einen fertigen Auftrag mit dem vereinbarten Betrag.", "example": "Installation fertig = 250 €" },
+    { "title": "Mehrere Jobs und Tätigkeiten", "body": "Halte Tarife und Tätigkeiten getrennt, ohne deinen Verlauf auf mehrere Tools zu verteilen.", "example": "Morgenjob + Abendjob" }
+  ] },
+  "how": { "eyebrow": "So funktioniert es", "title": "Einmal einrichten. In Sekunden erfassen.", "body": "Der Alltag bleibt einfach, auch wenn die Regeln dahinter unterschiedlich sind.", "steps": [
+    { "title": "Lege fest, wie du arbeitest", "body": "Füge einen Job hinzu, wähle die Bezahlung und definiere deine Tätigkeiten." },
+    { "title": "Erfasse die Arbeit", "body": "Trage Zeit, fertige Einheiten oder einen abgeschlossenen Auftrag in Sekunden ein." },
+    { "title": "Prüfe Stunden und Einkommen", "body": "Sieh Tages- und Monatssummen, ohne alles manuell neu zu berechnen." }
+  ] },
+  "proof": { "eyebrow": "Das Produkt im Einsatz", "title": "Eine klare Antwort auf jeder Ebene.", "body": "Dieselbe Aufzeichnung begleitet dich vom heutigen Tag über den ganzen Monat bis zum langfristigen Verlauf.",
+    "dashboard": { "title": "Sieh heutige Arbeit und Einkommen sofort.", "body": "Tätigkeiten, Stunden, berechnetes Einkommen und die Woche im Kontext.", "link": "Dashboard ansehen", "alt": "Alveryn Dashboard mit Arbeit und Einkommen des Tages" },
+    "calendar": { "title": "Verstehe den ganzen Monat Tag für Tag.", "body": "Arbeitstage, freie Tage, Abwesenheiten, Summen und Lohnabrechnungsprüfung.", "link": "Kalender ansehen", "alt": "Alveryn Kalender mit Arbeitstagen und Einkommen" },
+    "statistics": { "title": "Sieh, wie sich Stunden und Einkommen verändern.", "body": "Wechsle von Woche zu Jahr und vergleiche Zeiträume auf derselben Skala.", "link": "Statistiken ansehen", "alt": "Alveryn Statistik mit Bruttoeinkommensverlauf" }
+  },
+  "multipleJobs": { "eyebrow": "Mehrere Jobs", "title": "Eine Aufzeichnung, auch bei mehreren Jobs.", "body": "Jeder Job behält eigene Tätigkeiten, Tarife, Regeln und Verläufe. Prüfe getrennte Summen oder das Gesamtbild.", "jobs": [
+    { "label": "Job eins", "title": "Reinigung am Morgen", "points": ["Stundenschichten", "Arbeit pro Zimmer", "Wochenendzuschlag"] },
+    { "label": "Job zwei", "title": "Lieferungen am Abend", "points": ["Bezahlung pro Lieferung", "Eigener Tarif", "Getrennte und gemeinsame Summen"] }
+  ] },
+  "data": { "eyebrow": "Import und Export", "title": "Deine bisherigen Aufzeichnungen können mitkommen.", "body": "Importiere XLSX, TXT, PDF oder Bilder, prüfe die Erkennung vor dem Speichern und exportiere ein klares PDF.", "import": { "title": "Prüfen vor dem Import", "body": "Nichts wird still hinzugefügt. Bestätige klare Tage, korrigiere Fragen und überspringe Duplikate." }, "export": { "title": "Eine teilbare Aufzeichnung", "body": "Wähle einen Zeitraum und exportiere die gewünschten Arbeitsdetails als klares PDF." } },
+  "forWho": { "eyebrow": "Für wen", "title": "Für Menschen, deren Arbeit nicht in einen einfachen Timer passt.", "body": "Alveryn ist deine persönliche Aufzeichnung, keine Verwaltungssoftware für Unternehmen.", "items": [
+    { "title": "Stunden- und Schichtarbeiter", "body": "Schichten, Pausen, Mehrarbeitskontext und Abwesenheiten zusammenhalten." },
+    { "title": "Menschen mit mehreren Jobs", "body": "Tätigkeiten und Tarife in einem Verlauf trennen." },
+    { "title": "Liefer- und Stückarbeit", "body": "Fertige Einheiten neben zeitbasierter Arbeit erfassen." },
+    { "title": "Reinigung, Installation und Außendienst", "body": "Wechselnde Orte, Aufträge und Zahlungsregeln verfolgen." },
+    { "title": "Selbstständige mit gemischten Tarifen", "body": "Stunden-, Einheiten- und Festbeträge im selben Monat nutzen." },
+    { "title": "Alle, die einen eigenen Nachweis wollen", "body": "Wisse, was du erfasst hast, bevor du ein anderes Dokument prüfst." }
+  ] },
+  "theme": { "light": "Hellen Modus verwenden", "dark": "Dunklen Modus verwenden" },
+  "footer": { "description": "Eine persönliche App zur Erfassung von Arbeit und Einkommen für Arbeitstage und Zahlungsregeln, die nicht immer einfach sind." },
   "formats": {
     "time": "Arbeit nach Stunden",
     "unit": "Bezahlung pro Einheit",
@@ -151,19 +188,19 @@
     "body": "Lade deine Lohnabrechnung hoch. Alveryn liest die Angaben aus, damit mögliche Abweichungen zu deinem eigenen Arbeitsverlauf leichter erkennbar werden.",
     "alt": "Vorschau für Upload und Analyse einer Lohnabrechnung in Alveryn.",
     "uploadLabel": "Hochladen",
-    "document": "Lohnabrechnung · Juli 2026",
+    "document": "Lohnabrechnung · Juli 2026", "documentShort": "Lohnabrechnung",
     "resultLabel": "Analyse bereit",
     "result": "Mögliche Abweichungen prüfen",
     "resultHint": "Vergleiche erfasste Stunden, Einkommen und Dokumentangaben an einem Ort.",
-    "comparisonTitle": "Alveryn vs. Lohn",
+    "comparisonTitle": "Deine Aufzeichnung vs. Lohnabrechnung",
     "item": "Position", "difference": "Differenz", "hours": "Bezahlte Stunden", "gross": "Brutto", "workedDays": "Arbeitstage",
     "net": "Netto", "tax": "Steuer", "social": "Sozialversicherung",
     "disclaimer": "Alveryn unterstützt bei der Prüfung und ersetzt keine professionelle Lohn- oder Rechtsberatung."
   },
   "final": {
-    "title": "Rekonstruiere deine Arbeit nicht erst am Monatsende.",
-    "subtitle": "Baue ab heute einen klaren, verlässlichen Verlauf über Zeit, Leistung und Einkommen auf.",
-    "points": ["Deine eigene Aufzeichnung", "Jede Art zu arbeiten", "Nachweis bei Abweichungen"],
+    "title": "Berechne deine Arbeit nicht mehr aus dem Gedächtnis.",
+    "subtitle": "Baue eine klare Aufzeichnung deiner Stunden, Tätigkeiten und Einkommen auf.",
+    "points": ["Kostenloses Konto", "Im Browser und als installierbare PWA", "Keine Tabelle erforderlich"],
     "primaryCta": "Kostenlos mit Tracking starten"
   }
 }

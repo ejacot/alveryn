@@ -8,7 +8,7 @@ const DISMISSED_STORAGE_KEY = "alveryn.install-tip-dismissed";
 
 function shouldShowInstallTip() {
   if (typeof window === "undefined" || isInstalledApp()) return false;
-  return window.sessionStorage.getItem(DISMISSED_STORAGE_KEY) !== "1";
+  return window.localStorage.getItem(DISMISSED_STORAGE_KEY) !== "1";
 }
 
 export function InstallAppTip() {
@@ -18,7 +18,7 @@ export function InstallAppTip() {
   if (!visible) return null;
 
   const dismiss = () => {
-    window.sessionStorage.setItem(DISMISSED_STORAGE_KEY, "1");
+    window.localStorage.setItem(DISMISSED_STORAGE_KEY, "1");
     setVisible(false);
   };
 
@@ -33,7 +33,6 @@ export function InstallAppTip() {
           <p className="mt-1 text-sm leading-5 text-[var(--text-secondary)]">
             {t("installTip.description")}
           </p>
-          <p className="mt-2 text-xs font-medium text-[#10b981]">{t("installTip.appStore")}</p>
         </div>
       </div>
       <button

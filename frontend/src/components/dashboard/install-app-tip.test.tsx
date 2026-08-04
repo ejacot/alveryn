@@ -3,7 +3,7 @@ import { InstallAppTip } from "./install-app-tip";
 
 describe("InstallAppTip", () => {
   beforeEach(() => {
-    window.sessionStorage.clear();
+    window.localStorage.clear();
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: vi.fn().mockReturnValue({ matches: false })

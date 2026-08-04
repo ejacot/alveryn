@@ -17,29 +17,29 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta
       name="description"
-      content="Track hours, completed work, rates, earnings and absences in one reliable record — even when every workday is different."
+      content="Track work hours, shifts, unit-based work, fixed-price jobs, multiple jobs, estimated earnings and absences in one clear record."
     />
     <link rel="canonical" href="https://alveryn.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Alveryn" />
     <meta property="og:url" content="https://alveryn.com/" />
-    <meta property="og:title" content="Alveryn — Understand your work and earnings" />
+    <meta property="og:title" content="Alveryn — Track your work and estimated earnings" />
     <meta
       property="og:description"
-      content="Track hours, completed work, rates, earnings and absences in one reliable record."
+      content="Record hours, shifts, completed units, fixed-price jobs and absences. See estimated earnings across multiple jobs."
     />
     <meta property="og:image" content="https://alveryn.com/social/alveryn-og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Alveryn logo and work tracking product message" />
+    <meta property="og:image:alt" content="Alveryn personal work and estimated earnings tracker" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Alveryn — Understand your work and earnings" />
+    <meta name="twitter:title" content="Alveryn — Track your work and estimated earnings" />
     <meta
       name="twitter:description"
-      content="Track hours, completed work, rates, earnings and absences in one reliable record."
+      content="Record hours, shifts, unit-based work, fixed-price jobs and absences across multiple jobs."
     />
     <meta name="twitter:image" content="https://alveryn.com/social/alveryn-og.png" />
-    <meta name="twitter:image:alt" content="Alveryn logo and work tracking product message" />
+    <meta name="twitter:image:alt" content="Alveryn personal work and estimated earnings tracker" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -53,23 +53,20 @@
         "operatingSystem": "Web",
         "url": "https://alveryn.com/",
         "logo": "https://alveryn.com/brand/alveryn-mark.png",
-        "description": "Track hours, completed work, rates, earnings and absences in one reliable record.",
+        "description": "Record work hours, shifts, unit-based work, fixed-price jobs and absences. Alveryn calculates estimated earnings and keeps multiple jobs in one clear history.",
         "featureList": [
           "Check-in and check-out time tracking",
           "Manual work entries",
           "Hourly, per-unit and fixed-price work",
-          "Multiple employments and work types",
-          "Earnings calculation",
+          "Multiple jobs, activities and rates",
+          "Estimated gross earnings calculation",
           "Leave and absence tracking",
           "Hours balance account",
-          "Daily, weekly and monthly statistics"
+          "Daily, weekly, monthly and annual history",
+          "Reviewed import from XLSX, TXT, PDF and images",
+          "Payslip comparison and PDF export"
         ],
-        "inLanguage": ["en", "de", "ro", "ru"],
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        }
+        "inLanguage": ["en", "de", "ro", "ru"]
       }
     </script>
     <style>
@@ -128,7 +125,7 @@
         text-decoration: none;
       }
     </style>
-    <title>Alveryn — Work hours, earnings and absences</title>
+    <title>Alveryn — Track work hours, shifts and estimated earnings</title>
   </head>
   <body class="bg-ink">
     <div id="root">
@@ -136,13 +133,13 @@
         <div class="seo-shell__content">
           <header>
             <strong>Alveryn</strong>
-            <h1>Track the work. Know the hours. Understand the money.</h1>
+            <h1>Track your work. See exactly what you earned.</h1>
             <p>
-              Alveryn keeps working hours, completed activities, payment rates,
-              calculated earnings and absences in one reliable record—even when
-              every workday is different.
+              Record hours, shifts, completed units, fixed-price jobs and absences.
+              Alveryn calculates estimated earnings and keeps every job in one
+              clear monthly record.
             </p>
-            <a href="/register">Create a free account</a>
+            <a href="/register">Start tracking for free</a>
             <a href="/login">Sign in</a>
           </header>
           <section aria-labelledby="alveryn-features">
@@ -150,12 +147,14 @@
             <ul>
               <li>Check in and check out with a live work timer.</li>
               <li>Enter working time manually when needed.</li>
-              <li>Track hourly, per-unit and fixed-price work.</li>
-              <li>Keep multiple jobs, activities and rates organized.</li>
-              <li>Calculate and review estimated earnings.</li>
+              <li>Track hourly, unit-based and fixed-price work.</li>
+              <li>Keep multiple jobs, activities and payment rates organized.</li>
+              <li>Calculate and review estimated gross earnings.</li>
               <li>Record vacation, sickness and other absences.</li>
               <li>Compare worked hours with a weekly or monthly target.</li>
-              <li>Review daily, weekly and monthly history and statistics.</li>
+              <li>Review daily, weekly, monthly and annual history.</li>
+              <li>Import existing records with review before saving.</li>
+              <li>Compare your record with a payslip and export PDF.</li>
             </ul>
           </section>
           <section aria-labelledby="alveryn-audience">
