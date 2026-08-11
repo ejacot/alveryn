@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { Briefcase, CalendarX, ChevronRight, Coffee, Plus, X } from "lucide-react";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
 import type { AbsenceTypeSetting } from "../../types/absence";
@@ -17,6 +17,8 @@ import type { ReactNode } from "react";
 
 type Props = {
   selectedDay: SelectedDayOverview;
+  emptyDayEyebrow?: string;
+  emptyDayQuestion?: string;
   weeklyDays?: WeeklyRhythmDay[];
   previousWeekAverageMinutes?: number;
   previousWeekAverageGross?: number;
@@ -43,6 +45,8 @@ type Props = {
 
 export function DashboardOverview({
   selectedDay,
+  emptyDayEyebrow,
+  emptyDayQuestion,
   weeklyDays,
   previousWeekAverageMinutes,
   previousWeekAverageGross,
@@ -75,6 +79,25 @@ export function DashboardOverview({
     if (!flowAvailable) setWeeklyView("rhythm");
   }, [flowAvailable]);
 
+  const hasWorkActivity = selectedDay.activities.some((activity) => activity.kind !== "ABSENCE");
+
+  if (!selectedDay.entriesCount && !restDay && !preview) {
+    return (
+      <EmptyDayPrompt
+        eyebrow={emptyDayEyebrow ?? t("emptyDay.eyebrow")}
+        question={emptyDayQuestion ?? t("emptyDay.questionFallback")}
+        absenceTypes={absenceTypes}
+        restDayPending={restDayPending}
+        absencePending={absencePending}
+        absenceError={absenceError}
+        onWorked={onQuickAdd}
+        onRest={onMarkRestDay}
+        onCreateAbsence={onCreateAbsence}
+        onConfigureAbsences={onConfigureAbsences}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5 pb-6">
       {preview ? (
@@ -86,45 +109,37 @@ export function DashboardOverview({
           <p className="text-sm leading-6 text-white/46">{t("heading.previewDescription")}</p>
         </div>
       ) : null}
-      <Card as="section" variant="ambient" className={`dashboard-today-card relative overflow-hidden px-5 ${selectedDay.entriesCount ? "py-5" : "py-4"}`}>
-        <div
-          className="pointer-events-none absolute -right-16 -top-24 h-52 w-52 rounded-full bg-[#10b981]/[0.055] blur-3xl"
-          aria-hidden="true"
-        />
-        <div className="relative flex items-start justify-between gap-5">
-          <div className="min-w-0">
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#10b981]/68">
-              {selectedDay.label}
-            </p>
-          </div>
+      {hasWorkActivity ? (
+        <Card as="section" variant="ambient" className="dashboard-primary-card dashboard-today-card dashboard-compact-summary relative overflow-hidden px-5 py-4">
+          <div className="relative grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_auto] items-center gap-4">
+            <div className="min-w-0">
+              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#f5f5f5]/34">
+                {selectedDay.durationLabel ?? t("selectedDay.hours")}
+              </p>
+              <p className="mt-1.5 truncate font-metric text-[1.35rem] font-medium leading-none tracking-[-0.05em] text-[#f5f5f5]">
+                {selectedDay.totalDuration || "—"}
+              </p>
+            </div>
+            <span className="h-9 bg-white/[0.08]" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#f5f5f5]/34">
+                {t("selectedDay.earnings")}
+              </p>
+              <p className="mt-1.5 truncate font-metric text-[1.08rem] font-medium leading-none tracking-[-0.04em] text-[#34d399]">
+                {selectedDay.totalGross || "—"}
+              </p>
+            </div>
           <button
             type="button"
             onClick={onQuickAdd}
             aria-label={t("quickAdd.accessibleLabel")}
-            className="dashboard-quick-add relative grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#34d399]/28 bg-[#10b981]/12 text-[#34d399] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition active:scale-[0.94]"
+              className="dashboard-quick-add relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#34d399]/20 bg-[#10b981]/10 text-[#34d399] transition active:scale-[0.94]"
           >
-            <Plus className="h-5 w-5" strokeWidth={1.9} aria-hidden="true" />
+              <Plus className="h-[1.1rem] w-[1.1rem]" strokeWidth={1.9} aria-hidden="true" />
           </button>
-        </div>
-        <div className="relative mt-5 grid grid-cols-2 gap-4 border-t border-[#10b981]/10 pt-4">
-          <div>
-            <p className="text-[0.62rem] font-medium uppercase tracking-[0.14em] text-[#f5f5f5]/34">
-              {selectedDay.durationLabel ?? t("selectedDay.hours")}
-            </p>
-            <p className="mt-2 font-metric text-[1.65rem] font-medium leading-none tracking-[-0.055em] text-[#f5f5f5]">
-              {selectedDay.totalDuration || "—"}
-            </p>
           </div>
-          <div className="text-right">
-            <p className="text-[0.62rem] font-medium uppercase tracking-[0.14em] text-[#f5f5f5]/34">
-              {t("selectedDay.earnings")}
-            </p>
-            <p className="mt-2 break-words font-metric text-[1.15rem] font-medium leading-none tracking-[-0.04em] text-[#34d399]">
-              {selectedDay.totalGross || "—"}
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      ) : null}
       <SelectedDayPanel
         selectedDay={selectedDay}
         absenceTypes={absenceTypes}
@@ -200,6 +215,98 @@ export function DashboardOverview({
   );
 }
 
+function EmptyDayPrompt({
+  eyebrow,
+  question,
+  absenceTypes,
+  restDayPending,
+  absencePending,
+  absenceError,
+  onWorked,
+  onRest,
+  onCreateAbsence,
+  onConfigureAbsences
+}: {
+  eyebrow: string;
+  question: string;
+  absenceTypes: AbsenceTypeSetting[];
+  restDayPending: boolean;
+  absencePending: boolean;
+  absenceError: string | null;
+  onWorked: () => void;
+  onRest?: () => void;
+  onCreateAbsence: (absenceTypeId: string) => void;
+  onConfigureAbsences?: () => void;
+}) {
+  const { t } = useTranslation("dashboard");
+  const [absenceOpen, setAbsenceOpen] = useState(false);
+
+  return (
+    <section className="dashboard-empty-prompt pb-8 pt-9" aria-labelledby="empty-day-question">
+      <p className="hairline-text text-center">{eyebrow}</p>
+      <h1
+        id="empty-day-question"
+        className="mx-auto mt-3 max-w-[20rem] text-center text-[2.15rem] font-semibold leading-[1.08] tracking-[-0.06em] text-white"
+      >
+        {question}
+      </h1>
+      <div className="dashboard-empty-choice-card mt-10 overflow-hidden rounded-[28px] border">
+        <button
+          type="button"
+          onClick={onWorked}
+          className="dashboard-day-choice dashboard-day-choice--primary group flex min-h-[76px] w-full items-center gap-4 px-5 text-left transition-colors focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#10b981]"
+        >
+          <span className="dashboard-day-choice-icon grid h-11 w-11 shrink-0 place-items-center rounded-full">
+            <Briefcase className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <span className="text-base font-semibold tracking-[-0.025em]">{t("emptyDay.worked")}</span>
+          <ChevronRight className="ml-auto h-4 w-4 opacity-35" strokeWidth={2} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={onRest}
+          disabled={!onRest || restDayPending}
+          className="dashboard-day-choice flex min-h-[76px] w-full items-center gap-4 border-t px-5 text-left transition-colors focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#10b981] disabled:opacity-45"
+        >
+          <span className="dashboard-day-choice-icon grid h-11 w-11 shrink-0 place-items-center rounded-full">
+            <Coffee className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <span className="text-base font-semibold tracking-[-0.025em]">{t("emptyDay.rested")}</span>
+          <ChevronRight className="ml-auto h-4 w-4 opacity-35" strokeWidth={2} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbsenceOpen(true)}
+          className="dashboard-day-choice flex min-h-[76px] w-full items-center gap-4 border-t px-5 text-left transition-colors focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#10b981]"
+        >
+          <span className="dashboard-day-choice-icon grid h-11 w-11 shrink-0 place-items-center rounded-full">
+            <CalendarX className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <span className="text-base font-semibold tracking-[-0.025em]">{t("emptyDay.absent")}</span>
+          <ChevronRight className="ml-auto h-4 w-4 opacity-35" strokeWidth={2} aria-hidden="true" />
+        </button>
+      </div>
+      {absenceError ? <p className="mt-4 px-2 text-sm text-red-200/90">{absenceError}</p> : null}
+      <AbsenceChooser
+        open={absenceOpen}
+        pending={absencePending}
+        onClose={() => setAbsenceOpen(false)}
+        onSelect={(absenceTypeId) => {
+          onCreateAbsence(absenceTypeId);
+          setAbsenceOpen(false);
+        }}
+        onConfigure={onConfigureAbsences
+          ? () => {
+              setAbsenceOpen(false);
+              onConfigureAbsences();
+            }
+          : undefined}
+        absenceTypes={absenceTypes}
+      />
+    </section>
+  );
+}
+
 function SelectedDayPanel({
   selectedDay,
   absenceTypes,
@@ -253,7 +360,7 @@ function SelectedDayPanel({
   if (restDay) {
     return (
       <motion.section {...swipeProps} className="touch-pan-y">
-        <Card variant="ambient" className="flex min-h-[72px] items-center gap-3 px-4 py-3">
+        <Card variant="ambient" className="dashboard-primary-card flex min-h-[72px] items-center gap-3 px-4 py-3">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full bg-white/35"
             aria-hidden="true"

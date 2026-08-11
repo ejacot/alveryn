@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -59,6 +59,7 @@ import { useEmploymentScope } from "../features/employment/employment-scope";
 const EMPTY_ABSENCES: Absence[] = [];
 const EMPTY_WORK_RECORDS: WorkRecord[] = [];
 const EMPTY_ABSENCE_TYPES: AbsenceTypeSetting[] = [];
+const GENERIC_EXTRA_PAY_KEY = "__extra_pay__";
 
 type OutletContext = {
   setSelectedDate?: (date: Date) => void;
@@ -68,6 +69,12 @@ export function CalendarPage() {
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
   const { t } = useTranslation(["calendar", "settings"]);
+  const localizedAbsenceName = useCallback((code: AbsenceTypeSetting["code"], fallback: string) => {
+    if (code === "SICK_LEAVE") return t("legend.sick");
+    if (code === "VACATION") return t("legend.vacation");
+    if (code === "DAY_OFF") return t("legend.dayOff");
+    return fallback;
+  }, [t]);
   const queryClient = useQueryClient();
   const selectedEmploymentId = useEmploymentScope();
   const today = useMemo(() => new Date(), []);
@@ -559,6 +566,47 @@ export function CalendarPage() {
       paidAbsences.map((absence) => absence.currency)
     );
     const totalCurrencies = new Set([...currencies, ...paidAbsenceCurrencies]);
+    const absenceGroups = new Map<string, {
+      label: string;
+      minutes: number;
+      grossAmount: number;
+      currencies: Set<string>;
+    }>();
+    paidAbsences.forEach((absence) => {
+      const key = absence.absenceTypeId ?? absence.absenceType;
+      const current = absenceGroups.get(key) ?? {
+        label: localizedAbsenceName(absence.absenceType, absence.absenceTypeName),
+        minutes: 0,
+        grossAmount: 0,
+        currencies: new Set<string>()
+      };
+      current.minutes += absence.minutes;
+      current.grossAmount += absence.grossAmount;
+      current.currencies.add(absence.currency);
+      absenceGroups.set(key, current);
+    });
+    const absenceBreakdown = Array.from(absenceGroups.entries())
+      .filter(([, item]) => item.minutes > 0 || item.grossAmount > 0)
+      .sort(([, left], [, right]) => right.minutes - left.minutes)
+      .map(([id, item]) => ({
+        id,
+        label: item.label,
+        hours: formatMinutesAsDuration(item.minutes),
+        amount: item.currencies.size > 1
+          ? t("monthlySummary.mixedCurrencies")
+          : formatCurrency(String(item.grossAmount), [...item.currencies][0] ?? currency)
+      }));
+    const extraPayBreakdown = extraPaid.items
+      .filter((item) => item.minutes > 0 || item.grossAmount > 0)
+      .sort((left, right) => right.minutes - left.minutes)
+      .map((item) => ({
+        id: item.name,
+        label: item.name === GENERIC_EXTRA_PAY_KEY ? t("monthlySummary.extraPay") : item.name,
+        hours: formatMinutesAsDuration(item.minutes),
+        amount: currencies.size > 1
+          ? t("monthlySummary.mixedCurrencies")
+          : formatCurrency(String(item.grossAmount), currency)
+      }));
     return {
       workedHours: formatMinutesAsDuration(workedMinutes),
       paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes),
@@ -578,6 +626,8 @@ export function CalendarPage() {
       paidAbsenceHoursValue: paidAbsenceMinutes / 60,
       extraPaidHoursValue: extraPaid.minutes / 60,
       grossAmountValue: workGrossAmount + paidAbsenceGrossAmount,
+      absenceBreakdown,
+      extraPayBreakdown,
       workedDays,
       absenceDays,
       restDays: classifiableDates.filter((date) => restDates.has(date)).length,
@@ -594,6 +644,7 @@ export function CalendarPage() {
     monthlyMetricDays,
     monthStartKey,
     paidAbsenceDays,
+    localizedAbsenceName,
     records,
     recordsByDate,
     restDates,
@@ -681,9 +732,13 @@ export function CalendarPage() {
           days={monthGrid}
           selectedDate={selectedDate}
           today={today}
-          absenceTypes={absenceTypes.filter((type) => type.active)}
+          absenceTypes={absenceTypes.filter((type) => type.active).map((type) => ({
+            ...type,
+            name: localizedAbsenceName(type.code, type.name)
+          }))}
           getDayMeta={(isoDate) => {
-            const recordsCount = recordsByDate.get(isoDate)?.length ?? 0;
+            const dayRecords = recordsByDate.get(isoDate) ?? [];
+            const recordsCount = dayRecords.length;
             const metricDay = monthlyMetricDayByDate.get(isoDate);
             const inTrackedRange = isInTrackedRange(isoDate, firstActivityDate, todayIso);
             const absence = absenceByDate.get(isoDate) ?? null;
@@ -692,19 +747,20 @@ export function CalendarPage() {
               : null;
             const marker = absence
               ? {
-                  label: configuredType?.name || absence.absenceTypeName,
+                  label: localizedAbsenceName(
+                    configuredType?.code ?? absence.absenceType,
+                    configuredType?.name || absence.absenceTypeName
+                  ),
                   color: configuredType?.color || defaultAbsenceColor(absence.absenceType)
                 }
               : restDates.has(isoDate)
-                ? { label: t("restDay.title"), color: "rgba(255,255,255,0.34)" }
+                ? { label: t("restDay.title"), color: "#737373" }
                 : null;
             return {
               entriesCount: recordsCount,
               marker,
               activityLabel: recordsCount > 0
-                ? formatCompactCalendarDuration(
-                    metricDay?.minutes ?? 0
-                  )
+                ? formatCalendarActivity(dayRecords, metricDay?.minutes ?? 0)
                 : null,
               earningsLabel: recordsCount > 0 && (metricDay?.amount ?? 0) > 0
                 ? formatCompactCalendarAmount(
@@ -1092,11 +1148,6 @@ export function CalendarPage() {
             0
           )}
           currency={records[0]?.currency ?? preferences?.currency ?? "EUR"}
-          onDaySelect={(date) => {
-            const parsed = parseLocalIsoDate(date);
-            setSelectedDate(parsed);
-            outletContext?.setSelectedDate?.(parsed);
-          }}
         />
       </section>
 
@@ -1274,6 +1325,27 @@ function formatCompactCalendarDuration(minutes: number) {
   return `${hours}h${remainder.toString().padStart(2, "0")}`;
 }
 
+function formatCalendarActivity(records: WorkRecord[], minutes: number) {
+  const duration = formatCompactCalendarDuration(minutes);
+  if (duration) return duration;
+
+  const lines = records.flatMap((record) => record.workLines ?? []);
+  const unitLine = lines.find(
+    (line) => line.calculationMode === "UNITS_PER_UNIT" && Number(line.quantity) > 0
+  );
+  if (unitLine) {
+    const quantity = new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 1
+    }).format(Number(unitLine.quantity));
+    return `${quantity}${unitLine.unitSymbol ? ` ${unitLine.unitSymbol}` : ""}`;
+  }
+
+  const fixedLine = lines.find((line) => line.calculationMode === "FIXED_AMOUNT");
+  if (fixedLine) return null;
+
+  return records[0]?.workLines?.[0]?.workTypeName ?? null;
+}
+
 function formatCompactCalendarAmount(amount: number, currency: string) {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -1363,20 +1435,45 @@ function calculateExtraPaidInRange(
   from: string,
   to: string
 ) {
-  return records.reduce((total, record) => {
+  const grouped = new Map<string, { minutes: number; grossAmount: number }>();
+  const total = records.reduce((result, record) => {
     const eligibleDays = recordEligibleDates(record, absences);
-    if (eligibleDays.length === 0) return total;
+    if (eligibleDays.length === 0) return result;
     const overlapDays = eligibleDays.filter((date) => date >= from && date <= to).length;
     const allocation = overlapDays / eligibleDays.length;
 
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      total.minutes += Number(line.calculatedMinutes) * allocation;
-      total.grossAmount += Number(line.grossAmount) * (percentage / (100 + percentage)) * allocation;
+      const minutes = Number(
+        line.extraPaidEquivalentMinutes ?? Number(line.calculatedMinutes) * percentage / 100
+      ) * allocation;
+      const grossAmount = Number(
+        line.extraGrossAmount ?? Number(line.grossAmount) * (percentage / (100 + percentage))
+      ) * allocation;
+      result.minutes += minutes;
+      result.grossAmount += grossAmount;
+
+      const matchingRule = (line.extraPayDetails ?? [])
+        .map((detail) => ({
+          name: detail.name,
+          weight: Number(detail.eligibleMinutes) * detail.percentage / 100
+        }))
+        .filter((detail) => detail.weight > 0)
+        .sort((left, right) => right.weight - left.weight)[0];
+      const name = matchingRule?.name || GENERIC_EXTRA_PAY_KEY;
+      const current = grouped.get(name) ?? { minutes: 0, grossAmount: 0 };
+      current.minutes += minutes;
+      current.grossAmount += grossAmount;
+      grouped.set(name, current);
     });
-    return total;
+    return result;
   }, { minutes: 0, grossAmount: 0 });
+
+  return {
+    ...total,
+    items: Array.from(grouped.entries()).map(([name, values]) => ({ name, ...values }))
+  };
 }
 
 function recordTimeMinutes(record: WorkRecord) {

@@ -53,7 +53,8 @@ vi.mock("framer-motion", () => {
       div: createMockMotion("div"),
       span: createMockMotion("span"),
       button: createMockMotion("button"),
-      nav: createMockMotion("nav")
+      nav: createMockMotion("nav"),
+      path: createMockMotion("div")
     }
   };
 });
@@ -130,7 +131,10 @@ const julyRecords = [
           ratePerUnitSnapshot: null,
           currencySnapshot: "EUR",
           grossAmount: "150",
+          extraPaidEquivalentMinutes: "450",
+          extraGrossAmount: "75",
           extraPayPercentage: 100,
+          extraPayDetails: [{ name: "Night shift", eligibleMinutes: "450", percentage: 100 }],
           notes: null
         }
       ],
@@ -412,9 +416,9 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument();
     const summary = screen.getByLabelText("Monthly summary");
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
-    expect(within(summary).getByText("Paid absence")).toBeInTheDocument();
+    expect(within(summary).getByText("Vacation")).toBeInTheDocument();
     expect(within(summary).getByText("16h 00m")).toBeInTheDocument();
-    expect(within(summary).getByText("Extra pay")).toBeInTheDocument();
+    expect(within(summary).getByText("Night shift")).toBeInTheDocument();
     expect(within(summary).getByText("7h 30m")).toBeInTheDocument();
     expect(within(summary).getByText("€510.00")).toBeInTheDocument();
     expect(within(summary).getByText("€320.00")).toBeInTheDocument();
@@ -481,7 +485,9 @@ describe("CalendarPage", () => {
     expect(within(freeDay).getByText("13")).not.toHaveClass("text-red-300");
     expect(within(freeDay).getByText("Free")).toHaveStyle({ color: "#64748b" });
     expect(within(sickDay).getByText("14")).not.toHaveClass("text-red-300");
-    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#34d399]/55");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("calendar-day-today");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#10b981]/35");
+    expect(within(todayWithoutActivity).getByText("15")).not.toHaveClass("bg-[#059669]");
     expect(todayWithoutActivity).not.toHaveAccessibleName(/day off/i);
     expect(futureVacation).toHaveAccessibleName(/vacation/i);
     expect(within(futureVacation).getByText("20")).not.toHaveClass("text-red-300");
@@ -594,20 +600,14 @@ describe("CalendarPage", () => {
 
     const flow = await screen.findByRole("region", { name: "Flow" });
     expect(within(flow).getAllByRole("button")).toHaveLength(31);
-    expect(within(flow).getByText("15")).toBeInTheDocument();
-    expect(screen.getByTestId("flow-monthly-bar-2026-07-15")).toHaveStyle({
-      height: "93.75%",
-      backgroundColor: "#34d399"
-    });
+    expect(within(flow).getByRole("button", { name: /^15:/ })).toBeInTheDocument();
+    expect(within(flow).getByRole("img", { name: /trend chart/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Rhythm" }));
     const rhythm = screen.getByRole("region", { name: "Rhythm" });
     expect(within(rhythm).getAllByRole("button")).toHaveLength(31);
-    expect(within(rhythm).getByText("15")).toBeInTheDocument();
-    expect(screen.getByTestId("rhythm-monthly-bar-2026-07-15")).toHaveStyle({
-      height: "93.75%",
-      backgroundColor: "#34d399"
-    });
+    expect(within(rhythm).getByRole("button", { name: /^15:/ })).toBeInTheDocument();
+    expect(within(rhythm).getByRole("img", { name: /trend chart/i })).toBeInTheDocument();
   });
 
   it("renders a friendly error state when monthly loading fails", async () => {

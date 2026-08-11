@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   createAbsence,
+  createWorkSession,
   deleteAbsence,
   getAbsences,
   getPreferences,
   listAbsenceTypes,
   listEmployments,
   listHourlyRates,
+  listWorkTypes,
   listRestDays,
   markRestDay,
   removeRestDay,
@@ -23,9 +25,10 @@ import { DashboardOverview } from "../components/dashboard/dashboard-overview";
 import { DashboardSkeleton } from "../components/dashboard/dashboard-skeleton";
 import { InstallAppTip } from "../components/dashboard/install-app-tip";
 import { TimeTrackingCard } from "../components/dashboard/time-tracking-card";
+import { WorkSuggestionModal } from "../components/dashboard/work-suggestion-modal";
 import type { SelectedDayActivity, WeeklyRhythmDay } from "../types/dashboard";
 import type { Absence, AbsenceTypeSetting } from "../types/absence";
-import type { WorkRecord, WorkRecordLine } from "../types/work-record";
+import type { WorkRecord, WorkRecordLine, WorkRecordRequest } from "../types/work-record";
 import { addDays, addWeeks, formatLocalIsoDate, isSameDay, parseLocalIsoDate, safeLocalIsoDate, startOfWeek } from "../utils/date";
 import {
   formatCurrency,
@@ -33,6 +36,7 @@ import {
 } from "../utils/format";
 import { calculatePaidAbsenceDays } from "../utils/paid-absence";
 import { useEmploymentScope } from "../features/employment/employment-scope";
+import { recommendWorkEntry } from "../features/work-records/work-type-recommendation";
 
 type OutletContext = {
   selectedDate?: Date;
@@ -49,6 +53,7 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const queryClient = useQueryClient();
   const selectedEmploymentId = useEmploymentScope();
   const [absenceScopeError, setAbsenceScopeError] = useState<string | null>(null);
+  const [workSuggestionOpen, setWorkSuggestionOpen] = useState(false);
   const outletContext = useOutletContext<OutletContext>();
   const selectedDate = useMemo(
     () => selectedDateProp ?? outletContext?.selectedDate ?? new Date(),
@@ -85,6 +90,16 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
   const hourlyRatesQuery = useQuery({
     queryKey: queryKeys.hourlyRates.all(),
     queryFn: listHourlyRates
+  });
+  const workTypesQuery = useQuery({
+    queryKey: queryKeys.workTypes.all(),
+    queryFn: listWorkTypes
+  });
+  const historyFromKey = formatLocalIsoDate(addDays(selectedDate, -90));
+  const historyToKey = formatLocalIsoDate(addDays(selectedDate, -1));
+  const workHistoryQuery = useQuery({
+    queryKey: queryKeys.workRecords.range({ from: historyFromKey, to: historyToKey }),
+    queryFn: () => listWorkRecordsInRange({ from: historyFromKey, to: historyToKey })
   });
   const absenceTypesQuery = useQuery({
     queryKey: queryKeys.absenceTypes.list(true),
@@ -151,12 +166,26 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
       await queryClient.invalidateQueries({ queryKey: ["rest-days", variables.employmentId] });
     }
   });
+  const suggestedWorkMutation = useMutation({
+    mutationFn: (payload: WorkRecordRequest) => createWorkSession(payload),
+    onSuccess: async () => {
+      setWorkSuggestionOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.workRecords.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.calendar.activityRange() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() })
+      ]);
+    }
+  });
 
   const isLoading =
     rhythmRecordsQuery.isLoading ||
     preferencesQuery.isLoading ||
     employmentsQuery.isLoading ||
     hourlyRatesQuery.isLoading ||
+    workTypesQuery.isLoading ||
+    workHistoryQuery.isLoading ||
     absenceTypesQuery.isLoading ||
     weeklyAbsencesQuery.isLoading ||
     (Boolean(effectiveEmploymentId) && restDaysQuery.isLoading);
@@ -165,6 +194,8 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     (preferencesQuery.error ? preferencesQuery : null) ??
     (employmentsQuery.error ? employmentsQuery : null) ??
     (hourlyRatesQuery.error ? hourlyRatesQuery : null) ??
+    (workTypesQuery.error ? workTypesQuery : null) ??
+    (workHistoryQuery.error ? workHistoryQuery : null) ??
     (absenceTypesQuery.error ? absenceTypesQuery : null) ??
     (weeklyAbsencesQuery.error ? weeklyAbsencesQuery : null) ??
     (restDaysQuery.error ? restDaysQuery : null);
@@ -207,6 +238,16 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () => (hourlyRatesQuery.data ?? []).filter((rate) => matchesEmployment(rate.employmentId, selectedEmploymentId)),
     [hourlyRatesQuery.data, selectedEmploymentId]
   );
+  const workSuggestion = useMemo(
+    () => recommendWorkEntry(
+      (workHistoryQuery.data ?? []).filter((record) => matchesEmployment(record.employmentId, selectedEmploymentId)),
+      (workTypesQuery.data ?? []).filter((workType) =>
+        workType.active && matchesEmployment(workType.employmentId, selectedEmploymentId)
+      ),
+      selectedDateKey
+    ),
+    [selectedDateKey, selectedEmploymentId, workHistoryQuery.data, workTypesQuery.data]
+  );
   const rhythmAbsences = useMemo(
     () => (weeklyAbsencesQuery.data?.content ?? []).filter((absence) => matchesEmployment(absence.employmentId, selectedEmploymentId)),
     [selectedEmploymentId, weeklyAbsencesQuery.data]
@@ -228,6 +269,20 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
     () => formatSelectedDayLabel(selectedDate, t("dashboard:selectedDay.today")),
     [selectedDate, t]
   );
+  const emptyDayPrompt = useMemo(() => {
+    const dateLabel = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+      day: "numeric",
+      month: "long"
+    }).format(selectedDate);
+    const today = isSameDay(selectedDate, new Date());
+    return {
+      eyebrow: t(
+        today ? "dashboard:emptyDay.dateToday" : "dashboard:emptyDay.dateSelected",
+        { date: dateLabel }
+      ),
+      question: t(today ? "dashboard:emptyDay.questionToday" : "dashboard:emptyDay.questionDate")
+    };
+  }, [selectedDate, t]);
   const selectedDayPaidAbsences = useMemo(
     () =>
       calculatePaidAbsenceDays({
@@ -332,6 +387,8 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
           void preferencesQuery.refetch();
           void employmentsQuery.refetch();
           void hourlyRatesQuery.refetch();
+          void workTypesQuery.refetch();
+          void workHistoryQuery.refetch();
           void absenceTypesQuery.refetch();
           void weeklyAbsencesQuery.refetch();
           void restDaysQuery.refetch();
@@ -342,9 +399,11 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
 
   return (
     <div className="dashboard-glass-preview mx-auto w-full pb-10">
-      <InstallAppTip />
+      {selectedDayOverview.entriesCount || selectedRestDay ? <InstallAppTip /> : null}
       <DashboardOverview
         selectedDay={selectedDayOverview}
+        emptyDayEyebrow={emptyDayPrompt.eyebrow}
+        emptyDayQuestion={emptyDayPrompt.question}
         weeklyDays={weeklyDays}
         previousWeekAverageMinutes={averagePositiveValues(
           previousWeekDays.map((date) =>
@@ -380,7 +439,10 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
           }
         }}
         restDayPending={markRestDayMutation.isPending || removeRestDayMutation.isPending}
-        onQuickAdd={() => navigate(`/records/new?date=${selectedDateKey}`)}
+        onQuickAdd={() => {
+          if (workSuggestion) setWorkSuggestionOpen(true);
+          else navigate(`/records/new?date=${selectedDateKey}`);
+        }}
         onDaySwipe={(direction) => outletContext?.setSelectedDate?.(addDays(selectedDate, direction))}
         onRhythmDaySelect={(date) => outletContext?.setSelectedDate?.(parseLocalIsoDate(date))}
         onWeekSwipe={(direction) => outletContext?.setSelectedDate?.(addWeeks(selectedDate, direction))}
@@ -416,6 +478,19 @@ export function DashboardPage({ selectedDate: selectedDateProp }: DashboardPageP
         }
         timeTracker={<TimeTrackingCard />}
       />
+      {workSuggestionOpen && workSuggestion ? (
+        <WorkSuggestionModal
+          workType={workSuggestion.workType}
+          line={workSuggestion.line}
+          saving={suggestedWorkMutation.isPending}
+          error={suggestedWorkMutation.error ? getApiError(suggestedWorkMutation.error).message : null}
+          onClose={() => setWorkSuggestionOpen(false)}
+          onEdit={() => navigate(`/records/new?date=${selectedDateKey}&manual=1`)}
+          onAccept={() => suggestedWorkMutation.mutate(
+            suggestionToPayload(workSuggestion.line, workSuggestion.record, selectedDateKey)
+          )}
+        />
+      ) : null}
     </div>
   );
 }
@@ -850,6 +925,38 @@ function formatTargetDifferenceMarker(minutes: number) {
   return new Intl.NumberFormat(i18n.resolvedLanguage, {
     maximumFractionDigits: 1
   }).format(hours).replace(/^/, prefix);
+}
+
+function suggestionToPayload(line: WorkRecordLine, record: WorkRecord, workDate: string): WorkRecordRequest {
+  const baseLine = {
+    workTypeId: line.workTypeId,
+    notes: null,
+    extraPayPercentage: line.extraPayPercentage ?? 0
+  };
+  const suggestedLine = line.calculationMode === "FIXED_AMOUNT"
+    ? {
+        ...baseLine,
+        fixedAmount: Number(line.fixedAmountSnapshot ?? 0),
+        currency: line.currencySnapshot
+      }
+    : line.calculationMode === "UNITS_PER_HOUR" || line.calculationMode === "UNITS_PER_UNIT"
+      ? { ...baseLine, quantity: Number(line.quantity ?? 0) }
+      : line.durationMinutes
+        ? { ...baseLine, durationMinutes: line.durationMinutes }
+        : {
+            ...baseLine,
+            startTime: line.startTime?.slice(0, 5) ?? null,
+            endTime: line.endTime?.slice(0, 5) ?? null,
+            unpaidBreakMinutes: line.breakMinutes ?? 0
+          };
+
+  return {
+    workDate,
+    addressId: null,
+    teamSize: record.teamSize ?? null,
+    notes: null,
+    lines: [suggestedLine]
+  };
 }
 
 function formatSelectedDayLabel(date: Date, todayLabel: string) {
