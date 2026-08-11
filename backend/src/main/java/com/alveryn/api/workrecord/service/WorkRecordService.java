@@ -521,6 +521,7 @@ public class WorkRecordService {
         line.getDisplayOrder(),
         line.getWorkTypeNameSnapshot(),
         line.getConfigurationNameSnapshot(),
+        line.getWorkType().getParent() == null ? null : line.getWorkType().getParent().getName(),
         line.getCalculationModeSnapshot(),
         line.getUnitLabelSnapshot(),
         line.getUnitSymbolSnapshot(),

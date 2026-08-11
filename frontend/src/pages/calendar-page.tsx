@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -855,9 +856,11 @@ export function CalendarPage() {
                 setPayrollReview(review);
               })
               .catch((error) => setPayrollError(
-                error instanceof Error && error.message
-                  ? error.message
-                  : getApiError(error).message
+                axios.isAxiosError(error)
+                  ? getApiError(error).message
+                  : error instanceof Error && error.message
+                    ? error.message
+                    : getApiError(error).message
               ))
               .finally(() => {
                 setPayrollPending(false);

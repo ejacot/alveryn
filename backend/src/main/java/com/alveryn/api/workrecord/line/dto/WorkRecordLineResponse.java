@@ -12,6 +12,7 @@ public record WorkRecordLineResponse(
     int displayOrder,
     String workTypeName,
     String configurationName,
+    String categoryName,
     WorkLineCalculationMode calculationMode,
     String unitLabel,
     String unitSymbol,

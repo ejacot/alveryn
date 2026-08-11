@@ -31,6 +31,7 @@ export type WorkRecordLine = {
   displayOrder: number;
   workTypeName: string;
   configurationName: string;
+  categoryName?: string | null;
   calculationMode: WorkRecordLineCalculationMode;
   unitLabel?: string | null;
   unitSymbol?: string | null;

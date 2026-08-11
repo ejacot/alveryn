@@ -1,4 +1,9 @@
-import { buildPdfReportRows, filterWorkRecordsByEmployment, type PdfExportSelection } from "./pdf-report";
+import {
+  buildPdfReportRows,
+  filterWorkRecordsByEmployment,
+  getPdfWorkTypeColumns,
+  type PdfExportSelection
+} from "./pdf-report";
 import type { WorkRecord } from "../../types/work-record";
 
 const selection: PdfExportSelection = {
@@ -114,10 +119,38 @@ describe("PDF report data", () => {
       earnings: "€200.00"
     });
     expect(rows[1].workTypeCells).toEqual([
-      { workTypeId: "work-type-1", workTypeName: "Housekeeping", value: "08:00–16:00 · 7h 30m · 20 rooms · +50%" },
-      { workTypeId: "work-type-2", workTypeName: "Public areas", value: "16:30–18:00 · 1h 30m · 10 areas" }
+      { workTypeId: "work-type-1", workTypeName: "Housekeeping", categoryName: null, value: "08:00–16:00 · 7h 30m · 20 rooms · +50%" },
+      { workTypeId: "work-type-2", workTypeName: "Public areas", categoryName: null, value: "16:30–18:00 · 1h 30m · 10 areas" }
     ]);
     expect(rows[2]).toMatchObject({ key: "empty:2026-07-03", activity: "", hours: "" });
+  });
+
+  it("keeps a category above its child work-type columns", () => {
+    const rows = buildPdfReportRows([record({
+      workLines: [
+        {
+          ...record().workLines![0],
+          workTypeId: "normal",
+          workTypeName: "Normal",
+          configurationName: "Normal",
+          categoryName: "Zimmer"
+        },
+        {
+          ...record().workLines![0],
+          id: "line-juns",
+          workTypeId: "juns",
+          workTypeName: "Juns",
+          configurationName: "Juns",
+          categoryName: "Zimmer",
+          displayOrder: 1
+        }
+      ]
+    })], selection, "de");
+
+    expect(getPdfWorkTypeColumns(rows)).toEqual([
+      { id: "normal", name: "Normal", categoryName: "Zimmer" },
+      { id: "juns", name: "Juns", categoryName: "Zimmer" }
+    ]);
   });
 
   it("adds paid absences without misclassifying them as extra work", () => {
