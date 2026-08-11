@@ -1445,22 +1445,24 @@ function calculateExtraPaidInRange(
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      const minutes = Number(
-        line.extraPaidEquivalentMinutes ?? Number(line.calculatedMinutes) * percentage / 100
-      ) * allocation;
       const grossAmount = Number(
         line.extraGrossAmount ?? Number(line.grossAmount) * (percentage / (100 + percentage))
       ) * allocation;
-      result.minutes += minutes;
-      result.grossAmount += grossAmount;
 
       const matchingRule = (line.extraPayDetails ?? [])
         .map((detail) => ({
           name: detail.name,
+          eligibleMinutes: Number(detail.eligibleMinutes),
           weight: Number(detail.eligibleMinutes) * detail.percentage / 100
         }))
         .filter((detail) => detail.weight > 0)
         .sort((left, right) => right.weight - left.weight)[0];
+      // Extra hours describe the time to which the surcharge applies. The
+      // percentage affects only the extra amount, not the displayed duration.
+      const minutes = (matchingRule?.eligibleMinutes ?? Number(line.calculatedMinutes)) * allocation;
+      result.minutes += minutes;
+      result.grossAmount += grossAmount;
+
       const name = matchingRule?.name || GENERIC_EXTRA_PAY_KEY;
       const current = grouped.get(name) ?? { minutes: 0, grossAmount: 0 };
       current.minutes += minutes;

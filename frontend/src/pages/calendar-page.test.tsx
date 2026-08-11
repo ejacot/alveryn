@@ -131,10 +131,10 @@ const julyRecords = [
           ratePerUnitSnapshot: null,
           currencySnapshot: "EUR",
           grossAmount: "150",
-          extraPaidEquivalentMinutes: "450",
-          extraGrossAmount: "75",
-          extraPayPercentage: 100,
-          extraPayDetails: [{ name: "Night shift", eligibleMinutes: "450", percentage: 100 }],
+          extraPaidEquivalentMinutes: "96",
+          extraGrossAmount: "32",
+          extraPayPercentage: 21.333333,
+          extraPayDetails: [{ name: "Night shift", eligibleMinutes: "120", percentage: 80 }],
           notes: null
         }
       ],
@@ -419,10 +419,10 @@ describe("CalendarPage", () => {
     expect(within(summary).getByText("Vacation")).toBeInTheDocument();
     expect(within(summary).getByText("16h 00m")).toBeInTheDocument();
     expect(within(summary).getByText("Night shift")).toBeInTheDocument();
-    expect(within(summary).getByText("7h 30m")).toBeInTheDocument();
+    expect(within(summary).getByText("2h 00m")).toBeInTheDocument();
     expect(within(summary).getByText("€510.00")).toBeInTheDocument();
     expect(within(summary).getByText("€320.00")).toBeInTheDocument();
-    expect(within(summary).getByText("€75.00")).toBeInTheDocument();
+    expect(within(summary).getByText("€32.00")).toBeInTheDocument();
     expect(within(summary).getByText("Days")).toBeInTheDocument();
     expect(within(summary).getByText("Absence")).toBeInTheDocument();
     expect(within(summary).getAllByText("2")).toHaveLength(2);
