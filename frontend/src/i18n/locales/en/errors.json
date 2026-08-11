@@ -8,5 +8,7 @@
   "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "The heatmap can show up to one year at a time.",
   "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Gross heatmap needs one currency at a time.",
   "STATISTICS_UNSUPPORTED_HEATMAP_METRIC": "This heatmap metric is not supported.",
-  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Choose a valid heatmap currency."
+  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Choose a valid heatmap currency.",
+  "PAYROLL_MONTH_NOT_FOUND": "We could not find the selected month in this PDF. Upload only that month's page.",
+  "PAYROLL_DOCUMENT_UNREADABLE": "We could not read this payslip. Try a clearer photo showing the full page."
 }
