@@ -153,14 +153,21 @@ public class PayrollDocumentAnalyzer {
           ocrTexts = List.of(combineTextEvidence(nativeText, ocrText));
         }
       } else {
-        // Camera photos need orientation, contrast and text sharpening even when their file
-        // size is small. Passing a 960px phone image through unchanged makes table text too
-        // small for reliable vision extraction.
-        byte[] imageBytes = normalizePayrollImage(file.getBytes(), contentType);
-        contentType = "image/jpeg";
+        byte[] sourceBytes = file.getBytes();
+        boolean directlySupported = Set.of(
+            "image/jpeg", "image/png", "image/webp").contains(contentType);
+        boolean lowMemoryMode = Boolean.parseBoolean(
+            System.getenv().getOrDefault("PAYROLL_LOW_MEMORY_MODE", "false"));
+        // A 512 MB service cannot safely hold the request while also spawning ImageMagick and
+        // multilingual Tesseract. Modern vision models read ordinary camera formats directly;
+        // retain conversion for HEIC/RAW and richer OCR evidence on larger instances.
+        byte[] imageBytes = lowMemoryMode && directlySupported
+            ? sourceBytes : normalizePayrollImage(sourceBytes, contentType);
+        if (!(lowMemoryMode && directlySupported)) contentType = "image/jpeg";
         images = List.of("data:" + contentType + ";base64,"
             + Base64.getEncoder().encodeToString(imageBytes));
-        ocrTexts = List.of(extractImageTextWithOcr(imageBytes));
+        ocrTexts = lowMemoryMode && directlySupported
+            ? List.of("") : List.of(extractImageTextWithOcr(imageBytes));
       }
       ObjectNode result = intelligence.analyzeMonthlyPayrollImages(
           images, ocrTexts, year, month);
@@ -190,6 +197,7 @@ public class PayrollDocumentAnalyzer {
             "PAYROLL_DOCUMENT_UNREADABLE");
       }
       result.put("filename", safeFilename(file.getOriginalFilename()));
+      result.put("localOcrUsed", ocrTexts.stream().anyMatch(text -> !text.isBlank()));
       return result;
     } catch (IllegalArgumentException exception) {
       throw exception;
@@ -333,7 +341,7 @@ public class PayrollDocumentAnalyzer {
           "-limit", "disk", "512MiB",
           input.toString(),
           "-auto-orient", "-colorspace", "Gray", "-deskew", "40%",
-          "-contrast-stretch", "0.5%x0.5%", "-resize", "2000x2000>",
+          "-contrast-stretch", "0.5%x0.5%", "-resize", "1700x1700>",
           "-sharpen", "0x1", "-strip", "-quality", "90", output.toString())
           .redirectErrorStream(true)
           .start();
@@ -352,7 +360,7 @@ public class PayrollDocumentAnalyzer {
     Files.write(output, new byte[0]);
     Process fallback = new ProcessBuilder(
         "ffmpeg", "-y", "-threads", "1", "-i", input.toString(), "-vf",
-        "scale=2000:2000:force_original_aspect_ratio=decrease,format=gray,unsharp=5:5:0.8",
+        "scale=1700:1700:force_original_aspect_ratio=decrease,format=gray,unsharp=5:5:0.8",
         "-frames:v", "1", "-q:v", "3", output.toString())
         .redirectErrorStream(true)
         .start();
@@ -466,8 +474,23 @@ public class PayrollDocumentAnalyzer {
   private String runTesseract(Path imageFile) throws Exception {
     String languages = availableTesseractLanguages();
     if (languages.isBlank()) return "";
+    StringBuilder combined = new StringBuilder();
+    // Tesseract loads every requested trained-data model into native memory. Running locales
+    // separately keeps the peak bounded on a 512 MB instance while retaining multilingual
+    // evidence. The vision model reconciles duplicate readings afterwards.
+    for (String language : languages.split("\\+")) {
+      String output = runTesseractLanguage(imageFile, language);
+      if (!output.isBlank()) {
+        if (!combined.isEmpty()) combined.append("\n\n");
+        combined.append("OCR ").append(language).append(":\n").append(output);
+      }
+    }
+    return combined.toString();
+  }
+
+  private String runTesseractLanguage(Path imageFile, String language) throws Exception {
     ProcessBuilder builder = new ProcessBuilder(
-        "tesseract", imageFile.toString(), "stdout", "-l", languages,
+        "tesseract", imageFile.toString(), "stdout", "-l", language,
         "--oem", "1", "--psm", "6", "-c", "preserve_interword_spaces=1")
         .redirectErrorStream(true);
     builder.environment().put("OMP_THREAD_LIMIT", "1");
