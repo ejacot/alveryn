@@ -325,9 +325,11 @@ public class ImportIntelligenceService {
       ObjectNode result = (ObjectNode) parsed;
       normalizeMonthlyPayrollResult(result);
       sanitizePayrollLines(result);
+      ObjectNode independent = extractIndependentPayrollAnchors(imageDataUrl, year, month);
+      sanitizePayrollLines(independent);
+      retainIndependentlyConfirmedLines(result, independent);
       aggregatePayrollLines(result);
-      applyIndependentPayrollAnchors(result,
-          extractIndependentPayrollAnchors(imageDataUrl, year, month));
+      applyIndependentPayrollAnchors(result, independent);
       validatePayrollResult(result);
       result.put("status", "COMPLETED");
       result.put("sourcePage", pageNumber);
@@ -357,7 +359,11 @@ public class ImportIntelligenceService {
               deduction or net-pay tables. The requested period is %d-%02d.
 
               Return JSON with exactly: normalHours, normalAmount, extraHours, extraAmount,
-              grossAmount, currency, confidence. Use null when a value is not visibly supported.
+              grossAmount, currency, confidence, payrollLines. Use null when unsupported.
+              payrollLines contains ONLY rows visibly inside the earnings/remuneration table,
+              each as {code,label,quantity,unit,factor,percentage,amount,grossRelevant,category}.
+              Exclude every row from taxes, social insurance, deductions, annual totals, net pay,
+              identity/header and footer areas. An empty list is preferable to one uncertain row.
               normalHours is the paid quantity on the ordinary/base-pay row. extraHours is the
               sum of distinct eligible hour groups for premiums; taxable and tax-free splits of
               the same hours count once. grossAmount is the explicitly printed total gross.
@@ -414,6 +420,40 @@ public class ImportIntelligenceService {
       result.put("currency", anchors.path("currency").asText());
     }
     result.put("independentVerificationConfidence", confidence);
+  }
+
+  private void retainIndependentlyConfirmedLines(ObjectNode result, ObjectNode verifier) {
+    JsonNode primary = result.path("payrollLines");
+    JsonNode confirmation = verifier.path("payrollLines");
+    ArrayNode consensus = objectMapper.createArrayNode();
+    if (primary.isArray() && confirmation.isArray()) {
+      for (JsonNode candidate : primary) {
+        for (JsonNode confirmed : confirmation) {
+          if (samePayrollLine(candidate, confirmed)) {
+            consensus.add(candidate);
+            break;
+          }
+        }
+      }
+    }
+    result.set("payrollLines", consensus);
+    if (consensus.isEmpty()) {
+      result.withArray("warnings").add("NO_INDEPENDENTLY_CONFIRMED_PAYROLL_LINES");
+      result.put("requiresReview", true);
+    }
+  }
+
+  private boolean samePayrollLine(JsonNode first, JsonNode second) {
+    if (!first.path("amount").isNumber() || !second.path("amount").isNumber()
+        || materiallyDifferent(first.path("amount").decimalValue(),
+            second.path("amount").decimalValue())) return false;
+    String firstCode = normalizeForMatching(first.path("code").asText(""));
+    String secondCode = normalizeForMatching(second.path("code").asText(""));
+    if (!firstCode.isBlank() && firstCode.equals(secondCode)) return true;
+    String firstLabel = normalizedLabel(first);
+    String secondLabel = normalizedLabel(second);
+    if (firstLabel.isBlank() || secondLabel.isBlank()) return false;
+    return firstLabel.contains(secondLabel) || secondLabel.contains(firstLabel);
   }
 
   private boolean materiallyDifferent(BigDecimal first, BigDecimal second) {

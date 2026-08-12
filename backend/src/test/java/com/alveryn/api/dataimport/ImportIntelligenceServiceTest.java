@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.alveryn.api.dataimport.intelligence.ImportIntelligenceProperties;
 import com.alveryn.api.dataimport.intelligence.ImportIntelligenceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Duration;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
@@ -177,5 +178,26 @@ class ImportIntelligenceServiceTest {
     assertThat(result.path("extraAmount").decimalValue()).isEqualByComparingTo("485.15");
     assertThat(result.path("grossAmount").decimalValue()).isEqualByComparingTo("3888.95");
     assertThat(result.path("requiresReview").asBoolean()).isTrue();
+  }
+
+  @Test
+  void exposesOnlyPayrollRowsConfirmedByBothVisionModels() throws Exception {
+    var mapper = new ObjectMapper();
+    var service = new ImportIntelligenceService(new ImportIntelligenceProperties(false, "", null,
+        null, null, Duration.ofSeconds(30)), mapper);
+    var primary = mapper.createObjectNode();
+    primary.putArray("payrollLines")
+        .addObject().put("code", "1").put("label", "Lohn").put("amount", 3403.80);
+    primary.withArray("payrollLines")
+        .addObject().put("code", "2").put("label", "Personengruppe").put("amount", 665);
+    var verifier = mapper.createObjectNode();
+    verifier.putArray("payrollLines")
+        .addObject().put("code", "1").put("label", "Lohn").put("amount", 3403.80);
+    Method method = ImportIntelligenceService.class.getDeclaredMethod(
+        "retainIndependentlyConfirmedLines", ObjectNode.class, ObjectNode.class);
+    method.setAccessible(true);
+    method.invoke(service, primary, verifier);
+    assertThat(primary.path("payrollLines")).hasSize(1);
+    assertThat(primary.path("payrollLines").path(0).path("code").asText()).isEqualTo("1");
   }
 }
