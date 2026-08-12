@@ -49,8 +49,27 @@ public class PayrollReconciliationService {
   public PayrollReconciliationDetailResponse find(UUID employmentId, int year, int month) {
     employments.requireOwned(employmentId);
     return repository.findByEmploymentIdAndYearAndMonth(employmentId, year, month)
+        .filter(value -> !isClearlyInvalid(value))
         .map(this::toDetail)
         .orElse(null);
+  }
+
+  private boolean isClearlyInvalid(PayrollReconciliation value) {
+    if (outside(value.getPayrollWorkedHours(), new BigDecimal("744"))
+        || outside(value.getPayrollAbsenceHours(), new BigDecimal("744"))
+        || outside(value.getPayrollExtraHours(), new BigDecimal("744"))
+        || outside(value.getPayrollGross(), new BigDecimal("1000000"))) return true;
+    try {
+      List<PayrollReconciliationResponse.PayrollLine> lines =
+          mapper.readValue(value.getPayrollLinesJson(), new TypeReference<>() {});
+      return lines.stream().anyMatch(line -> outside(line.amount(), new BigDecimal("250000")));
+    } catch (Exception exception) {
+      return true;
+    }
+  }
+
+  private boolean outside(BigDecimal value, BigDecimal maximum) {
+    return value != null && (value.signum() < 0 || value.compareTo(maximum) > 0);
   }
 
   @Transactional
