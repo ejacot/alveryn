@@ -348,6 +348,8 @@ public class ImportIntelligenceService {
   private ObjectNode extractIndependentPayrollAnchors(
       String imageDataUrl, int year, int month) {
     try {
+      String verifierModel = System.getenv().getOrDefault(
+          "PAYROLL_VISION_VERIFIER_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct");
       List<Map<String, Object>> content = List.of(
           Map.of("type", "text", "text", """
               Independently verify ONLY the prominent payroll totals printed on this page.
@@ -363,7 +365,9 @@ public class ImportIntelligenceService {
               """.formatted(year, month)),
           Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl)));
       Map<String, Object> body = Map.of(
-          "model", properties.visionModel(),
+          // A genuinely different vision model is intentional. Asking the extraction model to
+          // verify itself merely repeats systematic table-reading errors.
+          "model", verifierModel,
           "temperature", 0.0,
           "max_completion_tokens", 500,
           "reasoning_effort", "none",
