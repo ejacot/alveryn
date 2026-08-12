@@ -128,8 +128,10 @@ class ImportIntelligenceServiceTest {
     lines.addObject().put("label", "Lohn+Gehalt Beraterversion premium 26.01")
         .put("quantity", 224.612).put("factor", 9.02).put("amount", 2026);
     lines.addObject().put("label", "[ent_os1ozot8 [aus")
+        .put("category", "REGULAR_PAY")
         .put("quantity", 1).put("factor", 1).put("amount", 1);
     lines.addObject().put("label", "____[awiwante nen Personangruppe")
+        .put("category", "REGULAR_PAY")
         .put("quantity", 45.5479).put("factor", 14.6).put("amount", 665);
 
     Method sanitize = ImportIntelligenceService.class
