@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Set;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -473,6 +474,17 @@ public class ImportIntelligenceService {
     long currencyTokens = Pattern.compile("(?i)(?:EUR|€|RON|LEI|CHF|GBP|USD)")
         .matcher(label).results().count();
     if (currencyTokens > 1 || label.matches(".*[{}<>|].*")) return false;
+    String code = line.path("code").asText("").trim();
+    String category = line.path("category").asText("").trim();
+    boolean recognizedCategory = Set.of(
+        "REGULAR_PAY", "PAID_ABSENCE", "SURCHARGE", "EXTRA_PAY", "BONUS", "ALLOWANCE")
+        .contains(category.toUpperCase(Locale.ROOT));
+    boolean recognizedLabel = normalized.matches(".*\\b(lohn|gehalt|salary|salariu|salar|"
+        + "salaire|salario|retribuzione|wage|pay|hours|ore|stunden|urlaub|krank|concediu|"
+        + "absence|zuschlag|spor|bonus|allowance|prime|overtime|night|nacht|weekend|"
+        + "sonntag|feiertag|dimanche|festivo)\\b.*");
+    if (code.isBlank() && !recognizedCategory && !recognizedLabel) return false;
+    if (!code.isBlank() && !code.matches("[A-Za-z0-9._/-]{1,16}")) return false;
 
     if (line.path("quantity").isNumber()) {
       BigDecimal quantity = line.path("quantity").decimalValue();

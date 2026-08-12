@@ -135,7 +135,10 @@ export function CalendarPage() {
 
   useEffect(() => {
     const saved = savedPayrollQuery.data;
-    if (!saved || payrollReview) return;
+    // Do not restore the cached reconciliation while a replacement document is being read.
+    // Otherwise the old scan briefly (or, after a failed request, permanently) replaces the
+    // loading state and looks like the newly selected document was analyzed incorrectly again.
+    if (!saved || payrollReview || payrollPending || payrollDocument) return;
     setPayrollReview({
       filename: saved.filename ?? undefined,
       year: saved.year,
@@ -151,7 +154,7 @@ export function CalendarPage() {
     setPayrollReconciliationId(saved.id);
     setPayrollDocumentAvailable(saved.documentAvailable);
     setPayrollExpanded(false);
-  }, [payrollReview, savedPayrollQuery.data]);
+  }, [payrollDocument, payrollPending, payrollReview, savedPayrollQuery.data]);
 
   const workRecordsQuery = useQuery({
     queryKey: queryKeys.workRecords.range({ from: monthStartKey, to: monthEndKey }),
