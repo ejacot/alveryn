@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Set;
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -322,6 +324,7 @@ public class ImportIntelligenceService {
       }
       ObjectNode result = (ObjectNode) parsed;
       normalizeMonthlyPayrollResult(result);
+      sanitizePayrollLines(result);
       aggregatePayrollLines(result);
       validatePayrollResult(result);
       result.put("status", "COMPLETED");
@@ -404,6 +407,93 @@ public class ImportIntelligenceService {
       result.put("grossAmount", calculatedGross);
     }
     applyOrdinaryPayTotals(result, lines);
+  }
+
+  /**
+   * Vision output is evidence, not trusted input. Payroll pages contain many numeric tables and
+   * models can occasionally turn totals, tax bases or footer text into earnings rows. Keep only
+   * plausible earnings-table rows before they are allowed to influence reconciliation totals.
+   */
+  private void sanitizePayrollLines(ObjectNode result) {
+    JsonNode supplied = result.path("payrollLines");
+    ArrayNode accepted = objectMapper.createArrayNode();
+    if (!supplied.isArray()) {
+      result.set("payrollLines", accepted);
+      return;
+    }
+
+    Set<String> seen = new java.util.LinkedHashSet<>();
+    for (JsonNode line : supplied) {
+      if (!(line instanceof ObjectNode object) || !isPlausiblePayrollLine(object)) continue;
+      repairInconsistentPayrollLine(object);
+      String fingerprint = String.join("|",
+          normalizeForMatching(object.path("code").asText("")),
+          normalizeForMatching(object.path("label").asText("")),
+          object.path("quantity").asText(""), object.path("factor").asText(""),
+          object.path("percentage").asText(""), object.path("amount").asText(""));
+      if (seen.add(fingerprint)) accepted.add(object);
+    }
+    result.set("payrollLines", accepted);
+
+    if (accepted.isEmpty()) return;
+    BigDecimal earningsTotal = BigDecimal.ZERO;
+    for (JsonNode line : accepted) {
+      if (line.path("amount").isNumber()
+          && !Boolean.FALSE.equals(line.path("grossRelevant").isBoolean()
+              ? line.path("grossRelevant").booleanValue() : null)) {
+        earningsTotal = earningsTotal.add(line.path("amount").decimalValue());
+      }
+    }
+    if (earningsTotal.signum() <= 0) return;
+    BigDecimal printedGross = result.path("grossAmount").isNumber()
+        ? result.path("grossAmount").decimalValue() : null;
+    BigDecimal tolerance = earningsTotal.multiply(new BigDecimal("0.05"))
+        .max(new BigDecimal("2.00"));
+    if (printedGross == null || printedGross.subtract(earningsTotal).abs().compareTo(tolerance) > 0) {
+      result.put("grossAmount", earningsTotal);
+      result.withArray("warnings").add("GROSS_REBUILT_FROM_EARNINGS_ROWS");
+    }
+  }
+
+  private boolean isPlausiblePayrollLine(ObjectNode line) {
+    if (!line.path("amount").isNumber()) return false;
+    BigDecimal amount = line.path("amount").decimalValue();
+    if (amount.signum() < 0 || amount.compareTo(new BigDecimal("250000")) > 0) return false;
+
+    String label = line.path("label").asText("").trim();
+    String normalized = normalizeForMatching(label);
+    if (normalized.length() < 2 || label.length() > 120) return false;
+    if (normalized.matches(".*\\b(gesamtbrutto|steuer brutto|steuerrechtliche abzuege|"
+        + "sozialversicherung|netto|auszahlungsbetrag|iban|entgeltbescheinigung|"
+        + "beraterversion|jahreswerte|beitrag|abzug|deduction|tax base|net pay)\\b.*")) {
+      return false;
+    }
+    // A label containing several money values or formula punctuation is a table/footer fragment,
+    // not the description cell of one earnings row.
+    long currencyTokens = Pattern.compile("(?i)(?:EUR|€|RON|LEI|CHF|GBP|USD)")
+        .matcher(label).results().count();
+    if (currencyTokens > 1 || label.matches(".*[{}<>|].*")) return false;
+
+    if (line.path("quantity").isNumber()) {
+      BigDecimal quantity = line.path("quantity").decimalValue();
+      if (quantity.signum() < 0 || quantity.compareTo(new BigDecimal("10000")) > 0) return false;
+      if (isHourUnit(line.path("unit").asText(""))
+          && quantity.compareTo(new BigDecimal("744")) > 0) return false;
+    }
+    if (line.path("factor").isNumber()) {
+      BigDecimal factor = line.path("factor").decimalValue();
+      if (factor.signum() < 0 || factor.compareTo(new BigDecimal("10000")) > 0) return false;
+      if (factor.signum() > 0 && line.path("quantity").isNumber()) {
+        BigDecimal derived = amount.divide(factor, 4, java.math.RoundingMode.HALF_UP).abs();
+        if (isHourUnit(line.path("unit").asText(""))
+            && derived.compareTo(new BigDecimal("744")) > 0) return false;
+      }
+    }
+    if (line.path("percentage").isNumber()) {
+      BigDecimal percentage = line.path("percentage").decimalValue();
+      if (percentage.signum() < 0 || percentage.compareTo(new BigDecimal("1000")) > 0) return false;
+    }
+    return !isDeduction(line);
   }
 
   private void validatePayrollResult(ObjectNode result) {

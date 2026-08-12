@@ -105,4 +105,44 @@ class ImportIntelligenceServiceTest {
     assertThat(result.path("extraHours").decimalValue()).isEqualByComparingTo("24");
     assertThat(result.path("extraAmount").decimalValue()).isEqualByComparingTo("180");
   }
+
+  @Test
+  void rejectsHallucinatedTaxTableRowsAndRebuildsGrossFromEarnings() throws Exception {
+    var mapper = new ObjectMapper();
+    var properties = new ImportIntelligenceProperties(
+        false, "", "https://api.groq.com/openai/v1", "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b", Duration.ofSeconds(30));
+    var service = new ImportIntelligenceService(properties, mapper);
+    var result = mapper.createObjectNode().put("grossAmount", 10_043_468.51);
+    var lines = result.putArray("payrollLines");
+    lines.addObject().put("code", "1").put("label", "Lohn").put("unit", "h")
+        .put("quantity", 219.6).put("factor", 15.5).put("amount", 3403.8);
+    lines.addObject().put("code", "38").put("label", "Nachtzuschlag 30%")
+        .put("quantity", 3).put("factor", 4.65).put("percentage", 30).put("amount", 13.95);
+    lines.addObject().put("code", "959").put("label", "Sonntagszuschlag (50%) steuerfrei")
+        .put("quantity", 38).put("factor", 7.75).put("percentage", 50).put("amount", 294.5);
+    lines.addObject().put("code", "969").put("label", "Sonntagszuschlag (50%) pflichtig")
+        .put("quantity", 38).put("factor", 4.65).put("percentage", 50).put("amount", 176.7);
+    lines.addObject().put("label", "3.580,50 EUR 434,25 EUR 0,00 EUR")
+        .put("quantity", 0.1213).put("factor", 3580.5).put("amount", 434.25);
+    lines.addObject().put("label", "Lohn+Gehalt Beraterversion premium 26.01")
+        .put("quantity", 224.612).put("factor", 9.02).put("amount", 2026);
+    lines.addObject().put("label", "[ent_os1ozot8 [aus")
+        .put("quantity", 77).put("factor", 7).put("amount", 10_000_710);
+
+    Method sanitize = ImportIntelligenceService.class
+        .getDeclaredMethod("sanitizePayrollLines", com.fasterxml.jackson.databind.node.ObjectNode.class);
+    sanitize.setAccessible(true);
+    sanitize.invoke(service, result);
+    Method aggregate = ImportIntelligenceService.class
+        .getDeclaredMethod("aggregatePayrollLines", com.fasterxml.jackson.databind.node.ObjectNode.class);
+    aggregate.setAccessible(true);
+    aggregate.invoke(service, result);
+
+    assertThat(result.path("payrollLines")).hasSize(4);
+    assertThat(result.path("grossAmount").decimalValue()).isEqualByComparingTo("3888.95");
+    assertThat(result.path("normalHours").decimalValue()).isEqualByComparingTo("219.6");
+    assertThat(result.path("extraHours").decimalValue()).isEqualByComparingTo("41");
+    assertThat(result.path("extraAmount").decimalValue()).isEqualByComparingTo("485.15");
+  }
 }
