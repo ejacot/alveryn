@@ -37,8 +37,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -185,9 +188,7 @@ public class WorkRecordService {
   @Transactional(readOnly = true)
   public List<WorkRecordResponse> listDay(LocalDate date) {
     UUID userId = authenticatedUserAccessor.requireUserId();
-    return workRecords.findAllByUserIdAndWorkDateOrderByCreatedAtAsc(userId, date).stream()
-        .map(this::toResponse)
-        .toList();
+    return toResponses(workRecords.findAllByUserIdAndWorkDateOrderByCreatedAtAsc(userId, date));
   }
 
   @Transactional(readOnly = true)
@@ -196,9 +197,18 @@ public class WorkRecordService {
       throw new ValidationException("from date must be before or equal to date");
     }
     UUID userId = authenticatedUserAccessor.requireUserId();
-    return workRecords.findAllOverlappingRange(userId, fromDate, toDate)
+    return toResponses(workRecords.findAllOverlappingRange(userId, fromDate, toDate));
+  }
+
+  private List<WorkRecordResponse> toResponses(List<WorkRecord> records) {
+    if (records.isEmpty()) return List.of();
+    Map<UUID, List<WorkRecordLine>> linesByRecord = workRecordLines
+        .findAllByWorkRecordIdIn(records.stream().map(WorkRecord::getId).toList())
         .stream()
-        .map(this::toResponse)
+        .collect(Collectors.groupingBy(
+            line -> line.getWorkRecord().getId(), LinkedHashMap::new, Collectors.toList()));
+    return records.stream()
+        .map(record -> toResponse(record, linesByRecord.getOrDefault(record.getId(), List.of())))
         .toList();
   }
 
@@ -459,10 +469,19 @@ public class WorkRecordService {
   }
 
   private WorkRecordResponse toResponse(WorkRecord record) {
-    List<WorkRecordLineResponse> recordLines =
-        workRecordLines.findAllByWorkRecordIdOrderByDisplayOrderAscCreatedAtAsc(record.getId()).stream()
-            .map(this::toLineResponse)
-            .toList();
+    List<WorkRecordLineResponse> recordLines = workRecordLines
+        .findAllByWorkRecordIdOrderByDisplayOrderAscCreatedAtAsc(record.getId()).stream()
+        .map(this::toLineResponse)
+        .toList();
+    return assembleResponse(record, recordLines);
+  }
+
+  private WorkRecordResponse toResponse(WorkRecord record, List<WorkRecordLine> lines) {
+    return assembleResponse(record, lines.stream().map(this::toLineResponse).toList());
+  }
+
+  private WorkRecordResponse assembleResponse(
+      WorkRecord record, List<WorkRecordLineResponse> recordLines) {
     BigDecimal calculatedMinutes =
         recordLines.stream().map(WorkRecordLineResponse::calculatedMinutes).reduce(BigDecimal.ZERO, BigDecimal::add);
     BigDecimal workedMinutes = sum(recordLines, WorkRecordLineResponse::workedMinutes);

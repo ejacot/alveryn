@@ -83,12 +83,18 @@ vi.mock("../api/endpoints", () => ({
   listWorkRecordsInRange: vi.fn(),
   listAbsencesInRange: vi.fn(),
   markRestDay: vi.fn(),
-  removeRestDay: vi.fn()
+  removeRestDay: vi.fn(),
+  reconcileMonthlyPayroll: vi.fn(),
+  getPayrollReconciliation: vi.fn(),
+  getPayrollReconciliationDocument: vi.fn(),
+  savePayrollReconciliation: vi.fn(),
+  uploadPayrollReconciliationDocument: vi.fn()
 }));
 
 import {
   getCalendarActivityRange,
   getPreferences,
+  getPayrollReconciliation,
   getScheduledShifts,
   getWeeklySchedule,
   listAbsenceTypes,
@@ -98,7 +104,8 @@ import {
   listRestDays,
   listWorkRecordsInRange,
   markRestDay,
-  removeRestDay
+  removeRestDay,
+  reconcileMonthlyPayroll
 } from "../api/endpoints";
 
 const julyRecords = [
@@ -263,6 +270,7 @@ describe("CalendarPage", () => {
     navigateMock.mockReset();
     setSelectedDateMock.mockReset();
     vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-15" });
+    vi.mocked(getPayrollReconciliation).mockResolvedValue(null);
     vi.mocked(listEmployments).mockResolvedValue([]);
     vi.mocked(listRestDays).mockResolvedValue([]);
     vi.mocked(getWeeklySchedule).mockResolvedValue(null);
@@ -627,5 +635,36 @@ describe("CalendarPage", () => {
         to: "2026-07-31"
       });
     });
+  });
+
+  it("lets the user correct uncertain extracted payroll values before saving", async () => {
+    vi.mocked(reconcileMonthlyPayroll).mockResolvedValue({
+      filename: "fragment.jpg",
+      year: 2026,
+      month: 7,
+      normalHours: 219.6,
+      normalAmount: null,
+      grossAmount: null,
+      currency: "EUR",
+      confidence: 0.68,
+      requiresReview: true,
+      documentCompleteness: "FRAGMENT",
+      payrollLines: []
+    });
+    const view = renderPage();
+    const user = userEvent.setup();
+    await screen.findByText("July 2026");
+    const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    await user.upload(input!, new File(["photo"], "fragment.jpg", { type: "image/jpeg" }));
+
+    expect(await screen.findByText("Check uncertain values against the document before saving."))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /correct/i }));
+    const hours = screen.getByLabelText("Worked hours");
+    expect(hours).toHaveValue(219.6);
+    await user.clear(hours);
+    await user.type(hours, "220");
+    expect(hours).toHaveValue(220);
   });
 });

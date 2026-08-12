@@ -87,6 +87,6 @@ export type WorkRecord = {
   totalGrossAmount?: string;
   currency?: string | null;
   workLines?: WorkRecordLine[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

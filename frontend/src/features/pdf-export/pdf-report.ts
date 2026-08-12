@@ -88,7 +88,8 @@ export function buildPdfReportRows(
   range?: { from: string; to: string; absences?: Absence[]; restDays?: EmploymentRestDay[] }
 ) {
   const sessionRows = [...records]
-    .sort((left, right) => left.workDate.localeCompare(right.workDate) || left.createdAt.localeCompare(right.createdAt))
+    .sort((left, right) => left.workDate.localeCompare(right.workDate)
+      || (left.createdAt ?? "").localeCompare(right.createdAt ?? ""))
     .map((record) => toReportRow(record, selection, locale));
 
   if (!range) return sessionRows;

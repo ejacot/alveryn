@@ -528,6 +528,19 @@ class WorkRecordIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.length()").value(1))
         .andExpect(jsonPath("$.data[0].workDate").value("2026-07-16"));
+
+    mockMvc
+        .perform(
+            get("/api/work-records/range-summary")
+                .param("from", "2026-07-15")
+                .param("to", "2026-07-20")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.data[0].workDate").value("2026-07-16"))
+        .andExpect(jsonPath("$.data[0].workLines.length()").value(1))
+        .andExpect(jsonPath("$.data[0].notes").doesNotExist())
+        .andExpect(jsonPath("$.data[0].address").doesNotExist());
   }
 
   @Test
