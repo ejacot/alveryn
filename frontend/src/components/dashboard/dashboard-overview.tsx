@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, CalendarX, ChevronRight, Coffee, X } from "lucide-react";
+import { Briefcase, CalendarX, ChevronRight, Coffee, Plus, X } from "lucide-react";
 import { WeeklyHoursCard } from "./weekly-hours-card";
 import { SelectedDayActivityCard } from "./selected-day-activity-card";
 import type { AbsenceTypeSetting } from "../../types/absence";
@@ -10,6 +10,7 @@ import type {
   WeeklyRhythmDay
 } from "../../types/dashboard";
 import { resolveDaySwipeDirection } from "./day-swipe.utils";
+import { Card } from "../ui/card";
 import { DashboardDailySummaryCard } from "./dashboard-daily-summary-card";
 import { LockedModalViewport } from "../ui/locked-modal-viewport";
 import { ModalPanel } from "../ui/modal-panel";
