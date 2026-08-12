@@ -667,4 +667,31 @@ describe("CalendarPage", () => {
     await user.type(hours, "220");
     expect(hours).toHaveValue(220);
   });
+
+  it("does not present an impossible legacy reconciliation as valid", async () => {
+    vi.mocked(listEmployments).mockResolvedValue([{
+      id: "employment-1",
+      name: "Test employment",
+      active: true
+    } as Awaited<ReturnType<typeof listEmployments>>[number]]);
+    vi.mocked(getPayrollReconciliation).mockResolvedValue({
+      id: "reconciliation-1",
+      employmentId: "employment-1",
+      year: 2026,
+      month: 7,
+      status: "REVIEW_NEEDED",
+      payrollWorkedHours: 219.6,
+      payrollExtraHours: 490.2224,
+      payrollGross: 10_043_468.51,
+      payrollLines: [{ label: "footer fragment", amount: 10_000_710 }],
+      documentAvailable: true
+    });
+
+    renderPage();
+    await screen.findByText("July 2026");
+
+    await waitFor(() => expect(getPayrollReconciliation).toHaveBeenCalled());
+    expect(screen.queryByText("€10,043,468.51")).not.toBeInTheDocument();
+    expect(screen.getByText("Scan your Lohn")).toBeInTheDocument();
+  });
 });

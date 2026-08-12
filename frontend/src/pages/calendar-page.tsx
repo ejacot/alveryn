@@ -23,7 +23,8 @@ import {
   reconcileMonthlyPayroll,
   savePayrollReconciliation,
   uploadPayrollReconciliationDocument,
-  type PayrollReconciliation
+  type PayrollReconciliation,
+  type PayrollReconciliationDetail
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -139,6 +140,10 @@ export function CalendarPage() {
     // Otherwise the old scan briefly (or, after a failed request, permanently) replaces the
     // loading state and looks like the newly selected document was analyzed incorrectly again.
     if (!saved || payrollReview || payrollPending || payrollDocument) return;
+    // Older scanner versions could persist hallucinated tax-table/footer values. Never present
+    // those records as a valid reconciliation; keep the stored document untouched so a fresh
+    // scan can replace it safely.
+    if (isObviouslyInvalidSavedPayroll(saved)) return;
     setPayrollReview({
       filename: saved.filename ?? undefined,
       year: saved.year,
@@ -1222,6 +1227,19 @@ export function CalendarPage() {
 
     </div>
   );
+}
+
+function isObviouslyInvalidSavedPayroll(saved: PayrollReconciliationDetail) {
+  const impossibleHours = [
+    saved.payrollWorkedHours,
+    saved.payrollAbsenceHours,
+    saved.payrollExtraHours
+  ].some((value) => value != null && (value < 0 || value > 744));
+  const impossibleGross = saved.payrollGross != null
+    && (saved.payrollGross < 0 || saved.payrollGross > 1_000_000);
+  const impossibleLine = saved.payrollLines.some((line) =>
+    line.amount != null && (line.amount < 0 || line.amount > 250_000));
+  return impossibleHours || impossibleGross || impossibleLine;
 }
 
 function PayrollComparisonRow({
