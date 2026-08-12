@@ -1,60 +1,62 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("interactive public Welcome", () => {
-  test("keeps the full interactive demo usable at 320px without backend writes", async ({ page }, testInfo) => {
-    const writeRequests: string[] = [];
+test.describe("Precision Flow public Welcome", () => {
+  test("keeps the complete mobile story readable without backend writes", async ({ page }) => {
+    const writes: string[] = [];
     page.on("request", (request) => {
-      if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && request.url().includes("/api/")) {
-        writeRequests.push(`${request.method()} ${request.url()}`);
-      }
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && request.url().includes("/api/") && !request.url().includes("/analytics/public-event")) writes.push(request.url());
     });
-    await page.setViewportSize({ width: 320, height: 780 });
+    await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/welcome");
-    await expect(page.getByRole("heading", { level: 1, name: "Your work. Clearly tracked." })).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("welcome-hero-320.png") });
-    await page.waitForTimeout(500);
-    writeRequests.length = 0;
-    await page.getByRole("button", { name: "Try the live demo" }).click();
-    await page.getByLabel("Area · m²").fill("30");
-    await expect(page.getByText("€144.00").first()).toBeVisible();
+    writes.length = 0;
+    await expect(page.getByRole("heading", { level: 1, name: "Never guess if your paycheck is right." })).toBeVisible();
+    await page.getByRole("button", { name: "See your month take shape" }).click();
+    await expect(page.getByRole("heading", { name: "One complete day." })).toBeVisible();
 
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow).toBeLessThanOrEqual(0);
-    expect(writeRequests).toEqual([]);
-    await page.screenshot({ path: testInfo.outputPath("welcome-interactive-320.png"), fullPage: true });
-    await page.getByRole("heading", { name: "A complete month, already organised." }).scrollIntoViewIfNeeded();
-    await page.screenshot({ path: testInfo.outputPath("welcome-calendar-320.png") });
+    const scrollRoot = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.61);
+    await expect(page.getByText("€2,894.00").first()).toBeVisible();
+    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+    expect(writes).toEqual([]);
   });
 
-  test("updates simple time modes, resets, and exposes keyboard controls", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test("preserves readable light and dark scenes through reverse scrolling and restoration", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
     await page.goto("/welcome");
-    await page.getByRole("button", { name: "Try the live demo" }).press("Enter");
-    await page.getByLabel("Hours worked").fill("6");
-    await expect(page.getByText("€105.00").first()).toBeVisible();
-    await page.getByRole("radio", { name: "Time interval" }).click();
-    await expect(page.getByLabel("Start time")).toBeVisible();
-    await page.getByRole("button", { name: "Reset" }).click();
-    await expect(page.getByRole("radio", { name: "Number of hours" })).toHaveAttribute("aria-checked", "true");
+    const root = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.95);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.6);
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); });
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
   });
 
-  test("renders a polished desktop story and preserves translations", async ({ page }, testInfo) => {
+  test("uses a separate desktop composition and keeps translations complete", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/welcome");
-    const calendar = page.getByLabel("Interactive Alveryn daily summary");
-    await expect(calendar).toBeVisible();
-    const calendarBox = await calendar.boundingBox();
-    expect(Math.abs((calendarBox?.width ?? 0) - (calendarBox?.height ?? 0))).toBeLessThanOrEqual(2);
-    await expect(calendar).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await page.getByRole("button", { name: "Use dark mode" }).click();
-    await expect(calendar).toHaveCSS("background-color", "rgb(8, 10, 9)");
-    await page.screenshot({ path: testInfo.outputPath("welcome-calendar-dark-desktop.png") });
-    await page.getByRole("button", { name: "Use light mode" }).click();
-    await expect(page.getByText("Your record and received pay")).toBeVisible();
     await page.getByLabel("Choose language").first().selectOption("de");
-    await expect(page.getByRole("heading", { level: 1, name: "Deine Arbeit. Klar erfasst." })).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow).toBeLessThanOrEqual(0);
-    await page.screenshot({ path: testInfo.outputPath("welcome-interactive-desktop.png"), fullPage: true });
+    await expect(page.getByRole("heading", { level: 1, name: "Nie mehr raten, ob deine Abrechnung stimmt." })).toBeVisible();
+    await expect(page.getByText("Jede Art von Arbeit — ein Nachweis.")).toBeAttached();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  });
+
+  test("reduced motion exposes deterministic readable states", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/welcome");
+    const root = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
   });
 });
