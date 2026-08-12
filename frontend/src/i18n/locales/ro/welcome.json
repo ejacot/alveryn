@@ -16,44 +16,184 @@
     "subtitle": "Înregistrează ore, ture, unități finalizate, lucrări cu preț fix și absențe. Alveryn calculează venitul estimat și păstrează toate joburile într-un istoric lunar clar.",
     "primaryCta": "Începe gratuit evidența",
     "secondaryCta": "Vezi cum funcționează",
-    "points": ["Muncă la oră, pe unitate și la preț fix", "Mai multe joburi și tarife", "Fără calcule în tabele"],
+    "points": [
+      "Muncă la oră, pe unitate și la preț fix",
+      "Mai multe joburi și tarife",
+      "Fără calcule în tabele"
+    ],
     "previewAlt": "Exemple de muncă la oră și pe unitate transformate în venit estimat",
     "dayAlt": "Rezumat zilnic cu șase ore și jumătate lucrate și venitul estimat",
     "activityAlt": "Activitate înregistrată cu program, ore și venit calculat",
-    "examples": { "hourly": { "label": "Tură plătită la oră", "work": "6h 30m × 17,50 €/oră", "result": "113,75 € estimat" }, "unit": { "label": "Unități finalizate", "work": "24 livrări × 1,80 €", "result": "43,20 € estimat" } }
+    "examples": {
+      "hourly": {
+        "label": "Tură plătită la oră",
+        "work": "6h 30m × 17,50 €/oră",
+        "result": "113,75 € estimat"
+      },
+      "unit": {
+        "label": "Unități finalizate",
+        "work": "24 livrări × 1,80 €",
+        "result": "43,20 € estimat"
+      }
+    }
   },
-  "problem": { "eyebrow": "Zile de muncă reale", "title": "Munca ta înseamnă mai mult decât o oră de început și una de sfârșit.", "body": "Activitățile și regulile diferite de plată fac un timer sau o notiță greu de verificat la sfârșitul lunii.", "points": ["Mai multe activități în aceeași zi", "Plată la oră, pe unitate sau pe lucrare", "Tarife care se schimbă", "Mai multe joburi", "Calcule manuale împărțite între notițe și tabele"] },
-  "workModes": { "eyebrow": "Se adaptează muncii tale", "title": "Înregistrezi munca în forma ei reală.", "body": "Folosești timpul, rezultatul sau suma convenită. Alveryn păstrează calculul ușor de înțeles.", "items": [
-    { "title": "Muncă plătită la oră", "body": "Înregistrezi o tură prin check-in/check-out sau introduci timpul manual.", "example": "8h × 18 €/oră = 144 €" },
-    { "title": "Muncă plătită pe unitate", "body": "Înregistrezi camere, livrări, piese, kilometri, metri pătrați sau alte unități.", "example": "24 livrări × 1,80 € = 43,20 €" },
-    { "title": "Lucrări cu preț fix", "body": "Înregistrezi lucrarea finalizată și suma convenită pentru ea.", "example": "Instalație finalizată = 250 €" },
-    { "title": "Mai multe joburi și activități", "body": "Păstrezi separat tarifele și activitățile, fără să împarți istoricul între aplicații.", "example": "Job dimineața + job seara" }
-  ] },
-  "how": { "eyebrow": "Cum funcționează", "title": "Configurezi o dată. Înregistrezi în câteva secunde.", "body": "Utilizarea zilnică rămâne simplă chiar dacă regulile muncii sunt diferite.", "steps": [
-    { "title": "Configurezi cum lucrezi", "body": "Adaugi un job, alegi cum ești plătit și definești activitățile efectuate." },
-    { "title": "Înregistrezi munca", "body": "Introduci timpul, unitățile finalizate sau o lucrare terminată în câteva secunde." },
-    { "title": "Verifici orele și venitul", "body": "Vezi totalurile zilnice și lunare fără să refaci manual calculele." }
-  ] },
-  "proof": { "eyebrow": "Produsul în practică", "title": "Un răspuns clar la fiecare nivel.", "body": "Aceeași evidență te însoțește de la ziua curentă la luna completă și evoluția în timp.",
-    "dashboard": { "title": "Vezi imediat munca și venitul de astăzi.", "body": "Activități, ore, venit calculat și contextul săptămânii.", "link": "Explorează Dashboard", "alt": "Card Dashboard Alveryn cu munca și venitul zilei" },
-    "calendar": { "title": "Înțelegi luna completă, zi cu zi.", "body": "Zile lucrate, zile libere, absențe, totaluri și verificarea documentului salarial.", "link": "Explorează Calendar", "alt": "Calendar Alveryn cu zilele lucrate și venitul lunii" },
-    "statistics": { "title": "Vezi cum se schimbă orele și venitul.", "body": "Treci de la o săptămână la un an și compari perioade pe aceeași scară.", "link": "Explorează Statistici", "alt": "Grafic Statistics Alveryn cu evoluția venitului brut" }
+  "problem": {
+    "eyebrow": "Zile de muncă reale",
+    "title": "Munca ta înseamnă mai mult decât o oră de început și una de sfârșit.",
+    "body": "Activitățile și regulile diferite de plată fac un timer sau o notiță greu de verificat la sfârșitul lunii.",
+    "points": [
+      "Mai multe activități în aceeași zi",
+      "Plată la oră, pe unitate sau pe lucrare",
+      "Tarife care se schimbă",
+      "Mai multe joburi",
+      "Calcule manuale împărțite între notițe și tabele"
+    ]
   },
-  "multipleJobs": { "eyebrow": "Mai multe joburi", "title": "O singură evidență, chiar dacă ai mai multe joburi.", "body": "Fiecare job păstrează propriile activități, tarife, reguli și istoric. Vezi totaluri separate sau imaginea completă.", "jobs": [
-    { "label": "Jobul unu", "title": "Curățenie dimineața", "points": ["Ture plătite la oră", "Muncă pe cameră", "Plată extra în weekend"] },
-    { "label": "Jobul doi", "title": "Livrări seara", "points": ["Plată pe livrare", "Un tarif diferit", "Totaluri separate și generale"] }
-  ] },
-  "data": { "eyebrow": "Import și export", "title": "Evidențele existente pot veni cu tine.", "body": "Importă XLSX, TXT, PDF sau imagini, verifică ce a găsit Alveryn înainte de salvare și exportă un PDF clar.", "import": { "title": "Verifici înainte de import", "body": "Nimic nu este adăugat în tăcere. Confirmi zilele clare, corectezi întrebările și eviți duplicatele." }, "export": { "title": "O evidență pe care o poți trimite", "body": "Alegi perioada și exporți într-un PDF clar detaliile de muncă dorite." } },
-  "forWho": { "eyebrow": "Pentru cine este", "title": "Pentru oamenii a căror muncă nu încape într-un timer simplu.", "body": "Alveryn este evidența personală a lucrătorului, nu software de management pentru companii.", "items": [
-    { "title": "Angajați plătiți la oră și în ture", "body": "Păstrezi împreună ture, pauze, ore suplimentare și absențe." },
-    { "title": "Persoane cu mai multe joburi", "body": "Separi activitățile și tarifele într-un singur istoric." },
-    { "title": "Livrări și muncă pe unitate", "body": "Înregistrezi rezultatele finalizate lângă munca bazată pe timp." },
-    { "title": "Curățenie, instalații și muncă pe teren", "body": "Urmărești locuri, lucrări și reguli de plată diferite." },
-    { "title": "Freelanceri cu tarife mixte", "body": "Folosești plata la oră, pe unitate și sume fixe în aceeași lună." },
-    { "title": "Oricine dorește o evidență independentă", "body": "Știi ce ai înregistrat înainte să verifici documentul primit." }
-  ] },
-  "theme": { "light": "Folosește modul luminos", "dark": "Folosește modul întunecat" },
-  "footer": { "description": "O aplicație personală pentru evidența muncii și venitului, creată pentru zile și reguli de plată care nu sunt mereu simple." },
+  "workModes": {
+    "eyebrow": "Se adaptează muncii tale",
+    "title": "Înregistrezi munca în forma ei reală.",
+    "body": "Folosești timpul, rezultatul sau suma convenită. Alveryn păstrează calculul ușor de înțeles.",
+    "items": [
+      {
+        "title": "Muncă plătită la oră",
+        "body": "Înregistrezi o tură prin check-in/check-out sau introduci timpul manual.",
+        "example": "8h × 18 €/oră = 144 €"
+      },
+      {
+        "title": "Muncă plătită pe unitate",
+        "body": "Înregistrezi camere, livrări, piese, kilometri, metri pătrați sau alte unități.",
+        "example": "24 livrări × 1,80 € = 43,20 €"
+      },
+      {
+        "title": "Lucrări cu preț fix",
+        "body": "Înregistrezi lucrarea finalizată și suma convenită pentru ea.",
+        "example": "Instalație finalizată = 250 €"
+      },
+      {
+        "title": "Mai multe joburi și activități",
+        "body": "Păstrezi separat tarifele și activitățile, fără să împarți istoricul între aplicații.",
+        "example": "Job dimineața + job seara"
+      }
+    ]
+  },
+  "how": {
+    "eyebrow": "Cum funcționează",
+    "title": "Configurezi o dată. Înregistrezi în câteva secunde.",
+    "body": "Utilizarea zilnică rămâne simplă chiar dacă regulile muncii sunt diferite.",
+    "steps": [
+      {
+        "title": "Configurezi cum lucrezi",
+        "body": "Adaugi un job, alegi cum ești plătit și definești activitățile efectuate."
+      },
+      {
+        "title": "Înregistrezi munca",
+        "body": "Introduci timpul, unitățile finalizate sau o lucrare terminată în câteva secunde."
+      },
+      {
+        "title": "Verifici orele și venitul",
+        "body": "Vezi totalurile zilnice și lunare fără să refaci manual calculele."
+      }
+    ]
+  },
+  "proof": {
+    "eyebrow": "Produsul în practică",
+    "title": "Un răspuns clar la fiecare nivel.",
+    "body": "Aceeași evidență te însoțește de la ziua curentă la luna completă și evoluția în timp.",
+    "dashboard": {
+      "title": "Vezi imediat munca și venitul de astăzi.",
+      "body": "Activități, ore, venit calculat și contextul săptămânii.",
+      "link": "Explorează Dashboard",
+      "alt": "Card Dashboard Alveryn cu munca și venitul zilei"
+    },
+    "calendar": {
+      "title": "Înțelegi luna completă, zi cu zi.",
+      "body": "Zile lucrate, zile libere, absențe, totaluri și verificarea documentului salarial.",
+      "link": "Explorează Calendar",
+      "alt": "Calendar Alveryn cu zilele lucrate și venitul lunii"
+    },
+    "statistics": {
+      "title": "Vezi cum se schimbă orele și venitul.",
+      "body": "Treci de la o săptămână la un an și compari perioade pe aceeași scară.",
+      "link": "Explorează Statistici",
+      "alt": "Grafic Statistics Alveryn cu evoluția venitului brut"
+    }
+  },
+  "multipleJobs": {
+    "eyebrow": "Mai multe joburi",
+    "title": "O singură evidență, chiar dacă ai mai multe joburi.",
+    "body": "Fiecare job păstrează propriile activități, tarife, reguli și istoric. Vezi totaluri separate sau imaginea completă.",
+    "jobs": [
+      {
+        "label": "Jobul unu",
+        "title": "Curățenie dimineața",
+        "points": [
+          "Ture plătite la oră",
+          "Muncă pe cameră",
+          "Plată extra în weekend"
+        ]
+      },
+      {
+        "label": "Jobul doi",
+        "title": "Livrări seara",
+        "points": [
+          "Plată pe livrare",
+          "Un tarif diferit",
+          "Totaluri separate și generale"
+        ]
+      }
+    ]
+  },
+  "data": {
+    "eyebrow": "Import și export",
+    "title": "Evidențele existente pot veni cu tine.",
+    "body": "Importă XLSX, TXT, PDF sau imagini, verifică ce a găsit Alveryn înainte de salvare și exportă un PDF clar.",
+    "import": {
+      "title": "Verifici înainte de import",
+      "body": "Nimic nu este adăugat în tăcere. Confirmi zilele clare, corectezi întrebările și eviți duplicatele."
+    },
+    "export": {
+      "title": "O evidență pe care o poți trimite",
+      "body": "Alegi perioada și exporți într-un PDF clar detaliile de muncă dorite."
+    }
+  },
+  "forWho": {
+    "eyebrow": "Pentru cine este",
+    "title": "Pentru oamenii a căror muncă nu încape într-un timer simplu.",
+    "body": "Alveryn este evidența personală a lucrătorului, nu software de management pentru companii.",
+    "items": [
+      {
+        "title": "Angajați plătiți la oră și în ture",
+        "body": "Păstrezi împreună ture, pauze, ore suplimentare și absențe."
+      },
+      {
+        "title": "Persoane cu mai multe joburi",
+        "body": "Separi activitățile și tarifele într-un singur istoric."
+      },
+      {
+        "title": "Livrări și muncă pe unitate",
+        "body": "Înregistrezi rezultatele finalizate lângă munca bazată pe timp."
+      },
+      {
+        "title": "Curățenie, instalații și muncă pe teren",
+        "body": "Urmărești locuri, lucrări și reguli de plată diferite."
+      },
+      {
+        "title": "Freelanceri cu tarife mixte",
+        "body": "Folosești plata la oră, pe unitate și sume fixe în aceeași lună."
+      },
+      {
+        "title": "Oricine dorește o evidență independentă",
+        "body": "Știi ce ai înregistrat înainte să verifici documentul primit."
+      }
+    ]
+  },
+  "theme": {
+    "light": "Folosește modul luminos",
+    "dark": "Folosește modul întunecat"
+  },
+  "footer": {
+    "description": "O aplicație personală pentru evidența muncii și venitului, creată pentru zile și reguli de plată care nu sunt mereu simple."
+  },
   "formats": {
     "time": "Muncă plătită la oră",
     "unit": "Plată pe unitate",
@@ -61,40 +201,148 @@
     "absence": "Concedii și absențe"
   },
   "tour": {
-    "dashboard": { "eyebrow": "Dashboard", "title": "Ziua ta, deja organizată.", "body": "Deschizi Alveryn și vezi imediat munca, timpul și venitul care contează astăzi.", "points": ["Totalul zilei", "Fiecare activitate", "Venit calculat imediat"] },
-    "calendar": { "eyebrow": "Calendar", "title": "Toată luna, fără să o reconstruiești.", "body": "Zilele lucrate, orele, venitul și absențele rămân împreună într-un istoric clar.", "points": ["Istoric zilnic", "Totaluri lunare", "Absențe separate"] },
-    "statistics": { "eyebrow": "Statistici", "title": "Vezi povestea din spatele numerelor.", "body": "Treci de la o singură zi la un an întreg și compari perioadele cu o atingere.", "points": ["De la zi la an", "Evoluția venitului", "Compararea perioadelor"] },
-    "lohn": { "eyebrow": "Verificarea documentului salarial", "title": "Evidența ta lângă documentul primit.", "body": "Compari Alveryn cu fluturașul de salariu și observi mai ușor diferențele.", "points": ["Ore comparate", "Brut comparat", "Detalii din document extrase"] }
+    "dashboard": {
+      "eyebrow": "Dashboard",
+      "title": "Ziua ta, deja organizată.",
+      "body": "Deschizi Alveryn și vezi imediat munca, timpul și venitul care contează astăzi.",
+      "points": [
+        "Totalul zilei",
+        "Fiecare activitate",
+        "Venit calculat imediat"
+      ]
+    },
+    "calendar": {
+      "eyebrow": "Calendar",
+      "title": "Toată luna, fără să o reconstruiești.",
+      "body": "Zilele lucrate, orele, venitul și absențele rămân împreună într-un istoric clar.",
+      "points": ["Istoric zilnic", "Totaluri lunare", "Absențe separate"]
+    },
+    "statistics": {
+      "eyebrow": "Statistici",
+      "title": "Vezi povestea din spatele numerelor.",
+      "body": "Treci de la o singură zi la un an întreg și compari perioadele cu o atingere.",
+      "points": [
+        "De la zi la an",
+        "Evoluția venitului",
+        "Compararea perioadelor"
+      ]
+    },
+    "lohn": {
+      "eyebrow": "Verificarea documentului salarial",
+      "title": "Evidența ta lângă documentul primit.",
+      "body": "Compari Alveryn cu fluturașul de salariu și observi mai ușor diferențele.",
+      "points": [
+        "Ore comparate",
+        "Brut comparat",
+        "Detalii din document extrase"
+      ]
+    }
   },
-  "marketingTour": { "eyebrow": "Descoperă Alveryn", "title": "Trei locuri. O evidență completă a muncii.", "body": "Începe cu imaginea de ansamblu, apoi deschide partea produsului pe care vrei să o înțelegi.", "dashboard": { "title": "Dashboard", "body": "Munca de astăzi și săptămâna din jurul ei." }, "calendar": { "title": "Calendar", "body": "Fiecare zi, totalul lunar și comparația cu documentul salarial." }, "statistics": { "title": "Statistici", "body": "Evoluții, cifre esențiale și comparații." } },
-  "productPages": { "back": "Înapoi la Alveryn", "ctaTitle": "Ești gata să ai propria evidență?", "dashboard": { "eyebrow": "Tur Dashboard" }, "calendar": { "eyebrow": "Tur Calendar" }, "statistics": { "eyebrow": "Tur Statistici" } },
+  "marketingTour": {
+    "eyebrow": "Descoperă Alveryn",
+    "title": "Trei locuri. O evidență completă a muncii.",
+    "body": "Începe cu imaginea de ansamblu, apoi deschide partea produsului pe care vrei să o înțelegi.",
+    "dashboard": {
+      "title": "Dashboard",
+      "body": "Munca de astăzi și săptămâna din jurul ei."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "body": "Fiecare zi, totalul lunar și comparația cu documentul salarial."
+    },
+    "statistics": {
+      "title": "Statistici",
+      "body": "Evoluții, cifre esențiale și comparații."
+    }
+  },
+  "productPages": {
+    "back": "Înapoi la Alveryn",
+    "ctaTitle": "Ești gata să ai propria evidență?",
+    "dashboard": { "eyebrow": "Tur Dashboard" },
+    "calendar": { "eyebrow": "Tur Calendar" },
+    "statistics": { "eyebrow": "Tur Statistici" }
+  },
   "dashboardTour": {
     "title": "Tot ce contează, înainte de primul scroll.",
     "body": "Dashboard conectează munca de astăzi cu întreaga săptămână. Fiecare card răspunde unei întrebări utile.",
     "cards": {
-      "day": { "tag": "Astăzi + săptămâna", "title": "Ce a adăugat ziua de azi săptămânii tale?", "body": "Vezi orele și venitul zilei lângă Flow, media zilnică, brutul săptămânal și suma extra." },
-      "activity": { "tag": "Activitate", "title": "De unde provin aceste cifre?", "body": "Fiecare activitate păstrează împreună programul, durata, tipul muncii și venitul calculat." },
-      "rhythm": { "tag": "Ritm", "title": "Este săptămâna ta echilibrată?", "body": "Compari orele fiecărei zile cu ritmul obișnuit și vezi imediat timpul lucrat și orele extra." }
+      "day": {
+        "tag": "Astăzi + săptămâna",
+        "title": "Ce a adăugat ziua de azi săptămânii tale?",
+        "body": "Vezi orele și venitul zilei lângă Flow, media zilnică, brutul săptămânal și suma extra."
+      },
+      "activity": {
+        "tag": "Activitate",
+        "title": "De unde provin aceste cifre?",
+        "body": "Fiecare activitate păstrează împreună programul, durata, tipul muncii și venitul calculat."
+      },
+      "rhythm": {
+        "tag": "Ritm",
+        "title": "Este săptămâna ta echilibrată?",
+        "body": "Compari orele fiecărei zile cu ritmul obișnuit și vezi imediat timpul lucrat și orele extra."
+      }
     }
   },
   "calendarTour": {
-    "title": "O lună pe care chiar o poți înțelege.", "body": "Calendar transformă fiecare zi, plată și document într-o singură poveste lunară.",
+    "title": "O lună pe care chiar o poți înțelege.",
+    "body": "Calendar transformă fiecare zi, plată și document într-o singură poveste lunară.",
     "cards": {
-      "month": { "tag": "Activitate lunară", "title": "Fiecare zi are context.", "body": "Vezi zile lucrate, zile libere, ore, venit și concediu fără să deschizi fiecare înregistrare." },
-      "summary": { "tag": "Rezumat lunar", "title": "Răspunsul de la sfârșitul lunii.", "body": "Brutul, orele, zilele, absențele și plata extra rămân într-un singur bilanț." },
-      "payroll": { "tag": "Comparare salarială", "title": "Evidența ta și fluturașul, rând cu rând.", "body": "Compari orele, plata extra și brutul, apoi verifici elementele extrase din documentul salarial." },
-      "flow": { "tag": "Flow", "title": "Vezi cum a evoluat venitul.", "body": "Venitul zilnic scoate la vedere zilele puternice, pauzele și media reală a lunii." },
-      "rhythm": { "tag": "Rhythm", "title": "Vezi cum a evoluat timpul.", "body": "Orele zilnice fac vizibile volumul de muncă și zilele neobișnuite." },
-      "tools": { "tag": "Datele tale", "title": "Le aduci. Le iei cu tine.", "body": "Importi istoricul și exporți un PDF clar atunci când trebuie să îl trimiți." }
+      "month": {
+        "tag": "Activitate lunară",
+        "title": "Fiecare zi are context.",
+        "body": "Vezi zile lucrate, zile libere, ore, venit și concediu fără să deschizi fiecare înregistrare."
+      },
+      "summary": {
+        "tag": "Rezumat lunar",
+        "title": "Răspunsul de la sfârșitul lunii.",
+        "body": "Brutul, orele, zilele, absențele și plata extra rămân într-un singur bilanț."
+      },
+      "payroll": {
+        "tag": "Comparare salarială",
+        "title": "Evidența ta și fluturașul, rând cu rând.",
+        "body": "Compari orele, plata extra și brutul, apoi verifici elementele extrase din documentul salarial."
+      },
+      "flow": {
+        "tag": "Flow",
+        "title": "Vezi cum a evoluat venitul.",
+        "body": "Venitul zilnic scoate la vedere zilele puternice, pauzele și media reală a lunii."
+      },
+      "rhythm": {
+        "tag": "Rhythm",
+        "title": "Vezi cum a evoluat timpul.",
+        "body": "Orele zilnice fac vizibile volumul de muncă și zilele neobișnuite."
+      },
+      "tools": {
+        "tag": "Datele tale",
+        "title": "Le aduci. Le iei cu tine.",
+        "body": "Importi istoricul și exporți un PDF clar atunci când trebuie să îl trimiți."
+      }
     }
   },
   "statisticsTour": {
-    "title": "Cifre care îți răspund.", "body": "Alegi întrebarea, vezi evoluția și compari răspunsul pentru orice perioadă.",
+    "title": "Cifre care îți răspund.",
+    "body": "Alegi întrebarea, vezi evoluția și compari răspunsul pentru orice perioadă.",
     "cards": {
-      "filters": { "tag": "Perioadă + metrică", "title": "Întrebi exact ce vrei să afli.", "body": "Alegi săptămâna, luna, anul sau o perioadă proprie, apoi valoarea care contează." },
-      "trend": { "tag": "Trend + esențial", "title": "Imaginea mare și cifrele din spatele ei.", "body": "Urmărești venitul brut, apoi vezi împreună orele, zilele lucrate, înregistrările și media zilnică." },
-      "compare": { "tag": "Comparare", "title": "Pui două perioade pe aceeași scară.", "body": "Perioada curentă, cea comparată și diferența rămân aliniate și ușor de înțeles." },
-      "selected": { "tag": "Atinge un punct", "title": "Mărești momentul care a schimbat curba.", "body": "Selectezi orice zi sau lună și vezi ambele valori plus diferența exactă din acel punct." }
+      "filters": {
+        "tag": "Perioadă + metrică",
+        "title": "Întrebi exact ce vrei să afli.",
+        "body": "Alegi săptămâna, luna, anul sau o perioadă proprie, apoi valoarea care contează."
+      },
+      "trend": {
+        "tag": "Trend + esențial",
+        "title": "Imaginea mare și cifrele din spatele ei.",
+        "body": "Urmărești venitul brut, apoi vezi împreună orele, zilele lucrate, înregistrările și media zilnică."
+      },
+      "compare": {
+        "tag": "Comparare",
+        "title": "Pui două perioade pe aceeași scară.",
+        "body": "Perioada curentă, cea comparată și diferența rămân aliniate și ușor de înțeles."
+      },
+      "selected": {
+        "tag": "Atinge un punct",
+        "title": "Mărești momentul care a schimbat curba.",
+        "body": "Selectezi orice zi sau lună și vezi ambele valori plus diferența exactă din acel punct."
+      }
     }
   },
   "capabilities": {
@@ -167,8 +415,16 @@
     "recordTitle": "Activitățile de astăzi",
     "recordDate": "2 înregistrări",
     "activities": [
-      { "name": "Tura de dimineață", "detail": "6h 30m · 19,20 €/oră", "value": "124,80 €" },
-      { "name": "Livrări finalizate", "detail": "24 unități · 1,82 €/unitate", "value": "43,60 €" }
+      {
+        "name": "Tura de dimineață",
+        "detail": "6h 30m · 19,20 €/oră",
+        "value": "124,80 €"
+      },
+      {
+        "name": "Livrări finalizate",
+        "detail": "24 unități · 1,82 €/unitate",
+        "value": "43,60 €"
+      }
     ],
     "nextAbsence": "Concediu înregistrat",
     "nextAbsenceDate": "3–7 august"
@@ -188,19 +444,219 @@
     "body": "Încarci fluturașul de salariu, iar Alveryn extrage informațiile pentru ca eventualele diferențe față de propria evidență să fie mai ușor de observat.",
     "alt": "Previzualizare Alveryn pentru încărcarea și analiza documentului salarial.",
     "uploadLabel": "Încarcă",
-    "document": "Fluturaș de salariu · iulie 2026", "documentShort": "Document",
+    "document": "Fluturaș de salariu · iulie 2026",
+    "documentShort": "Document",
     "resultLabel": "Analiză finalizată",
     "result": "Verifică posibilele diferențe",
     "resultHint": "Compară orele, venitul calculat și informațiile din document într-un singur loc.",
     "comparisonTitle": "Evidența ta vs. documentul salarial",
-    "item": "Element", "difference": "Diferență", "hours": "Ore plătite", "gross": "Brut", "workedDays": "Zile lucrate",
-    "net": "Salariu net", "tax": "Impozit", "social": "Asigurări sociale",
+    "item": "Element",
+    "difference": "Diferență",
+    "hours": "Ore plătite",
+    "gross": "Brut",
+    "workedDays": "Zile lucrate",
+    "net": "Salariu net",
+    "tax": "Impozit",
+    "social": "Asigurări sociale",
     "disclaimer": "Alveryn te ajută să verifici informațiile; nu înlocuiește consultanța profesională de salarizare sau juridică."
   },
   "final": {
     "title": "Nu-ți mai calcula munca din memorie.",
     "subtitle": "Începe un istoric clar al orelor, activităților și veniturilor tale.",
-    "points": ["Cont gratuit", "Funcționează în browser și ca PWA instalabilă", "Fără tabele necesare"],
+    "points": [
+      "Cont gratuit",
+      "Funcționează în browser și ca PWA instalabilă",
+      "Fără tabele necesare"
+    ],
     "primaryCta": "Începe gratuit evidența"
+  },
+  "recordSequence": {
+    "eyebrow": "O zi de muncă, înregistrată",
+    "title": "O singură zi. Contextul complet.",
+    "shift": "Tură",
+    "hours": "Timp lucrat",
+    "units": "Muncă finalizată",
+    "earned": "Venit estimat",
+    "caption": "Ziua este calculată o singură dată, apoi intră în evidența ta lunară independentă."
+  },
+  "workerQuestions": {
+    "eyebrow": "Întrebările care contează",
+    "title": "Angajatorul are o evidență. Ar trebui să ai și tu una.",
+    "items": [
+      "A ajuns fiecare tură pe fluturaș?",
+      "Au fost calculate corect pauzele, unitățile și tarifele diferite?",
+      "Suma primită corespunde muncii pe care am înregistrat-o?"
+    ],
+    "answer": "Alveryn păstrează răspunsul."
+  },
+  "switchCase": {
+    "title": "Trackerul tău actual înregistrează timpul. Alveryn explică luna.",
+    "body": "Treci la contextul pe care un cronometru îl omite și adu cu tine istoricul existent.",
+    "items": [
+      { "from": "Total de timp", "to": "Ore cu contextul muncii" },
+      { "from": "Un singur tarif", "to": "Lucru la oră, unitate și preț fix" },
+      { "from": "Lucrări izolate", "to": "Un singur istoric personal" },
+      {
+        "from": "Raport de timp",
+        "to": "Evidență independentă pentru fluturaș"
+      },
+      { "from": "Începi de la zero", "to": "Importă istoricul anterior" }
+    ]
+  },
+  "connectedDemo": {
+    "activity": "Rezultat",
+    "day": "Totalul zilei",
+    "calendar": "Ziua din calendar",
+    "saved": "Înregistrată",
+    "month": "Totalul lunii",
+    "statistics": "Statistica lunară actualizată",
+    "ready": "Gata de comparat",
+    "mobileCaption": "O singură înregistrare, urmărită pe parcursul întregii luni."
+  },
+  "migration": {
+    "eyebrow": "Schimbă fără să începi de la zero",
+    "title": "Ia cu tine munca înregistrată anterior.",
+    "body": "Importă istoricul, păstrează lunile deja urmărite și continuă într-o singură evidență clară.",
+    "ready": "Pregătit pentru import"
+  },
+  "proof": {
+    "eyebrow": "Produsul real",
+    "title": "Vezi luna, nu doar cronometrul.",
+    "body": "Aceleași înregistrări devin calendar, totaluri zilnice și statistici pe care le verifici înainte să vină fluturașul."
+  },
+  "interactive": {
+    "simple": {
+      "eyebrow": "Simplu, de la prima atingere",
+      "title": "Înregistrezi. Alveryn calculează.",
+      "body": "Fiecare tip de muncă are propriul exemplu. Schimbă un singur număr și vezi imediat ce înseamnă.",
+      "timeEyebrow": "Muncă bazată pe timp",
+      "timeTitle": "Câte ore ai lucrat?",
+      "timeBody": "Introdu doar numărul de ore. Dacă preferi, poți folosi ora de început și de sfârșit.",
+      "timeChoice": "Mod de introducere a timpului",
+      "hours": "Număr de ore",
+      "interval": "Interval orar",
+      "hoursLabel": "Ore lucrate",
+      "todayResult": "Rezultatul zilei",
+      "unitsEyebrow": "Muncă pe unitate",
+      "unitsTitle": "Plătit pentru ce finalizezi.",
+      "unitsBody": "Metri pătrați, kilometri, livrări sau piese. Introdu cantitatea și tariful.",
+      "squareMeters": "Curățenie pe suprafață",
+      "unitHint": "Plată pentru fiecare m² finalizat",
+      "areaLabel": "Suprafață · m²",
+      "rateLabel": "Tarif · €/m²",
+      "completedResult": "Muncă finalizată",
+      "calendarEyebrow": "Calendar",
+      "calendarTitle": "O lună completă, deja organizată.",
+      "calendarBody": "Fiecare zi lucrată ajunge automat într-un singur istoric clar.",
+      "workedDays": "Zile lucrate",
+      "worked": "Zi lucrată",
+      "free": "Zi liberă",
+      "weekDays": ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"]
+    },
+    "nav": { "demo": "Demo live", "why": "De ce Alveryn" },
+    "hero": {
+      "eyebrow": "Evidența ta independentă",
+      "title": "Nu mai presupune dacă salariul este corect.",
+      "body": "Înregistrează ture, pauze, munca finalizată și fiecare tarif. Alveryn îți oferă o evidență clară pentru a verifica plata primită.",
+      "demoCta": "Încearcă exemplul live",
+      "accountCta": "Creează evidența mea gratuită",
+      "trust": "Începi gratuit · Fără card · Evidența ta rămâne personală"
+    },
+    "demo": {
+      "eyebrow": "Experiența produsului real",
+      "title": "Încearcă o zi de lucru înainte să te înregistrezi.",
+      "body": "Alege cum ești plătit, modifică datele și urmărește rezultatul în zi, lună și progres.",
+      "step": "Pasul {{number}}",
+      "choose": "Alege cum ești plătit",
+      "reset": "Resetează",
+      "seeResult": "Vezi rezultatul",
+      "announcement": "Venitul estimat a fost actualizat la {{amount}}."
+    },
+    "modes": { "hourly": "La oră", "unit": "La unitate", "fixed": "Preț fix" },
+    "fields": {
+      "start": "Ora de început",
+      "end": "Ora de sfârșit",
+      "break": "Pauză neplătită · min",
+      "hourlyRate": "Tarif orar · €",
+      "unitName": "Numele unității",
+      "quantity": "Cantitate",
+      "unitRate": "Tarif pe unitate · €",
+      "activity": "Activitate sau lucrare",
+      "amount": "Sumă convenită · €"
+    },
+    "product": {
+      "heroLabel": "Sumar zilnic Alveryn interactiv",
+      "demoLabel": "Rezultatele demo Alveryn",
+      "today": "Sâmbătă · 18 iulie",
+      "dailyRecord": "Evidența zilei",
+      "worked": "Timp lucrat",
+      "recorded": "Înregistrat",
+      "estimated": "Venit estimat",
+      "gross": "Estimare brută",
+      "hourlyShift": "Tură plătită la oră",
+      "unitsFallback": "Unități",
+      "fixedFallback": "Lucrare la preț fix",
+      "agreed": "Sumă convenită",
+      "weekLabel": "Săptămână demonstrativă",
+      "weekHint": "O săptămână clară pentru toate joburile",
+      "monthLabel": "Calendar lunar Alveryn",
+      "month": "Luna completă",
+      "monthName": "Iulie 2026",
+      "hours": "Timp înregistrat",
+      "trendLabel": "Evoluția venitului estimat",
+      "monthlyProgress": "Progresul lunar",
+      "trendAlt": "Linie ascendentă care reprezintă venitul estimat acumulat"
+    },
+    "phone": {
+      "photoAlt": "Un lucrător își notează turele și orele într-un caiet",
+      "paperCaption": "Ore împrăștiate pe hârtie și păstrate din memorie.",
+      "open": "Explorează calendarul",
+      "close": "Închide calendarul"
+    },
+    "why": {
+      "eyebrow": "Claritate în loc de reconstituire",
+      "title": "Știi ce ai lucrat înainte să verifici ce ai primit.",
+      "body": "Alveryn îți oferă o evidență independentă a orelor, activităților și veniturilor estimate, pentru fiecare job.",
+      "before": "Înainte de Alveryn",
+      "beforeTitle": "Informații pe care trebuie să le reconstruiești",
+      "with": "Cu Alveryn",
+      "withTitle": "O singură evidență de verificat",
+      "items": {
+        "messages": "Ore împrăștiate prin mesaje și hârtii",
+        "memory": "Tarife și pauze amintite la sfârșitul lunii",
+        "notes": "Joburi diferite păstrate în notițe separate",
+        "spreadsheet": "Totaluri calculate manual într-un tabel",
+        "record": "O evidență zilnică independentă",
+        "rates": "Muncă la oră, la unitate și la preț fix împreună",
+        "totals": "Venituri estimate zilnic și lunar",
+        "history": "Istoric în calendar când primești fluturașul"
+      }
+    },
+    "payslip": {
+      "eyebrow": "De la evidență la înțelegere",
+      "title": "Luna este deja calculată când primești fluturașul.",
+      "body": "Compară propria estimare cu documentul primit și verifică posibilele diferențe pornind de la o evidență clară.",
+      "label": "Verificare fluturaș · iulie",
+      "comparison": "Evidența ta și plata primită",
+      "yourRecord": "Estimarea ta",
+      "received": "Brut pe fluturaș",
+      "difference": "Diferență posibilă",
+      "disclaimer": "Valorile sunt estimări demonstrative. Alveryn sprijină verificarea și nu înlocuiește consultanța profesională salarială, fiscală sau juridică."
+    },
+    "final": {
+      "title": "Nu-ți mai calcula munca din memorie.",
+      "body": "Construiește o evidență clară și independentă începând cu următoarea zi de lucru.",
+      "primary": "Creează evidența mea gratuită",
+      "restart": "Repornește demo-ul"
+    }
+  },
+  "motionIntegration": {
+    "cta": "Creează evidența mea gratuită",
+    "hero": { "title": "Nu mai ghici dacă salariul tău este corect.", "body": "Fiecare tură, tarif și lucrare terminată devine o evidență independentă pe care o controlezi.", "storyCta": "Vezi cum prinde formă luna", "proof": "O zi devine o lună pe care o poți verifica" },
+    "story": {
+      "aria": "Cum trece o înregistrare Alveryn de la ziua lucrată la comparația cu fluturașul", "kicker": "Marți · 11 august", "dayTitle": "O zi completă.", "dayBody": "Orele, lucrările terminate și fiecare tarif rămân împreună.", "calendarTitle": "Ziua intră în lună.", "calendarBody": "Ziua 11 rămâne vizibilă în timp ce totalul se formează.", "payslipTitle": "Fluturașul sosește.", "payslipBody": "Valorile comparabile se aliniază.", "differenceTitle": "Apare o posibilă diferență.", "dayAria": "Evidență zilnică cu tură, pauză și muncă terminată", "regularShift": "Tură obișnuită", "worked": "Lucrat", "break": "Pauză", "completed": "Muncă terminată", "addCompleted": "Adaugă muncă terminată", "calendarAria": "Evidență lunară în care intră ziua 11", "month": "August 2026", "monthRecord": "Evidența lunii", "estimated": "Estimat", "days": "zile", "absences": "absențe", "comparisonAria": "Comparație între evidența lunară și fluturașul primit", "yourRecord": "Evidența lunii tale", "includesDay": "Include ziua 11 · €164,00", "received": "Primit", "august": "August", "payslipGross": "Brut pe fluturaș", "possibleDifference": "Diferență posibilă", "disclaimer": "Estimare — verifică înainte de a trage concluzii.", "dayEstimate": "Estimarea zilei"
+    },
+    "capabilities": { "title": "Ce rămâne în evidența ta.", "items": ["Orice fel de muncă — o singură evidență.", "Vezi ce a construit luna ta.", "Observă diferențele înainte de ziua de salariu."], "note": "Veniturile estimate te ajută să verifici evidența. Nu înlocuiesc consultanța profesională salarială, fiscală sau juridică." },
+    "final": { "title": "Începe cu următoarea ta tură.", "body": "O singură zi este suficientă pentru a începe o evidență în care poți avea încredere." }
   }
 }

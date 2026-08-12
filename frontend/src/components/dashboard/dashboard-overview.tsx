@@ -11,6 +11,7 @@ import type {
 } from "../../types/dashboard";
 import { resolveDaySwipeDirection } from "./day-swipe.utils";
 import { Card } from "../ui/card";
+import { DashboardDailySummaryCard } from "./dashboard-daily-summary-card";
 import { LockedModalViewport } from "../ui/locked-modal-viewport";
 import { ModalPanel } from "../ui/modal-panel";
 import type { ReactNode } from "react";
@@ -110,35 +111,7 @@ export function DashboardOverview({
         </div>
       ) : null}
       {hasWorkActivity ? (
-        <Card as="section" variant="ambient" className="dashboard-primary-card dashboard-today-card dashboard-compact-summary relative overflow-hidden px-5 py-4">
-          <div className="relative grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_auto] items-center gap-4">
-            <div className="min-w-0">
-              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#f5f5f5]/34">
-                {selectedDay.durationLabel ?? t("selectedDay.hours")}
-              </p>
-              <p className="mt-1.5 truncate font-metric text-[1.35rem] font-medium leading-none tracking-[-0.05em] text-[#f5f5f5]">
-                {selectedDay.totalDuration || "—"}
-              </p>
-            </div>
-            <span className="h-9 bg-white/[0.08]" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#f5f5f5]/34">
-                {t("selectedDay.earnings")}
-              </p>
-              <p className="mt-1.5 truncate font-metric text-[1.08rem] font-medium leading-none tracking-[-0.04em] text-[#34d399]">
-                {selectedDay.totalGross || "—"}
-              </p>
-            </div>
-          <button
-            type="button"
-            onClick={onQuickAdd}
-            aria-label={t("quickAdd.accessibleLabel")}
-              className="dashboard-quick-add relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#34d399]/20 bg-[#10b981]/10 text-[#34d399] transition active:scale-[0.94]"
-          >
-              <Plus className="h-[1.1rem] w-[1.1rem]" strokeWidth={1.9} aria-hidden="true" />
-          </button>
-          </div>
-        </Card>
+        <DashboardDailySummaryCard selectedDay={selectedDay} onQuickAdd={onQuickAdd} />
       ) : null}
       <SelectedDayPanel
         selectedDay={selectedDay}

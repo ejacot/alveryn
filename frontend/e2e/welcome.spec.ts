@@ -1,41 +1,62 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("public Welcome", () => {
-  test("explains the product and keeps the mobile layout inside the viewport", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 320, height: 780 });
-    await page.goto("/welcome");
-
-    await expect(page.getByRole("heading", { level: 1, name: "Track your work. See exactly what you earned." })).toBeVisible();
-    await expect(page.getByText("6h 30m × €17.50/hour").first()).toBeVisible();
-    await expect(page.getByTestId("mobile-work-preview").getByText(/24 deliveries/)).toBeVisible();
-    await expect(page.locator("#how-it-works")).toBeAttached();
-    await expect(page.locator("#features")).toBeAttached();
-    await expect(page.locator("#for-who")).toBeAttached();
-
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow).toBeLessThanOrEqual(0);
-    await page.screenshot({ path: testInfo.outputPath("welcome-320-light.png") });
-  });
-
-  test("persists a user-controlled dark theme at 375px", async ({ page }, testInfo) => {
+test.describe("Precision Flow public Welcome", () => {
+  test("keeps the complete mobile story readable without backend writes", async ({ page }) => {
+    const writes: string[] = [];
+    page.on("request", (request) => {
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && request.url().includes("/api/") && !request.url().includes("/analytics/public-event")) writes.push(request.url());
+    });
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/welcome");
-    const themeButton = page.getByRole("button", { name: /Use (dark|light) mode/ });
-    await themeButton.click();
-    const selectedTheme = await page.locator("html").getAttribute("data-theme");
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", selectedTheme ?? "dark");
-    await page.screenshot({ path: testInfo.outputPath("welcome-375-selected-theme.png") });
+    writes.length = 0;
+    await expect(page.getByRole("heading", { level: 1, name: "Never guess if your paycheck is right." })).toBeVisible();
+    await page.getByRole("button", { name: "See your month take shape" }).click();
+    await expect(page.getByRole("heading", { name: "One complete day." })).toBeVisible();
+
+    const scrollRoot = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.61);
+    await expect(page.getByText("€2,894.00").first()).toBeVisible();
+    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+    expect(writes).toEqual([]);
   });
 
-  test("shows the full desktop story and accessible product tours", async ({ page }, testInfo) => {
+  test("preserves readable light and dark scenes through reverse scrolling and restoration", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
+    await page.goto("/welcome");
+    const root = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.95);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.6);
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); });
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
+  });
+
+  test("uses a separate desktop composition and keeps translations complete", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/welcome");
-    await expect(page.getByRole("link", { name: "Explore Dashboard" })).toHaveAttribute("href", "/welcome/dashboard");
-    await page.getByRole("link", { name: "Explore Dashboard" }).click();
-    await expect(page.getByRole("link", { name: "Back to Alveryn" })).toBeVisible();
-    await expect(page.getByRole("img").first()).toHaveAttribute("alt", /.+/);
-    await page.getByRole("link", { name: "Back to Alveryn" }).click();
-    await page.screenshot({ path: testInfo.outputPath("welcome-desktop.png") });
+    await page.getByLabel("Choose language").first().selectOption("de");
+    await expect(page.getByRole("heading", { level: 1, name: "Nie mehr raten, ob deine Abrechnung stimmt." })).toBeVisible();
+    await expect(page.getByText("Jede Art von Arbeit — ein Nachweis.")).toBeAttached();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  });
+
+  test("reduced motion exposes deterministic readable states", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/welcome");
+    const root = page.locator("[data-testid=welcome-scroll]");
+    const story = page.locator("#product-story");
+    const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
+    await expect(page.getByText("Δ €160.00")).toBeVisible();
   });
 });
