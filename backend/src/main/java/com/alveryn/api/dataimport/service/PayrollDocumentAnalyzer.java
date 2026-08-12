@@ -15,9 +15,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
@@ -38,11 +36,9 @@ public class PayrollDocumentAnalyzer {
   private static final int MAX_PAGES = 18;
   private static final long MAX_TOTAL_SIZE = 40L * 1024 * 1024;
   private static final long MAX_MONTHLY_SIZE = 15L * 1024 * 1024;
-  private static final Semaphore MONTHLY_SCAN_SLOT = new Semaphore(1, true);
 
   private final ObjectMapper objectMapper;
   private final ImportIntelligenceService intelligence;
-  private volatile String availableOcrLanguages;
 
   public ObjectNode analyze(List<MultipartFile> files, ArrayNode candidates) {
     ObjectNode result = objectMapper.createObjectNode();
@@ -99,32 +95,12 @@ public class PayrollDocumentAnalyzer {
   }
 
   public ObjectNode analyzeMonthly(MultipartFile file, int year, int month) {
-    boolean acquired = false;
-    try {
-      acquired = MONTHLY_SCAN_SLOT.tryAcquire(5, TimeUnit.SECONDS);
-      if (!acquired) {
-        throw new ValidationException(
-            "Another payroll document is being scanned. Try again in a moment",
-            "PAYROLL_SCAN_BUSY");
-      }
-      return analyzeMonthlyInScanSlot(file, year, month);
-    } catch (InterruptedException exception) {
-      Thread.currentThread().interrupt();
-      throw new ValidationException(
-          "Payroll scanning was interrupted. Try again", "PAYROLL_SCAN_INTERRUPTED");
-    } finally {
-      if (acquired) MONTHLY_SCAN_SLOT.release();
-    }
-  }
-
-  private ObjectNode analyzeMonthlyInScanSlot(MultipartFile file, int year, int month) {
     String contentType = validateMonthly(file);
     if (file.getSize() > MAX_MONTHLY_SIZE) {
       throw new IllegalArgumentException("Payroll document exceeds the 15 MB limit");
     }
     try {
       List<String> images;
-      List<String> ocrTexts;
       if (contentType.equals("application/pdf")) {
         try (PDDocument pdf = Loader.loadPDF(file.getBytes())) {
           if (pdf.getNumberOfPages() > MAX_PAGES) {
@@ -147,37 +123,19 @@ public class PayrollDocumentAnalyzer {
           log.info("Payroll reconciliation selected PDF page {} of {} for {}-{} ({})",
               pageIndex + 1, pdf.getNumberOfPages(), year, month,
               safeFilename(file.getOriginalFilename()));
-          images = List.of(renderPage(pdf, pageIndex, 180));
-          String nativeText = extractPageText(pdf, pageIndex);
-          String ocrText = extractPageTextWithOcr(pdf, pageIndex);
-          ocrTexts = List.of(combineTextEvidence(nativeText, ocrText));
+          images = List.of(renderPage(pdf, pageIndex, 135));
         }
       } else {
-        byte[] sourceBytes = file.getBytes();
-        boolean directlySupported = Set.of(
-            "image/jpeg", "image/png", "image/webp").contains(contentType);
-        boolean lowMemoryMode = Boolean.parseBoolean(
-            System.getenv().getOrDefault("PAYROLL_LOW_MEMORY_MODE", "false"));
-        // A 512 MB service cannot safely hold the request while also spawning ImageMagick and
-        // multilingual Tesseract. Modern vision models read ordinary camera formats directly;
-        // retain conversion for HEIC/RAW and richer OCR evidence on larger instances.
-        byte[] imageBytes = lowMemoryMode && directlySupported
-            ? sourceBytes : normalizePayrollImage(sourceBytes, contentType);
-        if (!(lowMemoryMode && directlySupported)) contentType = "image/jpeg";
+        byte[] imageBytes = file.getBytes();
+        if (!List.of("image/jpeg", "image/png", "image/webp").contains(contentType)
+            || imageBytes.length > 2L * 1024 * 1024) {
+          imageBytes = normalizePayrollImage(imageBytes, contentType);
+          contentType = "image/jpeg";
+        }
         images = List.of("data:" + contentType + ";base64,"
             + Base64.getEncoder().encodeToString(imageBytes));
-        ocrTexts = lowMemoryMode && directlySupported
-            ? List.of("") : List.of(extractImageTextWithOcr(imageBytes));
       }
-      ObjectNode result = intelligence.analyzeMonthlyPayrollImages(
-          images, ocrTexts, year, month);
-      ObjectNode deterministic = new PayrollOcrParser(objectMapper)
-          .parse(String.join("\n", ocrTexts), year, month);
-      if (!hasPayrollValues(result) && hasPayrollValues(deterministic)) {
-        result = deterministic;
-      } else if (hasPayrollValues(result)) {
-        mergeMissingEvidence(result, deterministic);
-      }
+      ObjectNode result = intelligence.analyzeMonthlyPayrollImages(images, year, month);
       log.info(
           "Payroll reconciliation result status={}, period={}-{}, sourcePage={}, "
               + "normalHoursPresent={}, absenceHoursPresent={}, extraHoursPresent={}, "
@@ -193,40 +151,16 @@ public class PayrollDocumentAnalyzer {
       if ("FALLBACK".equals(result.path("status").asText())
           || "DISABLED".equals(result.path("status").asText())) {
         throw new ValidationException(
-            "No payroll values could be read. Try a clearer photo of the relevant table",
+            "The payroll image could not be read. Try a clearer photo with the full page visible",
             "PAYROLL_DOCUMENT_UNREADABLE");
       }
       result.put("filename", safeFilename(file.getOriginalFilename()));
-      result.put("localOcrUsed", ocrTexts.stream().anyMatch(text -> !text.isBlank()));
       return result;
     } catch (IllegalArgumentException exception) {
       throw exception;
     } catch (Exception exception) {
       throw new IllegalArgumentException("Could not read the payroll PDF", exception);
     }
-  }
-
-  private boolean hasPayrollValues(ObjectNode result) {
-    return result.path("normalHours").isNumber() || result.path("normalAmount").isNumber()
-        || result.path("absenceAmount").isNumber() || result.path("extraAmount").isNumber()
-        || result.path("grossAmount").isNumber() || !result.path("payrollLines").isEmpty();
-  }
-
-  private void mergeMissingEvidence(ObjectNode result, ObjectNode deterministic) {
-    for (String field : List.of("countryCode", "languageCode", "currency",
-        "documentCompleteness", "normalHours", "normalRate", "normalAmount",
-        "absenceLabel", "absenceDays", "absenceHours", "absenceRate", "absenceAmount",
-        "extraHours", "extraAmount", "grossAmount")) {
-      if ((result.path(field).isMissingNode() || result.path(field).isNull())
-          && !deterministic.path(field).isMissingNode() && !deterministic.path(field).isNull()) {
-        result.set(field, deterministic.path(field));
-      }
-    }
-    if (!result.path("payrollLines").isArray() || result.path("payrollLines").isEmpty()) {
-      result.set("payrollLines", deterministic.path("payrollLines"));
-    }
-    if (!result.path("warnings").isArray()) result.putArray("warnings");
-    result.put("ocrEvidenceAvailable", hasPayrollValues(deterministic));
   }
 
   private ObjectNode analyzeRenderedPages(PDDocument pdf, ArrayNode candidates) throws Exception {
@@ -329,38 +263,26 @@ public class PayrollDocumentAnalyzer {
   }
 
   private String runImageConversion(Path input, Path output) throws Exception {
-    String imageMagick = isCommandAvailable("magick") ? "magick"
-        : isCommandAvailable("convert") ? "convert" : null;
-    String diagnostic = "ImageMagick is not installed";
-    if (imageMagick != null) {
-      Process process = new ProcessBuilder(
-          imageMagick,
-          "-limit", "thread", "1",
-          "-limit", "memory", "64MiB",
-          "-limit", "map", "96MiB",
-          "-limit", "disk", "512MiB",
-          input.toString(),
-          "-auto-orient", "-colorspace", "Gray", "-deskew", "40%",
-          "-contrast-stretch", "0.5%x0.5%", "-resize", "1700x1700>",
-          "-sharpen", "0x1", "-strip", "-quality", "90", output.toString())
-          .redirectErrorStream(true)
-          .start();
-      boolean finished = process.waitFor(Duration.ofSeconds(40).toMillis(), TimeUnit.MILLISECONDS);
-      if (!finished) {
-        process.destroyForcibly();
-        throw new IllegalArgumentException("Payroll photo conversion timed out");
-      }
-      diagnostic =
-          new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-      if (process.exitValue() == 0 && Files.size(output) > 0) return diagnostic;
+    Process process = new ProcessBuilder(
+        "magick", input.toString(),
+        "-auto-orient", "-resize", "2200x2200>", "-strip",
+        "-quality", "88", output.toString())
+        .redirectErrorStream(true)
+        .start();
+    boolean finished = process.waitFor(Duration.ofSeconds(40).toMillis(), TimeUnit.MILLISECONDS);
+    if (!finished) {
+      process.destroyForcibly();
+      throw new IllegalArgumentException("Payroll photo conversion timed out");
     }
+    String diagnostic =
+        new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+    if (process.exitValue() == 0 && Files.size(output) > 0) return diagnostic;
 
     log.warn("ImageMagick payroll conversion failed, trying ffmpeg: {}", diagnostic);
-    if (!isCommandAvailable("ffmpeg")) return diagnostic + "\nFFmpeg is not installed";
     Files.write(output, new byte[0]);
     Process fallback = new ProcessBuilder(
-        "ffmpeg", "-y", "-threads", "1", "-i", input.toString(), "-vf",
-        "scale=1700:1700:force_original_aspect_ratio=decrease,format=gray,unsharp=5:5:0.8",
+        "ffmpeg", "-y", "-i", input.toString(), "-vf",
+        "scale='min(2200,iw)':'min(2200,ih)':force_original_aspect_ratio=decrease",
         "-frames:v", "1", "-q:v", "3", output.toString())
         .redirectErrorStream(true)
         .start();
@@ -436,7 +358,17 @@ public class PayrollDocumentAnalyzer {
       BufferedImage image =
           new PDFRenderer(pdf).renderImageWithDPI(page, 170, ImageType.GRAY);
       ImageIO.write(image, "png", imageFile.toFile());
-      return runTesseract(imageFile);
+      Process process = new ProcessBuilder(
+          "tesseract", imageFile.toString(), "stdout", "-l", "deu+eng", "--psm", "6")
+          .redirectErrorStream(true)
+          .start();
+      boolean finished = process.waitFor(Duration.ofSeconds(20).toMillis(), TimeUnit.MILLISECONDS);
+      if (!finished) {
+        process.destroyForcibly();
+        return "";
+      }
+      String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+      return process.exitValue() == 0 ? output : "";
     } catch (Exception ignored) {
       return "";
     } finally {
@@ -448,105 +380,6 @@ public class PayrollDocumentAnalyzer {
         }
       }
     }
-  }
-
-  private String extractImageTextWithOcr(byte[] image) {
-    Path imageFile = null;
-    try {
-      if (!isCommandAvailable("tesseract")) return "";
-      imageFile = Files.createTempFile("alveryn-payroll-photo-", ".jpg");
-      Files.write(imageFile, image);
-      return runTesseract(imageFile);
-    } catch (Exception exception) {
-      log.warn("Payroll photo OCR unavailable: {}", exception.getMessage());
-      return "";
-    } finally {
-      if (imageFile != null) {
-        try {
-          Files.deleteIfExists(imageFile);
-        } catch (Exception ignored) {
-          // Temporary OCR files are best-effort cleanup.
-        }
-      }
-    }
-  }
-
-  private String runTesseract(Path imageFile) throws Exception {
-    String languages = availableTesseractLanguages();
-    if (languages.isBlank()) return "";
-    StringBuilder combined = new StringBuilder();
-    // Tesseract loads every requested trained-data model into native memory. Running locales
-    // separately keeps the peak bounded on a 512 MB instance while retaining multilingual
-    // evidence. The vision model reconciles duplicate readings afterwards.
-    for (String language : languages.split("\\+")) {
-      String output = runTesseractLanguage(imageFile, language);
-      if (!output.isBlank()) {
-        if (!combined.isEmpty()) combined.append("\n\n");
-        combined.append("OCR ").append(language).append(":\n").append(output);
-      }
-    }
-    return combined.toString();
-  }
-
-  private String runTesseractLanguage(Path imageFile, String language) throws Exception {
-    ProcessBuilder builder = new ProcessBuilder(
-        "tesseract", imageFile.toString(), "stdout", "-l", language,
-        "--oem", "1", "--psm", "6", "-c", "preserve_interword_spaces=1")
-        .redirectErrorStream(true);
-    builder.environment().put("OMP_THREAD_LIMIT", "1");
-    Process process = builder.start();
-    boolean finished = process.waitFor(Duration.ofSeconds(25).toMillis(), TimeUnit.MILLISECONDS);
-    if (!finished) {
-      process.destroyForcibly();
-      return "";
-    }
-    String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    return process.exitValue() == 0 ? output : "";
-  }
-
-  private String availableTesseractLanguages() {
-    if (availableOcrLanguages != null) return availableOcrLanguages;
-    if (!isCommandAvailable("tesseract")) return availableOcrLanguages = "";
-    try {
-      Process process = new ProcessBuilder("tesseract", "--list-langs")
-          .redirectErrorStream(true).start();
-      if (!process.waitFor(5, TimeUnit.SECONDS) || process.exitValue() != 0) {
-        return availableOcrLanguages = "";
-      }
-      Set<String> installed = Set.of(
-          new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
-              .split("\\s+"));
-      String configured = System.getenv("PAYROLL_OCR_LANGUAGES");
-      List<String> requested = configured == null || configured.isBlank()
-          ? List.of("eng", "deu", "ron", "fra")
-          : Pattern.compile("[+,\\s]+").splitAsStream(configured)
-              .filter(language -> !language.isBlank()).toList();
-      // Loading every trained model into one Tesseract process can exhaust a 512 MB service.
-      // The vision model still reads any language; this bounded OCR pass supplies independent
-      // digit and label evidence for the product's primary locales. Other installed models can
-      // be enabled through PAYROLL_OCR_LANGUAGES on larger instances.
-      availableOcrLanguages = requested.stream()
-          .filter(installed::contains).distinct()
-          .reduce((left, right) -> left + "+" + right)
-          .orElse("");
-      log.info("Payroll OCR languages enabled: {}", availableOcrLanguages);
-      return availableOcrLanguages;
-    } catch (Exception exception) {
-      return availableOcrLanguages = "";
-    }
-  }
-
-  private String extractPageText(PDDocument pdf, int page) throws Exception {
-    PDFTextStripper stripper = new PDFTextStripper();
-    stripper.setStartPage(page + 1);
-    stripper.setEndPage(page + 1);
-    return stripper.getText(pdf).trim();
-  }
-
-  private String combineTextEvidence(String nativeText, String ocrText) {
-    if (nativeText == null || nativeText.isBlank()) return ocrText == null ? "" : ocrText;
-    if (ocrText == null || ocrText.isBlank()) return nativeText;
-    return "DIGITAL TEXT:\n" + nativeText + "\nOCR TEXT:\n" + ocrText;
   }
 
   private boolean isCommandAvailable(String command) {

@@ -22,12 +22,6 @@ public record PayrollReconciliationResponse(
     BigDecimal grossAmount,
     BigDecimal confidence,
     String status,
-    String countryCode,
-    String languageCode,
-    String currency,
-    String documentCompleteness,
-    boolean requiresReview,
-    List<String> warnings,
     Integer sourcePage,
     boolean periodInferredFromCalendar,
     List<PayrollLine> payrollLines) {
@@ -39,11 +33,7 @@ public record PayrollReconciliationResponse(
       BigDecimal factor,
       BigDecimal percentage,
       BigDecimal amount,
-      Boolean grossRelevant,
-      String category,
-      String unit,
-      BigDecimal confidence,
-      String evidenceText) {}
+      Boolean grossRelevant) {}
 
   public static PayrollReconciliationResponse from(JsonNode node) {
     return new PayrollReconciliationResponse(
@@ -63,12 +53,6 @@ public record PayrollReconciliationResponse(
         decimal(node, "grossAmount"),
         decimal(node, "confidence"),
         text(node, "status"),
-        text(node, "countryCode"),
-        text(node, "languageCode"),
-        text(node, "currency"),
-        text(node, "documentCompleteness"),
-        node.path("requiresReview").asBoolean(false),
-        strings(node.path("warnings")),
         integer(node, "sourcePage"),
         node.path("periodInferredFromCalendar").asBoolean(false),
         payrollLines(node.path("payrollLines")));
@@ -84,18 +68,7 @@ public record PayrollReconciliationResponse(
         decimal(line, "factor"),
         decimal(line, "percentage"),
         decimal(line, "amount"),
-        bool(line, "grossRelevant"),
-        text(line, "category"),
-        text(line, "unit"),
-        decimal(line, "confidence"),
-        text(line, "evidenceText"))));
-    return List.copyOf(result);
-  }
-
-  private static List<String> strings(JsonNode values) {
-    if (!values.isArray()) return List.of();
-    List<String> result = new ArrayList<>();
-    values.forEach(value -> { if (value.isTextual()) result.add(value.asText()); });
+        bool(line, "grossRelevant"))));
     return List.copyOf(result);
   }
 

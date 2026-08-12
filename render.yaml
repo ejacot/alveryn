@@ -128,10 +128,6 @@ services:
         value: openai/gpt-oss-20b
       - key: GROQ_VISION_MODEL
         value: qwen/qwen3.6-27b
-      - key: PAYROLL_OCR_LANGUAGES
-        value: eng+deu+ron+fra
-      - key: PAYROLL_LOW_MEMORY_MODE
-        value: true
 
 databases:
   - name: alveryn-db

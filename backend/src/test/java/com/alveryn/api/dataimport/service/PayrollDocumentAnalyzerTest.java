@@ -26,7 +26,7 @@ class PayrollDocumentAnalyzerTest {
         .put("year", 2026)
         .put("month", 6)
         .put("normalHours", 160);
-    when(intelligence.analyzeMonthlyPayrollImages(anyList(), anyList(), eq(2026), eq(6)))
+    when(intelligence.analyzeMonthlyPayrollImages(anyList(), eq(2026), eq(6)))
         .thenReturn(result);
 
     byte[] pdfBytes;
