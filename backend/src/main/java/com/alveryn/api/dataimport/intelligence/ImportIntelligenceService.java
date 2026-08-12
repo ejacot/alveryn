@@ -326,6 +326,8 @@ public class ImportIntelligenceService {
       normalizeMonthlyPayrollResult(result);
       sanitizePayrollLines(result);
       aggregatePayrollLines(result);
+      applyIndependentPayrollAnchors(result,
+          extractIndependentPayrollAnchors(imageDataUrl, year, month));
       validatePayrollResult(result);
       result.put("status", "COMPLETED");
       result.put("sourcePage", pageNumber);
@@ -341,6 +343,79 @@ public class ImportIntelligenceService {
     if (text == null || text.isBlank()) return "[not available]";
     String cleaned = text.replace('\u0000', ' ').trim();
     return cleaned.length() > 20_000 ? cleaned.substring(0, 20_000) : cleaned;
+  }
+
+  private ObjectNode extractIndependentPayrollAnchors(
+      String imageDataUrl, int year, int month) {
+    try {
+      List<Map<String, Object>> content = List.of(
+          Map.of("type", "text", "text", """
+              Independently verify ONLY the prominent payroll totals printed on this page.
+              Do not transcribe rows and do not use values from tax, social-insurance, annual,
+              deduction or net-pay tables. The requested period is %d-%02d.
+
+              Return JSON with exactly: normalHours, normalAmount, extraHours, extraAmount,
+              grossAmount, currency, confidence. Use null when a value is not visibly supported.
+              normalHours is the paid quantity on the ordinary/base-pay row. extraHours is the
+              sum of distinct eligible hour groups for premiums; taxable and tax-free splits of
+              the same hours count once. grossAmount is the explicitly printed total gross.
+              Decimal commas are decimal separators. Never derive a value from footer text.
+              """.formatted(year, month)),
+          Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl)));
+      Map<String, Object> body = Map.of(
+          "model", properties.visionModel(),
+          "temperature", 0.0,
+          "max_completion_tokens", 500,
+          "reasoning_effort", "none",
+          "messages", List.of(
+              Map.of("role", "system", "content",
+                  "Verify visible payroll totals independently. Return JSON only; never guess."),
+              Map.of("role", "user", "content", content)),
+          "response_format", Map.of("type", "json_object"));
+      String raw = restClient.post().uri("/chat/completions")
+          .contentType(MediaType.APPLICATION_JSON)
+          .headers(headers -> headers.setBearerAuth(properties.apiKey()))
+          .body(objectMapper.writeValueAsString(body)).retrieve().body(String.class);
+      JsonNode parsed = parseJsonObject(objectMapper.readTree(raw)
+          .path("choices").path(0).path("message").path("content").asText());
+      return parsed instanceof ObjectNode object ? object : objectMapper.createObjectNode();
+    } catch (Exception exception) {
+      log.warn("Independent payroll total verification unavailable: {}", exception.getMessage());
+      return objectMapper.createObjectNode();
+    }
+  }
+
+  private void applyIndependentPayrollAnchors(ObjectNode result, ObjectNode anchors) {
+    double confidence = anchors.path("confidence").asDouble(0);
+    if (confidence < 0.70) {
+      result.withArray("warnings").add("INDEPENDENT_TOTALS_UNAVAILABLE");
+      result.put("requiresReview", true);
+      return;
+    }
+    for (String field : List.of(
+        "normalHours", "normalAmount", "extraHours", "extraAmount", "grossAmount")) {
+      if (!anchors.path(field).isNumber()) continue;
+      BigDecimal verified = anchors.path(field).decimalValue();
+      if (verified.signum() < 0 || (field.endsWith("Hours")
+          ? verified.compareTo(new BigDecimal("744")) > 0
+          : verified.compareTo(new BigDecimal("1000000")) > 0)) continue;
+      if (result.path(field).isNumber()
+          && materiallyDifferent(result.path(field).decimalValue(), verified)) {
+        result.withArray("warnings").add("INDEPENDENT_TOTAL_CORRECTION_" + field);
+        result.put("requiresReview", true);
+      }
+      result.put(field, verified);
+    }
+    if (anchors.path("currency").isTextual()) {
+      result.put("currency", anchors.path("currency").asText());
+    }
+    result.put("independentVerificationConfidence", confidence);
+  }
+
+  private boolean materiallyDifferent(BigDecimal first, BigDecimal second) {
+    BigDecimal tolerance = second.abs().multiply(new BigDecimal("0.02"))
+        .max(new BigDecimal("0.05"));
+    return first.subtract(second).abs().compareTo(tolerance) > 0;
   }
 
   private boolean hasMonthlyPayrollValues(ObjectNode result) {
@@ -531,7 +606,8 @@ public class ImportIntelligenceService {
     double modelConfidence = result.path("confidence").asDouble(0);
     double evidenceFactor = supported == 0 ? 0.45 : inconsistent == 0 ? 1.0 : 0.65;
     result.put("confidence", Math.min(modelConfidence, evidenceFactor));
-    result.put("requiresReview", inconsistent > 0 || supported == 0
+    result.put("requiresReview", result.path("requiresReview").asBoolean(false)
+        || inconsistent > 0 || supported == 0
         || result.path("confidence").asDouble() < 0.85);
   }
 

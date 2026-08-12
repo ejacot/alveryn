@@ -149,4 +149,33 @@ class ImportIntelligenceServiceTest {
     assertThat(result.path("extraHours").decimalValue()).isEqualByComparingTo("41");
     assertThat(result.path("extraAmount").decimalValue()).isEqualByComparingTo("485.15");
   }
+
+  @Test
+  void independentTotalsReplaceAConfidentButAbsurdPrimaryReading() throws Exception {
+    var mapper = new ObjectMapper();
+    var properties = new ImportIntelligenceProperties(
+        false, "", "https://api.groq.com/openai/v1", "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b", Duration.ofSeconds(30));
+    var service = new ImportIntelligenceService(properties, mapper);
+    var result = mapper.createObjectNode()
+        .put("normalHours", 219.6).put("extraHours", 490.2224)
+        .put("extraAmount", 10_044.6).put("grossAmount", 10_043_468.51);
+    result.putArray("warnings");
+    var anchors = mapper.createObjectNode()
+        .put("normalHours", 219.6).put("normalAmount", 3403.8)
+        .put("extraHours", 41).put("extraAmount", 485.15)
+        .put("grossAmount", 3888.95).put("currency", "EUR").put("confidence", 0.96);
+
+    Method apply = ImportIntelligenceService.class.getDeclaredMethod(
+        "applyIndependentPayrollAnchors", com.fasterxml.jackson.databind.node.ObjectNode.class,
+        com.fasterxml.jackson.databind.node.ObjectNode.class);
+    apply.setAccessible(true);
+    apply.invoke(service, result, anchors);
+
+    assertThat(result.path("normalHours").decimalValue()).isEqualByComparingTo("219.6");
+    assertThat(result.path("extraHours").decimalValue()).isEqualByComparingTo("41");
+    assertThat(result.path("extraAmount").decimalValue()).isEqualByComparingTo("485.15");
+    assertThat(result.path("grossAmount").decimalValue()).isEqualByComparingTo("3888.95");
+    assertThat(result.path("requiresReview").asBoolean()).isTrue();
+  }
 }
