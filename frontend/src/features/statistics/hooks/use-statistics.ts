@@ -103,6 +103,7 @@ export function useStatistics(
     queryKey: queryKeys.statistics.timeseries(keyFilters),
     queryFn: () => getStatisticsTimeSeries(filters)
   });
+  const coreReady = overview.isSuccess && timeSeries.isSuccess;
   const trendPeriods = trendComparisonPeriods(filters);
   const comparisonRequest = {
     ...trendPeriods,
@@ -118,31 +119,37 @@ export function useStatistics(
       calculationMethods: [...comparisonRequest.calculationMethods].sort()
     }),
     queryFn: () => getStatisticsComparison(comparisonRequest),
-    placeholderData: (previous) => previous
+    placeholderData: (previous) => previous,
+    enabled: coreReady
   });
   const workTypes = useQuery({
     queryKey: queryKeys.statistics.workTypes(keyFilters),
     queryFn: () => getStatisticsWorkTypes(filters)
   });
+  const secondaryReady = coreReady && workTypes.isSuccess && comparison.isFetched;
   const forecast = useQuery({
     queryKey: queryKeys.statistics.forecast(keyFilters),
     queryFn: () => getStatisticsForecast(filters),
-    placeholderData: (previous) => previous
+    placeholderData: (previous) => previous,
+    enabled: secondaryReady
   });
   const productivity = useQuery({
     queryKey: queryKeys.statistics.productivity(productivityKeyFilters),
     queryFn: () => getStatisticsProductivity(filters, productivityMetric, productivityGrouping),
-    placeholderData: (previous) => previous
+    placeholderData: (previous) => previous,
+    enabled: secondaryReady
   });
   const highlights = useQuery({
     queryKey: queryKeys.statistics.highlights(keyFilters),
     queryFn: () => getStatisticsHighlights(filters),
-    placeholderData: (previous) => previous
+    placeholderData: (previous) => previous,
+    enabled: secondaryReady
   });
   const insights = useQuery({
     queryKey: queryKeys.statistics.insights(keyFilters),
     queryFn: () => getStatisticsInsights(filters),
-    placeholderData: (previous) => previous
+    placeholderData: (previous) => previous,
+    enabled: secondaryReady
   });
 
   return {

@@ -4,6 +4,7 @@ import com.alveryn.api.common.response.ApiErrorResponse;
 import com.alveryn.api.common.response.ApiResponse;
 import com.alveryn.api.workrecord.dto.WorkRecordRequest;
 import com.alveryn.api.workrecord.dto.WorkRecordResponse;
+import com.alveryn.api.workrecord.dto.WorkRecordRangeResponse;
 import com.alveryn.api.workrecord.service.WorkRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -121,6 +122,18 @@ public class WorkRecordController {
   public ApiResponse<List<WorkRecordResponse>> range(
       @RequestParam LocalDate from, @RequestParam LocalDate to) {
     return ApiResponse.of(workRecordService.listRange(from, to));
+  }
+
+  @GetMapping("/range-summary")
+  @Operation(
+      summary = "List compact work records for a local date range",
+      description = "Returns the calculation data needed by calendar and recommendation views without editor-only metadata.",
+      security = @SecurityRequirement(name = "bearerAuth"))
+  public ApiResponse<List<WorkRecordRangeResponse>> rangeSummary(
+      @RequestParam LocalDate from, @RequestParam LocalDate to) {
+    return ApiResponse.of(workRecordService.listRange(from, to).stream()
+        .map(WorkRecordRangeResponse::from)
+        .toList());
   }
 
   @Schema(name = "WorkRecordApiResponse", description = "Wrapped work record response")

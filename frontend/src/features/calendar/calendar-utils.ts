@@ -65,9 +65,9 @@ export function parseIsoDate(value: string) {
   return parseLocalIsoDate(value);
 }
 
-export function getCalendarWeekdays() {
+export function getCalendarWeekdays(language = i18n.resolvedLanguage) {
   const monday = startOfWeekMonday(new Date("2026-07-13T00:00:00"));
-  const weekdayFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+  const weekdayFormatter = new Intl.DateTimeFormat(language, {
     weekday: "short"
   });
   return Array.from({ length: 7 }, (_, index) =>

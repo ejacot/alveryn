@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ChevronDown, ChevronRight, FileCheck2, FileText, ShieldCheck, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, FileCheck2, FileText, Pencil, ShieldCheck, Upload } from "lucide-react";
 import {
   getCalendarActivityRange,
   getPayrollReconciliation,
@@ -59,6 +60,7 @@ import { useEmploymentScope } from "../features/employment/employment-scope";
 const EMPTY_ABSENCES: Absence[] = [];
 const EMPTY_WORK_RECORDS: WorkRecord[] = [];
 const EMPTY_ABSENCE_TYPES: AbsenceTypeSetting[] = [];
+const GENERIC_EXTRA_PAY_KEY = "__extra_pay__";
 
 type OutletContext = {
   setSelectedDate?: (date: Date) => void;
@@ -68,6 +70,12 @@ export function CalendarPage() {
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext>();
   const { t } = useTranslation(["calendar", "settings"]);
+  const localizedAbsenceName = useCallback((code: AbsenceTypeSetting["code"], fallback: string) => {
+    if (code === "SICK_LEAVE") return t("legend.sick");
+    if (code === "VACATION") return t("legend.vacation");
+    if (code === "DAY_OFF") return t("legend.dayOff");
+    return fallback;
+  }, [t]);
   const queryClient = useQueryClient();
   const selectedEmploymentId = useEmploymentScope();
   const today = useMemo(() => new Date(), []);
@@ -83,6 +91,7 @@ export function CalendarPage() {
   const [payrollSaving, setPayrollSaving] = useState(false);
   const [payrollSaved, setPayrollSaved] = useState(false);
   const [payrollExpanded, setPayrollExpanded] = useState(false);
+  const [payrollEditing, setPayrollEditing] = useState(false);
   const [payrollDocument, setPayrollDocument] = useState<File | null>(null);
   const [payrollReconciliationId, setPayrollReconciliationId] = useState<string | null>(null);
   const [payrollDocumentAvailable, setPayrollDocumentAvailable] = useState(false);
@@ -91,6 +100,12 @@ export function CalendarPage() {
 
   const year = activeMonth.getFullYear();
   const month = activeMonth.getMonth() + 1;
+  const updatePayrollNumber = (field: keyof PayrollReconciliation, raw: string) => {
+    const value = raw.trim() === "" ? null : Number(raw.replace(",", "."));
+    if (value != null && !Number.isFinite(value)) return;
+    setPayrollReview((current) => current ? { ...current, [field]: value } : current);
+    setPayrollSaved(false);
+  };
 
   const monthStartKey = toIsoDate(startOfMonth(activeMonth));
   const monthEndKey = toIsoDate(addDays(getNextMonthDate(activeMonth), -1));
@@ -147,7 +162,8 @@ export function CalendarPage() {
   const previousMonthEndKey = toIsoDate(addDays(getNextMonthDate(previousMonth), -1));
   const previousWorkRecordsQuery = useQuery({
     queryKey: queryKeys.workRecords.range({ from: previousMonthStartKey, to: previousMonthEndKey }),
-    queryFn: () => listWorkRecordsInRange({ from: previousMonthStartKey, to: previousMonthEndKey })
+    queryFn: () => listWorkRecordsInRange({ from: previousMonthStartKey, to: previousMonthEndKey }),
+    enabled: workRecordsQuery.isSuccess
   });
 
   const absencesQuery = useQuery({
@@ -166,7 +182,8 @@ export function CalendarPage() {
     queryFn: () => listAbsencesInRange({
       year: previousMonth.getFullYear(),
       month: previousMonth.getMonth() + 1
-    })
+    }),
+    enabled: workRecordsQuery.isSuccess && absencesQuery.isSuccess
   });
 
   const activityRangeQuery = useQuery({
@@ -225,44 +242,25 @@ export function CalendarPage() {
     }
   });
   useEffect(() => {
-    const previousMonth = getPreviousMonthDate(activeMonth);
+    if (!workRecordsQuery.isSuccess || !absencesQuery.isSuccess) return;
     const nextMonth = getNextMonthDate(activeMonth);
-    const previousMonthStartKey = toIsoDate(startOfMonth(previousMonth));
-    const previousMonthEndKey = toIsoDate(addDays(getNextMonthDate(previousMonth), -1));
     const nextMonthStartKey = toIsoDate(startOfMonth(nextMonth));
     const nextMonthEndKey = toIsoDate(addDays(getNextMonthDate(nextMonth), -1));
-
-    void queryClient.prefetchQuery({
-      queryKey: queryKeys.workRecords.range({ from: previousMonthStartKey, to: previousMonthEndKey }),
-      queryFn: () => listWorkRecordsInRange({ from: previousMonthStartKey, to: previousMonthEndKey })
-    });
-    void queryClient.prefetchQuery({
-      queryKey: queryKeys.workRecords.range({ from: nextMonthStartKey, to: nextMonthEndKey }),
-      queryFn: () => listWorkRecordsInRange({ from: nextMonthStartKey, to: nextMonthEndKey })
-    });
-    void queryClient.prefetchQuery({
-      queryKey: queryKeys.absences.range({
-        year: previousMonth.getFullYear(),
-        month: previousMonth.getMonth() + 1
-      }),
-      queryFn: () =>
-        listAbsencesInRange({
-          year: previousMonth.getFullYear(),
-          month: previousMonth.getMonth() + 1
-        })
-    });
-    void queryClient.prefetchQuery({
-      queryKey: queryKeys.absences.range({
-        year: nextMonth.getFullYear(),
-        month: nextMonth.getMonth() + 1
-      }),
-      queryFn: () =>
-        listAbsencesInRange({
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery({
+        queryKey: queryKeys.workRecords.range({ from: nextMonthStartKey, to: nextMonthEndKey }),
+        queryFn: () => listWorkRecordsInRange({ from: nextMonthStartKey, to: nextMonthEndKey })
+      });
+      void queryClient.prefetchQuery({
+        queryKey: queryKeys.absences.range({
           year: nextMonth.getFullYear(),
           month: nextMonth.getMonth() + 1
-        })
-    });
-  }, [activeMonth, queryClient]);
+        }),
+        queryFn: () => listAbsencesInRange({ year: nextMonth.getFullYear(), month: nextMonth.getMonth() + 1 })
+      });
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [absencesQuery.isSuccess, activeMonth, queryClient, workRecordsQuery.isSuccess]);
 
   useEffect(() => {
     let frameId = 0;
@@ -289,10 +287,8 @@ export function CalendarPage() {
   const isLoading =
     employmentsQuery.isLoading ||
     workRecordsQuery.isLoading ||
-    previousWorkRecordsQuery.isLoading ||
     absencesQuery.isLoading ||
     absenceTypesQuery.isLoading ||
-    previousAbsencesQuery.isLoading ||
     preferencesQuery.isLoading ||
     hourlyRatesQuery.isLoading;
   const classificationLoading = Boolean(effectiveEmploymentId) && (
@@ -303,10 +299,8 @@ export function CalendarPage() {
   const error =
     employmentsQuery.error ??
     workRecordsQuery.error ??
-    previousWorkRecordsQuery.error ??
     absencesQuery.error ??
     absenceTypesQuery.error ??
-    previousAbsencesQuery.error ??
     preferencesQuery.error ??
     hourlyRatesQuery.error;
   const classificationError =
@@ -559,6 +553,47 @@ export function CalendarPage() {
       paidAbsences.map((absence) => absence.currency)
     );
     const totalCurrencies = new Set([...currencies, ...paidAbsenceCurrencies]);
+    const absenceGroups = new Map<string, {
+      label: string;
+      minutes: number;
+      grossAmount: number;
+      currencies: Set<string>;
+    }>();
+    paidAbsences.forEach((absence) => {
+      const key = absence.absenceTypeId ?? absence.absenceType;
+      const current = absenceGroups.get(key) ?? {
+        label: localizedAbsenceName(absence.absenceType, absence.absenceTypeName),
+        minutes: 0,
+        grossAmount: 0,
+        currencies: new Set<string>()
+      };
+      current.minutes += absence.minutes;
+      current.grossAmount += absence.grossAmount;
+      current.currencies.add(absence.currency);
+      absenceGroups.set(key, current);
+    });
+    const absenceBreakdown = Array.from(absenceGroups.entries())
+      .filter(([, item]) => item.minutes > 0 || item.grossAmount > 0)
+      .sort(([, left], [, right]) => right.minutes - left.minutes)
+      .map(([id, item]) => ({
+        id,
+        label: item.label,
+        hours: formatMinutesAsDuration(item.minutes),
+        amount: item.currencies.size > 1
+          ? t("monthlySummary.mixedCurrencies")
+          : formatCurrency(String(item.grossAmount), [...item.currencies][0] ?? currency)
+      }));
+    const extraPayBreakdown = extraPaid.items
+      .filter((item) => item.minutes > 0 || item.grossAmount > 0)
+      .sort((left, right) => right.minutes - left.minutes)
+      .map((item) => ({
+        id: item.name,
+        label: item.name === GENERIC_EXTRA_PAY_KEY ? t("monthlySummary.extraPay") : item.name,
+        hours: formatMinutesAsDuration(item.minutes),
+        amount: currencies.size > 1
+          ? t("monthlySummary.mixedCurrencies")
+          : formatCurrency(String(item.grossAmount), currency)
+      }));
     return {
       workedHours: formatMinutesAsDuration(workedMinutes),
       paidAbsenceHours: formatMinutesAsDuration(paidAbsenceMinutes),
@@ -578,6 +613,8 @@ export function CalendarPage() {
       paidAbsenceHoursValue: paidAbsenceMinutes / 60,
       extraPaidHoursValue: extraPaid.minutes / 60,
       grossAmountValue: workGrossAmount + paidAbsenceGrossAmount,
+      absenceBreakdown,
+      extraPayBreakdown,
       workedDays,
       absenceDays,
       restDays: classifiableDates.filter((date) => restDates.has(date)).length,
@@ -594,6 +631,7 @@ export function CalendarPage() {
     monthlyMetricDays,
     monthStartKey,
     paidAbsenceDays,
+    localizedAbsenceName,
     records,
     recordsByDate,
     restDates,
@@ -681,9 +719,13 @@ export function CalendarPage() {
           days={monthGrid}
           selectedDate={selectedDate}
           today={today}
-          absenceTypes={absenceTypes.filter((type) => type.active)}
+          absenceTypes={absenceTypes.filter((type) => type.active).map((type) => ({
+            ...type,
+            name: localizedAbsenceName(type.code, type.name)
+          }))}
           getDayMeta={(isoDate) => {
-            const recordsCount = recordsByDate.get(isoDate)?.length ?? 0;
+            const dayRecords = recordsByDate.get(isoDate) ?? [];
+            const recordsCount = dayRecords.length;
             const metricDay = monthlyMetricDayByDate.get(isoDate);
             const inTrackedRange = isInTrackedRange(isoDate, firstActivityDate, todayIso);
             const absence = absenceByDate.get(isoDate) ?? null;
@@ -692,19 +734,20 @@ export function CalendarPage() {
               : null;
             const marker = absence
               ? {
-                  label: configuredType?.name || absence.absenceTypeName,
+                  label: localizedAbsenceName(
+                    configuredType?.code ?? absence.absenceType,
+                    configuredType?.name || absence.absenceTypeName
+                  ),
                   color: configuredType?.color || defaultAbsenceColor(absence.absenceType)
                 }
               : restDates.has(isoDate)
-                ? { label: t("restDay.title"), color: "rgba(255,255,255,0.34)" }
+                ? { label: t("restDay.title"), color: "#737373" }
                 : null;
             return {
               entriesCount: recordsCount,
               marker,
               activityLabel: recordsCount > 0
-                ? formatCompactCalendarDuration(
-                    metricDay?.minutes ?? 0
-                  )
+                ? formatCalendarActivity(dayRecords, metricDay?.minutes ?? 0)
                 : null,
               earningsLabel: recordsCount > 0 && (metricDay?.amount ?? 0) > 0
                 ? formatCompactCalendarAmount(
@@ -770,14 +813,16 @@ export function CalendarPage() {
       <section className="calendar-payroll-panel order-3 relative -mt-6 overflow-hidden rounded-b-[30px] border border-t border-[#10b981]/[0.14] bg-[linear-gradient(150deg,#101010_0%,#090a09_72%)] shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
         <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#10b981]/[0.07] blur-3xl" />
         <input ref={payrollInputRef} type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           className="hidden"
           onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
+            const fileInput = event.currentTarget;
+            const file = fileInput.files?.[0];
             if (!file) return;
             setPayrollPending(true);
             setPayrollError(null);
             setPayrollReview(null);
+            setPayrollEditing(false);
             setPayrollSaved(false);
             setPayrollDocument(file);
             setPayrollDocumentAvailable(false);
@@ -799,13 +844,15 @@ export function CalendarPage() {
                 setPayrollReview(review);
               })
               .catch((error) => setPayrollError(
-                error instanceof Error && error.message
-                  ? error.message
-                  : getApiError(error).message
+                axios.isAxiosError(error)
+                  ? getApiError(error).message
+                  : error instanceof Error && error.message
+                    ? error.message
+                    : getApiError(error).message
               ))
               .finally(() => {
                 setPayrollPending(false);
-                event.currentTarget.value = "";
+                fileInput.value = "";
               });
           }} />
         <div className="relative p-5">
@@ -873,6 +920,48 @@ export function CalendarPage() {
         {payrollError ? <p className="px-5 pb-4 text-sm text-red-300">{payrollError}</p> : null}
         {payrollReview && payrollExpanded ? (
           <div className="space-y-4 border-t border-white/[0.08] px-5 pb-5 pt-5 text-sm">
+            {(payrollReview.requiresReview || payrollReview.documentCompleteness === "FRAGMENT") ? (
+              <div role="status" className="rounded-[18px] border border-amber-300/20 bg-amber-300/[0.07] px-4 py-3 text-xs leading-5 text-amber-100/85">
+                <div className="flex items-start justify-between gap-3">
+                  <p>{t("payroll.verification.review")}</p>
+                  <button type="button" onClick={() => setPayrollEditing((value) => !value)}
+                    className="flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-100/[0.08] px-3 font-semibold text-amber-50">
+                    <Pencil className="h-3 w-3" />
+                    {t(payrollEditing ? "payroll.actions.doneEditing" : "payroll.actions.editValues")}
+                  </button>
+                </div>
+                <p className="mt-1 text-amber-100/55">
+                  {payrollReview.documentCompleteness === "FRAGMENT"
+                    ? `${t("payroll.verification.fragment")} · ` : ""}
+                  {t("payroll.verification.confidence", {
+                    value: Math.round((payrollReview.confidence ?? 0) * 100)
+                  })}
+                </p>
+              </div>
+            ) : null}
+            {payrollEditing ? (
+              <fieldset className="grid grid-cols-2 gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+                <legend className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                  {t("payroll.verification.editTitle")}
+                </legend>
+                {([
+                  ["normalHours", "payroll.categories.workedHours"],
+                  ["normalAmount", "payroll.categories.workedPay"],
+                  ["extraHours", "payroll.categories.extraHours"],
+                  ["extraAmount", "payroll.categories.extraPay"],
+                  ["absenceHours", "payroll.categories.paidAbsence"],
+                  ["grossAmount", "payroll.categories.gross"]
+                ] as const).map(([field, label]) => (
+                  <label key={field} className="space-y-1.5 text-[10px] uppercase tracking-[0.12em] text-white/45">
+                    <span>{t(label)}</span>
+                    <input type="number" inputMode="decimal" step="0.01"
+                      value={payrollReview[field] ?? ""}
+                      onChange={(event) => updatePayrollNumber(field, event.currentTarget.value)}
+                      className="min-h-11 w-full rounded-[14px] border border-white/10 bg-black/25 px-3 text-base font-medium normal-case tracking-normal text-white outline-none focus:border-emerald-300/50" />
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
             {payrollComparison ? (
               <div className={`rounded-[22px] border px-4 py-4 ${
                 payrollComparison.differenceCount === 0
@@ -953,18 +1042,18 @@ export function CalendarPage() {
                 app={`${summary.paidAbsenceHours} · ${summary.paidAbsenceGrossAmount}`}
                 payroll={payrollReview.absenceHours == null && payrollReview.absenceAmount == null
                   ? "—"
-                  : `${payrollReview.absenceHours ?? "—"} h · ${payrollReview.absenceAmount ?? "—"} €`}
+                  : `${payrollReview.absenceHours ?? "—"} h · ${formatPayrollCurrency(payrollReview.absenceAmount, payrollReview.currency)}`}
                 difference={payrollComparison.rows.paidAbsence} />
             ) : null}
             <PayrollComparisonRow label={t("payroll.categories.extraPay")}
               app={`${summary.extraPaidHours} · ${summary.extraPaidGrossAmount}`}
               payroll={payrollReview.extraHours == null ? "—"
-                : `${payrollReview.extraHours} h · ${payrollReview.extraAmount ?? "—"} €`}
+                : `${payrollReview.extraHours} h · ${formatPayrollCurrency(payrollReview.extraAmount, payrollReview.currency)}`}
               difference={payrollComparison?.rows.extraPay ?? null} />
             <PayrollComparisonRow label={t("payroll.categories.gross")}
               app={summary.workGrossAmount}
               payroll={payrollReview.grossAmount == null ? "—"
-                : `${payrollReview.grossAmount.toFixed(2)} €`}
+                : formatPayrollCurrency(payrollReview.grossAmount, payrollReview.currency)}
               difference={payrollComparison?.rows.gross ?? null}
               currency />
             </div>
@@ -990,7 +1079,7 @@ export function CalendarPage() {
                         </p>
                       </div>
                       <p className="text-sm font-semibold tabular-nums text-white">
-                        {line.amount == null ? "—" : `${line.amount.toFixed(2)} €`}
+                        {formatPayrollCurrency(line.amount, payrollReview.currency)}
                       </p>
                     </div>
                   ))}
@@ -1092,11 +1181,6 @@ export function CalendarPage() {
             0
           )}
           currency={records[0]?.currency ?? preferences?.currency ?? "EUR"}
-          onDaySelect={(date) => {
-            const parsed = parseLocalIsoDate(date);
-            setSelectedDate(parsed);
-            outletContext?.setSelectedDate?.(parsed);
-          }}
         />
       </section>
 
@@ -1231,6 +1315,24 @@ function buildPayrollComparison(
   };
 }
 
+function formatPayrollCurrency(
+  amount: number | null | undefined,
+  currency: string | null | undefined
+) {
+  if (amount == null) return "—";
+  const safeCurrency = currency && /^[A-Z]{3}$/.test(currency) ? currency : "EUR";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${safeCurrency}`;
+  }
+}
+
 function comparisonDifference(
   payroll: number | null | undefined,
   app: number,
@@ -1272,6 +1374,27 @@ function formatCompactCalendarDuration(minutes: number) {
   if (hours === 0) return `${remainder}m`;
   if (remainder === 0) return `${hours}h`;
   return `${hours}h${remainder.toString().padStart(2, "0")}`;
+}
+
+function formatCalendarActivity(records: WorkRecord[], minutes: number) {
+  const duration = formatCompactCalendarDuration(minutes);
+  if (duration) return duration;
+
+  const lines = records.flatMap((record) => record.workLines ?? []);
+  const unitLine = lines.find(
+    (line) => line.calculationMode === "UNITS_PER_UNIT" && Number(line.quantity) > 0
+  );
+  if (unitLine) {
+    const quantity = new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 1
+    }).format(Number(unitLine.quantity));
+    return `${quantity}${unitLine.unitSymbol ? ` ${unitLine.unitSymbol}` : ""}`;
+  }
+
+  const fixedLine = lines.find((line) => line.calculationMode === "FIXED_AMOUNT");
+  if (fixedLine) return null;
+
+  return records[0]?.workLines?.[0]?.workTypeName ?? null;
 }
 
 function formatCompactCalendarAmount(amount: number, currency: string) {
@@ -1363,20 +1486,47 @@ function calculateExtraPaidInRange(
   from: string,
   to: string
 ) {
-  return records.reduce((total, record) => {
+  const grouped = new Map<string, { minutes: number; grossAmount: number }>();
+  const total = records.reduce((result, record) => {
     const eligibleDays = recordEligibleDates(record, absences);
-    if (eligibleDays.length === 0) return total;
+    if (eligibleDays.length === 0) return result;
     const overlapDays = eligibleDays.filter((date) => date >= from && date <= to).length;
     const allocation = overlapDays / eligibleDays.length;
 
     record.workLines?.forEach((line) => {
       const percentage = line.extraPayPercentage ?? 0;
       if (percentage <= 0) return;
-      total.minutes += Number(line.calculatedMinutes) * allocation;
-      total.grossAmount += Number(line.grossAmount) * (percentage / (100 + percentage)) * allocation;
+      const grossAmount = Number(
+        line.extraGrossAmount ?? Number(line.grossAmount) * (percentage / (100 + percentage))
+      ) * allocation;
+
+      const matchingRule = (line.extraPayDetails ?? [])
+        .map((detail) => ({
+          name: detail.name,
+          eligibleMinutes: Number(detail.eligibleMinutes),
+          weight: Number(detail.eligibleMinutes) * detail.percentage / 100
+        }))
+        .filter((detail) => detail.weight > 0)
+        .sort((left, right) => right.weight - left.weight)[0];
+      // Extra hours describe the time to which the surcharge applies. The
+      // percentage affects only the extra amount, not the displayed duration.
+      const minutes = (matchingRule?.eligibleMinutes ?? Number(line.calculatedMinutes)) * allocation;
+      result.minutes += minutes;
+      result.grossAmount += grossAmount;
+
+      const name = matchingRule?.name || GENERIC_EXTRA_PAY_KEY;
+      const current = grouped.get(name) ?? { minutes: 0, grossAmount: 0 };
+      current.minutes += minutes;
+      current.grossAmount += grossAmount;
+      grouped.set(name, current);
     });
-    return total;
+    return result;
   }, { minutes: 0, grossAmount: 0 });
+
+  return {
+    ...total,
+    items: Array.from(grouped.entries()).map(([name, values]) => ({ name, ...values }))
+  };
 }
 
 function recordTimeMinutes(record: WorkRecord) {

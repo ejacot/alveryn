@@ -27,15 +27,29 @@ export type PdfReportRow = {
   workTypeCells: PdfWorkTypeCell[];
 };
 
-export type PdfWorkTypeCell = { workTypeId: string; workTypeName: string; value: string };
-export type PdfWorkTypeColumn = { id: string; name: string };
+export type PdfWorkTypeCell = {
+  workTypeId: string;
+  workTypeName: string;
+  categoryName: string | null;
+  value: string;
+};
+export type PdfWorkTypeColumn = { id: string; name: string; categoryName: string | null };
 
 export function getPdfWorkTypeColumns(rows: PdfReportRow[]): PdfWorkTypeColumn[] {
-  const columns = new Map<string, string>();
+  const columns = new Map<string, PdfWorkTypeColumn>();
   rows.forEach((row) => row.workTypeCells.forEach((cell) => {
-    if (!columns.has(cell.workTypeId)) columns.set(cell.workTypeId, cell.workTypeName);
+    if (!columns.has(cell.workTypeId)) columns.set(cell.workTypeId, {
+      id: cell.workTypeId,
+      name: cell.workTypeName,
+      categoryName: cell.categoryName
+    });
   }));
-  return [...columns].map(([id, name]) => ({ id, name }));
+  const categoryOrder = unique([...columns.values()].map((column) => column.categoryName ?? column.id));
+  return [...columns.values()].sort((left, right) => {
+    const leftGroup = categoryOrder.indexOf(left.categoryName ?? left.id);
+    const rightGroup = categoryOrder.indexOf(right.categoryName ?? right.id);
+    return leftGroup - rightGroup;
+  });
 }
 
 export function filterWorkRecordsByEmployment(records: WorkRecord[], employmentId: string | null) {
@@ -74,7 +88,8 @@ export function buildPdfReportRows(
   range?: { from: string; to: string; absences?: Absence[]; restDays?: EmploymentRestDay[] }
 ) {
   const sessionRows = [...records]
-    .sort((left, right) => left.workDate.localeCompare(right.workDate) || left.createdAt.localeCompare(right.createdAt))
+    .sort((left, right) => left.workDate.localeCompare(right.workDate)
+      || (left.createdAt ?? "").localeCompare(right.createdAt ?? ""))
     .map((record) => toReportRow(record, selection, locale));
 
   if (!range) return sessionRows;
@@ -199,7 +214,14 @@ function toReportRow(
       selection.extra && Number(line.extraPayPercentage || 0) > 0
         ? `+${formatNumber(Number(line.extraPayPercentage), locale)}%` : ""
     ].filter(Boolean);
-    return { workTypeId: line.workTypeId, workTypeName: line.workTypeName.trim(), value: details.join(" · ") };
+    const workTypeName = line.workTypeName.trim();
+    const categoryName = line.categoryName?.trim() || null;
+    return {
+      workTypeId: line.workTypeId,
+      workTypeName,
+      categoryName: categoryName && categoryName !== workTypeName ? categoryName : null,
+      value: details.join(" · ")
+    };
   });
 
   return {
@@ -409,30 +431,81 @@ function drawReportCanvas(
     context.fillText(trimToWidth(context, item.value, summaryWidth - 40), x + 20, 231);
   });
 
-  const columns = buildColumns(selection, labels, getPdfWorkTypeColumns(allRows));
+  const workTypeColumns = getPdfWorkTypeColumns(allRows);
+  const columns = buildColumns(selection, labels, workTypeColumns);
   const tableX = 64;
   const tableY = 278;
   const tableWidth = width - 128;
   const footerY = height - 68;
   const availableHeight = footerY - tableY;
-  const rowHeight = Math.min(45, availableHeight / Math.max(rows.length + 1, 1));
+  const groupedHeader = workTypeColumns.some((column) => column.categoryName);
+  const headerRows = groupedHeader ? 1.55 : 1;
+  const rowHeight = Math.min(45, availableHeight / Math.max(rows.length + headerRows, 1));
+  const headerHeight = rowHeight * headerRows;
   const bodyFontSize = Math.max(4.5, Math.min(14, rowHeight * 0.34));
   const headerFontSize = Math.max(5, Math.min(12, rowHeight * 0.3));
   const totalWeight = columns.reduce((total, column) => total + column.weight, 0);
   const widths = columns.map((column) => tableWidth * column.weight / totalWeight);
 
   context.fillStyle = "#0b0b0b";
-  roundRect(context, tableX, tableY, tableWidth, rowHeight, Math.min(14, rowHeight / 2));
+  roundRect(context, tableX, tableY, tableWidth, headerHeight, Math.min(14, rowHeight / 2));
   let cursorX = tableX;
   columns.forEach((column, index) => {
+    if (column.workTypeId && column.categoryName) {
+      cursorX += widths[index];
+      return;
+    }
     context.fillStyle = "#ffffff";
     context.font = `700 ${headerFontSize}px Inter, Arial, sans-serif`;
-    context.fillText(trimToWidth(context, column.label.toUpperCase(), widths[index] - 16), cursorX + 8, tableY + rowHeight * 0.62);
+    context.fillText(
+      trimToWidth(context, column.label.toUpperCase(), widths[index] - 16),
+      cursorX + 8,
+      tableY + headerHeight * 0.62
+    );
     cursorX += widths[index];
   });
 
+  if (groupedHeader) {
+    let columnIndex = 0;
+    while (columnIndex < columns.length) {
+      const column = columns[columnIndex];
+      if (!column.workTypeId || !column.categoryName) {
+        columnIndex += 1;
+        continue;
+      }
+      let end = columnIndex + 1;
+      while (end < columns.length && columns[end].categoryName === column.categoryName) end += 1;
+      const groupX = tableX + widths.slice(0, columnIndex).reduce((sum, value) => sum + value, 0);
+      const groupWidth = widths.slice(columnIndex, end).reduce((sum, value) => sum + value, 0);
+      context.fillStyle = "#ffffff";
+      context.font = `700 ${headerFontSize}px Inter, Arial, sans-serif`;
+      context.textAlign = "center";
+      context.fillText(
+        trimToWidth(context, column.categoryName.toUpperCase(), groupWidth - 16),
+        groupX + groupWidth / 2,
+        tableY + headerHeight * 0.34
+      );
+      context.strokeStyle = "rgba(255,255,255,0.24)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(groupX + 6, tableY + headerHeight * 0.48);
+      context.lineTo(groupX + groupWidth - 6, tableY + headerHeight * 0.48);
+      context.stroke();
+      for (let child = columnIndex; child < end; child += 1) {
+        const childX = tableX + widths.slice(0, child).reduce((sum, value) => sum + value, 0);
+        context.fillText(
+          trimToWidth(context, columns[child].label.toUpperCase(), widths[child] - 12),
+          childX + widths[child] / 2,
+          tableY + headerHeight * 0.82
+        );
+      }
+      context.textAlign = "left";
+      columnIndex = end;
+    }
+  }
+
   rows.forEach((row, rowIndex) => {
-    const y = tableY + rowHeight * (rowIndex + 1);
+    const y = tableY + headerHeight + rowHeight * rowIndex;
     context.fillStyle = rowIndex % 2 === 0 ? "#ffffff" : "#e8e8e8";
     context.fillRect(tableX, y, tableWidth, rowHeight);
     cursorX = tableX;
@@ -467,10 +540,21 @@ function chunk<T>(items: T[], size: number) {
 }
 
 function buildColumns(selection: PdfExportSelection, labels: ReportLabels, workTypes: PdfWorkTypeColumn[]) {
-  const columns: Array<{ key?: keyof PdfReportRow; workTypeId?: string; label: string; weight: number }> = [
+  const columns: Array<{
+    key?: keyof PdfReportRow;
+    workTypeId?: string;
+    categoryName?: string | null;
+    label: string;
+    weight: number;
+  }> = [
     { key: "date", label: labels.date, weight: 1.05 },
     { key: "status", label: labels.status, weight: 1.05 },
-    ...workTypes.map((workType) => ({ workTypeId: workType.id, label: workType.name, weight: 1.5 }))
+    ...workTypes.map((workType) => ({
+      workTypeId: workType.id,
+      categoryName: workType.categoryName,
+      label: workType.name,
+      weight: 1.5
+    }))
   ];
   if (workTypes.length === 0) columns.push({ key: "activity", label: labels.activity, weight: 1.5 });
   if (selection.notes) columns.push({ key: "notes", label: labels.notes, weight: 1.45 });

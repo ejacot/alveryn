@@ -15,6 +15,17 @@
     "previewDescription": "Ein ruhiger Blick auf deinen Tag.",
     "previewError": "Etwas ist schiefgelaufen."
   },
+  "emptyDay": {
+    "eyebrow": "Dein Tag",
+    "dateToday": "Heute · {{date}}",
+    "dateSelected": "{{date}}",
+    "questionToday": "Wie war dein Tag?",
+    "questionDate": "Wie war dieser Tag?",
+    "questionFallback": "Wie war dein Tag?",
+    "worked": "Ich habe gearbeitet",
+    "rested": "Ich hatte frei",
+    "absent": "Ich war abwesend"
+  },
   "selectedDay": {
     "today": "Heute",
     "period": "Zeitraum",

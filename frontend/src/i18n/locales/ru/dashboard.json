@@ -17,6 +17,17 @@
     "previewDescription": "Краткий обзор вашего дня.",
     "previewError": "Что-то пошло не так."
   },
+  "emptyDay": {
+    "eyebrow": "Ваш день",
+    "dateToday": "Сегодня · {{date}}",
+    "dateSelected": "{{date}}",
+    "questionToday": "Как прошёл ваш день?",
+    "questionDate": "Как прошёл этот день?",
+    "questionFallback": "Как прошёл ваш день?",
+    "worked": "Я работал(а)",
+    "rested": "У меня был выходной",
+    "absent": "Я отсутствовал(а)"
+  },
   "selectedDay": {
     "today": "Сегодня",
     "period": "Период",
@@ -170,5 +181,21 @@
     "empty": "За эту неделю данных пока нет.",
     "description": "Ваши часы и доход за неделю.",
     "emptyDescription": "Добавьте первую запись, чтобы увидеть ритм недели."
+  },
+  "preview": {
+    "weeklyDescription": "Спокойный ритм недели.",
+    "entries": {
+      "morningRooms": { "title": "Утренние комнаты", "subtitle": "Уборка • 08:00 – 14:30" },
+      "lateShift": { "title": "Поздняя смена", "subtitle": "Подготовка холла • Вчера" },
+      "weekendPrep": { "title": "Подготовка к выходным", "subtitle": "Подготовка номера • Пт" }
+    },
+    "summary": {
+      "earnings": "Доход",
+      "entries": "Записи",
+      "focusedShift": "Основная смена",
+      "projectedGross": "Расчётный брутто",
+      "steadyRhythm": "Стабильный ритм",
+      "recentActivity": "Недавняя активность"
+    }
   }
 }

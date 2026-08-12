@@ -8,5 +8,7 @@
   "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "Die Heatmap kann höchstens ein Jahr auf einmal anzeigen.",
   "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Die Brutto-Heatmap benötigt jeweils eine Währung.",
   "STATISTICS_UNSUPPORTED_HEATMAP_METRIC": "Diese Heatmap-Metrik wird nicht unterstützt.",
-  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Wähle eine gültige Heatmap-Währung."
+  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Wähle eine gültige Heatmap-Währung.",
+  "PAYROLL_MONTH_NOT_FOUND": "Der ausgewählte Monat wurde in diesem PDF nicht gefunden. Lade nur die Seite dieses Monats hoch.",
+  "PAYROLL_DOCUMENT_UNREADABLE": "Dieser Lohnzettel konnte nicht gelesen werden. Versuche ein klareres Foto der vollständigen Seite."
 }

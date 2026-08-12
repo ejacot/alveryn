@@ -25,9 +25,10 @@
     "title": { "matches": "Luna coincide", "review": "Verifică diferențele", "scan": "Scanează fluturașul" },
     "description": { "matches": "Alveryn coincide cu documentul angajatorului", "grossDifference": "Diferență brută de {{difference}}", "scan": "Fotografiază sau încarcă documentul angajatorului" },
     "result": { "label": "Rezultat", "everythingMatches": "Totul coincide", "found_one": "A fost găsită {{count}} diferență", "found_few": "Au fost găsite {{count}} diferențe", "found_other": "Au fost găsite {{count}} de diferențe", "agree": "Munca înregistrată și fluturașul angajatorului coincid.", "review": "Verifică rubricile evidențiate înainte de confirmare." },
-    "actions": { "collapse": "Închide comparația", "open": "Deschide comparația", "scanAria": "Scanează sau încarcă fluturașul de salariu", "scan": "Scanează fluturașul", "opening": "Se deschide…", "openDocument": "Deschide documentul", "reading": "Se citește…", "replaceDocument": "Înlocuiește documentul", "saving": "Se salvează…", "saved": "Salvat ✓", "save": "Salvează comparația" },
-    "categories": { "workedHours": "Ore lucrate", "paidAbsence": "Absență plătită", "extraPay": "Plată extra", "gross": "Brut" },
+    "actions": { "collapse": "Închide comparația", "open": "Deschide comparația", "scanAria": "Scanează sau încarcă fluturașul de salariu", "scan": "Scanează fluturașul", "opening": "Se deschide…", "openDocument": "Deschide documentul", "reading": "Se citește…", "replaceDocument": "Înlocuiește documentul", "editValues": "Corectează", "doneEditing": "Gata", "saving": "Se salvează…", "saved": "Salvat ✓", "save": "Salvează comparația" },
+    "categories": { "workedHours": "Ore lucrate", "workedPay": "Salariu normal", "paidAbsence": "Absență plătită", "extraHours": "Ore cu spor", "extraPay": "Plată extra", "gross": "Brut" },
     "details": { "title": "Detalii salariale", "line": "Poziție salarială", "noQuantity": "Cantitatea nu este specificată" },
+    "verification": { "review": "Verifică valorile incerte cu documentul înainte de salvare.", "fragment": "Fragment de document", "confidence": "Încredere scanare {{value}}%", "editTitle": "Valori extrase" },
     "errors": { "noValues": "Nu au fost găsite valori salariale pentru luna selectată", "documentUnavailable": "Documentul salarial nu este disponibil" }
   },
   "jobDays_one": "{{count}} zi",

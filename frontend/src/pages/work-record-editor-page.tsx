@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, ChevronRight, Folder, MapPin, Plus, ReceiptText, Settings, Trash2, X } from "lucide-react";
+import { ArrowLeft, Briefcase, CalendarDays, ChevronRight, Folder, MapPin, Plus, ReceiptText, Settings, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -13,6 +13,7 @@ import {
   getPreferences,
   listHourlyRates,
   listEmployments,
+  listWorkRecordsInRange,
   listWorkProjects,
   listWorkTypes,
   updateWorkRecord,
@@ -22,7 +23,7 @@ import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
 import { SettingsSuccessMessage } from "../components/settings/settings-form-actions";
 import { Button } from "../components/ui/button";
-import { Card, CardModuleTitle } from "../components/ui/card";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { Textarea } from "../components/ui/textarea";
@@ -31,7 +32,7 @@ import { ModalPanel } from "../components/ui/modal-panel";
 import { useUnsavedChangesGuard } from "../hooks/use-unsaved-changes-guard";
 import { useSafeBackNavigation } from "../hooks/use-safe-back-navigation";
 import { useEmploymentScope } from "../features/employment/employment-scope";
-import { isValidDate, parseLocalIsoDate, safeLocalIsoDate } from "../utils/date";
+import { addDays, isValidDate, parseLocalIsoDate, safeLocalIsoDate } from "../utils/date";
 import { parseDecimalInput } from "../utils/decimal-input";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
 import {
@@ -41,6 +42,7 @@ import {
   calculateWorkRecordTimeMinutes,
   findApplicableHourlyRate
 } from "../features/work-records/work-record-calculations";
+import { recommendWorkEntry } from "../features/work-records/work-type-recommendation";
 import type { WorkType, WorkTypeFormulaMode } from "../types/configuration";
 import type { Address, AddressPayload } from "../types/address";
 import type {
@@ -49,6 +51,7 @@ import type {
   WorkRecordRequest
 } from "../types/work-record";
 import { APP_HOME_PATH } from "../routes/app-paths";
+import { i18n } from "../i18n";
 
 type OutletContext = {
   selectedDate?: Date;
@@ -102,6 +105,28 @@ function createLineForWorkType(workType: WorkType, fallbackCurrency: string) {
   line.calculationMode = workTypeCalculationMode(workType);
   line.currency = workType.currency ?? fallbackCurrency;
   line.unpaidBreakMinutes = String(workType.defaultBreakMinutes ?? 0);
+  return line;
+}
+
+function createLineFromRecommendation(
+  workType: WorkType,
+  historicalLine: NonNullable<WorkRecord["workLines"]>[number],
+  fallbackCurrency: string
+) {
+  const line = createLineForWorkType(workType, fallbackCurrency);
+  line.startTime = historicalLine.startTime?.slice(0, 5) ?? line.startTime;
+  line.endTime = historicalLine.endTime?.slice(0, 5) ?? line.endTime;
+  line.unpaidBreakMinutes = String(historicalLine.breakMinutes ?? workType.defaultBreakMinutes ?? 0);
+  line.durationMinutes = historicalLine.durationMinutes
+    ? formatDecimalHours(historicalLine.durationMinutes)
+    : "";
+  line.timeInputMode = historicalLine.durationMinutes ? "DURATION" : "RANGE";
+  line.quantity = historicalLine.quantity ? String(Number(historicalLine.quantity)) : line.quantity;
+  line.fixedAmount = historicalLine.fixedAmountSnapshot
+    ? String(Number(historicalLine.fixedAmountSnapshot))
+    : line.fixedAmount;
+  line.currency = historicalLine.currencySnapshot ?? workType.currency ?? fallbackCurrency;
+  line.extraPayPercentage = String(historicalLine.extraPayPercentage ?? 0);
   return line;
 }
 
@@ -176,6 +201,9 @@ export function WorkRecordEditorPage() {
   const [lines, setLines] = useState<JobLineState[]>([]);
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [workTypePickerOpen, setWorkTypePickerOpen] = useState(false);
+  const [dateEditorOpen, setDateEditorOpen] = useState(false);
+  const [recommendationRejected, setRecommendationRejected] = useState(false);
+  const manualPickerOpenedRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const backButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -210,6 +238,13 @@ export function WorkRecordEditorPage() {
   const projectsQuery = useQuery({
     queryKey: queryKeys.workProjects.all(),
     queryFn: listWorkProjects
+  });
+  const historyFrom = safeLocalIsoDate(addDays(parseLocalIsoDate(workDate), -90));
+  const historyTo = safeLocalIsoDate(addDays(parseLocalIsoDate(workDate), -1));
+  const workHistoryQuery = useQuery({
+    queryKey: queryKeys.workRecords.range({ from: historyFrom, to: historyTo }),
+    queryFn: () => listWorkRecordsInRange({ from: historyFrom, to: historyTo }),
+    enabled: !isEditing
   });
   const recordQuery = useQuery({
     queryKey: queryKeys.workRecords.detail(recordId ?? ""),
@@ -374,6 +409,14 @@ export function WorkRecordEditorPage() {
     ),
     [recordEmploymentId, workTypesQuery.data]
   );
+  const recommendedWorkEntry = useMemo(
+    () => recommendWorkEntry(
+      (workHistoryQuery.data ?? []).filter((record) => !recordEmploymentId || record.employmentId === recordEmploymentId),
+      workTypes,
+      workDate
+    ),
+    [recordEmploymentId, workDate, workHistoryQuery.data, workTypes]
+  );
   const availableProjects = useMemo(
     () => (projectsQuery.data ?? []).filter((project) =>
       project.status !== "ARCHIVED" &&
@@ -409,12 +452,31 @@ export function WorkRecordEditorPage() {
   );
 
   useEffect(() => {
-    if (isEditing || lines.length || workTypes.length !== 1) return;
+    if (isEditing || searchParams.get("suggest") === "1" || lines.length || workTypes.length !== 1) return;
     const onlyWorkType = workTypes[0];
-    const line = createLineForWorkType(onlyWorkType, preferencesQuery.data?.currency ?? "EUR");
+    const historicalEntry = recommendWorkEntry(
+      (workHistoryQuery.data ?? []).filter((record) => !recordEmploymentId || record.employmentId === recordEmploymentId),
+      [onlyWorkType],
+      workDate
+    );
+    const line = historicalEntry
+      ? createLineFromRecommendation(onlyWorkType, historicalEntry.line, preferencesQuery.data?.currency ?? "EUR")
+      : createLineForWorkType(onlyWorkType, preferencesQuery.data?.currency ?? "EUR");
     setLines([line]);
     setActiveLineId(line.id);
-  }, [isEditing, lines.length, preferencesQuery.data?.currency, workTypes]);
+  }, [isEditing, lines.length, preferencesQuery.data?.currency, recordEmploymentId, searchParams, workDate, workHistoryQuery.data, workTypes]);
+
+  useEffect(() => {
+    if (
+      isEditing ||
+      searchParams.get("manual") !== "1" ||
+      manualPickerOpenedRef.current ||
+      lines.length ||
+      workTypes.length <= 1
+    ) return;
+    manualPickerOpenedRef.current = true;
+    setWorkTypePickerOpen(true);
+  }, [isEditing, lines.length, searchParams, workTypes.length]);
 
   function updateLine(lineId: string, patch: Partial<JobLineState>) {
     setLines((current) =>
@@ -440,13 +502,22 @@ export function WorkRecordEditorPage() {
 
   function addWorkTypeLines(selectedWorkTypes: WorkType[], grouped = false) {
     const nextLines = selectedWorkTypes.map((workType) => {
-      const line = createLineForWorkType(workType, preferencesQuery.data?.currency ?? "EUR");
+      const historicalEntry = recommendWorkEntry(
+        (workHistoryQuery.data ?? []).filter((record) => !recordEmploymentId || record.employmentId === recordEmploymentId),
+        [workType],
+        workDate
+      );
+      const line = historicalEntry
+        ? createLineFromRecommendation(workType, historicalEntry.line, preferencesQuery.data?.currency ?? "EUR")
+        : createLineForWorkType(workType, preferencesQuery.data?.currency ?? "EUR");
       if (grouped && line.calculationMode === "TIME_HOURLY") {
-        line.startTime = "";
-        line.endTime = "";
+        if (!historicalEntry) {
+          line.startTime = "";
+          line.endTime = "";
+        }
       }
       if (grouped && line.calculationMode === "FIXED_AMOUNT") {
-        line.fixedAmount = "0";
+        if (!historicalEntry) line.fixedAmount = "0";
       }
       return line;
     });
@@ -508,6 +579,46 @@ export function WorkRecordEditorPage() {
     }
   }
 
+  async function acceptRecommendedWorkEntry() {
+    if (!recommendedWorkEntry) return;
+    setFormError(null);
+    const line = createLineFromRecommendation(
+      recommendedWorkEntry.workType,
+      recommendedWorkEntry.line,
+      preferencesQuery.data?.currency ?? "EUR"
+    );
+    const suggestedTeamSize = recommendedWorkEntry.record.teamSize
+      ? String(recommendedWorkEntry.record.teamSize)
+      : "";
+    const validation = buildPayload({
+      t,
+      workDate,
+      workEndDate: null,
+      addressId: "",
+      teamSize: suggestedTeamSize,
+      notes: "",
+      lines: [line],
+      workTypes
+    });
+    if ("error" in validation) {
+      setLines([line]);
+      setActiveLineId(line.id);
+      setTeamSize(suggestedTeamSize);
+      setFormError(validation.error);
+      return;
+    }
+    try {
+      await createMutation.mutateAsync({
+        payload: validation.payload,
+        projectId: null,
+        projectName: null,
+        employmentId: recommendedWorkEntry.workType.employmentId ?? recordEmploymentId
+      });
+    } catch {
+      // The mutation error is rendered below and the recommendation remains available.
+    }
+  }
+
   if (isLoading) {
     return (
       <ScreenMessage
@@ -535,9 +646,75 @@ export function WorkRecordEditorPage() {
     );
   }
 
+  const predictionMode = !isEditing && searchParams.get("suggest") === "1";
+
+  if (predictionMode && recommendedWorkEntry && !recommendationRejected && !lines.length) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-[560px] items-center px-0 py-8">
+        <Card as="section" variant="ambient" className="editor-prediction-gate w-full overflow-hidden p-0" aria-labelledby="prediction-title">
+          <button
+            type="button"
+            onClick={returnToDashboard}
+            aria-label={t("common:actions.close")}
+            className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] text-white/48 transition-colors hover:bg-white/[0.1] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <div className="px-6 pb-7 pt-8 text-center">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#10b981]/10 bg-[#10b981]/[0.075] text-[#34d399]">
+              <Briefcase className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <p className="mt-5 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-[#10b981]/70">
+              {t("records:job.suggested")}
+            </p>
+            <h1 id="prediction-title" className="mx-auto mt-2 max-w-[18rem] text-[1.9rem] font-semibold leading-[1.12] tracking-[-0.06em] text-white">
+              {t("records:job.predictionQuestion", { name: recommendedWorkEntry.workType.name })}
+            </h1>
+            <p className="mt-4 text-base font-medium tabular-nums text-white/48">
+              {formatRecommendedInterval(
+                recommendedWorkEntry.line,
+                t("records:job.noInterval"),
+                t("records:job.breakShort")
+              )}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 border-t border-white/[0.075]">
+            <button
+              type="button"
+              disabled={createMutation.isPending}
+              className="min-h-14 border-r border-white/[0.075] text-base font-semibold text-white/58 transition-colors hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
+              onClick={() => setRecommendationRejected(true)}
+            >
+              {t("records:job.rejectSuggestion")}
+            </button>
+            <button
+              type="button"
+              disabled={createMutation.isPending || success}
+              className="min-h-14 text-base font-semibold text-[#34d399] transition-colors hover:bg-[#10b981]/[0.06] disabled:opacity-50"
+              onClick={() => void acceptRecommendedWorkEntry()}
+            >
+              {createMutation.isPending ? t("records:job.saving") : t("records:job.acceptSuggestion")}
+            </button>
+          </div>
+          {createMutation.error ? (
+            <p className="border-t border-white/[0.075] px-5 py-3 text-center text-sm text-red-300">
+              {getApiError(createMutation.error).message}
+            </p>
+          ) : null}
+        </Card>
+      </div>
+    );
+  }
+
   const saveMutation = isEditing ? updateMutation : createMutation;
   const saveError = saveMutation.error ? getApiError(saveMutation.error).message : null;
   const pageTitle = isEditing ? t("records:job.editTitle") : t("records:job.title");
+  const largePageTitle = isEditing ? pageTitle : t("records:job.promptTitle");
+  const workDateLabel = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  }).format(parseLocalIsoDate(workDate));
 
   return (
     <div className="work-record-editor-page mx-auto min-w-0 w-full max-w-[560px] space-y-6 overflow-x-clip pb-6 pt-8">
@@ -562,28 +739,73 @@ export function WorkRecordEditorPage() {
         </div>
       </header>
 
-      <h1
-        ref={largeTitleRef}
-        className={`text-[2.25rem] font-semibold leading-none tracking-[-0.06em] text-white transition duration-200 ${
-          compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"
-        }`}
-      >
-        {pageTitle}
-      </h1>
+      <div className={`transition duration-200 ${compactTitleVisible ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100 delay-75"}`}>
+        <h1
+          ref={largeTitleRef}
+          className="max-w-[22rem] text-[2.45rem] font-semibold leading-[1.02] tracking-[-0.065em] text-white"
+        >
+          {largePageTitle}
+        </h1>
+      </div>
 
       <section>
-        <Card variant="ambient" className="space-y-4 p-5">
-          <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#34d399]">
-              <CalendarDays className="h-5 w-5" aria-hidden="true" />
+        <Card
+          as="button"
+          type="button"
+          variant="ambient"
+          className="editor-date-card flex min-h-[76px] w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-white/24"
+          onClick={() => setDateEditorOpen(true)}
+          aria-label={t("records:job.editDates")}
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#34d399]">
+            <CalendarDays className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/36">
+              {dateMode === "SINGLE_DAY" ? t("records:job.oneDay") : t("records:job.dateRange")}
             </span>
-            <div>
-              <CardModuleTitle>{t("records:job.dates")}</CardModuleTitle>
-              <p className="mt-1 text-xs text-white/40">{workDate}</p>
+            <span className="mt-1 block truncate text-base font-semibold capitalize tracking-[-0.025em] text-white">
+              {dateMode === "SINGLE_DAY" ? workDateLabel : `${workDate} – ${workEndDate}`}
+            </span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-white/30" aria-hidden="true" />
+        </Card>
+      </section>
+
+      {dateEditorOpen ? (
+        <LockedModalViewport
+          className="items-end bg-black/45 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="date-editor-title"
+        >
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={t("records:job.closeDateEditor")}
+            className="absolute inset-0"
+            onClick={() => setDateEditorOpen(false)}
+          />
+          <ModalPanel className="date-editor-sheet max-h-[85dvh] max-w-[430px] overflow-y-auto !rounded-[30px] p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="hairline-text">{t("records:job.dates")}</p>
+                <h2 id="date-editor-title" className="mt-1 text-[1.5rem] font-semibold tracking-[-0.055em] text-white">
+                  {t("records:job.chooseDates")}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDateEditorOpen(false)}
+                className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] text-white/55 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-white/24"
+                aria-label={t("records:job.closeDateEditor")}
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
             </div>
-          </div>
+            <div className="space-y-4">
           {!isEditing && activeEmployments.length > 1 ? (
-            <label className="block space-y-2 border-t border-white/[0.08] pt-4">
+            <label className="block space-y-2">
               <span className="text-sm font-medium text-white/70">{t("records:job.employment")}</span>
               <select
                 value={editorEmploymentId}
@@ -601,17 +823,17 @@ export function WorkRecordEditorPage() {
               </select>
             </label>
           ) : null}
-          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
+          <div className="editor-segmented-control grid grid-cols-2 gap-1 rounded-2xl border p-1">
             <button
               type="button"
-              className={`min-h-10 rounded-xl px-3 text-sm font-semibold transition ${dateMode === "SINGLE_DAY" ? "bg-white text-black" : "text-white/58 hover:text-white"}`}
+              className={`min-h-10 rounded-xl px-3 text-sm font-semibold transition-colors ${dateMode === "SINGLE_DAY" ? "editor-segment-selected" : "text-white/58 hover:text-white"}`}
               onClick={() => setDateMode("SINGLE_DAY")}
             >
               {t("records:job.oneDay")}
             </button>
             <button
               type="button"
-              className={`min-h-10 rounded-xl px-3 text-sm font-semibold transition ${dateMode === "DATE_RANGE" ? "bg-white text-black" : "text-white/58 hover:text-white"}`}
+              className={`min-h-10 rounded-xl px-3 text-sm font-semibold transition-colors ${dateMode === "DATE_RANGE" ? "editor-segment-selected" : "text-white/58 hover:text-white"}`}
               onClick={() => {
                 setDateMode("DATE_RANGE");
                 if (workEndDate < workDate) setWorkEndDate(workDate);
@@ -681,12 +903,17 @@ export function WorkRecordEditorPage() {
               </select>
             </label>
           ) : null}
-        </Card>
-      </section>
+              <Button className="w-full" type="button" onClick={() => setDateEditorOpen(false)}>
+                {t("common:actions.apply")}
+              </Button>
+            </div>
+          </ModalPanel>
+        </LockedModalViewport>
+      ) : null}
 
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <p className="hairline-text">{t("records:job.lines")}</p>
+          <p className="hairline-text">{t("records:job.activitySection")}</p>
           <button
             type="button"
             onClick={() => {
@@ -703,18 +930,62 @@ export function WorkRecordEditorPage() {
           </button>
         </div>
         {lines.length === 0 ? (
-          <Card
-            as="button"
-            type="button"
-            onClick={() => setWorkTypePickerOpen(true)}
-            variant="ambient"
-            className="flex min-h-32 w-full items-center justify-center transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
-            aria-label={t("records:job.addActivity")}
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white">
-              <Plus className="h-6 w-6" aria-hidden="true" />
-            </span>
-          </Card>
+          <div className="space-y-3">
+            {recommendedWorkEntry && !recommendationRejected ? (
+              <Card variant="ambient" className="editor-work-suggestion overflow-hidden p-0">
+                <div className="flex min-h-[92px] items-center gap-4 px-5 py-4">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#10b981]/10 text-[#34d399]">
+                  <Briefcase className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-[#10b981]/70">
+                    {t("records:job.suggested")}
+                  </span>
+                  <span className="mt-1 block truncate text-base font-semibold text-white">{recommendedWorkEntry.workType.name}</span>
+                  <span className="mt-0.5 block text-sm font-medium tabular-nums text-white/48">
+                    {formatRecommendedInterval(
+                      recommendedWorkEntry.line,
+                      t("records:job.noInterval"),
+                      t("records:job.breakShort")
+                    )}
+                  </span>
+                </span>
+                </div>
+                <div className="grid grid-cols-2 border-t border-white/[0.075]">
+                  <button
+                    type="button"
+                    className="min-h-12 border-r border-white/[0.075] text-sm font-semibold text-white/58 transition-colors hover:bg-white/[0.04] hover:text-white"
+                    onClick={() => setWorkTypePickerOpen(true)}
+                  >
+                    {t("records:job.rejectSuggestion")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={createMutation.isPending || success}
+                    className="min-h-12 text-sm font-semibold text-[#34d399] transition-colors hover:bg-[#10b981]/[0.06]"
+                    onClick={() => void acceptRecommendedWorkEntry()}
+                  >
+                    {createMutation.isPending ? t("records:job.saving") : t("records:job.acceptSuggestion")}
+                  </button>
+                </div>
+              </Card>
+            ) : null}
+            {!recommendedWorkEntry || recommendationRejected ? <Card
+              as="button"
+              type="button"
+              onClick={() => setWorkTypePickerOpen(true)}
+              variant="ambient"
+              className="editor-add-activity flex min-h-36 w-full flex-col items-center justify-center gap-3 transition-colors hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/24"
+              aria-label={t("records:job.addActivity")}
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-white">
+                <Plus className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <span className="text-sm font-semibold text-white/72">
+                {t("records:job.addActivity")}
+              </span>
+            </Card> : null}
+          </div>
         ) : (
           <div className="space-y-4">
             {groupedLines.map((group) =>
@@ -852,7 +1123,7 @@ export function WorkRecordEditorPage() {
       </section>
 
       {liveSummary ? (
-        <Card as="section" variant="ambient" className="overflow-hidden p-5">
+        <Card as="section" variant="ambient" className="editor-live-summary overflow-hidden p-5">
           <div className="flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-[#10b981]/15 bg-[#10b981]/[0.08] text-[#34d399]">
               <ReceiptText className="h-5 w-5" aria-hidden="true" />
@@ -872,12 +1143,12 @@ export function WorkRecordEditorPage() {
         </Card>
       ) : null}
 
-      <section className="space-y-3">
+      {lines.length ? <section className="space-y-3">
         <button
           type="button"
           aria-expanded={detailsExpanded}
           onClick={() => setDetailsExpanded((value) => !value)}
-          className="universal-glass-card glass-card--ambient flex w-full items-center gap-3 rounded-[24px] p-4 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
+          className="universal-glass-card glass-card--ambient editor-details-card flex w-full items-center gap-3 rounded-[24px] p-4 text-left focus:outline-none focus:ring-2 focus:ring-white/24"
         >
           <span className="grid h-11 w-11 place-items-center rounded-[16px] border border-white/[0.08] bg-white/[0.05] text-[#34d399]">
             <MapPin className="h-5 w-5" aria-hidden="true" />
@@ -910,12 +1181,12 @@ export function WorkRecordEditorPage() {
             />
           </div>
         ) : null}
-      </section>
+      </section> : null}
 
       {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
       {saveError ? <p className="text-sm text-red-300">{saveError}</p> : null}
 
-      <div className={isEditing
+      {lines.length ? <div className={isEditing
         ? "sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 -mx-1 space-y-3 rounded-[28px] border border-white/[0.09] bg-black/55 p-2 backdrop-blur-2xl"
         : "sticky bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30"
       }>
@@ -941,7 +1212,7 @@ export function WorkRecordEditorPage() {
             {deleteMutation.isPending ? t("records:job.deleting") : t("records:job.delete")}
           </Button>
         ) : null}
-      </div>
+      </div> : null}
       {deleteMutation.error ? <p className="text-sm text-red-300">{getApiError(deleteMutation.error).message}</p> : null}
 
       <SettingsSuccessMessage message={success ? t("records:job.savedToast") : null} />
@@ -1046,7 +1317,10 @@ function WorkTypePickerDialog({
         aria-labelledby="work-type-picker-title"
         className="work-type-picker-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] max-w-[430px] flex-col overflow-hidden !rounded-[30px] !border-[#10b981]/[0.14] !bg-[linear-gradient(150deg,rgba(22,22,22,0.98),rgba(8,10,9,0.98))] !p-0 shadow-[0_28px_90px_rgba(0,0,0,0.7)]"
       >
-        <header className="relative flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 pb-4 pt-5">
+        <div className="flex h-5 items-center justify-center" aria-hidden="true">
+          <span className="work-type-picker-handle h-1 w-10 rounded-full" />
+        </div>
+        <header className="relative flex items-center justify-between gap-4 border-b border-white/[0.07] px-5 pb-4 pt-2">
           <div>
             <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#10b981]/60">
               {t("job.lines")}
@@ -1064,18 +1338,19 @@ function WorkTypePickerDialog({
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="work-type-picker-list overflow-hidden rounded-[22px] border">
           {topLevelChoices.map((parent) => {
             const children = childrenByParent[parent.id] ?? [];
             const isCategory = parent.compositeEnabled || children.length > 0;
             return (
-              <div key={parent.id} className="overflow-hidden rounded-[20px] border border-white/[0.075] bg-white/[0.035]">
+              <div key={parent.id} className="work-type-picker-option overflow-hidden">
                 <button
                   type="button"
                   onClick={() => children.length ? onSelectGroup(parent) : onSelect(parent)}
                   className="flex min-h-[3.65rem] w-full items-center gap-3 px-4 py-2.5 text-left transition active:scale-[0.99] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-[#10b981]/25 focus:ring-inset"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[13px] border border-white/[0.08] bg-white/[0.045]">
+                  <span className="work-type-picker-option-icon grid h-9 w-9 shrink-0 place-items-center rounded-[13px] border">
                     {isCategory
                       ? <Folder className="h-4 w-4 text-white/42" aria-hidden="true" />
                       : <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: parent.color }} />}
@@ -1093,6 +1368,7 @@ function WorkTypePickerDialog({
               </div>
             );
           })}
+          </div>
         </div>
       </ModalPanel>
     </LockedModalViewport>
@@ -1138,12 +1414,19 @@ function WorkRecordLineCard({
   return (
     <div className={embedded
       ? "relative space-y-2 py-3 first:pt-2 last:pb-0"
-      : "universal-glass-card glass-card--ambient relative space-y-3 p-4"}
+      : "universal-glass-card glass-card--ambient editor-work-line-card relative space-y-4 p-5"}
     >
       <div className="flex items-center justify-between gap-4">
-        <p className={`font-name min-w-0 truncate font-semibold tracking-[-0.03em] text-white ${embedded ? "text-sm" : "text-base"}`}>
-          {selectedWorkType ? selectedWorkType.name : t("records:job.lineTitle", { count: index + 1 })}
-        </p>
+        <div className="flex min-w-0 items-center gap-3">
+          {!embedded ? (
+            <span className="editor-work-type-icon grid h-10 w-10 shrink-0 place-items-center rounded-full">
+              <Briefcase className="h-[1.1rem] w-[1.1rem]" strokeWidth={1.8} aria-hidden="true" />
+            </span>
+          ) : null}
+          <p className={`font-name min-w-0 truncate font-semibold tracking-[-0.03em] text-white ${embedded ? "text-sm" : "text-base"}`}>
+            {selectedWorkType ? selectedWorkType.name : t("records:job.lineTitle", { count: index + 1 })}
+          </p>
+        </div>
         {onRemove ? (
           <button
             type="button"
@@ -1158,17 +1441,17 @@ function WorkRecordLineCard({
 
       {selectedWorkType && line.calculationMode === "TIME_HOURLY" ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] p-1">
+          <div className="editor-segmented-control grid grid-cols-2 gap-1 rounded-2xl border p-1">
             <button
               type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${line.timeInputMode === "RANGE" ? "bg-white text-black" : "text-white/62 hover:text-white"}`}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${line.timeInputMode === "RANGE" ? "editor-segment-selected" : "text-white/62 hover:text-white"}`}
               onClick={() => onChange(line.id, { timeInputMode: "RANGE" })}
             >
               {t("records:fields.timeRange")}
             </button>
             <button
               type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${line.timeInputMode === "DURATION" ? "bg-white text-black" : "text-white/62 hover:text-white"}`}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${line.timeInputMode === "DURATION" ? "editor-segment-selected" : "text-white/62 hover:text-white"}`}
               onClick={() => onChange(line.id, { timeInputMode: "DURATION" })}
             >
               {t("records:fields.duration")}
@@ -1345,7 +1628,7 @@ function WorkRecordLineCard({
       ) : null}
 
       {preview && !embedded ? (
-        <div className="border-t border-white/[0.07] pt-3 text-sm text-white/62">
+        <div className="editor-line-result border-t border-white/[0.07] pt-3 text-sm text-white/62">
           <div className="flex items-center justify-between gap-4">
             <span>{preview.label}</span>
             {preview.amount ? <span className="font-semibold text-white">{preview.amount}</span> : null}
@@ -1752,6 +2035,21 @@ function emptyToNull(value?: string | null) {
 
 function formatDecimalHours(minutes: number) {
   return String(Number((minutes / 60).toFixed(2)));
+}
+
+function formatRecommendedInterval(
+  line: NonNullable<WorkRecord["workLines"]>[number],
+  fallback: string,
+  breakLabel: string
+) {
+  const start = line.startTime?.slice(0, 5);
+  const end = line.endTime?.slice(0, 5);
+  if (start && end) {
+    const breakMinutes = line.breakMinutes ?? 0;
+    return breakMinutes > 0 ? `${start}–${end} · ${breakLabel} ${breakMinutes} min` : `${start}–${end}`;
+  }
+  if (line.durationMinutes) return formatMinutesAsDuration(line.durationMinutes);
+  return fallback;
 }
 
 function hasAddressValues(address: AddressPayload) {

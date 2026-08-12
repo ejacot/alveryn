@@ -65,7 +65,10 @@ describe("paid absence calculation", () => {
         date: "2026-07-16",
         minutes: 480,
         grossAmount: 160,
-        currency: "EUR"
+        currency: "EUR",
+        absenceType: "VACATION",
+        absenceTypeId: "absence-vacation-type",
+        absenceTypeName: "Vacation"
       }
     ]);
   });
@@ -97,7 +100,10 @@ describe("paid absence calculation", () => {
         date: "2026-07-16",
         minutes: 480,
         grossAmount: 160,
-        currency: "EUR"
+        currency: "EUR",
+        absenceType: "VACATION",
+        absenceTypeId: "absence-vacation-type",
+        absenceTypeName: "Vacation"
       }
     ]);
   });

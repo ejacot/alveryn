@@ -52,7 +52,7 @@ test("creates work types with formulas and tracks jobs through the real UI", asy
   await expect(page.getByText("2 Lagen")).toBeVisible();
 
   await page.goto("/records/new?date=2026-07-16");
-  await expect(page.getByRole("heading", { name: "New activity" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What did you work on?" })).toBeVisible();
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /2 lagen/i }).click();
   await page.getByLabel("units Units").fill("300");

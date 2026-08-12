@@ -572,6 +572,55 @@ function DifferenceSummary({ comparison, selectedPoint, metric, locale, t }: {
   );
 }
 
+export type StatisticsTrendGraphPoint = {
+  date: string;
+  label: string;
+  value: number;
+  currency?: string | null;
+};
+
+export function StatisticsTrendGraph({
+  points,
+  metric,
+  currency = null,
+  onPointSelect
+}: {
+  points: StatisticsTrendGraphPoint[];
+  metric: string;
+  currency?: string | null;
+  onPointSelect?: (point: StatisticsTrendGraphPoint) => void;
+}) {
+  const { t, i18n } = useTranslation("common");
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const sourceByDate = new Map(points.map((point) => [point.date, point]));
+  const series: StatisticsComparisonSeriesPoint[] = points.map((point) => ({
+    label: point.label,
+    periodABucketStart: point.date,
+    periodABucketEnd: point.date,
+    periodBBucketStart: null,
+    periodBBucketEnd: null,
+    periodAValue: String(point.value),
+    periodBValue: "0",
+    currency: point.currency ?? currency
+  }));
+
+  return (
+    <ComparisonGraph
+      points={series}
+      metric={metric}
+      currency={currency}
+      locale={locale}
+      showPrevious={false}
+      t={t}
+      onPointSelect={(point) => {
+        if (!point) return;
+        const source = sourceByDate.get(point.bucketStart);
+        if (source) onPointSelect?.(source);
+      }}
+    />
+  );
+}
+
 function ComparisonGraph({ points, metric, currency, locale, granularity = "DAILY", onPointSelect, onComparisonSelect, showPrevious = true, t }: {
   points: StatisticsComparisonSeriesPoint[];
   metric: string;

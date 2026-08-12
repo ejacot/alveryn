@@ -1,5 +1,6 @@
 package com.alveryn.api.dataimport.service;
 
+import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.dataimport.intelligence.ImportIntelligenceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -105,15 +106,19 @@ public class PayrollDocumentAnalyzer {
           if (pdf.getNumberOfPages() > MAX_PAGES) {
             throw new IllegalArgumentException("Payroll document contains too many pages");
           }
-          Integer pageIndex = findMonthlyPage(pdf, year, month);
+          // A single-page upload is already an explicit choice for the active Calendar
+          // month. Scanned PDFs often have no searchable text, so analyze that page and
+          // let the vision result validate (or infer) the printed period.
+          Integer pageIndex = pdf.getNumberOfPages() == 1 ? 0 : findMonthlyPage(pdf, year, month);
           if (pageIndex == null) {
             pageIndex = monthlyPageFromFilename(
                 safeFilename(file.getOriginalFilename()), month, pdf.getNumberOfPages());
           }
           if (pageIndex == null) {
-            throw new IllegalArgumentException(
+            throw new ValidationException(
                 "Could not identify the requested month in this PDF. "
-                    + "Upload a photo or PDF containing only that month's page");
+                    + "Upload a photo or PDF containing only that month's page",
+                "PAYROLL_MONTH_NOT_FOUND");
           }
           log.info("Payroll reconciliation selected PDF page {} of {} for {}-{} ({})",
               pageIndex + 1, pdf.getNumberOfPages(), year, month,
@@ -145,8 +150,9 @@ public class PayrollDocumentAnalyzer {
           result.path("grossAmount").isNumber());
       if ("FALLBACK".equals(result.path("status").asText())
           || "DISABLED".equals(result.path("status").asText())) {
-        throw new IllegalArgumentException(
-            "The payroll image could not be read. Try a clearer photo with the full page visible");
+        throw new ValidationException(
+            "The payroll image could not be read. Try a clearer photo with the full page visible",
+            "PAYROLL_DOCUMENT_UNREADABLE");
       }
       result.put("filename", safeFilename(file.getOriginalFilename()));
       return result;

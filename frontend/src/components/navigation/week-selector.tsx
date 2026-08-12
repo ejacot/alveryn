@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -24,9 +24,10 @@ type Props = {
 
 export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) {
   const [slideDirection, setSlideDirection] = useState(0);
-  const days = useMemo(() => getWeekDays(value), [value]);
+  const [visibleWeekDate, setVisibleWeekDate] = useState(value);
+  const days = useMemo(() => getWeekDays(visibleWeekDate), [visibleWeekDate]);
   const today = new Date();
-  const weekStart = useMemo(() => startOfWeek(value), [value]);
+  const weekStart = useMemo(() => startOfWeek(visibleWeekDate), [visibleWeekDate]);
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
   const monthRequests = useMemo(() => {
     const unique = new Map<string, { year: number; month: number }>();
@@ -92,14 +93,20 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
       new Intl.DateTimeFormat(undefined, {
         month: "long",
         year: "numeric"
-      }).format(value),
-    [value]
+      }).format(visibleWeekDate),
+    [visibleWeekDate]
   );
   const weekKey = formatLocalIsoDate(weekStart);
 
+  useEffect(() => {
+    setVisibleWeekDate(value);
+  }, [value]);
+
   function shiftWeek(direction: -1 | 1) {
     setSlideDirection(direction);
-    onChange(direction === -1 ? getPreviousWeekDate(value) : getNextWeekDate(value));
+    setVisibleWeekDate((currentWeek) =>
+      direction === -1 ? getPreviousWeekDate(currentWeek) : getNextWeekDate(currentWeek)
+    );
   }
 
   return (
@@ -111,7 +118,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
           </h2>
         </div>
       </div> : null}
-      <div className="relative min-h-[62px] touch-pan-y overflow-hidden">
+      <div className="relative min-h-[70px] touch-pan-y overflow-hidden">
         <AnimatePresence custom={slideDirection} initial={false}>
           <motion.div
             key={weekKey}
@@ -143,7 +150,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
             animate="center"
             exit="exit"
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute inset-0 grid grid-cols-7 gap-1"
+            className="absolute inset-x-0 bottom-2 top-0 grid grid-cols-7 gap-1"
           >
             {days.map((day) => {
               const selected = isSameDay(day.date, value);
@@ -164,7 +171,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                   data-state={state}
                   onClick={() => onChange(day.date)}
                   className={cn(
-                    "flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]",
+                    "flex min-h-[62px] flex-col items-center justify-center gap-1 border border-transparent px-1 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-white/28 focus:ring-offset-2 focus:ring-offset-[#050505]",
                     selected
                       ? "week-day-selected rounded-[18px] bg-[#059669] text-white"
                       : "rounded-[24px]"
@@ -172,17 +179,16 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                 >
                   <span className={cn(
                     "text-[10px] font-semibold tracking-[0.2em]",
-                    selected ? "week-day-selected-secondary text-white/72" : "text-white/34"
+                    selected ? "week-day-selected-label text-white/72" : "text-white/34"
                   )}>
                     {day.weekday.slice(0, 3)}
                   </span>
-                  <motion.div
-                    layout
+                  <div
                     style={!selected && absence ? { color: absence.color } : undefined}
                     className={cn(
-                      "relative flex h-8 w-full items-center justify-center text-[15px] font-semibold transition",
+                      "relative flex h-8 w-full items-center justify-center text-[15px] font-semibold transition-colors",
                       selected
-                        ? "text-white"
+                        ? "week-day-selected-date text-white"
                         : current
                           ? cn(
                               "mx-auto w-11 rounded-full border border-white/[0.08] bg-white/[0.1]",
@@ -195,7 +201,7 @@ export function WeekSelector({ value, onChange, showMonthLabel = true }: Props) 
                     )}
                   >
                     {day.dayNumber}
-                  </motion.div>
+                  </div>
                 </motion.button>
               );
             })}

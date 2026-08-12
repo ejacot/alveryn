@@ -125,7 +125,7 @@ export function WeeklyHoursCard({
   return (
     <section ref={sectionRef}>
       {hasWeeklyActivity ? (
-        <Card className="overflow-hidden">
+        <Card className="dashboard-primary-card overflow-hidden">
           <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-5 py-2.5 dark:border-white/10">
             <div>
               <p className="text-[0.6rem] font-medium uppercase tracking-[0.12em] text-[#f5f5f5]/34">
@@ -364,7 +364,7 @@ export function WeeklyHoursCard({
           </div>
         </Card>
       ) : (
-        <Card className="dashboard-empty-week flex min-h-24 items-center px-5 py-4">
+        <Card className="dashboard-primary-card dashboard-empty-week flex min-h-24 items-center px-5 py-4">
           <p className="max-w-[18rem] text-sm font-medium leading-5 text-[#f5f5f5]/48">
             {t("weeklyHours.emptyDescription")}
           </p>

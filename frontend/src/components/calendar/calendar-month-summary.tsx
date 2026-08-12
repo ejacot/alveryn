@@ -1,32 +1,33 @@
 import { useTranslation } from "react-i18next";
 type Props = {
   workedHours: string;
-  paidAbsenceHours: string;
-  extraPaidHours: string;
   workGrossAmount: string;
-  paidAbsenceGrossAmount: string;
-  extraPaidGrossAmount: string;
   workedDays: number;
   absenceDays: number;
   restDays: number;
-  missingDays: number;
   classifiedDays: number;
   totalDays: number;
+  absenceBreakdown: CalendarMonthSummaryBreakdownItem[];
+  extraPayBreakdown: CalendarMonthSummaryBreakdownItem[];
+};
+
+export type CalendarMonthSummaryBreakdownItem = {
+  id: string;
+  label: string;
+  hours: string;
+  amount: string;
 };
 
 export function CalendarMonthSummary({
   workedHours,
-  paidAbsenceHours,
-  extraPaidHours,
   workGrossAmount,
-  paidAbsenceGrossAmount,
-  extraPaidGrossAmount,
   workedDays,
   absenceDays,
   restDays,
-  missingDays,
   classifiedDays,
-  totalDays
+  totalDays,
+  absenceBreakdown,
+  extraPayBreakdown
 }: Props) {
   const { t } = useTranslation("calendar");
 
@@ -69,29 +70,30 @@ export function CalendarMonthSummary({
         </div>
       </div>
 
-      <div className="relative mt-4 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/[0.07] pt-4">
-        <MiniMetric label={t("monthlySummary.workedDays")} value={String(workedDays)} />
-        <MiniMetric label={t("monthlySummary.absenceDays")} value={String(absenceDays)} />
-        <MiniMetric label={t("monthlySummary.restDays")} value={String(restDays)} />
-        <MiniMetric label={t("monthlySummary.missingDays")} value={String(missingDays)} accent={missingDays > 0} />
+      <div className="relative mt-4 grid grid-cols-3 gap-x-3 border-t border-white/[0.07] pt-4">
+        <MiniMetric label={t("monthlySummary.workedDays")} value={String(workedDays)} align="left" />
+        <MiniMetric label={t("monthlySummary.absenceDays")} value={String(absenceDays)} align="center" />
+        <MiniMetric label={t("monthlySummary.restDays")} value={String(restDays)} align="right" />
       </div>
 
-      {paidAbsenceHours !== "0h 00m" || extraPaidHours !== "0h 00m" ? (
+      {absenceBreakdown.length > 0 || extraPayBreakdown.length > 0 ? (
       <div className="relative mt-4 space-y-2 border-t border-white/[0.07] pt-4">
-        {paidAbsenceHours !== "0h 00m" ? (
+        {absenceBreakdown.map((item) => (
           <DetailMetric
-            label={t("monthlySummary.paidAbsence")}
-            value={paidAbsenceHours}
-            amount={paidAbsenceGrossAmount}
+            key={`absence:${item.id}`}
+            label={item.label}
+            value={item.hours}
+            amount={item.amount}
           />
-        ) : null}
-        {extraPaidHours !== "0h 00m" ? (
+        ))}
+        {extraPayBreakdown.map((item) => (
           <DetailMetric
-            label={t("monthlySummary.extraPay")}
-            value={extraPaidHours}
-            amount={extraPaidGrossAmount}
+            key={`extra:${item.id}`}
+            label={item.label}
+            value={item.hours}
+            amount={item.amount}
           />
-        ) : null}
+        ))}
       </div>
       ) : null}
     </section>
@@ -101,21 +103,18 @@ export function CalendarMonthSummary({
 function MiniMetric({
   label,
   value,
-  accent = false
+  align
 }: {
   label: string;
   value: string;
-  accent?: boolean;
+  align: "left" | "center" | "right";
 }) {
   return (
-    <article>
-      <p className={accent
-        ? "font-metric text-[1.25rem] font-medium tabular-nums text-[#10b981]"
-        : "font-metric text-[1.25rem] font-medium tabular-nums text-[#f5f5f5]"
-      }>
+    <article className={align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left"}>
+      <p className="font-metric text-[1.25rem] font-medium tabular-nums text-[#f5f5f5]">
         {value}
       </p>
-      <p className="mt-1 truncate text-[9px] font-medium uppercase tracking-[0.12em] text-white/32">
+      <p className="mt-1 truncate text-[8px] font-medium uppercase tracking-[0.1em] text-white/32 sm:text-[9px]">
         {label}
       </p>
     </article>

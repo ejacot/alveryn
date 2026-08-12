@@ -44,6 +44,8 @@ import com.alveryn.api.statistics.dto.StatisticsTimeSeriesPointResponse;
 import com.alveryn.api.statistics.dto.StatisticsTimeSeriesResponse;
 import com.alveryn.api.statistics.dto.StatisticsWorkTypeResponse;
 import com.alveryn.api.statistics.model.StatisticsErrorCode;
+import com.alveryn.api.salary.entity.HourlyRatePeriod;
+import com.alveryn.api.salary.repository.HourlyRatePeriodRepository;
 import com.alveryn.api.workrecord.line.entity.WorkLineCalculationMode;
 import com.alveryn.api.workrecord.line.entity.WorkRecordLine;
 import com.alveryn.api.workrecord.line.repository.WorkRecordLineRepository;
@@ -85,6 +87,7 @@ public class StatisticsService {
   private final WorkRecordLineRepository workRecordLineRepository;
   private final WorkTypeRepository workTypeRepository;
   private final AbsenceRepository absenceRepository;
+  private final HourlyRatePeriodRepository hourlyRatePeriodRepository;
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
 
@@ -95,9 +98,11 @@ public class StatisticsService {
     Period previousPeriod = previousPeriod(filters.from(), filters.to());
     List<StatEntry> previousEntries =
         findEntries(userId, filters, previousPeriod.from(), previousPeriod.to());
+    List<GrossAdjustment> currentAdjustments = paidAbsenceGross(userId, filters, filters.from(), filters.to(), currentEntries);
+    List<GrossAdjustment> previousAdjustments = paidAbsenceGross(userId, filters, previousPeriod.from(), previousPeriod.to(), previousEntries);
 
     long entries = currentEntries.size();
-    StatisticsPeriodTotalsResponse totals = totals(filters.from(), filters.to(), currentEntries);
+    StatisticsPeriodTotalsResponse totals = totals(filters.from(), filters.to(), currentEntries, currentAdjustments);
 
     return new StatisticsOverviewResponse(
         totals.grossByCurrency(),
@@ -105,13 +110,14 @@ public class StatisticsService {
         totals.workedDays(),
         entries,
         totals.averageMinutesPerWorkedDay(),
-        comparison(currentEntries, previousEntries));
+        comparison(currentEntries, previousEntries, currentAdjustments, previousAdjustments));
   }
 
   @Transactional(readOnly = true)
   public StatisticsTimeSeriesResponse timeSeries(StatisticsFilters filters, StatisticsMetric metric) {
     UUID userId = authenticatedUserAccessor.requireUserId();
     List<StatEntry> entries = findEntries(userId, filters);
+    List<GrossAdjustment> grossAdjustments = paidAbsenceGross(userId, filters, filters.from(), filters.to(), entries);
     StatisticsGranularity granularity = resolveGranularity(filters.from(), filters.to());
     LocalDate seriesTo = filters.to().isAfter(LocalDate.now(clock)) ? LocalDate.now(clock) : filters.to();
     Map<BucketCurrencyKey, BigDecimal> grouped = new LinkedHashMap<>();
@@ -131,10 +137,22 @@ public class StatisticsService {
         grouped.merge(key, metricValue(entry, metric), BigDecimal::add);
       }
     }
+    if (metric == StatisticsMetric.GROSS) {
+      for (GrossAdjustment adjustment : grossAdjustments) {
+        if (adjustment.date().isAfter(seriesTo)) continue;
+        Bucket bucket = bucketFor(adjustment.date(), granularity, seriesTo);
+        grouped.merge(
+            new BucketCurrencyKey(bucket.start(), bucket.end(), adjustment.currency()),
+            adjustment.amount(),
+            BigDecimal::add);
+      }
+    }
     List<StatisticsTimeSeriesPointResponse> points = new ArrayList<>();
     for (Bucket bucket : completeBuckets(filters.from(), seriesTo, granularity)) {
       if (metric == StatisticsMetric.GROSS) {
-        List<String> currencies = currenciesFor(entries);
+        List<String> currencies = new ArrayList<>(currenciesFor(entries));
+        grossAdjustments.stream().map(GrossAdjustment::currency).distinct()
+            .filter(currency -> !currencies.contains(currency)).forEach(currencies::add);
         if (currencies.isEmpty()) {
           points.add(point(bucket, BigDecimal.ZERO.setScale(SCALE), metric, null));
         } else {
@@ -180,14 +198,16 @@ public class StatisticsService {
             request.periodB().from(), request.periodB().to(), request.workTypeIds(), request.calculationMethods());
     List<StatEntry> entriesA = findEntries(userId, filtersA);
     List<StatEntry> entriesB = findEntries(userId, filtersB);
-    StatisticsPeriodTotalsResponse totalsA = totals(filtersA.from(), filtersA.to(), entriesA);
-    StatisticsPeriodTotalsResponse totalsB = totals(filtersB.from(), filtersB.to(), entriesB);
+    List<GrossAdjustment> adjustmentsA = paidAbsenceGross(userId, filtersA, filtersA.from(), filtersA.to(), entriesA);
+    List<GrossAdjustment> adjustmentsB = paidAbsenceGross(userId, filtersB, filtersB.from(), filtersB.to(), entriesB);
+    StatisticsPeriodTotalsResponse totalsA = totals(filtersA.from(), filtersA.to(), entriesA, adjustmentsA);
+    StatisticsPeriodTotalsResponse totalsB = totals(filtersB.from(), filtersB.to(), entriesB, adjustmentsB);
     return new StatisticsAdvancedComparisonResponse(
         request.metric(),
         totalsA,
         totalsB,
         comparisonDifferences(entriesA, entriesB, totalsA, totalsB, request.metric()),
-        comparisonSeries(filtersA, filtersB, entriesA, entriesB, request.metric()));
+        comparisonSeries(filtersA, filtersB, entriesA, entriesB, adjustmentsA, adjustmentsB, request.metric()));
   }
 
   @Transactional(readOnly = true)
@@ -267,7 +287,10 @@ public class StatisticsService {
     UUID userId = authenticatedUserAccessor.requireUserId();
     List<StatEntry> entries = findEntries(userId, filters);
     return new StatisticsDrilldownResponse(
-        filters.from(), filters.to(), totals(filters.from(), filters.to(), entries), workTypeBreakdown(entries));
+        filters.from(), filters.to(),
+        totals(filters.from(), filters.to(), entries,
+            paidAbsenceGross(userId, filters, filters.from(), filters.to(), entries)),
+        workTypeBreakdown(entries));
   }
 
   @Transactional(readOnly = true)
@@ -1065,6 +1088,11 @@ public class StatisticsService {
   }
 
   private StatisticsPeriodTotalsResponse totals(LocalDate from, LocalDate to, List<StatEntry> entries) {
+    return totals(from, to, entries, List.of());
+  }
+
+  private StatisticsPeriodTotalsResponse totals(
+      LocalDate from, LocalDate to, List<StatEntry> entries, List<GrossAdjustment> adjustments) {
     int workedDays = distinctWorkedDays(entries);
     BigDecimal workedMinutes = sumMinutes(entries);
     BigDecimal averageMinutesPerWorkedDay =
@@ -1074,7 +1102,7 @@ public class StatisticsService {
                 .divide(BigDecimal.valueOf(workedDays), MATH_CONTEXT)
                 .setScale(SCALE, RoundingMode.HALF_UP);
     return new StatisticsPeriodTotalsResponse(
-        from, to, workedMinutes, workedDays, entries.size(), grossByCurrency(entries), averageMinutesPerWorkedDay);
+        from, to, workedMinutes, workedDays, entries.size(), grossByCurrency(entries, adjustments), averageMinutesPerWorkedDay);
   }
 
   private int distinctWorkedDays(List<StatEntry> entries) {
@@ -1082,13 +1110,50 @@ public class StatisticsService {
   }
 
   private List<MoneyAmountResponse> grossByCurrency(List<StatEntry> entries) {
+    return grossByCurrency(entries, List.of());
+  }
+
+  private List<MoneyAmountResponse> grossByCurrency(
+      List<StatEntry> entries, List<GrossAdjustment> adjustments) {
     Map<String, BigDecimal> totals = new LinkedHashMap<>();
     for (StatEntry entry : entries) {
       totals.merge(entry.getCurrencySnapshot(), entry.getGrossAmount(), BigDecimal::add);
     }
+    for (GrossAdjustment adjustment : adjustments) {
+      totals.merge(adjustment.currency(), adjustment.amount(), BigDecimal::add);
+    }
     return totals.entrySet().stream()
         .map(item -> new MoneyAmountResponse(item.getKey(), item.getValue().setScale(SCALE, RoundingMode.HALF_UP)))
         .toList();
+  }
+
+  private List<GrossAdjustment> paidAbsenceGross(
+      UUID userId, StatisticsFilters filters, LocalDate from, LocalDate to, List<StatEntry> entries) {
+    if (!normalize(filters.workTypeIds()).isEmpty() || !normalize(filters.calculationMethods()).isEmpty()) {
+      return List.of();
+    }
+    Set<LocalDate> activityDates = entries.stream().map(StatEntry::getWorkDate).collect(java.util.stream.Collectors.toSet());
+    List<HourlyRatePeriod> rates = hourlyRatePeriodRepository.findAllByUserIdOrderByValidFromDesc(userId);
+    List<GrossAdjustment> result = new ArrayList<>();
+    for (Absence absence : absenceRepository.findAllByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(userId, to, from)) {
+      if (!absence.isPaidSnapshot() || absence.getPaidMinutesPerDaySnapshot() <= 0) continue;
+      LocalDate start = absence.getStartDate().isAfter(from) ? absence.getStartDate() : from;
+      LocalDate end = absence.getEndDate().isBefore(to) ? absence.getEndDate() : to;
+      for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+        if (activityDates.contains(date)) continue;
+        LocalDate paidDate = date;
+        rates.stream()
+            .filter(rate -> rate.getEmployment().getId().equals(absence.getEmployment().getId()) && rate.includes(paidDate))
+            .findFirst()
+            .ifPresent(rate -> result.add(new GrossAdjustment(
+                paidDate,
+                rate.getCurrency(),
+                rate.getHourlyRate()
+                    .multiply(BigDecimal.valueOf(absence.getPaidMinutesPerDaySnapshot()))
+                    .divide(BigDecimal.valueOf(60), MATH_CONTEXT))));
+      }
+    }
+    return result;
   }
 
   private List<String> currenciesFor(List<StatEntry> entries) {
@@ -1096,13 +1161,21 @@ public class StatisticsService {
   }
 
   private StatisticsComparisonResponse comparison(List<StatEntry> currentEntries, List<StatEntry> previousEntries) {
-    List<MoneyAmountResponse> currentGross = grossByCurrency(currentEntries);
-    List<MoneyAmountResponse> previousGross = grossByCurrency(previousEntries);
+    return comparison(currentEntries, previousEntries, List.of(), List.of());
+  }
+
+  private StatisticsComparisonResponse comparison(
+      List<StatEntry> currentEntries,
+      List<StatEntry> previousEntries,
+      List<GrossAdjustment> currentAdjustments,
+      List<GrossAdjustment> previousAdjustments) {
+    List<MoneyAmountResponse> currentGross = grossByCurrency(currentEntries, currentAdjustments);
+    List<MoneyAmountResponse> previousGross = grossByCurrency(previousEntries, previousAdjustments);
     if (currentGross.isEmpty() && previousGross.isEmpty()) {
-      return new StatisticsComparisonResponse(false, null, ComparisonDirection.NO_DATA, grossByCurrency(previousEntries));
+      return new StatisticsComparisonResponse(false, null, ComparisonDirection.NO_DATA, previousGross);
     }
     if (previousGross.isEmpty()) {
-      return new StatisticsComparisonResponse(false, null, ComparisonDirection.NEW, grossByCurrency(previousEntries));
+      return new StatisticsComparisonResponse(false, null, ComparisonDirection.NEW, previousGross);
     }
     if (currentGross.size() != 1 || previousGross.size() != 1 || !currentGross.getFirst().currency().equals(previousGross.getFirst().currency())) {
       return new StatisticsComparisonResponse(false, null, ComparisonDirection.NO_DATA, previousGross);
@@ -1170,6 +1243,8 @@ public class StatisticsService {
       StatisticsFilters filtersB,
       List<StatEntry> entriesA,
       List<StatEntry> entriesB,
+      List<GrossAdjustment> adjustmentsA,
+      List<GrossAdjustment> adjustmentsB,
       StatisticsMetric metric) {
     StatisticsGranularity granularity = comparisonGranularity(filtersA, filtersB);
     StatisticsComparisonAlignment alignment = comparisonAlignment(filtersA, filtersB, granularity);
@@ -1178,7 +1253,11 @@ public class StatisticsService {
     int size = Math.max(bucketsA.size(), bucketsB.size());
     List<String> currencies =
         metric == StatisticsMetric.GROSS
-            ? comparisonCurrencies(entriesA, entriesB)
+            ? java.util.stream.Stream.concat(
+                    comparisonCurrencies(entriesA, entriesB).stream(),
+                    java.util.stream.Stream.concat(adjustmentsA.stream(), adjustmentsB.stream())
+                        .map(GrossAdjustment::currency))
+                .distinct().sorted().toList()
             : Collections.singletonList(null);
     List<StatisticsComparisonSeriesPointResponse> points = new ArrayList<>();
     for (String currency : currencies) {
@@ -1194,14 +1273,27 @@ public class StatisticsService {
                 bucketB == null ? null : bucketB.end(),
                 bucketA == null
                     ? BigDecimal.ZERO.setScale(SCALE)
-                    : aggregateMetric(entriesInBucket(entriesA, bucketA, currency, metric), metric),
+                    : aggregateMetric(entriesInBucket(entriesA, bucketA, currency, metric), metric)
+                        .add(adjustmentsInBucket(adjustmentsA, bucketA, currency, metric)),
                 bucketB == null
                     ? BigDecimal.ZERO.setScale(SCALE)
-                    : aggregateMetric(entriesInBucket(entriesB, bucketB, currency, metric), metric),
+                    : aggregateMetric(entriesInBucket(entriesB, bucketB, currency, metric), metric)
+                        .add(adjustmentsInBucket(adjustmentsB, bucketB, currency, metric)),
                 currency));
       }
     }
     return new StatisticsComparisonSeriesResponse(alignment, granularity, points);
+  }
+
+  private BigDecimal adjustmentsInBucket(
+      List<GrossAdjustment> adjustments, Bucket bucket, String currency, StatisticsMetric metric) {
+    if (metric != StatisticsMetric.GROSS) return BigDecimal.ZERO.setScale(SCALE);
+    return adjustments.stream()
+        .filter(item -> item.currency().equals(currency))
+        .filter(item -> !item.date().isBefore(bucket.start()) && !item.date().isAfter(bucket.end()))
+        .map(GrossAdjustment::amount)
+        .reduce(BigDecimal.ZERO.setScale(SCALE), BigDecimal::add)
+        .setScale(SCALE, RoundingMode.HALF_UP);
   }
 
   private StatisticsGranularity comparisonGranularity(StatisticsFilters filtersA, StatisticsFilters filtersB) {
@@ -1429,6 +1521,8 @@ public class StatisticsService {
   private record Bucket(LocalDate start, LocalDate end) {}
 
   private record BucketCurrencyKey(LocalDate bucketStart, LocalDate bucketEnd, String currency) {}
+
+  private record GrossAdjustment(LocalDate date, String currency, BigDecimal amount) {}
 
   private record ProductivityTotals(
       BigDecimal totalUnits, BigDecimal equivalentMinutes, BigDecimal configuredUnitsPerHour) {}

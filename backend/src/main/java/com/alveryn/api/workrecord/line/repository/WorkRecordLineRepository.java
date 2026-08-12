@@ -14,7 +14,15 @@ import org.springframework.data.repository.query.Param;
 public interface WorkRecordLineRepository extends JpaRepository<WorkRecordLine, UUID> {
   List<WorkRecordLine> findAllByWorkRecordIdOrderByDisplayOrderAscCreatedAtAsc(UUID workRecordId);
 
-  List<WorkRecordLine> findAllByWorkRecordIdIn(Collection<UUID> workRecordIds);
+  @Query("""
+      select line
+      from WorkRecordLine line
+      join fetch line.workRecord record
+      join fetch line.workType
+      where record.id in :workRecordIds
+      order by record.workDate asc, record.createdAt asc, line.displayOrder asc, line.createdAt asc
+      """)
+  List<WorkRecordLine> findAllByWorkRecordIdIn(@Param("workRecordIds") Collection<UUID> workRecordIds);
 
   void deleteAllByWorkRecordId(UUID workRecordId);
 

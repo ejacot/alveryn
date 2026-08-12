@@ -25,9 +25,10 @@
     "title": { "matches": "Month matches", "review": "Review the differences", "scan": "Scan your Lohn" },
     "description": { "matches": "Alveryn matches the employer document", "grossDifference": "{{difference}} gross difference", "scan": "Photograph or upload the employer document" },
     "result": { "label": "Result", "everythingMatches": "Everything matches", "found_one": "{{count}} difference found", "found_other": "{{count}} differences found", "agree": "The recorded work and employer Lohn agree.", "review": "Review the highlighted categories before confirming." },
-    "actions": { "collapse": "Collapse reconciliation", "open": "Open reconciliation", "scanAria": "Scan or upload Lohn document", "scan": "Scan Lohn", "opening": "Opening…", "openDocument": "Open document", "reading": "Reading…", "replaceDocument": "Replace document", "saving": "Saving…", "saved": "Saved ✓", "save": "Save reconciliation" },
-    "categories": { "workedHours": "Worked hours", "paidAbsence": "Paid absence", "extraPay": "Extra pay", "gross": "Gross" },
-    "details": { "title": "Lohn details", "line": "Payroll line", "noQuantity": "No quantity printed" },
+    "actions": { "collapse": "Collapse reconciliation", "open": "Open reconciliation", "scanAria": "Scan or upload payroll document", "scan": "Scan payroll", "opening": "Opening…", "openDocument": "Open document", "reading": "Reading…", "replaceDocument": "Replace document", "editValues": "Correct", "doneEditing": "Done", "saving": "Saving…", "saved": "Saved ✓", "save": "Save reconciliation" },
+    "categories": { "workedHours": "Worked hours", "workedPay": "Regular pay", "paidAbsence": "Paid absence", "extraHours": "Extra hours", "extraPay": "Extra pay", "gross": "Gross" },
+    "details": { "title": "Payroll details", "line": "Payroll line", "noQuantity": "No quantity printed" },
+    "verification": { "review": "Check uncertain values against the document before saving.", "fragment": "Document fragment", "confidence": "{{value}}% scan confidence", "editTitle": "Extracted values" },
     "errors": { "noValues": "No payroll values were found for the selected month", "documentUnavailable": "Payroll document is not available" }
   },
   "jobDays_one": "{{count}} day",

@@ -106,7 +106,7 @@ describe("dashboard components", () => {
     await i18n.changeLanguage("en");
   });
 
-  it("renders localized dashboard overview and quick add CTA", async () => {
+  it("renders the empty-day question and opens the work flow", async () => {
     const onQuickAdd = vi.fn();
     const user = userEvent.setup();
 
@@ -120,19 +120,20 @@ describe("dashboard components", () => {
       />
     );
 
-    expect(screen.queryByRole("heading", { name: "Today" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add a new work record" })).toBeInTheDocument();
-    expect(screen.queryByText("Add entry")).not.toBeInTheDocument();
-    expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How was your day?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I worked" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I had the day off" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "I was absent" })).toBeInTheDocument();
+    expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Add a new work record" }));
+    await user.click(screen.getByRole("button", { name: "I worked" }));
     expect(onQuickAdd).toHaveBeenCalledTimes(1);
   });
 
   it("prevents combining earnings from different currencies in Flow", () => {
     render(
       <DashboardOverview
-        selectedDay={baseSelectedDay}
+        selectedDay={{ ...baseSelectedDay, entriesCount: 1 }}
         weeklyDays={weeklyDays}
         flowAvailable={false}
         onQuickAdd={vi.fn()}
@@ -164,7 +165,7 @@ describe("dashboard components", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Absence" }));
+    await user.click(screen.getByRole("button", { name: "I was absent" }));
     await user.click(screen.getByRole("button", { name: "Sick" }));
     expect(onCreateAbsence).toHaveBeenCalledWith("absence-sick-type");
   });
@@ -183,7 +184,7 @@ describe("dashboard components", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Rest day" }));
+    await user.click(screen.getByRole("button", { name: "I had the day off" }));
     expect(onMarkRestDay).toHaveBeenCalledOnce();
 
     rerender(
@@ -217,7 +218,7 @@ describe("dashboard components", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Absence" }));
+    await user.click(screen.getByRole("button", { name: "I was absent" }));
 
     expect(screen.getByText("No absence types configured")).toBeInTheDocument();
     expect(screen.getByText(/Create your first absence type/)).toBeInTheDocument();

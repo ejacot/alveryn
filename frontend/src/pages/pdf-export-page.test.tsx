@@ -9,7 +9,7 @@ vi.mock("../api/endpoints", () => ({
   listAbsencesInRange: vi.fn(),
   listEmployments: vi.fn(),
   listRestDays: vi.fn(),
-  listWorkRecordsInRange: vi.fn(),
+  listFullWorkRecordsInRange: vi.fn(),
   recordPdfExport: vi.fn()
 }));
 
@@ -18,7 +18,7 @@ vi.mock("../features/pdf-export/pdf-report", async () => {
   return { ...actual, generateAlverynPdf: vi.fn() };
 });
 
-import { getProfile, listAbsencesInRange, listEmployments, listRestDays, listWorkRecordsInRange } from "../api/endpoints";
+import { getProfile, listAbsencesInRange, listEmployments, listRestDays, listFullWorkRecordsInRange } from "../api/endpoints";
 import { generateAlverynPdf } from "../features/pdf-export/pdf-report";
 
 function renderPage() {
@@ -56,7 +56,7 @@ describe("PdfExportPage", () => {
         deletable: false
       }
     ]);
-    vi.mocked(listWorkRecordsInRange).mockResolvedValue([{
+    vi.mocked(listFullWorkRecordsInRange).mockResolvedValue([{
       id: "record-2",
       employmentId: "employment-2",
       workDate: "2026-07-10",
