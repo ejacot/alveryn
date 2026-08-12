@@ -8,6 +8,9 @@ RUN ./mvnw --batch-mode -DskipTests clean package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+ENV JAVA_TOOL_OPTIONS="-XX:+UseSerialGC -Xms48m -Xmx176m -XX:MaxDirectMemorySize=16m -XX:ReservedCodeCacheSize=64m -XX:+ExitOnOutOfMemoryError"
+ENV MAGICK_THREAD_LIMIT=1
+ENV OMP_THREAD_LIMIT=1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       ffmpeg imagemagick tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng \

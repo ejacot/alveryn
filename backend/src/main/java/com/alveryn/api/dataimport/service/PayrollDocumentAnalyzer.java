@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class PayrollDocumentAnalyzer {
   private static final int MAX_PAGES = 18;
   private static final long MAX_TOTAL_SIZE = 40L * 1024 * 1024;
   private static final long MAX_MONTHLY_SIZE = 15L * 1024 * 1024;
+  private static final Semaphore MONTHLY_SCAN_SLOT = new Semaphore(1, true);
 
   private final ObjectMapper objectMapper;
   private final ImportIntelligenceService intelligence;
@@ -97,6 +99,25 @@ public class PayrollDocumentAnalyzer {
   }
 
   public ObjectNode analyzeMonthly(MultipartFile file, int year, int month) {
+    boolean acquired = false;
+    try {
+      acquired = MONTHLY_SCAN_SLOT.tryAcquire(5, TimeUnit.SECONDS);
+      if (!acquired) {
+        throw new ValidationException(
+            "Another payroll document is being scanned. Try again in a moment",
+            "PAYROLL_SCAN_BUSY");
+      }
+      return analyzeMonthlyInScanSlot(file, year, month);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new ValidationException(
+          "Payroll scanning was interrupted. Try again", "PAYROLL_SCAN_INTERRUPTED");
+    } finally {
+      if (acquired) MONTHLY_SCAN_SLOT.release();
+    }
+  }
+
+  private ObjectNode analyzeMonthlyInScanSlot(MultipartFile file, int year, int month) {
     String contentType = validateMonthly(file);
     if (file.getSize() > MAX_MONTHLY_SIZE) {
       throw new IllegalArgumentException("Payroll document exceeds the 15 MB limit");
@@ -305,9 +326,14 @@ public class PayrollDocumentAnalyzer {
     String diagnostic = "ImageMagick is not installed";
     if (imageMagick != null) {
       Process process = new ProcessBuilder(
-          imageMagick, input.toString(),
+          imageMagick,
+          "-limit", "thread", "1",
+          "-limit", "memory", "64MiB",
+          "-limit", "map", "96MiB",
+          "-limit", "disk", "512MiB",
+          input.toString(),
           "-auto-orient", "-colorspace", "Gray", "-deskew", "40%",
-          "-contrast-stretch", "0.5%x0.5%", "-resize", "2200x2200",
+          "-contrast-stretch", "0.5%x0.5%", "-resize", "2000x2000>",
           "-sharpen", "0x1", "-strip", "-quality", "90", output.toString())
           .redirectErrorStream(true)
           .start();
@@ -325,8 +351,8 @@ public class PayrollDocumentAnalyzer {
     if (!isCommandAvailable("ffmpeg")) return diagnostic + "\nFFmpeg is not installed";
     Files.write(output, new byte[0]);
     Process fallback = new ProcessBuilder(
-        "ffmpeg", "-y", "-i", input.toString(), "-vf",
-        "scale=2200:2200:force_original_aspect_ratio=decrease,format=gray,unsharp=5:5:0.8",
+        "ffmpeg", "-y", "-threads", "1", "-i", input.toString(), "-vf",
+        "scale=2000:2000:force_original_aspect_ratio=decrease,format=gray,unsharp=5:5:0.8",
         "-frames:v", "1", "-q:v", "3", output.toString())
         .redirectErrorStream(true)
         .start();
@@ -440,11 +466,12 @@ public class PayrollDocumentAnalyzer {
   private String runTesseract(Path imageFile) throws Exception {
     String languages = availableTesseractLanguages();
     if (languages.isBlank()) return "";
-    Process process = new ProcessBuilder(
+    ProcessBuilder builder = new ProcessBuilder(
         "tesseract", imageFile.toString(), "stdout", "-l", languages,
-        "--oem", "1", "--psm", "6", "preserve_interword_spaces=1")
-        .redirectErrorStream(true)
-        .start();
+        "--oem", "1", "--psm", "6", "-c", "preserve_interword_spaces=1")
+        .redirectErrorStream(true);
+    builder.environment().put("OMP_THREAD_LIMIT", "1");
+    Process process = builder.start();
     boolean finished = process.waitFor(Duration.ofSeconds(25).toMillis(), TimeUnit.MILLISECONDS);
     if (!finished) {
       process.destroyForcibly();
@@ -466,9 +493,18 @@ public class PayrollDocumentAnalyzer {
       Set<String> installed = Set.of(
           new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
               .split("\\s+"));
-      availableOcrLanguages = List.of(
-              "eng", "deu", "ron", "rus", "fra", "spa", "ita", "pol", "nld")
-          .stream().filter(installed::contains).reduce((left, right) -> left + "+" + right)
+      String configured = System.getenv("PAYROLL_OCR_LANGUAGES");
+      List<String> requested = configured == null || configured.isBlank()
+          ? List.of("eng", "deu", "ron", "fra")
+          : Pattern.compile("[+,\\s]+").splitAsStream(configured)
+              .filter(language -> !language.isBlank()).toList();
+      // Loading every trained model into one Tesseract process can exhaust a 512 MB service.
+      // The vision model still reads any language; this bounded OCR pass supplies independent
+      // digit and label evidence for the product's primary locales. Other installed models can
+      // be enabled through PAYROLL_OCR_LANGUAGES on larger instances.
+      availableOcrLanguages = requested.stream()
+          .filter(installed::contains).distinct()
+          .reduce((left, right) -> left + "+" + right)
           .orElse("");
       log.info("Payroll OCR languages enabled: {}", availableOcrLanguages);
       return availableOcrLanguages;
