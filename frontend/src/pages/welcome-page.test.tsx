@@ -99,6 +99,16 @@ describe("WelcomePage", () => {
     expect(screen.getByText("Every kind of work — one record.")).toBeInTheDocument();
   });
 
+  it("uses the canonical public contact address in the footer for every language", () => {
+    renderPage();
+    const footer = screen.getByRole("contentinfo");
+    const language = screen.getAllByLabelText("Choose language")[0];
+    for (const locale of ["en", "de", "ro", "ru"]) {
+      fireEvent.change(language, { target: { value: locale } });
+      expect(footer).toHaveTextContent("admin@alveryn.com");
+    }
+  });
+
   it("redirects authenticated users to the app home", () => {
     authState.isAuthenticated = true;
     authState.user = { preferences: { onboardingCompleted: true } };
