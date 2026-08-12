@@ -10,8 +10,12 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Set;
 import java.math.BigDecimal;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -222,6 +226,7 @@ public class ImportIntelligenceService {
   private ObjectNode analyzeMonthlyPayrollPage(
       String imageDataUrl, String ocrText, int year, int month, int pageNumber) {
     try {
+      String focusedImageDataUrl = isolatePayrollEarningsRegion(imageDataUrl);
       List<Map<String, Object>> content = new ArrayList<>();
       content.add(Map.of("type", "text", "text", """
           Analyze this single page or fragment of a payroll document from ANY country.
@@ -285,7 +290,7 @@ public class ImportIntelligenceService {
           %s
           """.formatted(year, month, sanitizeOcrText(ocrText))));
       content.add(Map.of(
-          "type", "image_url", "image_url", Map.of("url", imageDataUrl)));
+          "type", "image_url", "image_url", Map.of("url", focusedImageDataUrl)));
       Map<String, Object> body = Map.of(
           "model", properties.visionModel(),
           "temperature", 0.0,
@@ -325,7 +330,7 @@ public class ImportIntelligenceService {
       ObjectNode result = (ObjectNode) parsed;
       normalizeMonthlyPayrollResult(result);
       sanitizePayrollLines(result);
-      ObjectNode independent = extractIndependentPayrollAnchors(imageDataUrl, year, month);
+      ObjectNode independent = extractIndependentPayrollAnchors(focusedImageDataUrl, year, month);
       sanitizePayrollLines(independent);
       retainIndependentlyConfirmedLines(result, independent);
       aggregatePayrollLines(result);
@@ -345,6 +350,61 @@ public class ImportIntelligenceService {
     if (text == null || text.isBlank()) return "[not available]";
     String cleaned = text.replace('\u0000', ' ').trim();
     return cleaned.length() > 20_000 ? cleaned.substring(0, 20_000) : cleaned;
+  }
+
+  private String isolatePayrollEarningsRegion(String imageDataUrl) {
+    try {
+      List<Map<String, Object>> content = List.of(
+          Map.of("type", "text", "text", """
+              Locate the ONE rectangular region containing the current-period earnings/pay-items
+              table and its printed total gross. Include column headers and all earnings rows.
+              Exclude identity/address, tax, social insurance, deductions, annual totals, net pay,
+              bank details and footer. Coordinates use 0..1000 relative to the full image.
+              Return JSON only: {x,y,width,height,confidence}. If uncertain, confidence must be 0.
+              """),
+          Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl)));
+      Map<String, Object> body = Map.of(
+          "model", properties.visionModel(), "temperature", 0.0,
+          "max_completion_tokens", 200, "reasoning_effort", "none",
+          "messages", List.of(Map.of("role", "user", "content", content)),
+          "response_format", Map.of("type", "json_object"));
+      String raw = restClient.post().uri("/chat/completions")
+          .contentType(MediaType.APPLICATION_JSON)
+          .headers(headers -> headers.setBearerAuth(properties.apiKey()))
+          .body(objectMapper.writeValueAsString(body)).retrieve().body(String.class);
+      JsonNode box = parseJsonObject(objectMapper.readTree(raw)
+          .path("choices").path(0).path("message").path("content").asText());
+      if (box.path("confidence").asDouble(0) < 0.75) {
+        throw new IllegalArgumentException("earnings region was not identified confidently");
+      }
+      return cropDataUrl(imageDataUrl, box);
+    } catch (Exception exception) {
+      log.warn("Payroll earnings-region isolation failed: {}", exception.getMessage());
+      throw new IllegalArgumentException(
+          "The earnings table could not be identified. Take a closer photo of that table",
+          exception);
+    }
+  }
+
+  private String cropDataUrl(String dataUrl, JsonNode box) throws Exception {
+    int comma = dataUrl.indexOf(',');
+    if (comma < 0) throw new IllegalArgumentException("invalid image data");
+    BufferedImage source = ImageIO.read(new java.io.ByteArrayInputStream(
+        Base64.getDecoder().decode(dataUrl.substring(comma + 1))));
+    if (source == null) throw new IllegalArgumentException("unsupported image");
+    int x = Math.max(0, source.getWidth() * box.path("x").asInt() / 1000);
+    int y = Math.max(0, source.getHeight() * box.path("y").asInt() / 1000);
+    int width = Math.min(source.getWidth() - x,
+        source.getWidth() * box.path("width").asInt() / 1000);
+    int height = Math.min(source.getHeight() - y,
+        source.getHeight() * box.path("height").asInt() / 1000);
+    if (width < source.getWidth() / 4 || height < source.getHeight() / 10) {
+      throw new IllegalArgumentException("implausible earnings region");
+    }
+    BufferedImage crop = source.getSubimage(x, y, width, height);
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ImageIO.write(crop, "jpeg", output);
+    return "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(output.toByteArray());
   }
 
   private ObjectNode extractIndependentPayrollAnchors(
