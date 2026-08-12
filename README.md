@@ -95,8 +95,6 @@ The frontend reads environment values from `frontend/.env` or `frontend/.env.loc
   Optional explicit API base URL. Leave empty for local development so the frontend uses the Vite proxy and same-origin `/api` requests.
 - `VITE_ENABLE_PREVIEW_ROUTES`
   Enables local preview routes outside `import.meta.env.DEV` when set to `true`.
-- `VITE_SUPPORT_EMAIL`
-  Public support address displayed by the application. Default: `admin@alveryn.com`.
 
 ### Local API strategy
 
