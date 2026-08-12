@@ -1075,6 +1075,40 @@ html[data-theme="light"] .calendar-day-marker {
   color: color-mix(in srgb, var(--calendar-marker-color) 58%, #181818) !important;
 }
 
+.welcome-calendar-preview {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #080a09;
+}
+
+html[data-theme="light"] .welcome-calendar-preview {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
+.welcome-calendar-preview > section {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  width: 100%;
+}
+
+.welcome-calendar-preview > section > div:nth-child(3) {
+  flex: 1;
+}
+
+.welcome-calendar-preview > section > div:nth-child(3) > div {
+  height: 100%;
+  grid-auto-rows: 1fr;
+}
+
+.welcome-calendar-preview > section > div:nth-child(3) > [role="grid"] {
+  bottom: 0;
+}
+
+.welcome-calendar-preview [role="gridcell"] {
+  min-height: 0 !important;
+}
+
 html[data-theme="light"] input::placeholder,
 html[data-theme="light"] textarea::placeholder {
   color: rgba(0, 0, 0, 0.36);
