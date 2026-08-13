@@ -1,0 +1,14 @@
+{
+  "fallback": "Что-то пошло не так. Попробуйте ещё раз.",
+  "WORK_TYPE_NAME_EXISTS": "Вид работы с таким названием уже существует.",
+  "WORK_RECORD_TIME_OVERLAP": "Эта активность пересекается с существующей активностью с {{start}} до {{end}}.",
+  "STATISTICS_INVALID_DATE_RANGE": "Выберите корректный период статистики.",
+  "STATISTICS_INVALID_COMPARISON_RANGE": "Выберите корректные периоды сравнения.",
+  "STATISTICS_INCOMPATIBLE_COMPARISON": "Эти периоды нельзя корректно сравнить.",
+  "STATISTICS_HEATMAP_RANGE_TOO_LARGE": "Тепловая карта может отображать не более одного года.",
+  "STATISTICS_GROSS_REQUIRES_CURRENCY_SELECTION": "Для тепловой карты брутто выберите одну валюту.",
+  "STATISTICS_UNSUPPORTED_HEATMAP_METRIC": "Эта метрика не поддерживается тепловой картой.",
+  "STATISTICS_INVALID_HEATMAP_CURRENCY": "Выберите корректную валюту тепловой карты.",
+  "PAYROLL_MONTH_NOT_FOUND": "В этом PDF не найден выбранный месяц. Загрузите только страницу нужного месяца.",
+  "PAYROLL_DOCUMENT_UNREADABLE": "Не удалось прочитать расчётный лист. Попробуйте сделать более чёткое фото всей страницы."
+}

@@ -199,7 +199,10 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
     {
       element: <AuthLayout />,
       errorElement: <RouteErrorPage />,
-      children: [{ path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) }]
+      children: [
+        { path: "/auth/oauth/callback", element: withSuspense(<OAuthCallbackPage />) },
+        { path: "/verify-email", element: withSuspense(<VerifyEmailPage />) }
+      ]
     },
     {
       element: <GuestRoute />,
@@ -214,8 +217,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
               path: "/forgot-password",
               element: withSuspense(<ForgotPasswordPage />)
             },
-            { path: "/reset-password", element: withSuspense(<ResetPasswordPage />) },
-            { path: "/verify-email", element: withSuspense(<VerifyEmailPage />) }
+            { path: "/reset-password", element: withSuspense(<ResetPasswordPage />) }
           ]
         }
       ]

@@ -103,6 +103,38 @@ class StatisticsIntegrationTest {
   }
 
   @Test
+  void grossStatisticsIncludePaidAbsencesWithoutChangingWorkedHours() throws Exception {
+    UserAccount user = createVerifiedUser("statistics-paid-absence@example.com");
+    WorkType workType = createWorkType(user, "Work", CalculationMethod.TIME_BASED);
+    createRate(user, "20.00", "EUR", LocalDate.of(2026, 1, 1), null);
+    createTimeEntry(user, workType, LocalDate.of(2026, 7, 1), "08:00:00", "12:00:00");
+    Absence paidLeave = new Absence(
+        user, employment(user), AbsenceType.VACATION, LocalDate.of(2026, 7, 2), LocalDate.of(2026, 7, 2));
+    paidLeave.applyImportedPaymentSnapshot(true, 480);
+    absences.saveAndFlush(paidLeave);
+
+    mockMvc.perform(get("/api/statistics/overview")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .param("from", "2026-07-01").param("to", "2026-07-02"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("\"amount\":240.000000000000000")))
+        .andExpect(content().string(containsString("\"workedMinutes\":240.000000000000000")));
+
+    mockMvc.perform(get("/api/statistics/timeseries")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .param("from", "2026-07-01").param("to", "2026-07-02")
+            .param("metric", "GROSS"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("\"value\":160.000000000000000")));
+
+    mockMvc.perform(get("/api/statistics/drilldown")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+            .param("from", "2026-07-01").param("to", "2026-07-02"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("\"amount\":240.000000000000000")));
+  }
+
+  @Test
   void filtersTimeseriesAndWorkTypeBreakdownUseBackendAggregations() throws Exception {
     UserAccount user = createVerifiedUser("statistics-filter@example.com");
     WorkType check = createWorkType(user, "Check", CalculationMethod.TIME_BASED);

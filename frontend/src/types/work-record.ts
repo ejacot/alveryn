@@ -31,6 +31,7 @@ export type WorkRecordLine = {
   displayOrder: number;
   workTypeName: string;
   configurationName: string;
+  categoryName?: string | null;
   calculationMode: WorkRecordLineCalculationMode;
   unitLabel?: string | null;
   unitSymbol?: string | null;
@@ -86,6 +87,6 @@ export type WorkRecord = {
   totalGrossAmount?: string;
   currency?: string | null;
   workLines?: WorkRecordLine[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

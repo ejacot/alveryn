@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import {
   getProfile, listAbsencesInRange, listEmployments, listRestDays,
-  listWorkRecordsInRange, recordPdfExport
+  listFullWorkRecordsInRange, recordPdfExport
 } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { queryKeys } from "../api/query-keys";
@@ -90,7 +90,7 @@ export function PdfExportPage() {
     if (from > to) throw new Error(t("settings:pdfExport.errors.dateRange"));
     if (!hasSelection) throw new Error(t("settings:pdfExport.errors.fields"));
     const [records, absences, restGroups] = await Promise.all([
-      listWorkRecordsInRange({ from, to }),
+      listFullWorkRecordsInRange({ from, to }),
       listAbsencesInRange({ from, to }),
       Promise.all(selectedEmployments.map((employment) => listRestDays(employment.id, from, to)))
     ]);

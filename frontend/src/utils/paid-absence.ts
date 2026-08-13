@@ -7,6 +7,9 @@ export type PaidAbsenceDay = {
   minutes: number;
   grossAmount: number;
   currency: string;
+  absenceType: Absence["absenceType"];
+  absenceTypeId: string | null;
+  absenceTypeName: string;
 };
 
 export function isPaidAbsence(absence: Absence, preferences: UserPreferences | null | undefined) {
@@ -64,7 +67,10 @@ export function calculatePaidAbsenceDays({
         date: dateKey,
         minutes: paidMinutes,
         grossAmount: (paidMinutes / 60) * Number(rate.hourlyRate),
-        currency: rate.currency
+        currency: rate.currency,
+        absenceType: absence.absenceType,
+        absenceTypeId: absence.absenceTypeId ?? null,
+        absenceTypeName: absence.absenceTypeName
       });
     });
   });

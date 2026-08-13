@@ -26,7 +26,7 @@ function Consumer() {
       </button>
       <button onClick={() => void auth.completeOAuthLogin()}>OAuth</button>
       <button onClick={() => void auth.logout()}>Logout</button>
-      <span>{auth.user?.account.email ?? "guest"}</span>
+      <span>{auth.isHydrating ? "hydrating" : (auth.user?.account.email ?? "guest")}</span>
     </div>
   );
 }
@@ -45,6 +45,7 @@ function renderProvider() {
 
 describe("AuthProvider", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     setStoredAccessToken(null);
     vi.mocked(refreshSession).mockRejectedValue(new Error("No refresh cookie"));
@@ -111,6 +112,7 @@ describe("AuthProvider", () => {
 
   it("restores the session after a browser restart by refreshing the access token", async () => {
     setStoredAccessToken(null);
+    markSessionActive();
     vi.mocked(refreshSession).mockResolvedValue({
       accessToken: "restored-access-token",
       tokenType: "Bearer",
@@ -132,6 +134,14 @@ describe("AuthProvider", () => {
     expect(hasStoredSession()).toBe(true);
   });
 
+  it("does not probe the refresh endpoint for an anonymous visitor", async () => {
+    renderProvider();
+
+    expect(await screen.findByText("guest")).toBeInTheDocument();
+    expect(refreshSession).not.toHaveBeenCalled();
+    expect(getCurrentUser).not.toHaveBeenCalled();
+  });
+
   it("clears tokens on logout", async () => {
     vi.mocked(logout).mockResolvedValue({ message: "Logged out successfully" });
     setStoredAccessToken("access-token");
@@ -140,12 +150,14 @@ describe("AuthProvider", () => {
     renderProvider();
     const user = userEvent.setup();
     await screen.findByText("alveryn@example.com");
+    localStorage.setItem("alveryn.onboarding.initial-setup:1", "draft");
 
     await user.click(screen.getByText("Logout"));
 
     await waitFor(() => {
       expect(getStoredAccessToken()).toBeNull();
       expect(hasStoredSession()).toBe(false);
+      expect(localStorage.getItem("alveryn.onboarding.initial-setup:1")).toBeNull();
     });
   });
 });

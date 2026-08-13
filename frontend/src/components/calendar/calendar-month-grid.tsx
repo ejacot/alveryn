@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import {
@@ -36,8 +35,6 @@ type Props = {
   }) => number;
 };
 
-const weekdays = getCalendarWeekdays();
-
 export function CalendarMonthGrid({
   monthLabel,
   monthKey,
@@ -51,44 +48,39 @@ export function CalendarMonthGrid({
   onSwipeChange,
   onResolveSwipe
 }: Props) {
-  const { t } = useTranslation("calendar");
+  const { t, i18n } = useTranslation("calendar");
+  const weekdays = getCalendarWeekdays(i18n.resolvedLanguage);
   const rowCount = days.length / 7;
   const gridClassName =
     rowCount === 6
-      ? "grid grid-cols-7 gap-x-1 gap-y-1 sm:gap-x-2 sm:gap-y-1.5"
-      : "grid grid-cols-7 gap-x-1 gap-y-1.5 sm:gap-x-2 sm:gap-y-2";
+      ? "grid grid-cols-7 gap-x-1.5 gap-y-1.5 sm:gap-x-2 sm:gap-y-2"
+      : "grid grid-cols-7 gap-x-1.5 gap-y-2 sm:gap-x-2 sm:gap-y-2.5";
   const cellClassName =
     rowCount === 6
-      ? "flex min-h-[49px] flex-col items-center justify-between rounded-[13px] px-0.5 py-0.5 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[54px]"
-      : "flex min-h-[54px] flex-col items-center justify-between rounded-[14px] px-0.5 py-1 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[59px]";
+      ? "relative flex min-h-[58px] flex-col items-center justify-between rounded-[14px] px-0.5 py-1 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[64px]"
+      : "relative flex min-h-[64px] flex-col items-center justify-between rounded-[15px] px-0.5 py-1.5 text-center transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 sm:min-h-[70px]";
 
   return (
     <section
       className="mx-auto w-full overflow-hidden px-1 pb-1"
       aria-label={t("calendarGrid.label")}
     >
-      <div className="flex min-h-12 items-center justify-between">
-        <MonthButton label={t("calendarGrid.previousMonth")} onClick={() => onSwipeChange(-1)}>
-          <ChevronLeft className="h-5 w-5" />
-        </MonthButton>
+      <div className="flex min-h-14 items-center justify-center">
         <div className="text-center">
-          <p className="text-[1.25rem] font-semibold tracking-[-0.045em] text-[#f5f5f5]">
+          <p className="text-[1.4rem] font-semibold tracking-[-0.045em] text-[#f5f5f5]">
             {monthLabel}
           </p>
           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-[#10b981]/58">
             {t("calendarGrid.monthlyActivity")}
           </p>
         </div>
-        <MonthButton label={t("calendarGrid.nextMonth")} onClick={() => onSwipeChange(1)}>
-          <ChevronRight className="h-5 w-5" />
-        </MonthButton>
       </div>
 
       <div className="mt-2 grid grid-cols-7 gap-1 border-t border-white/[0.065] pt-3" role="row">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="text-center text-[9px] font-semibold tracking-[0.17em] text-white/32"
+            className="text-center text-[10px] font-semibold tracking-[0.15em] text-white/38"
           >
             {weekday.slice(0, 3)}
           </div>
@@ -99,8 +91,8 @@ export function CalendarMonthGrid({
         <div className={`${gridClassName} invisible pointer-events-none`} aria-hidden="true">
           {days.map((day) => (
             <div key={`placeholder-${day.key}`} className={cellClassName}>
-              <div className="h-7 w-7" />
-              <div className="min-h-[14px]" />
+              <div className="h-8 w-8 shrink-0" />
+              <div className="min-h-[21px]" />
             </div>
           ))}
         </div>
@@ -162,6 +154,7 @@ export function CalendarMonthGrid({
                   onClick={() => onSelect(day.date)}
                   className={cn(
                     cellClassName,
+                    !selected && day.inActiveMonth && meta.entriesCount > 0 && "calendar-day-activity",
                     !selected && day.inActiveMonth && meta.entriesCount > 0 && "bg-[#10b981]/[0.035]",
                     !selected && day.inActiveMonth && "calendar-day-hoverable",
                     !day.inActiveMonth && "opacity-30"
@@ -170,31 +163,39 @@ export function CalendarMonthGrid({
                 >
                   <span
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold",
+                      "flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-semibold",
                       selected
                         ? "calendar-day-selected border border-[#34d399]/55 bg-[#059669] text-white"
                         : current
-                          ? "calendar-day-today border border-[#34d399]/55 bg-[#059669] text-white"
+                          ? "calendar-day-today border border-[#10b981]/35 bg-transparent text-[#34d399]"
                           : "text-white/74"
                     )}
                   >
                     {day.dayNumber}
                   </span>
-                  <div className="flex min-h-[17px] max-w-full flex-col items-center justify-end leading-none">
-                    {meta.activityLabel ? (
+                  <div className={cn(
+                    "flex min-h-[21px] max-w-full flex-col items-center leading-none",
+                    !meta.activityLabel && meta.earningsLabel
+                      ? "flex-1 justify-center"
+                      : "justify-end"
+                  )}>
+                    {meta.activityLabel || meta.earningsLabel ? (
                       <>
-                        <span
+                        {meta.activityLabel ? (
+                          <span
                           className={cn(
-                            "max-w-full truncate font-metric text-[8px] font-semibold tabular-nums",
-                            selected ? "text-white/82" : "text-[#34d399]/82"
-                          )}
-                        >
-                          {meta.activityLabel}
-                        </span>
+                              "calendar-day-activity-label max-w-full truncate font-metric text-[10px] font-semibold tabular-nums",
+                              selected ? "text-white/82" : "text-[#34d399]/82"
+                            )}
+                          >
+                            {meta.activityLabel}
+                          </span>
+                        ) : null}
                         {meta.earningsLabel ? (
                           <span className={cn(
-                            "mt-0.5 max-w-full truncate font-metric text-[7px] font-medium tabular-nums",
-                            selected ? "text-white/64" : "text-white/32"
+                            "calendar-day-earnings-label max-w-full truncate font-metric text-[9px] font-semibold tabular-nums",
+                            meta.activityLabel && "mt-0.5",
+                            selected ? "text-white/76" : "text-white/48"
                           )}>
                             {meta.earningsLabel}
                           </span>
@@ -204,7 +205,7 @@ export function CalendarMonthGrid({
                       <span className="flex max-w-full items-center justify-center">
                         <span
                           className={cn(
-                            "calendar-day-marker max-w-[42px] truncate text-[7px] font-semibold leading-tight",
+                            "calendar-day-marker max-w-[48px] truncate text-[8px] font-semibold leading-tight",
                             selected && "text-white/72"
                           )}
                           style={!selected
@@ -241,9 +242,9 @@ function resolveDaySurfaceStyle(meta: DayMeta, selected: boolean) {
   if (selected) return undefined;
 
   if (meta.entriesCount > 0) {
-    const opacity = 0.18 + Math.min(meta.intensity ?? 0, 1) * 0.52;
     return {
-      boxShadow: `inset 0 -2px 0 rgba(16,185,129,${opacity})`
+      boxShadow: "inset 0 -2px 0 rgba(16,185,129,0.62)",
+      background: "linear-gradient(155deg, color-mix(in srgb, #10b981 10%, transparent), color-mix(in srgb, #10b981 4%, transparent))"
     };
   }
 
@@ -255,27 +256,6 @@ function resolveDaySurfaceStyle(meta: DayMeta, selected: boolean) {
   }
 
   return undefined;
-}
-
-function MonthButton({
-  label,
-  onClick,
-  children
-}: {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="grid h-10 w-10 place-items-center rounded-full text-white/62 transition hover:bg-white/[0.07] hover:text-white active:scale-95"
-      aria-label={label}
-    >
-      {children}
-    </button>
-  );
 }
 
 function LegendDot({ color, label }: { color: string; label: string }) {

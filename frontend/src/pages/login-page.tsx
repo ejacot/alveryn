@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
+import { AuthSubmitContent, PasswordVisibilityButton } from "../components/auth/auth-form-controls";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -26,6 +26,7 @@ export function LoginPage() {
       : ((location.state as { message?: string } | null)?.message ?? "")
   );
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -35,6 +36,10 @@ export function LoginPage() {
   });
   const password = form.watch("password");
 
+  useEffect(() => {
+    if (serverError) errorRef.current?.focus();
+  }, [serverError]);
+
   async function onSubmit(values: LoginValues) {
     try {
       setServerError("");
@@ -42,15 +47,15 @@ export function LoginPage() {
       const next = (location.state as { from?: { pathname?: string } } | null)
         ?.from?.pathname;
       navigate(next ?? APP_HOME_PATH, { replace: true });
-    } catch (error) {
-      const apiError = getApiError(error);
-      setServerError(apiError.message);
+    } catch {
+      setServerError(t("auth:login.authenticationError"));
     }
   }
 
   return (
     <AuthCard
       title={t("auth:login.title")}
+      subtitle={t("auth:login.subtitle")}
       backLink={{
         to: "/welcome",
         label: t("auth:login.backHome")
@@ -58,17 +63,19 @@ export function LoginPage() {
       footer={
         <span>
           {t("auth:login.footer")}{" "}
-          <Link to="/register" className="text-white transition hover:text-white/70">
+          <Link to="/register">
             {t("auth:login.footerLink")}
           </Link>
         </span>
       }
     >
-      <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="auth-form" aria-describedby={serverError ? "login-auth-error" : undefined} onSubmit={form.handleSubmit(onSubmit)}>
         <Input
           label={t("common:labels.email")}
           type="email"
+          inputMode="email"
           autoComplete="email"
+          placeholder={t("auth:placeholders.email")}
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
@@ -76,31 +83,25 @@ export function LoginPage() {
           label={t("common:labels.password")}
           type={passwordVisible ? "text" : "password"}
           autoComplete="current-password"
+          placeholder={t("auth:placeholders.password")}
           error={form.formState.errors.password?.message}
           endAdornment={password ? (
-            <button
-              type="button"
-              onClick={() => setPasswordVisible((visible) => !visible)}
-              className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
-              aria-label={passwordVisible ? "Hide password" : "Show password"}
-            >
-              {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            <PasswordVisibilityButton visible={passwordVisible} onClick={() => setPasswordVisible((visible) => !visible)} />
           ) : (
             <Link
               to="/forgot-password"
-              className="px-1 text-xs font-semibold text-white/58 transition hover:text-white"
+              className="auth-forgot-link"
             >
-              {t("auth:login.forgotShort")}
+              {t("auth:login.forgotPassword")}
             </Link>
           )}
           {...form.register("password")}
         />
         {serverError ? (
-          <p className="text-sm text-red-300">{serverError}</p>
+          <div id="login-auth-error" ref={errorRef} tabIndex={-1} className="auth-form-error" role="alert" aria-live="assertive">{serverError}</div>
         ) : null}
-        <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? t("auth:login.submitting") : t("auth:login.submit")}
+        <Button className="auth-submit" type="submit" disabled={form.formState.isSubmitting} aria-busy={form.formState.isSubmitting}>
+          <AuthSubmitContent loading={form.formState.isSubmitting} loadingLabel={t("auth:login.submitting")} label={t("auth:login.submit")} />
         </Button>
       </form>
     </AuthCard>

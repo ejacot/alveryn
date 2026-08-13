@@ -37,9 +37,12 @@ import businessRo from "./locales/ro/business.json";
 
 import commonRu from "./locales/ru/common.json";
 import authRu from "./locales/ru/auth.json";
+import onboardingRu from "./locales/ru/onboarding.json";
 import dashboardRu from "./locales/ru/dashboard.json";
 import calendarRu from "./locales/ru/calendar.json";
+import recordsRu from "./locales/ru/records.json";
 import settingsRu from "./locales/ru/settings.json";
+import errorsRu from "./locales/ru/errors.json";
 import welcomeRu from "./locales/ru/welcome.json";
 import businessRu from "./locales/ru/business.json";
 
@@ -83,12 +86,12 @@ const resources = {
   ru: {
     common: commonRu,
     auth: authRu,
-    onboarding: onboardingEn,
+    onboarding: onboardingRu,
     dashboard: dashboardRu,
     calendar: calendarRu,
-    records: recordsEn,
+    records: recordsRu,
     settings: settingsRu,
-    errors: errorsEn,
+    errors: errorsRu,
     welcome: welcomeRu,
     business: businessRu
   }

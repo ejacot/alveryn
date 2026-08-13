@@ -747,9 +747,14 @@ export async function listWorkRecordsForDay(date: string) {
 }
 
 export async function listWorkRecordsInRange(params: { from: string; to: string }) {
-  const response = await http.get<ApiResponse<WorkRecord[]>>("/api/work-records/range", {
+  const response = await http.get<ApiResponse<WorkRecord[]>>("/api/work-records/range-summary", {
     params
   });
+  return response.data.data;
+}
+
+export async function listFullWorkRecordsInRange(params: { from: string; to: string }) {
+  const response = await http.get<ApiResponse<WorkRecord[]>>("/api/work-records/range", { params });
   return response.data.data;
 }
 
@@ -865,14 +870,24 @@ export type PayrollReconciliation = {
   grossAmount?: number | null;
   confidence?: number;
   status?: string;
+  countryCode?: string | null;
+  languageCode?: string | null;
+  currency?: string | null;
+  documentCompleteness?: "FULL_PAGE" | "FRAGMENT" | null;
+  requiresReview?: boolean;
+  warnings?: string[];
   payrollLines?: Array<{
     code?: string | null;
     label?: string | null;
+    category?: string | null;
     quantity?: number | null;
+    unit?: string | null;
     factor?: number | null;
     percentage?: number | null;
     amount?: number | null;
     grossRelevant?: boolean | null;
+    confidence?: number | null;
+    evidenceText?: string | null;
   }>;
 };
 

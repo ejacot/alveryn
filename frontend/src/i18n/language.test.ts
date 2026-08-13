@@ -21,7 +21,18 @@ describe("Russian language support", () => {
     expect(i18n.t("weeklyHours.workEarnings", { ns: "dashboard" })).toBe("Доход за неделю");
     expect(i18n.t("payroll.actions.scan", { ns: "calendar" })).toBe("Сканировать");
     expect(i18n.t("preferencesFields.language", { ns: "settings" })).toBe("Язык");
+    expect(i18n.t("setup.actions.continue", { ns: "onboarding" })).toBe("Продолжить");
+    expect(i18n.t("job.acceptSuggestion", { ns: "records" })).toBe("Да, сохранить");
+    expect(i18n.t("fallback", { ns: "errors" })).toBe("Что-то пошло не так. Попробуйте ещё раз.");
 
     await i18n.changeLanguage("en");
+  });
+
+  it("keeps English namespaces mapped to English resources", async () => {
+    await i18n.changeLanguage("en");
+
+    expect(i18n.t("setup.actions.continue", { ns: "onboarding" })).toBe("Continue");
+    expect(i18n.t("job.acceptSuggestion", { ns: "records" })).toBe("Yes, save");
+    expect(i18n.t("fallback", { ns: "errors" })).toBe("Something went wrong. Please try again.");
   });
 });

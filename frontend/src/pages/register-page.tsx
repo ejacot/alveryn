@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
+import { AuthSubmitContent, PasswordVisibilityButton } from "../components/auth/auth-form-controls";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -22,11 +22,13 @@ export function RegisterPage() {
   const { registerWithPassword } = useAuth();
   const [serverError, setServerError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
-      password: ""
+      password: "",
+      confirmPassword: ""
     }
   });
 
@@ -55,19 +57,24 @@ export function RegisterPage() {
   return (
     <AuthCard
       title={t("auth:register.title")}
+      subtitle={t("auth:register.subtitle")}
+      backLink={{ to: "/welcome", label: t("auth:login.backHome") }}
       footer={
         <span>
           {t("auth:register.footer")}{" "}
-          <Link to="/login" className="text-white transition hover:text-white/70">
+          <Link to="/login">
             {t("auth:register.footerLink")}
           </Link>
         </span>
       }
     >
-      <form className="space-y-3.5" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="auth-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Input
           label={t("common:labels.email")}
           type="email"
+          autoComplete="email"
+          inputMode="email"
+          placeholder={t("auth:placeholders.email")}
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
@@ -75,22 +82,26 @@ export function RegisterPage() {
           label={t("common:labels.password")}
           type={passwordVisible ? "text" : "password"}
           autoComplete="new-password"
+          placeholder={t("auth:placeholders.password")}
+          helperText={t("auth:register.passwordHint")}
           error={form.formState.errors.password?.message}
           endAdornment={
-            <button
-              type="button"
-              onClick={() => setPasswordVisible((visible) => !visible)}
-              className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
-              aria-label={passwordVisible ? "Hide password" : "Show password"}
-            >
-              {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            <PasswordVisibilityButton visible={passwordVisible} onClick={() => setPasswordVisible((visible) => !visible)} />
           }
           {...form.register("password")}
         />
-        {serverError ? <p className="text-sm text-red-300">{serverError}</p> : null}
-        <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? t("auth:register.submitting") : t("auth:register.submit")}
+        <Input
+          label={t("auth:register.confirmPassword")}
+          type={confirmVisible ? "text" : "password"}
+          autoComplete="new-password"
+          placeholder={t("auth:placeholders.confirmPassword")}
+          error={form.formState.errors.confirmPassword?.message}
+          endAdornment={<PasswordVisibilityButton visible={confirmVisible} onClick={() => setConfirmVisible((visible) => !visible)} />}
+          {...form.register("confirmPassword")}
+        />
+        {serverError ? <div className="auth-form-error" role="alert" aria-live="assertive">{serverError}</div> : null}
+        <Button className="auth-submit" type="submit" disabled={form.formState.isSubmitting} aria-busy={form.formState.isSubmitting}>
+          <AuthSubmitContent loading={form.formState.isSubmitting} loadingLabel={t("auth:register.submitting")} label={t("auth:register.submit")} />
         </Button>
       </form>
     </AuthCard>

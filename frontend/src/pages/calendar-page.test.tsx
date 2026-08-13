@@ -53,7 +53,8 @@ vi.mock("framer-motion", () => {
       div: createMockMotion("div"),
       span: createMockMotion("span"),
       button: createMockMotion("button"),
-      nav: createMockMotion("nav")
+      nav: createMockMotion("nav"),
+      path: createMockMotion("div")
     }
   };
 });
@@ -82,12 +83,18 @@ vi.mock("../api/endpoints", () => ({
   listWorkRecordsInRange: vi.fn(),
   listAbsencesInRange: vi.fn(),
   markRestDay: vi.fn(),
-  removeRestDay: vi.fn()
+  removeRestDay: vi.fn(),
+  reconcileMonthlyPayroll: vi.fn(),
+  getPayrollReconciliation: vi.fn(),
+  getPayrollReconciliationDocument: vi.fn(),
+  savePayrollReconciliation: vi.fn(),
+  uploadPayrollReconciliationDocument: vi.fn()
 }));
 
 import {
   getCalendarActivityRange,
   getPreferences,
+  getPayrollReconciliation,
   getScheduledShifts,
   getWeeklySchedule,
   listAbsenceTypes,
@@ -97,7 +104,8 @@ import {
   listRestDays,
   listWorkRecordsInRange,
   markRestDay,
-  removeRestDay
+  removeRestDay,
+  reconcileMonthlyPayroll
 } from "../api/endpoints";
 
 const julyRecords = [
@@ -130,7 +138,10 @@ const julyRecords = [
           ratePerUnitSnapshot: null,
           currencySnapshot: "EUR",
           grossAmount: "150",
-          extraPayPercentage: 100,
+          extraPaidEquivalentMinutes: "96",
+          extraGrossAmount: "32",
+          extraPayPercentage: 21.333333,
+          extraPayDetails: [{ name: "Night shift", eligibleMinutes: "120", percentage: 80 }],
           notes: null
         }
       ],
@@ -259,6 +270,7 @@ describe("CalendarPage", () => {
     navigateMock.mockReset();
     setSelectedDateMock.mockReset();
     vi.mocked(getCalendarActivityRange).mockResolvedValue({ firstActivityDate: "2026-07-15" });
+    vi.mocked(getPayrollReconciliation).mockResolvedValue(null);
     vi.mocked(listEmployments).mockResolvedValue([]);
     vi.mocked(listRestDays).mockResolvedValue([]);
     vi.mocked(getWeeklySchedule).mockResolvedValue(null);
@@ -412,13 +424,13 @@ describe("CalendarPage", () => {
     ).toBeInTheDocument();
     const summary = screen.getByLabelText("Monthly summary");
     expect(within(summary).getByText("9h 30m")).toBeInTheDocument();
-    expect(within(summary).getByText("Paid absence")).toBeInTheDocument();
+    expect(within(summary).getByText("Vacation")).toBeInTheDocument();
     expect(within(summary).getByText("16h 00m")).toBeInTheDocument();
-    expect(within(summary).getByText("Extra pay")).toBeInTheDocument();
-    expect(within(summary).getByText("7h 30m")).toBeInTheDocument();
+    expect(within(summary).getByText("Night shift")).toBeInTheDocument();
+    expect(within(summary).getByText("2h 00m")).toBeInTheDocument();
     expect(within(summary).getByText("€510.00")).toBeInTheDocument();
     expect(within(summary).getByText("€320.00")).toBeInTheDocument();
-    expect(within(summary).getByText("€75.00")).toBeInTheDocument();
+    expect(within(summary).getByText("€32.00")).toBeInTheDocument();
     expect(within(summary).getByText("Days")).toBeInTheDocument();
     expect(within(summary).getByText("Absence")).toBeInTheDocument();
     expect(within(summary).getAllByText("2")).toHaveLength(2);
@@ -481,7 +493,9 @@ describe("CalendarPage", () => {
     expect(within(freeDay).getByText("13")).not.toHaveClass("text-red-300");
     expect(within(freeDay).getByText("Free")).toHaveStyle({ color: "#64748b" });
     expect(within(sickDay).getByText("14")).not.toHaveClass("text-red-300");
-    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#34d399]/55");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("calendar-day-today");
+    expect(within(todayWithoutActivity).getByText("15")).toHaveClass("border-[#10b981]/35");
+    expect(within(todayWithoutActivity).getByText("15")).not.toHaveClass("bg-[#059669]");
     expect(todayWithoutActivity).not.toHaveAccessibleName(/day off/i);
     expect(futureVacation).toHaveAccessibleName(/vacation/i);
     expect(within(futureVacation).getByText("20")).not.toHaveClass("text-red-300");
@@ -594,20 +608,14 @@ describe("CalendarPage", () => {
 
     const flow = await screen.findByRole("region", { name: "Flow" });
     expect(within(flow).getAllByRole("button")).toHaveLength(31);
-    expect(within(flow).getByText("15")).toBeInTheDocument();
-    expect(screen.getByTestId("flow-monthly-bar-2026-07-15")).toHaveStyle({
-      height: "93.75%",
-      backgroundColor: "#34d399"
-    });
+    expect(within(flow).getByRole("button", { name: /^15:/ })).toBeInTheDocument();
+    expect(within(flow).getByRole("img", { name: /trend chart/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Rhythm" }));
     const rhythm = screen.getByRole("region", { name: "Rhythm" });
     expect(within(rhythm).getAllByRole("button")).toHaveLength(31);
-    expect(within(rhythm).getByText("15")).toBeInTheDocument();
-    expect(screen.getByTestId("rhythm-monthly-bar-2026-07-15")).toHaveStyle({
-      height: "93.75%",
-      backgroundColor: "#34d399"
-    });
+    expect(within(rhythm).getByRole("button", { name: /^15:/ })).toBeInTheDocument();
+    expect(within(rhythm).getByRole("img", { name: /trend chart/i })).toBeInTheDocument();
   });
 
   it("renders a friendly error state when monthly loading fails", async () => {
@@ -627,5 +635,36 @@ describe("CalendarPage", () => {
         to: "2026-07-31"
       });
     });
+  });
+
+  it("lets the user correct uncertain extracted payroll values before saving", async () => {
+    vi.mocked(reconcileMonthlyPayroll).mockResolvedValue({
+      filename: "fragment.jpg",
+      year: 2026,
+      month: 7,
+      normalHours: 219.6,
+      normalAmount: null,
+      grossAmount: null,
+      currency: "EUR",
+      confidence: 0.68,
+      requiresReview: true,
+      documentCompleteness: "FRAGMENT",
+      payrollLines: []
+    });
+    const view = renderPage();
+    const user = userEvent.setup();
+    await screen.findByText("July 2026");
+    const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    await user.upload(input!, new File(["photo"], "fragment.jpg", { type: "image/jpeg" }));
+
+    expect(await screen.findByText("Check uncertain values against the document before saving."))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /correct/i }));
+    const hours = screen.getByLabelText("Worked hours");
+    expect(hours).toHaveValue(219.6);
+    await user.clear(hours);
+    await user.type(hours, "220");
+    expect(hours).toHaveValue(220);
   });
 });

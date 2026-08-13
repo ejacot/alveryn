@@ -31,7 +31,7 @@ export function SelectedDayActivityCard({
         as={interactive ? "button" : "div"}
         variant="glass"
         {...(interactive ? { type: "button", onClick: () => onSelect?.(activity.id) } : {})}
-        className="w-full px-5 py-5 text-left transition hover:border-[#10b981]/20 hover:bg-[#151515] focus:outline-none focus:ring-2 focus:ring-[#10b981]/25"
+        className="dashboard-primary-card dashboard-activity-card w-full px-5 py-5 text-left transition-colors hover:border-[#10b981]/20 focus:outline-none focus:ring-2 focus:ring-[#10b981]/25"
       >
         {activity.kind === "PLANNED_BUSINESS" ? (
           <div className="mb-4 flex items-center justify-between gap-3">

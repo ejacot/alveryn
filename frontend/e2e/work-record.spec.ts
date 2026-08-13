@@ -28,7 +28,7 @@ test("creates a grouped job with multiple work lines through the real UI", async
   await loginThroughUi(page, user);
   await page.goto("/records/new?date=2026-07-16");
 
-  await expect(page.getByRole("heading", { name: "New activity" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What did you work on?" })).toBeVisible();
   await page.getByRole("button", { name: "Add activity" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /montaj/i }).click();
   await page.getByLabel("Team size").fill("2");

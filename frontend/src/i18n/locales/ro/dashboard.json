@@ -16,6 +16,17 @@
     "previewDescription": "O privire simplă asupra zilei tale.",
     "previewError": "Ceva nu a mers bine."
   },
+  "emptyDay": {
+    "eyebrow": "Ziua ta",
+    "dateToday": "Astăzi · {{date}}",
+    "dateSelected": "{{date}}",
+    "questionToday": "Cum a fost ziua ta?",
+    "questionDate": "Cum a fost această zi?",
+    "questionFallback": "Cum a fost ziua ta?",
+    "worked": "Am lucrat",
+    "rested": "Am fost liber",
+    "absent": "Am lipsit"
+  },
   "selectedDay": {
     "today": "Astăzi",
     "period": "Interval",

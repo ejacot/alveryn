@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { StatisticsTrendGraph } from "../../features/statistics/charts/statistics-line-chart";
 import { cn } from "../../utils/cn";
 import { Card } from "../ui/card";
 
@@ -18,15 +18,13 @@ type Props = {
   days: CalendarMonthlyMetricDay[];
   previousMonthTotal: number;
   currency?: string;
-  onDaySelect: (date: string) => void;
 };
 
 export function CalendarMonthlyMetricCard({
   variant,
   days,
   previousMonthTotal,
-  currency = "EUR",
-  onDaySelect
+  currency = "EUR"
 }: Props) {
   const { t, i18n } = useTranslation("calendar");
   const values = days.map((day) => variant === "flow" ? day.amount : day.minutes);
@@ -35,8 +33,6 @@ export function CalendarMonthlyMetricCard({
     (day, index) => values[index] > 0 && (variant === "flow" || !day.absenceColor)
   ).length;
   const average = activeDays > 0 ? total / activeDays : 0;
-  const maximum = Math.max(...values, 0);
-  const averagePercentage = maximum > 0 ? Math.min((average / maximum) * 100, 100) : 0;
   const change = previousMonthTotal === 0
     ? total > 0 ? 100 : 0
     : ((total - previousMonthTotal) / previousMonthTotal) * 100;
@@ -96,92 +92,17 @@ export function CalendarMonthlyMetricCard({
           </div>
         </div>
 
-        <div className="px-4 pb-5 pt-5">
-          <div className="relative h-44">
-            {[25, 50, 75, 100].map((percentage) => (
-              <span
-                key={percentage}
-                className="pointer-events-none absolute inset-x-0 border-t border-white/[0.055]"
-                style={{ bottom: `calc(1.5rem + ${percentage * 1.44}px)` }}
-                aria-hidden="true"
-              />
-            ))}
-            {maximum > 0 ? (
-              <div
-                className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-[#10b981]/55"
-                style={{ bottom: `calc(1.5rem + ${(averagePercentage / 100) * 9}rem)` }}
-                aria-hidden="true"
-              />
-            ) : null}
-            <div
-              className="absolute inset-0 grid items-end gap-px"
-              style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
-            >
-              {days.map((day, index) => {
-                const value = values[index] ?? 0;
-                const height = Math.max(maximum > 0 ? (value / maximum) * 100 : 0, 4);
-
-                return (
-                  <button
-                    key={day.key}
-                    type="button"
-                    onClick={() => onDaySelect(day.key)}
-                    aria-label={`${day.dayNumber}, ${value}`}
-                    className={cn(
-                      "flex h-full min-w-0 flex-col items-center justify-end rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981]",
-                      day.selected && "bg-[#10b981]/[0.055]"
-                    )}
-                  >
-                    <span className="relative block h-36 w-full">
-                      <span
-                        className="absolute bottom-0 left-1/2 h-full w-[clamp(3px,45%,7px)] -translate-x-1/2 rounded-full bg-white/[0.055]"
-                        aria-hidden="true"
-                      />
-                      {day.absenceColor && value <= 0 ? (
-                        <span
-                          className="absolute bottom-0 left-1/2 z-[2] h-2 w-2 -translate-x-1/2 rounded-full"
-                          style={{ backgroundColor: day.absenceColor }}
-                        />
-                      ) : value > 0 ? (
-                        <motion.span
-                          initial={{ opacity: 0.55, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{
-                            duration: 0.22,
-                            delay: index * 0.012,
-                            ease: [0.22, 1, 0.36, 1]
-                          }}
-                          className={cn(
-                            "absolute bottom-0 left-1/2 z-[2] w-[clamp(3px,45%,7px)] -translate-x-1/2 rounded-full",
-                            day.selected && "shadow-[0_0_16px_rgba(16,185,129,0.24)]"
-                          )}
-                          style={{
-                            height: `${height}%`,
-                            backgroundColor: day.selected
-                              ? "#34d399"
-                              : day.absenceColor
-                                ? day.absenceColor
-                              : variant === "flow"
-                                ? "rgba(16, 185, 129, 0.82)"
-                                : "rgba(255, 255, 255, 0.72)"
-                          }}
-                          data-testid={`${variant}-monthly-bar-${day.key}`}
-                        />
-                      ) : null}
-                    </span>
-                    <span className={cn(
-                      "flex h-6 items-end text-[7px] font-medium tabular-nums",
-                      day.selected ? "text-[#34d399]" : "text-white/24"
-                    )}>
-                      {day.selected || day.dayNumber === 1 || day.dayNumber % 5 === 0 || day.dayNumber === days.length
-                        ? day.dayNumber
-                        : ""}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <div className="px-2 pb-1 pt-3 sm:px-4">
+          <StatisticsTrendGraph
+            metric={variant === "flow" ? "GROSS" : "WORKED_MINUTES"}
+            currency={variant === "flow" ? currency : null}
+            points={days.map((day, index) => ({
+              date: day.key,
+              label: String(day.dayNumber),
+              value: values[index] ?? 0,
+              currency: variant === "flow" ? currency : null
+            }))}
+          />
         </div>
       </Card>
     </section>

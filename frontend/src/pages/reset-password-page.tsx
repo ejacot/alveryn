@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -7,6 +6,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { forgotPassword, resetPassword, verifyPasswordResetCode } from "../api/endpoints";
 import { AuthCard } from "../components/auth/auth-card";
+import { AuthSubmitContent, PasswordVisibilityButton } from "../components/auth/auth-form-controls";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -136,6 +136,7 @@ export function ResetPasswordPage() {
               type={passwordVisible ? "text" : "password"}
               autoComplete="new-password"
               error={form.formState.errors.newPassword?.message}
+              helperText={t("auth:register.passwordHint")}
               endAdornment={<PasswordVisibilityButton visible={passwordVisible} onClick={() => setPasswordVisible((value) => !value)} />}
               {...form.register("newPassword")}
             />
@@ -150,22 +151,14 @@ export function ResetPasswordPage() {
           </>
         )}
         {message ? <p className="text-sm text-white/54">{message}</p> : null}
-        <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting
-            ? t("auth:resetPassword.submitting")
-            : t(step === "code" ? "auth:resetPassword.verifyCode" : "auth:resetPassword.submit")}
+        <Button className="auth-submit" type="submit" disabled={form.formState.isSubmitting} aria-busy={form.formState.isSubmitting}>
+          <AuthSubmitContent
+            loading={form.formState.isSubmitting}
+            loadingLabel={t("auth:resetPassword.submitting")}
+            label={t(step === "code" ? "auth:resetPassword.verifyCode" : "auth:resetPassword.submit")}
+          />
         </Button>
       </form>
     </AuthCard>
-  );
-}
-
-function PasswordVisibilityButton({ visible, onClick }: { visible: boolean; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-lg text-white/48 transition hover:bg-white/[0.06] hover:text-white"
-      aria-label={visible ? "Hide password" : "Show password"}>
-      {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-    </button>
   );
 }
