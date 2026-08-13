@@ -29,7 +29,7 @@ export const resetPasswordSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   email: z.string().email(i18n.t("auth:validation.email")),
-  code: z.string().min(6, i18n.t("auth:validation.codeLength"))
+  code: z.string().regex(/^\d{6}$/, i18n.t("auth:validation.codeLength"))
 });
 
 export type LoginValues = z.infer<typeof loginSchema>;
