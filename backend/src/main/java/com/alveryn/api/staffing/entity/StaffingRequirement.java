@@ -11,6 +11,7 @@ import lombok.*;
 @Getter @NoArgsConstructor(access = AccessLevel.PROTECTED) @Entity
 @Table(name = "staffing_requirements")
 public class StaffingRequirement extends BaseEntity {
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "plan_day_id") private StaffingPlanDay planDay;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "organization_id") private Organization organization;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "unit_id") private OrganizationUnit unit;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "work_type_id") private OrganizationWorkType workType;

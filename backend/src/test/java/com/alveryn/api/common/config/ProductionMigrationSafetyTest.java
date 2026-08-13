@@ -1,6 +1,7 @@
 package com.alveryn.api.common.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
 import java.nio.file.Files;
@@ -48,6 +49,193 @@ class ProductionMigrationSafetyTest {
       assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo(latestMigrationVersion());
     } finally {
       flyway.clean();
+    }
+  }
+
+  @Test
+  void existingV90StaffingDataBackfillsWeeklyPlansWithoutChangingLegacyRows() throws Exception {
+    String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    Flyway v90 = flyway(url, username, password, schema, "90");
+
+    try {
+      v90.migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_requirements", 3);
+        assertCount(statement, "staffing_assignments", 2);
+        assertCount(statement, "staffing_member_day_entries", 1);
+      }
+
+      Flyway latest = flyway(url, username, password, schema, null);
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("91");
+
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_requirements", 3);
+        assertCount(statement, "staffing_assignments", 2);
+        assertCount(statement, "staffing_member_day_entries", 1);
+        assertCount(statement, "staffing_plans", 2);
+        assertCount(statement, "staffing_plan_days", 3);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where plan_day_id is null", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_days where source <> 'LEGACY_BACKFILL'", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plans where timezone <> 'Europe/Berlin'", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plans where plan_status <> 'ACTIVE' or draft_revision <> 0 or lock_version <> 0",
+            0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where publication_status = 'PUBLISHED' and published_at is not null",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where publication_status = 'DRAFT' and published_at is null",
+            2);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where id in ("
+                + "'00000000-0000-0000-0000-000000000951',"
+                + "'00000000-0000-0000-0000-000000000952',"
+                + "'00000000-0000-0000-0000-000000000953')",
+            3);
+        assertQueryCount(statement,
+            "select sum(required_workers) from staffing_requirements", 7);
+        assertQueryCount(statement,
+            "select count(*) from staffing_assignments where id in ("
+                + "'00000000-0000-0000-0000-000000000961',"
+                + "'00000000-0000-0000-0000-000000000962')",
+            2);
+        assertQueryCount(statement,
+            "select count(*) from staffing_member_day_entries "
+                + "where id = '00000000-0000-0000-0000-000000000971' "
+                + "and notes = 'Preserve this entry'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_days day join staffing_plans plan on plan.id = day.plan_id "
+                + "where day.organization_id <> plan.organization_id "
+                + "or day.work_date < plan.week_start or day.work_date > plan.week_start + 6",
+            0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements requirement "
+                + "join staffing_plan_days day on day.id = requirement.plan_day_id "
+                + "join staffing_plans plan on plan.id = day.plan_id "
+                + "where requirement.organization_id <> plan.organization_id "
+                + "or requirement.unit_id <> plan.unit_id "
+                + "or requirement.work_date <> day.work_date",
+            0);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v91StopsBeforeBackfillWhenLegacyStaffingDataCrossesTenants() throws Exception {
+    String schema = "flyway_v90_anomaly_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    Flyway v90 = flyway(url, username, password, schema, "90");
+
+    try {
+      v90.migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "update staffing_requirements "
+                + "set unit_id = '00000000-0000-0000-0000-000000000934' "
+                + "where id = '00000000-0000-0000-0000-000000000951'");
+      }
+
+      Flyway latest = flyway(url, username, password, schema, null);
+      assertThatThrownBy(latest::migrate)
+          .hasStackTraceContaining("V91 cannot backfill cross-tenant staffing requirement units");
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v91StopsBeforeBackfillWhenCanonicalOrganizationTimezoneIsInvalid() throws Exception {
+    String schema = "flyway_v90_timezone_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    Flyway v90 = flyway(url, username, password, schema, "90");
+
+    try {
+      v90.migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "update organizations set timezone = 'Invalid/Timezone' "
+                + "where id = '00000000-0000-0000-0000-000000000911'");
+      }
+
+      Flyway latest = flyway(url, username, password, schema, null);
+      assertThatThrownBy(latest::migrate)
+          .hasStackTraceContaining(
+              "V91 cannot backfill staffing plans with missing or invalid organization timezone");
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v91BackfillIsIndependentOfLegacyRequirementInsertionOrder() throws Exception {
+    String schema = "flyway_v90_order_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    Flyway v90 = flyway(url, username, password, schema, "90");
+
+    try {
+      v90.migrate();
+      insertV90StaffingFixture(url, username, password, schema, true);
+      Flyway latest = flyway(url, username, password, schema, null);
+
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plans", 2);
+        assertCount(statement, "staffing_plan_days", 3);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where plan_day_id is null", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements requirement "
+                + "join staffing_plan_days day on day.id = requirement.plan_day_id "
+                + "join staffing_plans plan on plan.id = day.plan_id "
+                + "where requirement.organization_id <> plan.organization_id "
+                + "or requirement.unit_id <> plan.unit_id "
+                + "or requirement.work_date <> day.work_date",
+            0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where id in ("
+                + "'00000000-0000-0000-0000-000000000951',"
+                + "'00000000-0000-0000-0000-000000000952',"
+                + "'00000000-0000-0000-0000-000000000953')",
+            3);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where publication_status = 'PUBLISHED'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements where publication_status = 'DRAFT'",
+            2);
+      }
+    } finally {
+      clean(url, username, password, schema);
     }
   }
 
@@ -318,6 +506,142 @@ class ProductionMigrationSafetyTest {
           insert into time_entry_details (id, work_entry_id, start_time, end_time, break_minutes, total_interval_minutes)
           values ('00000000-0000-0000-0000-000000000302', '00000000-0000-0000-0000-000000000301', '08:00', '16:00', 0, 480)
           """);
+    }
+  }
+
+  private void insertV90StaffingFixture(
+      String url, String username, String password, String schema) throws Exception {
+    insertV90StaffingFixture(url, username, password, schema, false);
+  }
+
+  private void insertV90StaffingFixture(
+      String url, String username, String password, String schema,
+      boolean reverseRequirementOrder) throws Exception {
+    try (var connection = DriverManager.getConnection(url, username, password);
+        var statement = connection.createStatement()) {
+      statement.execute("set search_path to " + schema);
+      statement.executeUpdate(
+          """
+          insert into user_accounts (id, email, password_hash, email_verified)
+          values ('00000000-0000-0000-0000-000000000901', 'v90-plan-owner@example.com', 'hash', true)
+          """);
+      statement.executeUpdate(
+          """
+          insert into organizations (id, name, organization_type, timezone) values
+            ('00000000-0000-0000-0000-000000000911', 'V90 Business', 'BUSINESS', 'Europe/Berlin'),
+            ('00000000-0000-0000-0000-000000000912', 'Other Business', 'BUSINESS', 'Europe/Berlin')
+          """);
+      statement.executeUpdate(
+          """
+          insert into organization_memberships (
+            id, organization_id, user_id, membership_role, membership_status, joined_at
+          ) values (
+            '00000000-0000-0000-0000-000000000921',
+            '00000000-0000-0000-0000-000000000911',
+            '00000000-0000-0000-0000-000000000901',
+            'OWNER', 'ACTIVE', current_timestamp
+          )
+          """);
+      statement.executeUpdate(
+          """
+          insert into organization_units (
+            id, organization_id, name, unit_type, check_in_mode, active, display_order
+          ) values
+            ('00000000-0000-0000-0000-000000000931', '00000000-0000-0000-0000-000000000911', 'Hotel Munich', 'LOCATION', 'OPTIONAL', true, 0),
+            ('00000000-0000-0000-0000-000000000932', '00000000-0000-0000-0000-000000000911', 'Hotel Augsburg', 'LOCATION', 'OPTIONAL', true, 1),
+            ('00000000-0000-0000-0000-000000000934', '00000000-0000-0000-0000-000000000912', 'Other Tenant Unit', 'LOCATION', 'OPTIONAL', true, 0)
+          """);
+      statement.executeUpdate(
+          """
+          insert into organization_work_types (
+            id, organization_id, unit_id, code, name, color, default_start_time,
+            default_end_time, default_break_minutes, active
+          ) values
+            ('00000000-0000-0000-0000-000000000941', '00000000-0000-0000-0000-000000000911', '00000000-0000-0000-0000-000000000931', 'ROOM', 'Room cleaning', '#10B981', '09:00', '16:30', 30, true),
+            ('00000000-0000-0000-0000-000000000942', '00000000-0000-0000-0000-000000000911', '00000000-0000-0000-0000-000000000932', 'PF', 'Public early', '#10B981', '05:00', '13:30', 30, true)
+          """);
+      String firstRequirement =
+          "('00000000-0000-0000-0000-000000000951', '00000000-0000-0000-0000-000000000911', "
+              + "'00000000-0000-0000-0000-000000000931', '00000000-0000-0000-0000-000000000941', "
+              + "'2026-08-10', '09:00', '16:30', 4, '50 rooms', 'PUBLISHED', current_timestamp, "
+              + "'00000000-0000-0000-0000-000000000921')";
+      String secondRequirement =
+          "('00000000-0000-0000-0000-000000000952', '00000000-0000-0000-0000-000000000911', "
+              + "'00000000-0000-0000-0000-000000000931', '00000000-0000-0000-0000-000000000941', "
+              + "'2026-08-11', '09:00', '16:30', 2, '40 rooms', 'DRAFT', null, "
+              + "'00000000-0000-0000-0000-000000000921')";
+      String thirdRequirement =
+          "('00000000-0000-0000-0000-000000000953', '00000000-0000-0000-0000-000000000911', "
+              + "'00000000-0000-0000-0000-000000000932', '00000000-0000-0000-0000-000000000942', "
+              + "'2026-08-10', '05:00', '13:30', 1, null, 'DRAFT', null, "
+              + "'00000000-0000-0000-0000-000000000921')";
+      var requirementRows = reverseRequirementOrder
+          ? java.util.List.of(thirdRequirement, secondRequirement, firstRequirement)
+          : java.util.List.of(firstRequirement, secondRequirement, thirdRequirement);
+      statement.executeUpdate(
+          """
+          insert into staffing_requirements (
+            id, organization_id, unit_id, work_type_id, work_date, start_time, end_time,
+            required_workers, notes, publication_status, published_at, created_by_membership_id
+          ) values
+          """ + String.join(",\n", requirementRows));
+      statement.executeUpdate(
+          """
+          insert into staffing_assignments (
+            id, requirement_id, membership_id, assignment_status, assigned_by_membership_id
+          ) values
+            ('00000000-0000-0000-0000-000000000961', '00000000-0000-0000-0000-000000000951', '00000000-0000-0000-0000-000000000921', 'ASSIGNED', '00000000-0000-0000-0000-000000000921'),
+            ('00000000-0000-0000-0000-000000000962', '00000000-0000-0000-0000-000000000953', '00000000-0000-0000-0000-000000000921', 'ASSIGNED', '00000000-0000-0000-0000-000000000921')
+          """);
+      statement.executeUpdate(
+          """
+          insert into staffing_member_day_entries (
+            id, organization_id, membership_id, work_date, entry_type,
+            notes, created_by_membership_id
+          ) values (
+            '00000000-0000-0000-0000-000000000971',
+            '00000000-0000-0000-0000-000000000911',
+            '00000000-0000-0000-0000-000000000921',
+            '2026-08-12', 'REST_DAY', 'Preserve this entry',
+            '00000000-0000-0000-0000-000000000921'
+          )
+          """);
+    }
+  }
+
+  private Flyway flyway(
+      String url, String username, String password, String schema, String target) {
+    var configuration = Flyway.configure()
+        .dataSource(url, username, password)
+        .schemas(schema)
+        .defaultSchema(schema)
+        .createSchemas(true)
+        .cleanDisabled(false)
+        .locations("classpath:db/migration");
+    if (target != null) configuration.target(target);
+    return configuration.load();
+  }
+
+  private void clean(String url, String username, String password, String schema) {
+    Flyway.configure()
+        .dataSource(url, username, password)
+        .schemas(schema)
+        .defaultSchema(schema)
+        .cleanDisabled(false)
+        .load()
+        .clean();
+  }
+
+  private void assertCount(java.sql.Statement statement, String table, int expected)
+      throws Exception {
+    assertQueryCount(statement, "select count(*) from " + table, expected);
+  }
+
+  private void assertQueryCount(java.sql.Statement statement, String sql, int expected)
+      throws Exception {
+    try (var result = statement.executeQuery(sql)) {
+      assertThat(result.next()).isTrue();
+      assertThat(result.getInt(1)).isEqualTo(expected);
     }
   }
 
