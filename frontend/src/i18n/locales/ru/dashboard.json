@@ -64,7 +64,11 @@
     "jobDays_other": "{{count}} дня",
     "jobMixed": "{{duration}} и прямая сдельная оплата",
     "jobDirectOnly": "Работа с прямой сдельной оплатой",
-    "unitLine": "{{name}}: {{quantity}}"
+    "unitLine": "{{name}}: {{quantity}}",
+    "planned": "Запланировано",
+    "businessSchedule": "Рабочий график",
+    "startsAt": "Начало в {{time}}",
+    "timeNotSet": "Время не указано"
   },
   "summary": {
     "todayHours": "Часы сегодня",
@@ -123,6 +127,12 @@
     "cta": "Выходной",
     "remove": "Удалить",
     "selectEmployment": "Выберите место работы перед добавлением выходного."
+  },
+  "businessResult": {
+    "actualStart": "Фактическое начало", "actualEnd": "Фактическое окончание", "breakMinutes": "Перерыв (минуты)",
+    "quantity": "Выполненное количество", "notes": "Заметки", "saveDraft": "Сохранить черновик",
+    "submit": "Отправить менеджеру", "draft": "Черновик", "submitted": "Отправлено на утверждение", "approved": "Утверждено",
+    "done": "Выполнено", "approvedTime": "Утверждённое время"
   },
   "timeTracking": {
     "title": "Учёт времени",

@@ -169,6 +169,12 @@ const TrackingSetupPage = lazy(() =>
     default: module.TrackingSetupPage
   }))
 );
+const BusinessPage = lazy(() =>
+  import("../pages/business-page").then((module) => ({ default: module.BusinessPage }))
+);
+const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
+const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
+const SchedulePage = lazy(() => import("../pages/schedule-page").then((module) => ({ default: module.SchedulePage })));
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
 }
@@ -226,6 +232,11 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/records/new", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/records/:recordId", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
+            { path: "/business", element: withSuspense(<BusinessPage />) },
+            { path: "/business/:organizationId/work-types", element: withSuspense(<BusinessWorkTypesPage />) },
+            { path: "/business/:organizationId/work-types/new", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/business/:organizationId/work-types/:workTypeId", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/schedule", element: withSuspense(<SchedulePage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },

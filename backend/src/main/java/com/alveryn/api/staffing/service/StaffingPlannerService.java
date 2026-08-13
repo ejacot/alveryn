@@ -1,0 +1,368 @@
+package com.alveryn.api.staffing.service;
+
+import com.alveryn.api.auth.security.AuthenticatedUserAccessor;
+import com.alveryn.api.common.exception.NotFoundException;
+import com.alveryn.api.common.exception.ConflictException;
+import com.alveryn.api.organization.entity.*;
+import com.alveryn.api.organization.repository.*;
+import com.alveryn.api.organization.service.OrganizationAccessService;
+import com.alveryn.api.staffing.dto.StaffingDtos.*;
+import com.alveryn.api.staffing.entity.*;
+import com.alveryn.api.staffing.repository.*;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service @RequiredArgsConstructor
+public class StaffingPlannerService {
+  private final AuthenticatedUserAccessor currentUser;
+  private final OrganizationMembershipRepository memberships;
+  private final OrganizationUnitRepository units;
+  private final OrganizationWorkTypeRepository workTypes;
+  private final StaffingRequirementRepository requirements;
+  private final StaffingAssignmentRepository assignments;
+  private final StaffingAssignmentResultRepository assignmentResults;
+  private final StaffingMemberDayEntryRepository dayEntries;
+  private final StaffingScheduleReceiptRepository receipts;
+  private final StaffingChangeEventRepository changeEvents;
+  private final StaffingAbsenceRequestRepository absenceRequests;
+  private final OrganizationAccessService access;
+
+  @Transactional(readOnly = true)
+  public List<WorkTypeResponse> listWorkTypes(UUID organizationId) {
+    access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
+        OrganizationPermission.MANAGE_SCHEDULE);
+    return workTypes.findAllByOrganizationIdOrderByNameAsc(organizationId).stream()
+        .filter(value -> access.canAccess(organizationId, value.getUnit(),
+            OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE))
+        .map(this::workTypeResponse).toList();
+  }
+  @Transactional
+  public WorkTypeResponse createWorkType(UUID organizationId, WorkTypeRequest request) {
+    var unit = request.unitId() == null ? null : unit(organizationId, request.unitId());
+    var manager = access.requireForUnit(organizationId, unit, OrganizationPermission.MANAGE_SCHEDULE);
+    var existing=workTypes.findByOrganizationIdAndCodeIgnoreCase(organizationId,request.code().trim());
+    if(existing.isPresent()){
+      if(existing.get().isActive()) throw new ConflictException("A work type with this code already exists in this organization");
+      configure(existing.get(),organizationId,unit,request,true);
+      return workTypeResponse(existing.get());
+    }
+    var value=new OrganizationWorkType(manager.getOrganization(), unit, request.code(),
+        request.name(), request.color(), request.defaultStartTime(), request.defaultEndTime(),
+        request.defaultBreakMinutes() == null ? 30 : request.defaultBreakMinutes());
+    configure(value,organizationId,unit,request,true);
+    return workTypeResponse(workTypes.save(value));
+  }
+  @Transactional(readOnly=true) public WorkTypeResponse getWorkType(UUID organizationId,UUID workTypeId){access.require(organizationId,OrganizationPermission.VIEW_SCHEDULE,OrganizationPermission.MANAGE_SCHEDULE);return workTypeResponse(workType(organizationId,workTypeId));}
+  @Transactional public WorkTypeResponse updateWorkType(UUID organizationId,UUID workTypeId,WorkTypeRequest request){var unit=request.unitId()==null?null:unit(organizationId,request.unitId());access.requireForUnit(organizationId,unit,OrganizationPermission.MANAGE_SCHEDULE);var value=workType(organizationId,workTypeId);workTypes.findByOrganizationIdAndCodeIgnoreCase(organizationId,request.code().trim()).filter(other->!other.getId().equals(workTypeId)).ifPresent(other->{throw new ConflictException("A work type with this code already exists in this organization");});configure(value,organizationId,unit,request,request.active()==null||request.active());return workTypeResponse(value);}
+  @Transactional public void deactivateWorkType(UUID organizationId,UUID workTypeId){var value=workType(organizationId,workTypeId);access.requireForUnit(organizationId,value.getUnit(),OrganizationPermission.MANAGE_SCHEDULE);setActive(value,false);if(value.isCompositeEnabled())workTypes.findAllByParentId(value.getId()).forEach(child->setActive(child,false));}
+  private OrganizationWorkType workType(UUID organizationId,UUID id){return workTypes.findByIdAndOrganizationId(id,organizationId).orElseThrow(()->new NotFoundException("Organization work type",id));}
+  private void configure(OrganizationWorkType value,UUID organizationId,OrganizationUnit unit,WorkTypeRequest request,boolean active){var parent=request.parentId()==null?null:workType(organizationId,request.parentId());if(parent!=null&&(!parent.isCompositeEnabled()||!parent.isActive()))throw new IllegalArgumentException("parent must be an active category");if(parent!=null&&Boolean.TRUE.equals(request.compositeEnabled()))throw new IllegalArgumentException("a category cannot belong to another category");var calculationMethod=parent==null?(request.calculationMethod()==null?com.alveryn.api.worktype.entity.CalculationMethod.TIME_BASED:request.calculationMethod()):parent.getCalculationMethod();if(value.getId()!=null&&value.isCompositeEnabled()&&value.getCalculationMethod()!=calculationMethod&&!workTypes.findAllByParentId(value.getId()).isEmpty())throw new IllegalArgumentException("category calculation cannot change while it contains work types");value.configure(unit,parent,request.code(),request.name(),request.color(),request.defaultStartTime(),request.defaultEndTime(),request.defaultBreakMinutes()==null?30:request.defaultBreakMinutes(),calculationMethod,calculationMethod==com.alveryn.api.worktype.entity.CalculationMethod.UNIT_BASED?com.alveryn.api.worktype.entity.CompensationMethod.PER_UNIT:com.alveryn.api.worktype.entity.CompensationMethod.HOURLY,request.unitLabel(),request.unitSymbol(),request.unitsPerHour(),request.ratePerUnit(),request.currency(),Boolean.TRUE.equals(request.teamworkEnabled()),Boolean.TRUE.equals(request.extraPayEnabled()),Boolean.TRUE.equals(request.compositeEnabled()),request.displayOrder()==null?0:request.displayOrder(),active);}
+  private void setActive(OrganizationWorkType value,boolean active){value.configure(value.getUnit(),value.getParent(),value.getCode(),value.getName(),value.getColor(),value.getDefaultStartTime(),value.getDefaultEndTime(),value.getDefaultBreakMinutes(),value.getCalculationMethod(),value.getCompensationMethod(),value.getUnitLabel(),value.getUnitSymbol(),value.getUnitsPerHour(),value.getRatePerUnit(),value.getCurrency(),value.isTeamworkEnabled(),value.isExtraPayEnabled(),value.isCompositeEnabled(),value.getDisplayOrder(),active);}
+  @Transactional(readOnly = true)
+  public List<RequirementResponse> week(UUID organizationId, LocalDate from, LocalDate to) {
+    access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
+        OrganizationPermission.MANAGE_SCHEDULE);
+    if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
+    return requirements.findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(organizationId, from, to)
+        .stream().filter(value -> access.canAccess(organizationId, value.getUnit(),
+            OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE))
+        .map(this::requirementResponse).toList();
+  }
+  @Transactional
+  public RequirementResponse createRequirement(UUID organizationId, RequirementRequest request) {
+    var unit = unit(organizationId, request.unitId());
+    var manager = access.requireForUnit(organizationId, unit, OrganizationPermission.MANAGE_SCHEDULE);
+    var workType = workTypes.findByIdAndOrganizationId(request.workTypeId(), organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization work type", request.workTypeId()));
+    requireSchedulable(workType);
+    var start = request.startTime() == null ? workType.getDefaultStartTime() : request.startTime();
+    var end = request.endTime() == null ? workType.getDefaultEndTime() : request.endTime();
+    var saved = requirements.save(new StaffingRequirement(manager.getOrganization(), unit, workType,
+        request.date(), start, end, request.requiredWorkers(), request.requiredQuantity(), request.notes(), manager));
+    audit(manager, "REQUIREMENT_CREATED", "REQUIREMENT", saved.getId(), saved.getDate(), saved.getWorkType().getCode());
+    return requirementResponse(saved);
+  }
+  @Transactional
+  public List<RequirementResponse> createRequirements(UUID organizationId, BulkRequirementRequest request) {
+    var unit = unit(organizationId, request.unitId());
+    var manager = access.requireForUnit(organizationId, unit, OrganizationPermission.MANAGE_SCHEDULE);
+    var workType = workTypes.findByIdAndOrganizationId(request.workTypeId(), organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization work type", request.workTypeId()));
+    requireSchedulable(workType);
+    var start = request.startTime() == null ? workType.getDefaultStartTime() : request.startTime();
+    var end = request.endTime() == null ? workType.getDefaultEndTime() : request.endTime();
+    if (end != null && start == null) throw new IllegalArgumentException("staffing start time is required");
+    var created = request.dates().stream().sorted().map(date -> requirements.save(new StaffingRequirement(
+        manager.getOrganization(), unit, workType, date, start, end, request.requiredWorkers(),
+        request.requiredQuantity(), request.notes(), manager))).map(this::requirementResponse).toList();
+    audit(manager, "REQUIREMENTS_CREATED", "REQUIREMENT", null, request.dates().stream().min(LocalDate::compareTo).orElse(null), workType.getCode() + " × " + request.dates().size());
+    return created;
+  }
+  @Transactional
+  public RequirementResponse assign(UUID organizationId, UUID requirementId, AssignmentRequest request) {
+    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
+    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    var member = memberships.findByIdAndOrganizationId(request.membershipId(), organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization member", request.membershipId()));
+    if (member.getStatus() == MembershipStatus.SUSPENDED) {
+      throw new IllegalArgumentException("suspended member cannot receive new assignments");
+    }
+    var saved = assignments.save(new StaffingAssignment(requirement, member, request.startTime(), request.endTime(), manager));
+    assignments.flush();
+    audit(manager, "MEMBER_ASSIGNED", "ASSIGNMENT", saved.getId(), requirement.getDate(), memberName(member) + " · " + requirement.getWorkType().getCode());
+    return requirementResponse(requirement);
+  }
+  @Transactional
+  public RequirementResponse unassign(UUID organizationId, UUID requirementId, UUID assignmentId) {
+    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
+    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    var assignment = assignments.findByIdAndRequirementId(assignmentId, requirementId)
+        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
+    assignment.cancel();
+    audit(manager, "MEMBER_UNASSIGNED", "ASSIGNMENT", assignmentId, requirement.getDate(), memberName(assignment.getMembership()) + " · " + requirement.getWorkType().getCode());
+    return requirementResponse(requirement);
+  }
+  @Transactional
+  public RequirementResponse updateRequirement(UUID organizationId, UUID requirementId, RequirementUpdateRequest request) {
+    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
+    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    requirement.update(request.startTime(), request.endTime(), request.requiredWorkers(), request.requiredQuantity(), request.notes());
+    audit(manager, "REQUIREMENT_UPDATED", "REQUIREMENT", requirementId, requirement.getDate(), requirement.getWorkType().getCode());
+    return requirementResponse(requirement);
+  }
+  @Transactional
+  public void deleteRequirement(UUID organizationId, UUID requirementId) {
+    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
+    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    audit(manager, "REQUIREMENT_DELETED", "REQUIREMENT", requirementId, requirement.getDate(), requirement.getWorkType().getCode());
+    requirements.delete(requirement);
+  }
+  @Transactional
+  public RequirementResponse updateAssignment(UUID organizationId, UUID requirementId, UUID assignmentId, AssignmentTimeRequest request) {
+    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
+    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    var assignment = assignments.findByIdAndRequirementId(assignmentId, requirementId)
+        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
+    assignment.updateTimes(request.startTime(), request.endTime());
+    audit(manager, "ASSIGNMENT_UPDATED", "ASSIGNMENT", assignmentId, requirement.getDate(), memberName(assignment.getMembership()));
+    return requirementResponse(requirement);
+  }
+  @Transactional
+  public PublishResponse publish(UUID organizationId, PublishRequest request) {
+    var manager = access.require(organizationId, OrganizationPermission.PUBLISH_SCHEDULE);
+    if (request.to().isBefore(request.from()) || request.to().isAfter(request.from().plusDays(31))) throw new IllegalArgumentException("invalid planner range");
+    var selected = requirements.findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(organizationId, request.from(), request.to()).stream()
+        .filter(value -> request.requirementIds() == null || request.requirementIds().isEmpty() || request.requirementIds().contains(value.getId())).toList();
+    selected.forEach(value -> access.requireForUnit(organizationId, value.getUnit(),
+        OrganizationPermission.PUBLISH_SCHEDULE));
+    selected.forEach(StaffingRequirement::publish);
+    int publishedAssignments = selected.stream().mapToInt(value -> assignments.findAllByRequirementIdAndStatusOrderByCreatedAtAsc(value.getId(), "ASSIGNED").size()).sum();
+    audit(manager, "SCHEDULE_PUBLISHED", "SCHEDULE", null, request.from(), request.from() + " — " + request.to());
+    return new PublishResponse(selected.size(), publishedAssignments);
+  }
+  @Transactional
+  public List<PersonalScheduleResponse> personalSchedule(LocalDate from, LocalDate to) {
+    if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
+    return memberships.findAllByUserIdAndStatusOrderByCreatedAtAsc(currentUser.requireUserId(), MembershipStatus.ACTIVE).stream()
+        .filter(member -> member.getOrganization().getOrganizationType() == OrganizationType.BUSINESS).map(member -> {
+          var weekStart = from.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+          var publishedEntities = requirements.findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(member.getOrganization().getId(), from, to).stream().filter(value -> "PUBLISHED".equals(value.getPublicationStatus())).toList();
+          var previousReceipt = receipts.findByOrganizationIdAndMembershipIdAndWeekStart(member.getOrganization().getId(), member.getId(), weekStart);
+          boolean newPublication = publishedEntities.stream().anyMatch(value -> value.getPublishedAt() != null && previousReceipt.map(receipt -> receipt.getViewedAt().isBefore(value.getPublishedAt())).orElse(true));
+          var receipt = previousReceipt.map(value -> { value.markViewed(); return value; }).orElseGet(() -> new StaffingScheduleReceipt(member.getOrganization(), member, weekStart));
+          receipts.save(receipt); receipts.flush();
+          var published = publishedEntities.stream().map(this::requirementResponse).toList();
+          var entries = dayEntries.findAllByOrganizationIdAndDateBetweenOrderByDateAsc(member.getOrganization().getId(), from, to).stream().map(this::dayEntryResponse).toList();
+          return new PersonalScheduleResponse(member.getOrganization().getId(), member.getOrganization().getName(), from, to, member.getId(), newPublication, published, entries);
+        }).toList();
+  }
+  @Transactional(readOnly = true)
+  public List<ChangeEventResponse> history(UUID organizationId, int limit) {
+    access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
+        OrganizationPermission.MANAGE_SCHEDULE);
+    return changeEvents.findAllByOrganizationIdOrderByCreatedAtDesc(organizationId, org.springframework.data.domain.PageRequest.of(0, Math.min(Math.max(limit, 1), 100))).stream()
+        .map(value -> new ChangeEventResponse(value.getId(), value.getEventType(), value.getEntityType(), value.getEntityId(), value.getWorkDate(), value.getSummary(), value.getActor() == null ? "—" : memberName(value.getActor()), value.getCreatedAt())).toList();
+  }
+  @Transactional
+  public AssignmentResultResponse saveMyResult(UUID assignmentId, ResultRequest request) {
+    var assignment = assignments.findById(assignmentId)
+        .filter(value -> value.getMembership().getUser() != null && value.getMembership().getUser().getId().equals(currentUser.requireUserId()))
+        .filter(value -> "ASSIGNED".equals(value.getStatus()) && "PUBLISHED".equals(value.getRequirement().getPublicationStatus()))
+        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
+    var result = assignmentResults.findByAssignmentId(assignmentId).orElseGet(() -> new StaffingAssignmentResult(assignment));
+    if ("APPROVED".equals(result.getApprovalStatus())) throw new IllegalArgumentException("approved result cannot be changed");
+    result.save(request.actualStartTime(), request.actualEndTime(), request.breakMinutes() == null ? 30 : request.breakMinutes(), request.completedQuantity(), request.notes(), request.submit());
+    var saved = assignmentResults.save(result);
+    audit(assignment.getMembership(), request.submit() ? "RESULT_SUBMITTED" : "RESULT_SAVED", "ASSIGNMENT_RESULT", saved.getId(), assignment.getRequirement().getDate(), assignment.getRequirement().getWorkType().getCode());
+    return resultResponse(saved);
+  }
+  @Transactional
+  public AssignmentResultResponse checkIn(UUID assignmentId) {
+    var assignment = ownPublishedAssignment(assignmentId);
+    if (assignment.getRequirement().getUnit().getCheckInMode() == CheckInMode.DISABLED) {
+      throw new IllegalArgumentException("check-in is disabled for this team");
+    }
+    var result = assignmentResults.findByAssignmentId(assignmentId)
+        .orElseGet(() -> new StaffingAssignmentResult(assignment));
+    if ("APPROVED".equals(result.getApprovalStatus())) throw new IllegalArgumentException("approved result cannot be changed");
+    var now = OffsetDateTime.now(java.time.ZoneId.of(assignment.getRequirement().getOrganization().getTimezone()));
+    result.checkIn(now, now.toLocalTime().withNano(0), assignment.getRequirement().getWorkType().getDefaultBreakMinutes());
+    var saved = assignmentResults.save(result);
+    audit(assignment.getMembership(), "CHECKED_IN", "ASSIGNMENT_RESULT", saved.getId(), assignment.getRequirement().getDate(), assignment.getRequirement().getWorkType().getCode());
+    return resultResponse(saved);
+  }
+  @Transactional
+  public AssignmentResultResponse checkOut(UUID assignmentId) {
+    var assignment = ownPublishedAssignment(assignmentId);
+    if (assignment.getRequirement().getUnit().getCheckInMode() == CheckInMode.DISABLED) {
+      throw new IllegalArgumentException("check-in is disabled for this team");
+    }
+    var result = assignmentResults.findByAssignmentId(assignmentId)
+        .orElseThrow(() -> new IllegalArgumentException("check-in is required before check-out"));
+    var now = OffsetDateTime.now(java.time.ZoneId.of(assignment.getRequirement().getOrganization().getTimezone()));
+    result.checkOut(now, now.toLocalTime().withNano(0));
+    audit(assignment.getMembership(), "CHECKED_OUT", "ASSIGNMENT_RESULT", result.getId(), assignment.getRequirement().getDate(), assignment.getRequirement().getWorkType().getCode());
+    return resultResponse(result);
+  }
+  @Transactional(readOnly = true)
+  public List<AssignmentResultResponse> pendingResults(UUID organizationId) {
+    access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
+    return assignmentResults.findAllByAssignmentRequirementOrganizationIdAndApprovalStatusOrderBySubmittedAtAsc(organizationId, "SUBMITTED").stream().map(this::resultResponse).toList();
+  }
+  @Transactional
+  public AssignmentResultResponse approveResult(UUID organizationId, UUID resultId, ResultReviewRequest request) {
+    var manager = access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
+    var result = assignmentResults.findById(resultId)
+        .filter(value -> value.getAssignment().getRequirement().getOrganization().getId().equals(organizationId))
+        .orElseThrow(() -> new NotFoundException("Staffing assignment result", resultId));
+    if (!"SUBMITTED".equals(result.getApprovalStatus())) throw new IllegalArgumentException("only submitted results can be approved");
+    result.approve(manager, request.actualStartTime(), request.actualEndTime(), request.breakMinutes() == null ? 30 : request.breakMinutes(), request.completedQuantity(), request.notes());
+    audit(manager, "RESULT_APPROVED", "ASSIGNMENT_RESULT", result.getId(), result.getAssignment().getRequirement().getDate(), memberName(result.getAssignment().getMembership()));
+    return resultResponse(result);
+  }
+  @Transactional
+  public AbsenceRequestResponse createMyAbsenceRequest(AbsenceRequestCreate request) {
+    if (request.endDate().isBefore(request.startDate()) || request.endDate().isAfter(request.startDate().plusDays(365))) throw new IllegalArgumentException("invalid absence range");
+    if (!Set.of("REST_DAY","VACATION","SICK").contains(request.type())) throw new IllegalArgumentException("invalid absence type");
+    var member = memberships.findByOrganizationIdAndUserId(request.organizationId(), currentUser.requireUserId())
+        .filter(value -> value.getStatus() == MembershipStatus.ACTIVE).orElseThrow(() -> new NotFoundException("Organization", request.organizationId()));
+    var saved = absenceRequests.save(new StaffingAbsenceRequest(member,request.type(),request.startDate(),request.endDate(),request.notes()));
+    audit(member,"ABSENCE_REQUESTED","ABSENCE_REQUEST",saved.getId(),request.startDate(),request.type());
+    return absenceResponse(saved);
+  }
+  @Transactional(readOnly=true)
+  public List<AbsenceRequestResponse> myAbsenceRequests(){return absenceRequests.findAllByMembershipUserIdOrderByCreatedAtDesc(currentUser.requireUserId()).stream().map(this::absenceResponse).toList();}
+  @Transactional(readOnly=true)
+  public List<AbsenceRequestResponse> pendingAbsenceRequests(UUID organizationId){access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);return absenceRequests.findAllByOrganizationIdAndStatusOrderByCreatedAtAsc(organizationId,"PENDING").stream().map(this::absenceResponse).toList();}
+  @Transactional
+  public AbsenceRequestResponse decideAbsenceRequest(UUID organizationId,UUID requestId,AbsenceDecisionRequest request){
+    var manager=access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);var value=absenceRequests.findById(requestId).filter(item->item.getOrganization().getId().equals(organizationId)).orElseThrow(()->new NotFoundException("Absence request",requestId));
+    value.decide(request.approve(),manager);
+    if(request.approve()) value.getStartDate().datesUntil(value.getEndDate().plusDays(1)).forEach(date->{var entry=dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId,value.getMembership().getId(),date).map(item->{item.update(value.getType(),value.getNotes());return item;}).orElseGet(()->new StaffingMemberDayEntry(manager.getOrganization(),value.getMembership(),date,value.getType(),value.getNotes(),manager));dayEntries.save(entry);});
+    audit(manager,request.approve()?"ABSENCE_APPROVED":"ABSENCE_REJECTED","ABSENCE_REQUEST",value.getId(),value.getStartDate(),memberName(value.getMembership()));return absenceResponse(value);
+  }
+  @Transactional(readOnly = true)
+  public List<DayEntryResponse> dayEntries(UUID organizationId, LocalDate from, LocalDate to) {
+    access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
+        OrganizationPermission.MANAGE_SCHEDULE);
+    if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
+    return dayEntries.findAllByOrganizationIdAndDateBetweenOrderByDateAsc(organizationId, from, to).stream().map(this::dayEntryResponse).toList();
+  }
+  @Transactional
+  public DayEntryResponse setDayEntry(UUID organizationId, UUID membershipId, LocalDate date, DayEntryRequest request) {
+    var manager = access.require(organizationId, OrganizationPermission.MANAGE_SCHEDULE,
+        OrganizationPermission.MANAGE_ABSENCES);
+    var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
+    var entry = dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId, membershipId, date)
+        .map(value -> { value.update(request.type(), request.notes()); return value; })
+        .orElseGet(() -> new StaffingMemberDayEntry(manager.getOrganization(), member, date, request.type(), request.notes(), manager));
+    return dayEntryResponse(dayEntries.save(entry));
+  }
+  @Transactional
+  public void removeDayEntry(UUID organizationId, UUID membershipId, LocalDate date) {
+    access.require(organizationId, OrganizationPermission.MANAGE_SCHEDULE,
+        OrganizationPermission.MANAGE_ABSENCES);
+    dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId, membershipId, date).ifPresent(dayEntries::delete);
+  }
+  private OrganizationUnit unit(UUID organizationId, UUID unitId) { return units.findByIdAndOrganizationId(unitId, organizationId).orElseThrow(() -> new NotFoundException("Organization unit", unitId)); }
+  private void requireSchedulable(OrganizationWorkType value) { if (!value.isActive() || value.isCompositeEnabled()) throw new IllegalArgumentException("only active work types can be scheduled"); }
+  private WorkTypeResponse workTypeResponse(OrganizationWorkType value) { return new WorkTypeResponse(value.getId(), value.getUnit() == null ? null : value.getUnit().getId(),value.getParent()==null?null:value.getParent().getId(), value.getCode(), value.getName(), value.getColor(), value.getDefaultStartTime(), value.getDefaultEndTime(), value.getDefaultBreakMinutes(),value.getCalculationMethod(),value.getCompensationMethod(),value.getUnitLabel(),value.getUnitSymbol(),value.getUnitsPerHour(),value.getRatePerUnit(),value.getCurrency(),value.isTeamworkEnabled(),value.isExtraPayEnabled(),value.isCompositeEnabled(),value.getDisplayOrder(),value.isActive()); }
+  private RequirementResponse requirementResponse(StaffingRequirement value) {
+    var assigned = assignments.findAllByRequirementIdAndStatusOrderByCreatedAtAsc(value.getId(), "ASSIGNED");
+    int difference = assigned.size() - value.getRequiredWorkers();
+    String coverage = difference < 0 ? "UNDERSTAFFED" : difference > 0 ? "OVERSTAFFED" : "COVERED";
+    var assignmentResponses = assigned.stream().map(item -> {
+      var conflicts = conflicts(item);
+      return new AssignmentResponse(item.getId(), item.getMembership().getId(), memberName(item.getMembership()),
+          effectiveStart(item), effectiveEnd(item), !conflicts.isEmpty(), conflicts, viewed(value, item.getMembership()),
+          assignmentResults.findByAssignmentId(item.getId()).map(this::resultResponse).orElse(null));
+    }).toList();
+    return new RequirementResponse(value.getId(), value.getUnit().getId(), value.getUnit().getName(), value.getWorkType().getId(), value.getWorkType().getCode(), value.getWorkType().getName(), value.getWorkType().getColor(), value.getDate(), value.getStartTime(), value.getEndTime(), value.getRequiredWorkers(), value.getRequiredQuantity(), assigned.size(), difference, coverage, value.getPublicationStatus(), value.getUnit().getCheckInMode().name(), assignmentResponses);
+  }
+  private List<UUID> conflicts(StaffingAssignment item) {
+    var start = effectiveStart(item);
+    if (start == null) return List.of();
+    var end = effectiveEnd(item);
+    return assignments.findAllByMembershipIdAndStatusAndRequirementDate(item.getMembership().getId(), "ASSIGNED", item.getRequirement().getDate()).stream()
+        .filter(other -> !other.getId().equals(item.getId()))
+        .filter(other -> overlaps(start, end, effectiveStart(other), effectiveEnd(other)))
+        .map(StaffingAssignment::getId).toList();
+  }
+  private boolean overlaps(java.time.LocalTime firstStart, java.time.LocalTime firstEnd,
+      java.time.LocalTime secondStart, java.time.LocalTime secondEnd) {
+    if (secondStart == null) return false;
+    return (secondEnd == null || firstStart.isBefore(secondEnd)) && (firstEnd == null || secondStart.isBefore(firstEnd));
+  }
+  private java.time.LocalTime effectiveStart(StaffingAssignment item) { return item.getStartTime() == null ? item.getRequirement().getStartTime() : item.getStartTime(); }
+  private java.time.LocalTime effectiveEnd(StaffingAssignment item) { return item.getEndTime() == null ? item.getRequirement().getEndTime() : item.getEndTime(); }
+  private DayEntryResponse dayEntryResponse(StaffingMemberDayEntry value) {
+    boolean conflict = !assignments.findAllByMembershipIdAndStatusAndRequirementDate(value.getMembership().getId(), "ASSIGNED", value.getDate()).isEmpty();
+    return new DayEntryResponse(value.getId(), value.getMembership().getId(), value.getDate(), value.getType(), value.getNotes(), conflict);
+  }
+  private boolean viewed(StaffingRequirement requirement, OrganizationMembership member) {
+    if (requirement.getPublishedAt() == null) return false;
+    var weekStart = requirement.getDate().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+    return receipts.findByOrganizationIdAndMembershipIdAndWeekStart(requirement.getOrganization().getId(), member.getId(), weekStart)
+        .map(value -> !value.getViewedAt().isBefore(requirement.getPublishedAt())).orElse(false);
+  }
+  private void audit(OrganizationMembership actor, String eventType, String entityType, UUID entityId, LocalDate date, String summary) { changeEvents.save(new StaffingChangeEvent(actor.getOrganization(), actor, eventType, entityType, entityId, date, summary)); }
+  private AssignmentResultResponse resultResponse(StaffingAssignmentResult value) {
+    var assignment = value.getAssignment(); var requirement = assignment.getRequirement();
+    return new AssignmentResultResponse(value.getId(), assignment.getId(), requirement.getOrganization().getId(),
+        requirement.getOrganization().getName(), memberName(assignment.getMembership()), requirement.getDate(),
+        requirement.getWorkType().getName(), requirement.getWorkType().getCode(), requirement.getUnit().getName(),
+        value.getActualStartTime(), value.getActualEndTime(), value.getBreakMinutes(), value.getCompletedQuantity(), calculatedMinutes(value),
+        value.getNotes(), value.getApprovalStatus(), value.getSubmittedAt(), value.getReviewedAt(),
+        value.getCheckedInAt(), value.getCheckedOutAt(), value.getTimeCaptureSource());
+  }
+  private Integer calculatedMinutes(StaffingAssignmentResult value) {
+    var workType=value.getAssignment().getRequirement().getWorkType();
+    if(workType.getCalculationMethod()==com.alveryn.api.worktype.entity.CalculationMethod.UNITS_PER_HOUR_BASED
+        && value.getCompletedQuantity()!=null&&workType.getUnitsPerHour()!=null&&workType.getUnitsPerHour().signum()>0)
+      return value.getCompletedQuantity().multiply(java.math.BigDecimal.valueOf(60)).divide(workType.getUnitsPerHour(),0,java.math.RoundingMode.HALF_UP).intValue();
+    if(value.getActualStartTime()==null||value.getActualEndTime()==null)return null;
+    long minutes=java.time.Duration.between(value.getActualStartTime(),value.getActualEndTime()).toMinutes();
+    if(minutes<0)minutes+=24*60;
+    return (int)Math.max(0,minutes-value.getBreakMinutes());
+  }
+  private StaffingAssignment ownPublishedAssignment(UUID assignmentId) {
+    return assignments.findById(assignmentId)
+        .filter(value -> value.getMembership().getUser() != null
+            && value.getMembership().getUser().getId().equals(currentUser.requireUserId()))
+        .filter(value -> "ASSIGNED".equals(value.getStatus())
+            && "PUBLISHED".equals(value.getRequirement().getPublicationStatus()))
+        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
+  }
+  private AbsenceRequestResponse absenceResponse(StaffingAbsenceRequest value){return new AbsenceRequestResponse(value.getId(),value.getOrganization().getId(),value.getOrganization().getName(),value.getMembership().getId(),memberName(value.getMembership()),value.getType(),value.getStartDate(),value.getEndDate(),value.getNotes(),value.getStatus(),value.getCreatedAt(),value.getReviewedAt());}
+  private String memberName(OrganizationMembership member) { if (member.getUser() != null) return member.getUser().getEmail(); return String.join(" ", List.of(member.getFirstName() == null ? "" : member.getFirstName(), member.getLastName() == null ? "" : member.getLastName())).trim(); }
+}

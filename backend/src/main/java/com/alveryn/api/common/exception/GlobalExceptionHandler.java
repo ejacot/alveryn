@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.security.access.AccessDeniedException;
 
 @RestControllerAdvice
 @Slf4j
@@ -34,6 +35,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ConflictException.class)
   ResponseEntity<ApiErrorResponse> handleConflict(ConflictException e, HttpServletRequest r) {
     return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, e.getErrors());
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException e, HttpServletRequest r) {
+    return response(HttpStatus.FORBIDDEN, e.getMessage(), "ACCESS_DENIED", r, List.of());
   }
 
   @ExceptionHandler({

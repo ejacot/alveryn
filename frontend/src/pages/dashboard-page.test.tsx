@@ -46,6 +46,7 @@ vi.mock("../api/endpoints", () => ({
   getCurrentWorkSession: vi.fn(),
   getAbsences: vi.fn(),
   getPreferences: vi.fn(),
+  getPersonalBusinessSchedule: vi.fn(),
   listAbsenceTypes: vi.fn(),
   listEmployments: vi.fn(),
   listHourlyRates: vi.fn(),
@@ -61,6 +62,7 @@ import {
   getCurrentWorkSession,
   getAbsences,
   getPreferences,
+  getPersonalBusinessSchedule,
   listAbsenceTypes,
   listEmployments,
   listHourlyRates,
@@ -193,6 +195,7 @@ describe("DashboardPage", () => {
       notes: null
     });
     vi.mocked(getAbsences).mockResolvedValue(emptyAbsencePage());
+    vi.mocked(getPersonalBusinessSchedule).mockResolvedValue([]);
     vi.mocked(getCurrentWorkSession).mockResolvedValue(null);
     vi.mocked(listEmployments).mockResolvedValue([employment]);
     vi.mocked(listRestDays).mockResolvedValue([]);
@@ -255,6 +258,93 @@ describe("DashboardPage", () => {
 
     await user.click(screen.getByRole("button", { name: /regular shift/i }));
     expect(navigateMock).toHaveBeenCalledWith("/records/record-1?returnDate=2026-07-13");
+  });
+
+  it("shows an assigned published Business shift as planned without counting worked totals", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(getPersonalBusinessSchedule).mockResolvedValue([{
+      organizationId: "org-1",
+      organizationName: "Hotel Berlin",
+      from: "2026-07-13",
+      to: "2026-07-19",
+      currentMembershipId: "member-1",
+      newPublication: true,
+      dayEntries: [],
+      requirements: [{
+        id: "requirement-1",
+        unitId: "unit-1",
+        unitName: "Housekeeping",
+        workTypeId: "type-1",
+        code: "CAM",
+        workTypeName: "Camere",
+        color: "#10b981",
+        date: "2026-07-13",
+        startTime: "08:00:00",
+        endTime: null,
+        requiredWorkers: 5,
+        assignedWorkers: 1,
+        coverageDifference: -4,
+        coverageStatus: "UNDERSTAFFED",
+        publicationStatus: "PUBLISHED",
+        checkInMode: "OPTIONAL",
+        assignments: [{
+          id: "assignment-1",
+          membershipId: "member-1",
+          memberName: "Maria Popescu",
+          startTime: "08:00:00",
+          endTime: null,
+          hasConflict: false,
+          conflictingAssignmentIds: [],
+          viewed: false,
+          result: null
+        }]
+      }]
+    }]);
+
+    renderPage();
+
+    expect(await screen.findByText("Planned")).toBeInTheDocument();
+    expect(screen.getByText("Hotel Berlin")).toBeInTheDocument();
+    expect(screen.getByText("Housekeeping")).toBeInTheDocument();
+    expect(screen.getByText("Camere")).toBeInTheDocument();
+    expect(screen.getByText("Starts at 08:00")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /camere/i })).toBeInTheDocument();
+    expect(screen.queryByText("0h 00m")).not.toBeInTheDocument();
+  });
+
+  it("counts only approved Business time after subtracting the recorded break", async () => {
+    vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
+    vi.mocked(getPersonalBusinessSchedule).mockResolvedValue([{
+      organizationId: "org-1", organizationName: "Hotel Berlin", from: "2026-07-13", to: "2026-07-19",
+      currentMembershipId: "member-1", newPublication: false, dayEntries: [],
+      requirements: [{
+        id: "requirement-1", unitId: "unit-1", unitName: "Housekeeping", workTypeId: "type-1",
+        code: "CAM", workTypeName: "Camere", color: "#10b981", date: "2026-07-13",
+        startTime: "08:00:00", endTime: "16:30:00", requiredWorkers: 1, assignedWorkers: 1,
+        coverageDifference: 0, coverageStatus: "COVERED", publicationStatus: "PUBLISHED", checkInMode: "OPTIONAL",
+        assignments: [{
+          id: "assignment-1", membershipId: "member-1", memberName: "Maria Popescu",
+          startTime: "08:00:00", endTime: "16:30:00", hasConflict: false,
+          conflictingAssignmentIds: [], viewed: true,
+          result: {
+            id: "result-1", assignmentId: "assignment-1", organizationId: "org-1",
+            organizationName: "Hotel Berlin", memberName: "Maria Popescu", date: "2026-07-13",
+            workTypeName: "Camere", workTypeCode: "CAM", unitName: "Housekeeping",
+            actualStartTime: "07:55:00", actualEndTime: "16:25:00", breakMinutes: 30,
+            completedQuantity: 12, notes: null, approvalStatus: "APPROVED",
+            submittedAt: "2026-07-13T17:00:00Z", reviewedAt: "2026-07-13T18:00:00Z",
+            checkedInAt: null, checkedOutAt: null, timeCaptureSource: "MANUAL"
+          }
+        }]
+      }]
+    }]);
+
+    renderPage();
+
+    expect(await screen.findByText("Done")).toBeInTheDocument();
+    expect(screen.getByText("Approved time")).toBeInTheDocument();
+    expect(screen.getAllByText("8h 00m").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("€0.00")).not.toBeInTheDocument();
   });
 
   it("creates an absence for an empty selected day", async () => {

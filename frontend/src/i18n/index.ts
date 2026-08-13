@@ -11,6 +11,7 @@ import recordsEn from "./locales/en/records.json";
 import settingsEn from "./locales/en/settings.json";
 import errorsEn from "./locales/en/errors.json";
 import welcomeEn from "./locales/en/welcome.json";
+import businessEn from "./locales/en/business.json";
 
 import commonDe from "./locales/de/common.json";
 import authDe from "./locales/de/auth.json";
@@ -21,6 +22,7 @@ import recordsDe from "./locales/de/records.json";
 import settingsDe from "./locales/de/settings.json";
 import errorsDe from "./locales/de/errors.json";
 import welcomeDe from "./locales/de/welcome.json";
+import businessDe from "./locales/de/business.json";
 
 import commonRo from "./locales/ro/common.json";
 import authRo from "./locales/ro/auth.json";
@@ -31,6 +33,7 @@ import recordsRo from "./locales/ro/records.json";
 import settingsRo from "./locales/ro/settings.json";
 import errorsRo from "./locales/ro/errors.json";
 import welcomeRo from "./locales/ro/welcome.json";
+import businessRo from "./locales/ro/business.json";
 
 import commonRu from "./locales/ru/common.json";
 import authRu from "./locales/ru/auth.json";
@@ -38,6 +41,7 @@ import dashboardRu from "./locales/ru/dashboard.json";
 import calendarRu from "./locales/ru/calendar.json";
 import settingsRu from "./locales/ru/settings.json";
 import welcomeRu from "./locales/ru/welcome.json";
+import businessRu from "./locales/ru/business.json";
 
 const resources = {
   en: {
@@ -49,7 +53,8 @@ const resources = {
     records: recordsEn,
     settings: settingsEn,
     errors: errorsEn,
-    welcome: welcomeEn
+    welcome: welcomeEn,
+    business: businessEn
   },
   de: {
     common: commonDe,
@@ -60,7 +65,8 @@ const resources = {
     records: recordsDe,
     settings: settingsDe,
     errors: errorsDe,
-    welcome: welcomeDe
+    welcome: welcomeDe,
+    business: businessDe
   },
   ro: {
     common: commonRo,
@@ -71,7 +77,8 @@ const resources = {
     records: recordsRo,
     settings: settingsRo,
     errors: errorsRo,
-    welcome: welcomeRo
+    welcome: welcomeRo,
+    business: businessRo
   },
   ru: {
     common: commonRu,
@@ -82,7 +89,8 @@ const resources = {
     records: recordsEn,
     settings: settingsRu,
     errors: errorsEn,
-    welcome: welcomeRu
+    welcome: welcomeRu,
+    business: businessRu
   }
 } as const;
 
@@ -104,7 +112,7 @@ void i18n.use(initReactI18next).init({
   lng: detectBrowserLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "auth", "onboarding", "dashboard", "calendar", "records", "settings", "errors", "welcome"],
+  ns: ["common", "auth", "onboarding", "dashboard", "calendar", "records", "settings", "errors", "welcome", "business"],
   interpolation: {
     escapeValue: false
   },

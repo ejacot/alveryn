@@ -38,6 +38,7 @@
     "addEntry": "Добавить запись",
     "statistics": "Аналитика",
     "settings": "Настройки",
+    "business": "Бизнес", "schedule": "Расписание",
     "primaryNavigation": "Основная навигация"
   }
 }

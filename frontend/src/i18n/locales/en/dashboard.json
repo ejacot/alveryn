@@ -54,7 +54,11 @@
     "jobDays_other": "{{count}} days",
     "jobMixed": "{{duration}} plus direct per-unit pay",
     "jobDirectOnly": "Direct per-unit job",
-    "unitLine": "{{name}}: {{quantity}}"
+    "unitLine": "{{name}}: {{quantity}}",
+    "planned": "Planned",
+    "businessSchedule": "Business schedule",
+    "startsAt": "Starts at {{time}}",
+    "timeNotSet": "Time not set"
   },
   "summary": {
     "todayHours": "Today hours",
@@ -112,6 +116,12 @@
     "cta": "Rest day",
     "remove": "Remove",
     "selectEmployment": "Select an employment before marking a rest day."
+  },
+  "businessResult": {
+    "actualStart": "Actual start", "actualEnd": "Actual end", "breakMinutes": "Break (minutes)",
+    "quantity": "Completed quantity", "notes": "Notes", "saveDraft": "Save draft",
+    "submit": "Submit to manager", "draft": "Draft", "submitted": "Submitted for approval", "approved": "Approved",
+    "done": "Done", "approvedTime": "Approved time"
   },
   "timeTracking": {
     "title": "Time tracking",

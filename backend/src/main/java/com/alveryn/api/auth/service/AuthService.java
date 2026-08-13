@@ -19,6 +19,8 @@ import com.alveryn.api.user.entity.UserStatus;
 import com.alveryn.api.user.mapper.UserMapper;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
+import com.alveryn.api.organization.entity.MembershipStatus;
+import com.alveryn.api.organization.repository.OrganizationMembershipRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Locale;
@@ -47,6 +49,7 @@ public class AuthService {
   private final AuthenticatedUserAccessor authenticatedUserAccessor;
   private final Clock clock;
   private final FounderProperties founderProperties;
+  private final OrganizationMembershipRepository organizationMemberships;
 
   @Transactional
   public AuthUserResponse register(RegisterRequest request) {
@@ -200,7 +203,17 @@ public class AuthService {
     }
     user.recordSuccessfulLogin(now);
     users.save(user);
+    claimBusinessInvitations(user);
     return issueTokens(user);
+  }
+
+  private void claimBusinessInvitations(UserAccount user) {
+    organizationMemberships.findAllByInvitedEmailIgnoreCaseAndStatus(user.getEmail(), MembershipStatus.INVITED)
+        .forEach(membership -> {
+          if (organizationMemberships.findByOrganizationIdAndUserId(membership.getOrganization().getId(), user.getId()).isEmpty()) {
+            membership.claim(user);
+          }
+        });
   }
 
   private void resendVerificationCode(UserAccount user) {

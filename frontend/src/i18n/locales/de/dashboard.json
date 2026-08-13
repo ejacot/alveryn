@@ -54,7 +54,11 @@
     "jobDays_other": "{{count}} Tage",
     "jobMixed": "{{duration}} plus direkte Zahlung pro Einheit",
     "jobDirectOnly": "Direkt pro Einheit bezahlter Job",
-    "unitLine": "{{name}}: {{quantity}}"
+    "unitLine": "{{name}}: {{quantity}}",
+    "planned": "Geplant",
+    "businessSchedule": "Business-Dienstplan",
+    "startsAt": "Beginn um {{time}}",
+    "timeNotSet": "Zeit nicht festgelegt"
   },
   "summary": {
     "todayHours": "Heutige Stunden",
@@ -112,6 +116,12 @@
     "cta": "Ruhetag",
     "remove": "Entfernen",
     "selectEmployment": "Wähle eine Beschäftigung aus, bevor du einen Ruhetag markierst."
+  },
+  "businessResult": {
+    "actualStart": "Tatsächlicher Beginn", "actualEnd": "Tatsächliches Ende", "breakMinutes": "Pause (Minuten)",
+    "quantity": "Erledigte Menge", "notes": "Notizen", "saveDraft": "Entwurf speichern",
+    "submit": "An Manager senden", "draft": "Entwurf", "submitted": "Zur Freigabe gesendet", "approved": "Genehmigt",
+    "done": "Erledigt", "approvedTime": "Genehmigte Zeit"
   },
   "timeTracking": {
     "title": "Zeiterfassung",
