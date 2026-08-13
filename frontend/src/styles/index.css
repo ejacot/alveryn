@@ -1687,6 +1687,14 @@ html[data-theme="light"] .landing-page .landing-theme-light {
   color: var(--auth-ink);
 }
 
+.auth-route-shell {
+  background: #121310;
+}
+
+html[data-theme="light"] .auth-route-shell {
+  background: #f3f1eb;
+}
+
 html[data-theme="light"] .auth-shell {
   --auth-bg: #f3f1eb;
   --auth-surface: #ffffff;
@@ -1711,8 +1719,8 @@ html[data-theme="light"] .auth-shell {
   border-bottom: 1px solid var(--auth-line);
   padding: env(safe-area-inset-top) clamp(1.5rem, 4vw, 4rem) 0;
   background: color-mix(in srgb, var(--auth-bg) 88%, transparent);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .auth-brand .app-logo-mark { filter: none; }
