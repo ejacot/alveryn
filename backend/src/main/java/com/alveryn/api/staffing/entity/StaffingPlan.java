@@ -39,6 +39,16 @@ public class StaffingPlan extends BaseEntity {
   @Column(name = "draft_revision", nullable = false)
   private long draftRevision;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "latest_published_version_id")
+  private StaffingPlanVersion latestPublishedVersion;
+
+  @Column(name = "published_revision")
+  private Long publishedRevision;
+
+  @Column(name = "published_at")
+  private java.time.OffsetDateTime publishedAt;
+
   @Version
   @Column(name = "lock_version", nullable = false)
   private long lockVersion;
@@ -77,6 +87,12 @@ public class StaffingPlan extends BaseEntity {
 
   public boolean includes(LocalDate date) {
     return date != null && !date.isBefore(weekStart) && !date.isAfter(weekStart.plusDays(6));
+  }
+
+  public boolean hasUnpublishedChanges() {
+    return latestPublishedVersion == null || publishedRevision == null
+        || !latestPublishedVersion.isSourceDraftComplete()
+        || draftRevision > publishedRevision;
   }
 
   private LocalDate requireMonday(LocalDate value) {

@@ -53,7 +53,8 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
-  void existingV90StaffingDataBackfillsWeeklyPlansWithoutChangingLegacyRows() throws Exception {
+  void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
+      throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
     String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
     String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
@@ -73,8 +74,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("91");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("92");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -84,6 +85,12 @@ class ProductionMigrationSafetyTest {
         assertCount(statement, "staffing_member_day_entries", 1);
         assertCount(statement, "staffing_plans", 2);
         assertCount(statement, "staffing_plan_days", 3);
+        assertCount(statement, "staffing_plan_versions", 1);
+        assertCount(statement, "staffing_plan_version_days", 1);
+        assertCount(statement, "staffing_plan_version_requirements", 1);
+        assertCount(statement, "staffing_plan_version_assignments", 1);
+        assertCount(statement, "staffing_plan_version_member_days", 1);
+        assertCount(statement, "staffing_plan_version_acknowledgements", 0);
         assertQueryCount(statement,
             "select count(*) from staffing_requirements where plan_day_id is null", 0);
         assertQueryCount(statement,
@@ -130,6 +137,299 @@ class ProductionMigrationSafetyTest {
                 + "or requirement.unit_id <> plan.unit_id "
                 + "or requirement.work_date <> day.work_date",
             0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions "
+                + "where version_number = 1 and source_draft_revision = 0 "
+                + "and publication_kind = 'LEGACY_PARTIAL' and coverage_basis = 'LEGACY_V90' "
+                + "and source_draft_complete = false "
+                + "and coverage_required = 4 and coverage_assigned = 1 "
+                + "and coverage_percentage = 25.00 and warning_count = 1 "
+                + "and published_by_membership_id is null "
+                + "and checksum ~ '^[0-9a-f]{64}$'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plans "
+                + "where latest_published_version_id is not null "
+                + "and published_revision = 0 and published_at is not null "
+                + "and (draft_revision > published_revision "
+                + "or not (select source_draft_complete from staffing_plan_versions "
+                + "where id = latest_published_version_id))",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plans "
+                + "where latest_published_version_id is null "
+                + "and published_revision is null and published_at is null",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_requirements "
+                + "where source_requirement_id = '00000000-0000-0000-0000-000000000951' "
+                + "and legacy_publication_status = 'PUBLISHED' "
+                + "and work_type_code = 'ROOM' and unit_name = 'Hotel Munich'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_assignments "
+                + "where source_assignment_id = '00000000-0000-0000-0000-000000000961' "
+                + "and assignment_status = 'ASSIGNED' and membership_status_snapshot = 'ACTIVE' "
+                + "and member_display_name = 'Member 00000000'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_assignments "
+                + "where member_display_name like '%@%'",
+            0);
+
+        String checksumBeforeSourceMutation = queryString(
+            url, username, password, schema, "select checksum from staffing_plan_versions");
+        statement.executeUpdate(
+            "update organization_units set name = 'Renamed source unit', active = false "
+                + "where id = '00000000-0000-0000-0000-000000000931'");
+        statement.executeUpdate(
+            "update organization_work_types set name = 'Renamed source work type', active = false "
+                + "where id = '00000000-0000-0000-0000-000000000941'");
+        statement.executeUpdate(
+            "update organization_memberships set membership_status = 'SUSPENDED' "
+                + "where id = '00000000-0000-0000-0000-000000000921'");
+        statement.executeUpdate(
+            "delete from staffing_requirements where organization_id = "
+                + "'00000000-0000-0000-0000-000000000911'");
+        statement.executeUpdate(
+            "delete from organization_memberships "
+                + "where id = '00000000-0000-0000-0000-000000000921'");
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_requirements "
+                + "where unit_name = 'Hotel Munich' and work_type_name = 'Room cleaning'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_assignments "
+                + "where unit_name = 'Hotel Munich' and work_type_name = 'Room cleaning' "
+                + "and membership_status_snapshot = 'ACTIVE'",
+            1);
+        assertQueryCount(statement, "select count(*) from staffing_plan_version_member_days", 1);
+        assertThatThrownBy(() -> statement.executeUpdate(
+            "delete from staffing_plans where latest_published_version_id is not null"))
+                .hasMessageContaining("fk_staffing_plan_versions_plan_scope");
+        assertCount(statement, "staffing_plan_versions", 1);
+        assertThat(queryString(url, username, password, schema,
+            "select checksum from staffing_plan_versions"))
+                .isEqualTo(checksumBeforeSourceMutation);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v92MarksCompleteLegacyDraftOnlyWhenEveryPlanRequirementWasPublished() throws Exception {
+    String schema = "flyway_v90_complete_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+
+    try {
+      flyway(url, username, password, schema, "90").migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "update staffing_requirements set publication_status = 'PUBLISHED', "
+                + "published_at = coalesce(published_at, updated_at) "
+                + "where unit_id = '00000000-0000-0000-0000-000000000931'");
+      }
+
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isEqualTo(2);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions version "
+                + "join staffing_plans plan on plan.latest_published_version_id = version.id "
+                + "where version.source_draft_complete = true "
+                + "and plan.draft_revision = plan.published_revision",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions version "
+                + "join staffing_plans plan on plan.latest_published_version_id = version.id "
+                + "where not version.source_draft_complete "
+                + "or plan.draft_revision > plan.published_revision",
+            0);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v92MemberDaySnapshotsFollowPublishedAssignmentsNotOrganizationWideUnitAccess()
+      throws Exception {
+    String schema = "flyway_v90_member_scope_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+
+    try {
+      flyway(url, username, password, schema, "90").migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "insert into user_accounts (id, email, password_hash, email_verified) values "
+                + "('00000000-0000-0000-0000-000000000902', "
+                + "'multi-unit-member@example.com', 'hash', true)");
+        statement.executeUpdate(
+            "insert into organization_memberships "
+                + "(id, organization_id, user_id, membership_role, membership_status, "
+                + "first_name, last_name) values "
+                + "('00000000-0000-0000-0000-000000000923', "
+                + "'00000000-0000-0000-0000-000000000911', "
+                + "'00000000-0000-0000-0000-000000000902', 'EMPLOYEE', 'ACTIVE', "
+                + "'Multi', 'Unit')");
+        statement.executeUpdate(
+            "insert into organization_unit_memberships "
+                + "(id, unit_id, membership_id, active) values "
+                + "('00000000-0000-0000-0000-000000000933', "
+                + "'00000000-0000-0000-0000-000000000931', "
+                + "'00000000-0000-0000-0000-000000000923', true), "
+                + "('00000000-0000-0000-0000-000000000935', "
+                + "'00000000-0000-0000-0000-000000000932', "
+                + "'00000000-0000-0000-0000-000000000923', true)");
+        statement.executeUpdate(
+            "update staffing_requirements set publication_status = 'PUBLISHED', "
+                + "published_at = updated_at "
+                + "where id = '00000000-0000-0000-0000-000000000953'");
+        statement.executeUpdate(
+            "insert into staffing_assignments "
+                + "(id, requirement_id, membership_id, assignment_status, "
+                + "assigned_by_membership_id) values "
+                + "('00000000-0000-0000-0000-000000000964', "
+                + "'00000000-0000-0000-0000-000000000953', "
+                + "'00000000-0000-0000-0000-000000000923', 'ASSIGNED', "
+                + "'00000000-0000-0000-0000-000000000921')");
+        statement.executeUpdate(
+            "insert into staffing_member_day_entries "
+                + "(id, organization_id, membership_id, work_date, entry_type, notes) values "
+                + "('00000000-0000-0000-0000-000000000972', "
+                + "'00000000-0000-0000-0000-000000000911', "
+                + "'00000000-0000-0000-0000-000000000923', "
+                + "'2026-08-12', 'REST_DAY', 'Relevant only where assigned')");
+      }
+
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isEqualTo(2);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_member_days member_day "
+                + "join staffing_plan_versions version on version.id = member_day.version_id "
+                + "where member_day.source_day_entry_id = "
+                + "'00000000-0000-0000-0000-000000000972' "
+                + "and version.unit_id = '00000000-0000-0000-0000-000000000931'",
+            0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_member_days member_day "
+                + "join staffing_plan_versions version on version.id = member_day.version_id "
+                + "where member_day.source_day_entry_id = "
+                + "'00000000-0000-0000-0000-000000000972' "
+                + "and version.unit_id = '00000000-0000-0000-0000-000000000932'",
+            1);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v92SnapshotsInvitedAssignmentsButExcludesThemFromEffectiveLegacyCoverage()
+      throws Exception {
+    String schema = "flyway_v90_invited_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+
+    try {
+      flyway(url, username, password, schema, "90").migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            """
+            insert into organization_memberships (
+              id, organization_id, user_id, membership_role, membership_status,
+              first_name, last_name, invited_email
+            ) values (
+              '00000000-0000-0000-0000-000000000922',
+              '00000000-0000-0000-0000-000000000911',
+              null, 'EMPLOYEE', 'INVITED', 'Invited', 'Cleaner', 'invited-cleaner@example.com'
+            )
+            """);
+        statement.executeUpdate(
+            """
+            insert into staffing_assignments (
+              id, requirement_id, membership_id, assignment_status, assigned_by_membership_id
+            ) values (
+              '00000000-0000-0000-0000-000000000963',
+              '00000000-0000-0000-0000-000000000951',
+              '00000000-0000-0000-0000-000000000922',
+              'ASSIGNED', '00000000-0000-0000-0000-000000000921'
+            )
+            """);
+      }
+
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isEqualTo(2);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_version_assignments "
+                + "where source_assignment_id = '00000000-0000-0000-0000-000000000963' "
+                + "and member_display_name = 'Invited Cleaner' "
+                + "and membership_status_snapshot = 'INVITED'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions "
+                + "where coverage_required = 4 and coverage_assigned = 1 "
+                + "and coverage_percentage = 25.00 and warning_count = 1",
+            1);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void v92UsesDeterministicLegacyTimestampWhenPublishedAtWasNeverRecorded() throws Exception {
+    String schema = "flyway_v90_null_publish_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+
+    try {
+      flyway(url, username, password, schema, "90").migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "update staffing_requirements set published_at = null "
+                + "where publication_status = 'PUBLISHED'");
+      }
+
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isEqualTo(2);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions where published_at is not null",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_requirements "
+                + "where publication_status = 'PUBLISHED' and published_at is null",
+            1);
       }
     } finally {
       clean(url, username, password, schema);
@@ -193,22 +493,29 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
-  void v91BackfillIsIndependentOfLegacyRequirementInsertionOrder() throws Exception {
-    String schema = "flyway_v90_order_" + UUID.randomUUID().toString().replace("-", "");
+  void v92BackfillAndChecksumAreIndependentOfLegacyRequirementInsertionOrder() throws Exception {
+    String normalSchema = "flyway_v90_order_a_" + UUID.randomUUID().toString().replace("-", "");
+    String reversedSchema = "flyway_v90_order_b_" + UUID.randomUUID().toString().replace("-", "");
     String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
     String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
     String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
-    Flyway v90 = flyway(url, username, password, schema, "90");
 
     try {
-      v90.migrate();
-      insertV90StaffingFixture(url, username, password, schema, true);
-      Flyway latest = flyway(url, username, password, schema, null);
+      flywayAtTimezone(url, username, password, normalSchema, "90", "UTC").migrate();
+      insertV90StaffingFixture(url, username, password, normalSchema, false);
+      assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
+          .migrate().migrationsExecuted)
+          .isEqualTo(2);
 
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
+      flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
+      insertV90StaffingFixture(url, username, password, reversedSchema, true);
+      assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
+          .migrate().migrationsExecuted)
+          .isEqualTo(2);
+
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
-        statement.execute("set search_path to " + schema);
+        statement.execute("set search_path to " + reversedSchema);
         assertCount(statement, "staffing_plans", 2);
         assertCount(statement, "staffing_plan_days", 3);
         assertQueryCount(statement,
@@ -233,6 +540,44 @@ class ProductionMigrationSafetyTest {
         assertQueryCount(statement,
             "select count(*) from staffing_requirements where publication_status = 'DRAFT'",
             2);
+      }
+      assertThat(queryString(url, username, password, normalSchema,
+          "select checksum from staffing_plan_versions")).isEqualTo(
+              queryString(url, username, password, reversedSchema,
+                  "select checksum from staffing_plan_versions"));
+    } finally {
+      clean(url, username, password, normalSchema);
+      clean(url, username, password, reversedSchema);
+    }
+  }
+
+  @Test
+  void v92DoesNotCreateVersionForPlanWithoutPublishedLegacyRequirements() throws Exception {
+    String schema = "flyway_v91_draft_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+
+    try {
+      flyway(url, username, password, schema, "90").migrate();
+      insertV90StaffingFixture(url, username, password, schema);
+      flyway(url, username, password, schema, "91").migrate();
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        statement.executeUpdate(
+            "update staffing_requirements set publication_status = 'DRAFT', published_at = null");
+      }
+
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isEqualTo(1);
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plan_versions", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plans where latest_published_version_id is not null",
+            0);
       }
     } finally {
       clean(url, username, password, schema);
@@ -622,6 +967,21 @@ class ProductionMigrationSafetyTest {
     return configuration.load();
   }
 
+  private Flyway flywayAtTimezone(
+      String url, String username, String password, String schema, String target,
+      String timezone) {
+    var configuration = Flyway.configure()
+        .dataSource(url, username, password)
+        .schemas(schema)
+        .defaultSchema(schema)
+        .createSchemas(true)
+        .cleanDisabled(false)
+        .initSql("SET TIME ZONE '" + timezone.replace("'", "''") + "'")
+        .locations("classpath:db/migration");
+    if (target != null) configuration.target(target);
+    return configuration.load();
+  }
+
   private void clean(String url, String username, String password, String schema) {
     Flyway.configure()
         .dataSource(url, username, password)
@@ -642,6 +1002,18 @@ class ProductionMigrationSafetyTest {
     try (var result = statement.executeQuery(sql)) {
       assertThat(result.next()).isTrue();
       assertThat(result.getInt(1)).isEqualTo(expected);
+    }
+  }
+
+  private String queryString(
+      String url, String username, String password, String schema, String sql) throws Exception {
+    try (var connection = DriverManager.getConnection(url, username, password);
+        var statement = connection.createStatement()) {
+      statement.execute("set search_path to " + schema);
+      try (var result = statement.executeQuery(sql)) {
+        assertThat(result.next()).isTrue();
+        return result.getString(1);
+      }
     }
   }
 

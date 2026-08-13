@@ -17,13 +17,18 @@ import com.alveryn.api.organization.repository.OrganizationUnitRepository;
 import com.alveryn.api.staffing.entity.StaffingPlanDaySource;
 import com.alveryn.api.staffing.repository.StaffingPlanDayRepository;
 import com.alveryn.api.staffing.repository.StaffingPlanRepository;
+import com.alveryn.api.staffing.repository.StaffingPlanVersionRepository;
 import com.alveryn.api.staffing.service.StaffingPlanFoundationService;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -34,10 +39,13 @@ class StaffingPlanFoundationIntegrationTest {
   @Autowired StaffingPlanFoundationService service;
   @Autowired StaffingPlanRepository plans;
   @Autowired StaffingPlanDayRepository days;
+  @Autowired StaffingPlanVersionRepository versions;
   @Autowired OrganizationRepository organizations;
   @Autowired OrganizationUnitRepository units;
   @Autowired OrganizationMembershipRepository memberships;
   @Autowired UserAccountRepository users;
+  @Autowired JdbcTemplate jdbc;
+  @Autowired EntityManager entityManager;
 
   @Test
   void planScopeIsUniquePerBusinessUnitAndWeek() {
@@ -117,6 +125,61 @@ class StaffingPlanFoundationIntegrationTest {
         first.organization().getId(), unit.getId(), plan.getId(), WEEK_START.plusDays(1), null,
         null, StaffingPlanDaySource.MANUAL, second.owner().getId()))
         .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  void immutableVersionReadsRequireOrganizationUnitAndPlanScope() {
+    var first = business("Version Business", "version-plan-owner@example.com");
+    var unit = unit(first.organization(), "Version Unit");
+    var siblingUnit = unit(first.organization(), "Sibling Version Unit");
+    var second = business("Other Version Business", "other-version-owner@example.com");
+    var plan = service.getOrCreate(
+        first.organization().getId(), unit.getId(), WEEK_START, first.owner().getId());
+    UUID versionId = UUID.randomUUID();
+
+    jdbc.update(
+        """
+        insert into staffing_plan_versions (
+          id, organization_id, unit_id, plan_id, version_number, source_draft_revision,
+          published_at, timezone, week_start, coverage_required, coverage_assigned,
+          coverage_percentage, coverage_basis, warning_count, checksum, publication_kind,
+          source_draft_complete, publication_note
+        ) values (?, ?, ?, ?, 1, 0, current_timestamp, 'Europe/Berlin', ?, 0, 0,
+          0, 'LEGACY_V90', 0, ?, 'LEGACY_PARTIAL', false, 'Scoped read fixture')
+        """,
+        versionId, first.organization().getId(), unit.getId(), plan.getId(), WEEK_START,
+        "0".repeat(64));
+    jdbc.update(
+        "update staffing_plans set latest_published_version_id = ?, "
+            + "published_revision = 0, published_at = current_timestamp where id = ?",
+        versionId, plan.getId());
+    entityManager.clear();
+
+    assertThat(versions.findByOrganizationIdAndUnitIdAndPlanIdAndVersionNumber(
+        first.organization().getId(), unit.getId(), plan.getId(), 1))
+            .map(version -> version.getId())
+            .contains(versionId);
+    assertThat(versions.findByOrganizationIdAndUnitIdAndPlanIdAndVersionNumber(
+        first.organization().getId(), siblingUnit.getId(), plan.getId(), 1)).isEmpty();
+    assertThat(versions.findByOrganizationIdAndUnitIdAndPlanIdAndVersionNumber(
+        second.organization().getId(), unit.getId(), plan.getId(), 1)).isEmpty();
+    assertThat(service.getScoped(first.organization().getId(), unit.getId(), plan.getId())
+        .hasUnpublishedChanges()).isTrue();
+
+    jdbc.update("update staffing_plan_versions set source_draft_complete = true where id = ?",
+        versionId);
+    entityManager.clear();
+    assertThat(service.getScoped(first.organization().getId(), unit.getId(), plan.getId())
+        .hasUnpublishedChanges()).isFalse();
+  }
+
+  @Test
+  void immutableVersionRepositoryExposesReadOnlyScopedQueries() {
+    assertThat(CrudRepository.class.isAssignableFrom(StaffingPlanVersionRepository.class)).isFalse();
+    assertThat(java.util.Arrays.stream(StaffingPlanVersionRepository.class.getDeclaredMethods())
+        .map(java.lang.reflect.Method::getName))
+            .allMatch(name -> name.startsWith("find"))
+            .noneMatch(name -> name.startsWith("save") || name.startsWith("delete"));
   }
 
   private BusinessFixture business(String name, String email) {
