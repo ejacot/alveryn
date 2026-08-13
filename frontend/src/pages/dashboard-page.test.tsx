@@ -267,37 +267,20 @@ describe("DashboardPage", () => {
       organizationName: "Hotel Berlin",
       from: "2026-07-13",
       to: "2026-07-19",
-      currentMembershipId: "member-1",
-      newPublication: true,
       dayEntries: [],
-      requirements: [{
-        id: "requirement-1",
+      assignments: [{
+        id: "assignment-1",
+        date: "2026-07-13",
         unitId: "unit-1",
         unitName: "Housekeeping",
         workTypeId: "type-1",
-        code: "CAM",
+        workTypeCode: "CAM",
         workTypeName: "Camere",
         color: "#10b981",
-        date: "2026-07-13",
         startTime: "08:00:00",
         endTime: null,
-        requiredWorkers: 5,
-        assignedWorkers: 1,
-        coverageDifference: -4,
-        coverageStatus: "UNDERSTAFFED",
-        publicationStatus: "PUBLISHED",
         checkInMode: "OPTIONAL",
-        assignments: [{
-          id: "assignment-1",
-          membershipId: "member-1",
-          memberName: "Maria Popescu",
-          startTime: "08:00:00",
-          endTime: null,
-          hasConflict: false,
-          conflictingAssignmentIds: [],
-          viewed: false,
-          result: null
-        }]
+        result: null
       }]
     }]);
 
@@ -316,26 +299,18 @@ describe("DashboardPage", () => {
     vi.mocked(listWorkRecordsInRange).mockResolvedValue([]);
     vi.mocked(getPersonalBusinessSchedule).mockResolvedValue([{
       organizationId: "org-1", organizationName: "Hotel Berlin", from: "2026-07-13", to: "2026-07-19",
-      currentMembershipId: "member-1", newPublication: false, dayEntries: [],
-      requirements: [{
-        id: "requirement-1", unitId: "unit-1", unitName: "Housekeeping", workTypeId: "type-1",
-        code: "CAM", workTypeName: "Camere", color: "#10b981", date: "2026-07-13",
-        startTime: "08:00:00", endTime: "16:30:00", requiredWorkers: 1, assignedWorkers: 1,
-        coverageDifference: 0, coverageStatus: "COVERED", publicationStatus: "PUBLISHED", checkInMode: "OPTIONAL",
-        assignments: [{
-          id: "assignment-1", membershipId: "member-1", memberName: "Maria Popescu",
-          startTime: "08:00:00", endTime: "16:30:00", hasConflict: false,
-          conflictingAssignmentIds: [], viewed: true,
+      dayEntries: [],
+      assignments: [{
+          id: "assignment-1", date: "2026-07-13", unitId: "unit-1", unitName: "Housekeeping",
+          workTypeId: "type-1", workTypeCode: "CAM", workTypeName: "Camere", color: "#10b981",
+          startTime: "08:00:00", endTime: "16:30:00", checkInMode: "OPTIONAL",
           result: {
-            id: "result-1", assignmentId: "assignment-1", organizationId: "org-1",
-            organizationName: "Hotel Berlin", memberName: "Maria Popescu", date: "2026-07-13",
-            workTypeName: "Camere", workTypeCode: "CAM", unitName: "Housekeeping",
+            id: "result-1",
             actualStartTime: "07:55:00", actualEndTime: "16:25:00", breakMinutes: 30,
             completedQuantity: 12, notes: null, approvalStatus: "APPROVED",
             submittedAt: "2026-07-13T17:00:00Z", reviewedAt: "2026-07-13T18:00:00Z",
             checkedInAt: null, checkedOutAt: null, timeCaptureSource: "MANUAL"
           }
-        }]
       }]
     }]);
 

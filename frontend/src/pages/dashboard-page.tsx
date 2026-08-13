@@ -150,13 +150,8 @@ export function DashboardPage({
   const selectedPlannedAssignment = useMemo(
     () =>
       (businessScheduleQuery.data ?? [])
-        .flatMap((schedule) => schedule.requirements)
-        .flatMap((requirement) =>
-          requirement.assignments.map((assignment) => ({
-            requirement,
-            assignment,
-          })),
-        )
+        .flatMap((schedule) => schedule.assignments)
+        .map((assignment) => ({ assignment }))
         .find((value) => value.assignment.id === selectedPlannedAssignmentId) ??
       null,
     [businessScheduleQuery.data, selectedPlannedAssignmentId],
@@ -759,10 +754,10 @@ export function DashboardPage({
                 {t("dashboard:selectedDay.planned")}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-white">
-                {selectedPlannedAssignment.requirement.workTypeName}
+                {selectedPlannedAssignment.assignment.workTypeName}
               </h2>
               <p className="text-sm text-white/45">
-                {selectedPlannedAssignment.requirement.unitName}
+                {selectedPlannedAssignment.assignment.unitName}
               </p>
             </div>
             {selectedPlannedAssignment.assignment.result?.approvalStatus !==
@@ -1114,17 +1109,11 @@ function buildPlannedBusinessActivities(
   t: ReturnType<typeof useTranslation<["dashboard", "common"]>>["t"],
 ): SelectedDayActivity[] {
   return schedules.flatMap((schedule) =>
-    schedule.requirements
-      .filter((requirement) => requirement.date === date)
-      .flatMap((requirement) =>
-        requirement.assignments
-          .filter(
-            (assignment) =>
-              assignment.membershipId === schedule.currentMembershipId,
-          )
-          .map((assignment) => {
-            const startTime = assignment.startTime ?? requirement.startTime;
-            const endTime = assignment.endTime ?? requirement.endTime;
+    schedule.assignments
+      .filter((assignment) => assignment.date === date)
+      .map((assignment) => {
+            const startTime = assignment.startTime;
+            const endTime = assignment.endTime;
             const interval =
               startTime && endTime
                 ? `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`
@@ -1146,8 +1135,8 @@ function buildPlannedBusinessActivities(
             return {
               id: `planned-${assignment.id}`,
               kind: "PLANNED_BUSINESS" as const,
-              title: requirement.workTypeName,
-              subtitle: requirement.unitName,
+              title: assignment.workTypeName,
+              subtitle: assignment.unitName,
               projectTitle: schedule.organizationName,
               periodLabel: interval,
               duration: approvedMinutes
@@ -1158,15 +1147,14 @@ function buildPlannedBusinessActivities(
               approvedMinutes,
               unitBreakdown: [
                 {
-                  id: requirement.id,
-                  label: requirement.workTypeName,
-                  enteredValue: requirement.code,
+                  id: assignment.id,
+                  label: assignment.workTypeName,
+                  enteredValue: assignment.workTypeCode,
                   displayOrder: 0,
                 },
               ],
             };
           }),
-      ),
   );
 }
 

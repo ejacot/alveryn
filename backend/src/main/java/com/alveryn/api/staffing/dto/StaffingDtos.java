@@ -53,8 +53,19 @@ public final class StaffingDtos {
       int requiredWorkers, BigDecimal requiredQuantity, int assignedWorkers, int coverageDifference,
       String coverageStatus, String publicationStatus, String checkInMode,
       List<AssignmentResponse> assignments) {}
+  public record PersonalAssignmentResultResponse(UUID id, LocalTime actualStartTime,
+      LocalTime actualEndTime, int breakMinutes, BigDecimal completedQuantity,
+      Integer calculatedMinutes, String notes, String approvalStatus,
+      OffsetDateTime submittedAt, OffsetDateTime reviewedAt, OffsetDateTime checkedInAt,
+      OffsetDateTime checkedOutAt, String timeCaptureSource) {}
+  public record PersonalAssignmentResponse(UUID id, LocalDate date, UUID unitId, String unitName,
+      UUID workTypeId, String workTypeCode, String workTypeName, String color,
+      LocalTime startTime, LocalTime endTime, String checkInMode,
+      PersonalAssignmentResultResponse result) {}
+  public record PersonalDayEntryResponse(UUID id, LocalDate date, String type, String notes,
+      boolean hasWorkConflict) {}
   public record PersonalScheduleResponse(UUID organizationId, String organizationName, LocalDate from, LocalDate to,
-      UUID currentMembershipId, boolean newPublication, List<RequirementResponse> requirements, List<DayEntryResponse> dayEntries) {}
+      List<PersonalAssignmentResponse> assignments, List<PersonalDayEntryResponse> dayEntries) {}
   public record ChangeEventResponse(UUID id, String eventType, String entityType, UUID entityId, LocalDate workDate,
       String summary, String actorName, OffsetDateTime createdAt) {}
   public record AbsenceRequestCreate(@NotNull UUID organizationId,@NotBlank String type,@NotNull LocalDate startDate,@NotNull LocalDate endDate,@Size(max=1000) String notes) {}

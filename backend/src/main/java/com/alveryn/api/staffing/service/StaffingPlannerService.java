@@ -174,15 +174,16 @@ public class StaffingPlannerService {
     if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
     return memberships.findAllByUserIdAndStatusOrderByCreatedAtAsc(currentUser.requireUserId(), MembershipStatus.ACTIVE).stream()
         .filter(member -> member.getOrganization().getOrganizationType() == OrganizationType.BUSINESS).map(member -> {
-          var weekStart = from.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-          var publishedEntities = requirements.findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(member.getOrganization().getId(), from, to).stream().filter(value -> "PUBLISHED".equals(value.getPublicationStatus())).toList();
-          var previousReceipt = receipts.findByOrganizationIdAndMembershipIdAndWeekStart(member.getOrganization().getId(), member.getId(), weekStart);
-          boolean newPublication = publishedEntities.stream().anyMatch(value -> value.getPublishedAt() != null && previousReceipt.map(receipt -> receipt.getViewedAt().isBefore(value.getPublishedAt())).orElse(true));
-          var receipt = previousReceipt.map(value -> { value.markViewed(); return value; }).orElseGet(() -> new StaffingScheduleReceipt(member.getOrganization(), member, weekStart));
-          receipts.save(receipt); receipts.flush();
-          var published = publishedEntities.stream().map(this::requirementResponse).toList();
-          var entries = dayEntries.findAllByOrganizationIdAndDateBetweenOrderByDateAsc(member.getOrganization().getId(), from, to).stream().map(this::dayEntryResponse).toList();
-          return new PersonalScheduleResponse(member.getOrganization().getId(), member.getOrganization().getName(), from, to, member.getId(), newPublication, published, entries);
+          var ownAssignments = assignments.findPublishedForMembership(member.getId(), from, to);
+          var published = ownAssignments.stream().map(this::personalAssignmentResponse).toList();
+          var publishedAssignmentDates = ownAssignments.stream()
+              .map(value -> value.getRequirement().getDate()).collect(java.util.stream.Collectors.toSet());
+          var entries = dayEntries.findAllByOrganizationIdAndMembershipIdAndDateBetweenOrderByDateAsc(
+              member.getOrganization().getId(), member.getId(), from, to).stream()
+              .map(value -> personalDayEntryResponse(value, publishedAssignmentDates.contains(value.getDate())))
+              .toList();
+          return new PersonalScheduleResponse(member.getOrganization().getId(), member.getOrganization().getName(),
+              from, to, published, entries);
         }).toList();
   }
   @Transactional(readOnly = true)
@@ -328,6 +329,26 @@ public class StaffingPlannerService {
   private DayEntryResponse dayEntryResponse(StaffingMemberDayEntry value) {
     boolean conflict = !assignments.findAllByMembershipIdAndStatusAndRequirementDate(value.getMembership().getId(), "ASSIGNED", value.getDate()).isEmpty();
     return new DayEntryResponse(value.getId(), value.getMembership().getId(), value.getDate(), value.getType(), value.getNotes(), conflict);
+  }
+  private PersonalAssignmentResponse personalAssignmentResponse(StaffingAssignment value) {
+    var requirement = value.getRequirement();
+    return new PersonalAssignmentResponse(value.getId(), requirement.getDate(), requirement.getUnit().getId(),
+        requirement.getUnit().getName(), requirement.getWorkType().getId(), requirement.getWorkType().getCode(),
+        requirement.getWorkType().getName(), requirement.getWorkType().getColor(), effectiveStart(value),
+        effectiveEnd(value), requirement.getUnit().getCheckInMode().name(),
+        assignmentResults.findByAssignmentId(value.getId()).map(this::personalResultResponse).orElse(null));
+  }
+  private PersonalDayEntryResponse personalDayEntryResponse(StaffingMemberDayEntry value,
+      boolean hasPublishedWorkConflict) {
+    return new PersonalDayEntryResponse(value.getId(), value.getDate(), value.getType(), value.getNotes(),
+        hasPublishedWorkConflict);
+  }
+  private PersonalAssignmentResultResponse personalResultResponse(StaffingAssignmentResult value) {
+    return new PersonalAssignmentResultResponse(value.getId(), value.getActualStartTime(),
+        value.getActualEndTime(), value.getBreakMinutes(), value.getCompletedQuantity(),
+        calculatedMinutes(value), value.getNotes(), value.getApprovalStatus(), value.getSubmittedAt(),
+        value.getReviewedAt(), value.getCheckedInAt(), value.getCheckedOutAt(),
+        value.getTimeCaptureSource());
   }
   private boolean viewed(StaffingRequirement requirement, OrganizationMembership member) {
     if (requirement.getPublishedAt() == null) return false;
