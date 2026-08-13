@@ -23,7 +23,7 @@ export function AuthLayout() {
   }, []);
 
   return (
-    <div className="auth-shell fixed inset-0 overflow-hidden overscroll-none bg-[#0D0D0D] text-white">
+    <div className="auth-route-shell fixed inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       <RouteScrollReset />
       <Outlet />
     </div>

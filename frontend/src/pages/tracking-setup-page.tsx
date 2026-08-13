@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, Check, Clock3, WalletCards } from "lucide-react";
+import { Check, ChevronLeft, Clock3, Languages, LoaderCircle, Moon, Sun, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -14,13 +14,16 @@ import {
 import { queryKeys } from "../api/query-keys";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { ScreenMessage } from "../components/ui/screen-message";
-import { Select } from "../components/ui/select";
+import { AppLogo } from "../components/branding/app-logo";
 import { useAuth } from "../features/auth/use-auth";
+import { clearInitialSetupDraft, getInitialSetupDraft, storeInitialSetupDraft, type InitialSetupDraft } from "../features/onboarding/onboarding-storage";
+import { applyAppLanguage, i18n as appI18n } from "../i18n";
+import { getNativeLanguageName, normalizeLanguage, storeLanguagePreference, SUPPORTED_LANGUAGES } from "../i18n/language";
 import { APP_HOME_PATH } from "../routes/app-paths";
 import type { CompensationType, Employment, TrackingFocus } from "../types/configuration";
 import { firstDayOfCurrentMonthLocalIsoDate, todayLocalIsoDate } from "../utils/date";
+import { applyAppTheme } from "../utils/theme";
 
 const trackingOptions: Array<{
   value: TrackingFocus;
@@ -158,74 +161,62 @@ export function TrackingSetupPage() {
   );
 }
 
-type InitialCompensationType = Extract<CompensationType, "HOURLY" | "FIXED_SALARY">;
+type InitialCompensationType = Extract<CompensationType, "HOURLY" | "PER_UNIT" | "FIXED_AMOUNT">;
 
 function NewAccountSetup() {
   const { t, i18n } = useTranslation("onboarding");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, refreshCurrentUser } = useAuth();
-  const [step, setStep] = useState(1);
-  const [firstName, setFirstName] = useState(user?.profile?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.profile?.lastName ?? "");
-  const employmentName = t("setup.workplace.defaultName");
-  const startDate = firstDayOfCurrentMonthLocalIsoDate();
-  const [compensationType, setCompensationType] = useState<InitialCompensationType>("HOURLY");
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [fixedSalaryAmount, setFixedSalaryAmount] = useState("");
-  const [currency, setCurrency] = useState(user?.preferences?.currency ?? "EUR");
-  const workTypeName = t("setup.timeEntry.preview.regularShift");
-  const [paidSickLeave, setPaidSickLeave] = useState(
-    user?.preferences?.paidSickLeave ?? true
-  );
-  const [sickLeavePaidHours, setSickLeavePaidHours] = useState(
-    String((user?.preferences?.preferredDailyMinutes ?? 480) / 60)
-  );
-  const [paidVacation, setPaidVacation] = useState(
-    user?.preferences?.paidVacation ?? true
-  );
-  const [vacationPaidHours, setVacationPaidHours] = useState(
-    String((user?.preferences?.preferredDailyMinutes ?? 480) / 60)
-  );
+  const userId = user?.account.id ?? "";
+  const restored = useMemo(() => userId ? getInitialSetupDraft(userId) : null, [userId]);
+  const [step, setStep] = useState<1 | 2 | 3>(restored?.step ?? 1);
+  const [firstName, setFirstName] = useState(restored?.firstName ?? user?.profile?.firstName ?? "");
+  const [lastName, setLastName] = useState(restored?.lastName ?? user?.profile?.lastName ?? "");
+  const [compensationType, setCompensationType] = useState<InitialCompensationType>(restored?.compensationType ?? "HOURLY");
+  const [hourlyRate, setHourlyRate] = useState(restored?.hourlyRate ?? "");
+  const [unitLabel, setUnitLabel] = useState(restored?.unitLabel ?? "m²");
+  const [ratePerUnit, setRatePerUnit] = useState(restored?.ratePerUnit ?? "");
+  const [currency, setCurrency] = useState(restored?.currency ?? user?.preferences?.currency ?? "EUR");
+  const [paidVacation, setPaidVacation] = useState(restored?.paidVacation ?? true);
+  const [paidSickLeave, setPaidSickLeave] = useState(restored?.paidSickLeave ?? true);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+  const paidMinutes = user?.preferences?.preferredDailyMinutes ?? 480;
+
+  useEffect(() => {
+    if (!userId) return;
+    const draft: InitialSetupDraft = { version: 1, step, firstName, lastName, compensationType, hourlyRate, unitLabel, ratePerUnit, currency, paidVacation, paidSickLeave };
+    storeInitialSetupDraft(userId, draft);
+  }, [compensationType, currency, firstName, hourlyRate, lastName, paidSickLeave, paidVacation, ratePerUnit, step, unitLabel, userId]);
 
   const finishMutation = useMutation({
     mutationFn: async () => {
       const preferences = user?.preferences;
       if (!preferences) throw new Error(t("setup.errors.preferences"));
-
-      await completeInitialSetup({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+      return completeInitialSetup({
+        firstName: firstName.trim(), lastName: lastName.trim(),
         language: i18n.resolvedLanguage ?? i18n.language ?? "en",
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || preferences.timezone || "UTC",
-        currency,
-        firstDayOfWeek: preferences.firstDayOfWeek,
-        dateFormat: preferences.dateFormat,
-        timeFormat: preferences.timeFormat,
-        theme: preferences.theme,
+        currency, firstDayOfWeek: preferences.firstDayOfWeek, dateFormat: preferences.dateFormat,
+        timeFormat: preferences.timeFormat, theme: theme === "dark" ? "DARK" : "LIGHT",
         defaultBreakMinutes: preferences.defaultBreakMinutes,
-        preferredDailyMinutes: preferences.preferredDailyMinutes ?? 480,
-        paidSickLeave,
-        sickLeavePaidMinutesPerDay: paidSickLeave ? Math.round(parseNumber(sickLeavePaidHours) * 60) : 0,
-        paidVacation,
-        vacationPaidMinutesPerDay: paidVacation ? Math.round(parseNumber(vacationPaidHours) * 60) : 0,
-        employmentName: employmentName.trim(),
-        startDate,
+        preferredDailyMinutes: paidMinutes,
+        paidSickLeave, sickLeavePaidMinutesPerDay: paidSickLeave ? paidMinutes : 0,
+        paidVacation, vacationPaidMinutesPerDay: paidVacation ? paidMinutes : 0,
+        employmentName: t("setup.workplace.defaultName"), startDate: firstDayOfCurrentMonthLocalIsoDate(),
         compensationType,
         hourlyRate: compensationType === "HOURLY" ? parseNumber(hourlyRate) : null,
-        fixedSalaryAmount: compensationType === "FIXED_SALARY" ? parseNumber(fixedSalaryAmount) : null,
-        timerEnabled: false,
-        hourBalanceEnabled: compensationType === "FIXED_SALARY",
-        targetMinutes: compensationType === "FIXED_SALARY" ? 160 * 60 : null,
-        hourBalanceValidityMonths: compensationType === "FIXED_SALARY" ? 12 : null,
-        workTypeName: workTypeName.trim(),
-        unitLabel: null,
-        unitSymbol: null,
-        ratePerUnit: null
+        fixedSalaryAmount: null, timerEnabled: false, hourBalanceEnabled: false,
+        targetMinutes: null, hourBalanceValidityMonths: null,
+        workTypeName: compensationType === "PER_UNIT" ? t("setup.flow.preview.completedWork") : compensationType === "FIXED_AMOUNT" ? t("setup.flow.preview.fixedWork") : t("setup.timeEntry.preview.regularShift"),
+        unitLabel: compensationType === "PER_UNIT" ? unitLabel.trim() : null,
+        unitSymbol: compensationType === "PER_UNIT" ? unitLabel.trim().slice(0, 20) : null,
+        ratePerUnit: compensationType === "PER_UNIT" ? parseNumber(ratePerUnit) : null
       });
     },
     onSuccess: async () => {
+      clearInitialSetupDraft(userId);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.employments.all() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.hourlyRates.all() }),
@@ -239,211 +230,45 @@ function NewAccountSetup() {
     }
   });
 
-  const next = () => {
-    const error = validateSetupStep(step, {
-      firstName,
-      lastName,
-      compensationType,
-      hourlyRate,
-      fixedSalaryAmount,
-      paidSickLeave,
-      sickLeavePaidHours,
-      paidVacation,
-      vacationPaidHours
-    }, t);
-    setValidationError(error);
-    if (!error) {
-      if (step === 3) finishMutation.mutate();
-      else setStep((current) => Math.min(3, current + 1));
-    }
+  const validate = () => {
+    if (step === 1 && (!firstName.trim() || !lastName.trim())) return t("setup.errors.name");
+    if (step === 2 && compensationType === "HOURLY" && !(parseNumber(hourlyRate) > 0)) return t("setup.errors.rate");
+    if (step === 2 && compensationType === "PER_UNIT" && (!unitLabel.trim() || !(parseNumber(ratePerUnit) > 0))) return t("setup.errors.perUnit");
+    return null;
   };
+  const next = () => {
+    if (finishMutation.isPending) return;
+    const error = validate(); setValidationError(error);
+    if (error) return;
+    if (step === 3) finishMutation.mutate(); else setStep((step + 1) as 2 | 3);
+  };
+  const summaryWork = compensationType === "HOURLY" ? t("setup.flow.hourly") : compensationType === "PER_UNIT" ? t("setup.flow.perUnit") : t("setup.flow.fixedPrice");
+  const summaryRate = compensationType === "HOURLY" ? `${currency} ${hourlyRate || "—"} / ${t("setup.flow.hour")}` : compensationType === "PER_UNIT" ? `${currency} ${ratePerUnit || "—"} / ${unitLabel}` : null;
+  const awaySummary = !paidVacation && !paidSickLeave ? t("setup.flow.none") : [paidVacation ? t("setup.flow.vacation") : null, paidSickLeave ? t("setup.flow.sick") : null].filter(Boolean).join(" · ");
 
-  return (
-    <section className="pb-8 pt-5">
-      <div className="mx-auto max-w-md space-y-5">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
-          <span>{t("setup.label")}</span>
-          <span>{step} / 3</span>
-        </div>
-        <div className="h-1 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${step / 3 * 100}%` }} />
-        </div>
-
-        <Card variant="section" className="space-y-5 rounded-[2rem] p-6">
-          {step === 1 ? (
-            <>
-              <SetupHeader title={t("setup.profile.title")} description={t("setup.profile.description")} />
-              <Input label={t("setup.profile.firstName")} value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.currentTarget.value)} />
-              <Input label={t("setup.profile.lastName")} value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.currentTarget.value)} />
-            </>
-          ) : null}
-
-          {step === 2 ? (
-            <>
-              <SetupHeader title={t("setup.payment.title")} />
-              <div className="grid grid-cols-2 gap-3">
-                <ChoiceCard compact selected={compensationType === "HOURLY"} icon={Clock3} title={t("setup.payment.hourly.title")} description={t("setup.payment.hourly.description")} onClick={() => setCompensationType("HOURLY")} />
-                <ChoiceCard compact selected={compensationType === "FIXED_SALARY"} icon={Banknote} title={t("setup.payment.fixed.title")} description={t("setup.payment.fixed.description")} onClick={() => setCompensationType("FIXED_SALARY")} />
-              </div>
-              {compensationType === "HOURLY" ? (
-                <div className="grid grid-cols-[1fr_6.5rem] gap-3">
-                  <Input label={t("setup.payment.rate")} inputMode="decimal" value={hourlyRate} placeholder=".../h" onChange={(event) => setHourlyRate(event.currentTarget.value)} />
-                  <Select label={t("setup.payment.currency")} value={currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
-                    {CURRENCY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </Select>
-                </div>
-              ) : null}
-              {compensationType === "FIXED_SALARY" ? (
-                <div className="grid grid-cols-[1fr_6.5rem] gap-3">
-                  <Input label={t("setup.payment.salary")} inputMode="decimal" value={fixedSalaryAmount} placeholder=".../month" onChange={(event) => setFixedSalaryAmount(event.currentTarget.value)} />
-                  <Select label={t("setup.payment.currency")} value={currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
-                    {CURRENCY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </Select>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-
-          {step === 3 ? (
-            <>
-              <SetupHeader
-                title={t("setup.absences.title")}
-                description={t("setup.absences.description")}
-              />
-              <PaidAbsenceChoice
-                title={t("setup.absences.sick")}
-                paid={paidSickLeave}
-                onChange={setPaidSickLeave}
-                paidHours={sickLeavePaidHours}
-                onPaidHoursChange={setSickLeavePaidHours}
-                t={t}
-              />
-              <PaidAbsenceChoice
-                title={t("setup.absences.vacation")}
-                paid={paidVacation}
-                onChange={setPaidVacation}
-                paidHours={vacationPaidHours}
-                onPaidHoursChange={setVacationPaidHours}
-                t={t}
-              />
-            </>
-          ) : null}
-
-          {validationError ? <p className="text-sm text-red-300">{validationError}</p> : null}
-          {finishMutation.error ? <p className="text-sm text-red-300">{getApiError(finishMutation.error).message}</p> : null}
-
-          <div className={`grid gap-3 ${step > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-            {step > 1 ? <Button variant="ghost" onClick={() => { setValidationError(null); setStep((current) => current - 1); }}>{t("setup.actions.back")}</Button> : null}
-            <Button disabled={finishMutation.isPending} onClick={next}>
-              {finishMutation.isPending ? t("setup.actions.saving") : step === 3 ? t("setup.actions.finish") : t("setup.actions.continue")}
-            </Button>
-          </div>
-        </Card>
+  return <main className="onboarding-prototype initial-setup" data-prototype-theme={theme}>
+    <header className="onboarding-prototype__header"><AppLogo wordmark/><div className="onboarding-prototype__tools">
+      <label className="onboarding-prototype__language"><Languages/><span>{normalizeLanguage(appI18n.resolvedLanguage).toUpperCase()}</span><select aria-label={t("setup.flow.language")} value={normalizeLanguage(appI18n.resolvedLanguage)} onChange={(event)=>{const value=normalizeLanguage(event.target.value);storeLanguagePreference(value);applyAppLanguage(value);}}>{SUPPORTED_LANGUAGES.map((language)=><option key={language} value={language}>{getNativeLanguageName(language)}</option>)}</select></label>
+      <button type="button" className="onboarding-prototype__theme" aria-label={t("setup.flow.theme")} onClick={()=>{const next=theme==="dark"?"light":"dark";setTheme(next);applyAppTheme(next==="dark"?"DARK":"LIGHT");}}>{theme==="dark"?<Sun/>:<Moon/>}</button>
+    </div></header>
+    <section className="onboarding-prototype__flow"><div className="onboarding-prototype__form">
+      <div className="onboarding-prototype__progress" aria-label={t("setup.flow.step",{step})}><span>0{step} / 03 · {t(`setup.flow.steps.${step}`)}</span><i><b style={{width:`${step*33.333}%`}}/></i></div>
+      {restored ? <p className="onboarding-prototype__notice"><Check/>{t("setup.flow.restored")}</p>:null}
+      <div className="onboarding-prototype__step">
+      {step===1?<><FlowHeader title={t("setup.flow.nameTitle")} description={t("setup.flow.nameDescription")}/><div className="onboarding-prototype__fields two"><label>{t("setup.profile.firstName")}<input autoComplete="given-name" value={firstName} aria-invalid={Boolean(validationError)} onChange={e=>setFirstName(e.target.value)}/></label><label>{t("setup.profile.lastName")}<input autoComplete="family-name" value={lastName} aria-invalid={Boolean(validationError)} onChange={e=>setLastName(e.target.value)}/></label></div></>:null}
+      {step===2?<><FlowHeader title={t("setup.flow.workTitle")} description={t("setup.flow.workDescription")}/><div className="onboarding-prototype__choices" role="radiogroup" aria-label={t("setup.flow.workTitle")}>{(["HOURLY","PER_UNIT","FIXED_AMOUNT"] as const).map(type=><button type="button" role="radio" aria-checked={compensationType===type} key={type} onClick={()=>{setCompensationType(type);setValidationError(null);}}><span>{type==="HOURLY"?t("setup.flow.hourly"):type==="PER_UNIT"?t("setup.flow.perUnit"):t("setup.flow.fixedPrice")}</span><i>{compensationType===type?<Check/>:null}</i></button>)}</div>{compensationType!=="FIXED_AMOUNT"?<div className={`onboarding-prototype__fields ${compensationType==="PER_UNIT"?"three":"rate"}`}>{compensationType==="PER_UNIT"?<label>{t("setup.flow.unit")}<input value={unitLabel} onChange={e=>setUnitLabel(e.target.value)}/></label>:null}<label>{compensationType==="PER_UNIT"?t("setup.flow.ratePerUnit"):t("setup.payment.rate")}<input inputMode="decimal" value={compensationType==="PER_UNIT"?ratePerUnit:hourlyRate} onChange={e=>compensationType==="PER_UNIT"?setRatePerUnit(e.target.value):setHourlyRate(e.target.value)}/></label><label>{t("setup.payment.currency")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>{CURRENCY_OPTIONS.map(option=><option key={option}>{option}</option>)}</select></label><small>{t("setup.flow.changeRate")}</small></div>:<p className="onboarding-prototype__quiet">{t("setup.flow.fixedHelp")}</p>}</>:null}
+      {step===3?<><FlowHeader title={t("setup.flow.awayTitle")} description={t("setup.flow.awayDescription")}/><div className="onboarding-prototype__away" aria-label={t("setup.flow.awayTitle")}><AwayChoice label={t("setup.flow.vacation")} selected={paidVacation} onClick={()=>setPaidVacation(!paidVacation)}/><AwayChoice label={t("setup.flow.sick")} selected={paidSickLeave} onClick={()=>setPaidSickLeave(!paidSickLeave)}/><AwayChoice label={t("setup.flow.none")} selected={!paidVacation&&!paidSickLeave} onClick={()=>{setPaidVacation(false);setPaidSickLeave(false);}}/></div><section className="onboarding-prototype__summary"><p>{t("setup.flow.firstRecord")}</p><dl><div><dt>{t("setup.flow.work")}</dt><dd>{summaryWork}</dd></div>{summaryRate?<div><dt>{t("setup.flow.rate")}</dt><dd>{summaryRate}</dd></div>:null}<div><dt>{t("setup.flow.paidAway")}</dt><dd>{awaySummary}</dd></div></dl></section><p className="onboarding-prototype__quiet">{t("setup.flow.later")}</p></>:null}
+      {validationError?<p className="onboarding-prototype__error" role="alert">{validationError}</p>:null}
+      {finishMutation.error?<p className="onboarding-prototype__api-error" role="alert">{t("setup.flow.apiError")}</p>:null}
       </div>
-    </section>
-  );
+      <div className="onboarding-prototype__actions">{step>1?<button type="button" className="back" onClick={()=>{setValidationError(null);setStep((step-1) as 1|2);}}><ChevronLeft/>{t("setup.actions.back")}</button>:<span/>}<button type="button" className="continue" aria-busy={finishMutation.isPending} disabled={finishMutation.isPending} onClick={next}>{finishMutation.isPending?<><LoaderCircle className="spin"/>{t("setup.flow.creating")}</>:step===3?t("setup.flow.create"):t("setup.actions.continue")}</button></div>
+    </div><aside className="onboarding-prototype__preview" aria-label={t("setup.flow.previewLabel")}><div className="onboarding-prototype__preview-grid"/><p>{t("setup.flow.firstRecord")}</p><h2>{step===1?t("setup.flow.preview.named"):t("setup.flow.preview.workday")}</h2><div className="onboarding-prototype__day"><div><span>{t("setup.timeEntry.preview.regularShift")}</span><b>{step===1?t("setup.flow.preview.day"):summaryWork}</b></div><time>08:00 → 16:30</time><dl><div><dt>{t("setup.flow.work")}</dt><dd>{step===1?"—":summaryWork}</dd></div><div><dt>{t("setup.flow.rate")}</dt><dd>{step===1?"—":summaryRate??t("setup.flow.preview.perRecord")}</dd></div><div><dt>{t("setup.flow.paidAway")}</dt><dd>{step<3?t("setup.flow.preview.step3"):awaySummary}</dd></div></dl></div></aside></section>
+  </main>;
 }
 
-function SetupHeader({ title, description }: { title: string; description?: string }) {
-  return <div className="space-y-2"><h1 className="font-title text-[1.75rem] font-semibold leading-tight text-white">{title}</h1>{description ? <p className="text-sm leading-6 text-white/56">{description}</p> : null}</div>;
-}
-
-function ChoiceCard({ selected, icon: Icon, title, description, onClick, horizontal = false, compact = false }: {
-  selected: boolean;
-  icon?: typeof Clock3;
-  title: string;
-  description: string;
-  onClick: () => void;
-  horizontal?: boolean;
-  compact?: boolean;
-}) {
-  return (
-    <button type="button" role="radio" aria-checked={selected} onClick={onClick} className={`relative rounded-[1.35rem] border text-left transition active:scale-[0.985] ${compact ? "min-h-[7.25rem] p-3.5" : horizontal ? "min-h-[6.5rem] w-full p-4" : "min-h-[9rem] p-4"} ${selected ? "border-white/55 bg-white/[0.12]" : "border-white/10 bg-white/[0.025]"}`}>
-      <span className="flex items-center justify-between gap-3">
-        {Icon ? <Icon className="h-5 w-5 text-white/72" aria-hidden="true" /> : <span />}
-        <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${selected ? "border-white bg-white text-black" : "border-white/25"}`}>{selected ? <Check className="h-3.5 w-3.5" /> : null}</span>
-      </span>
-      <span className={`${compact ? "mt-2 text-sm" : "mt-3"} block font-semibold text-white`}>{title}</span>
-      <span className={`mt-1 block text-xs text-white/48 ${compact ? "leading-4" : "leading-5"}`}>{description}</span>
-    </button>
-  );
-}
-
-function PaidAbsenceChoice({
-  title,
-  paid,
-  onChange,
-  paidHours,
-  onPaidHoursChange,
-  t
-}: {
-  title: string;
-  paid: boolean;
-  onChange: (paid: boolean) => void;
-  paidHours: string;
-  onPaidHoursChange: (hours: string) => void;
-  t: (key: string) => string;
-}) {
-  return (
-    <section className="space-y-3 rounded-[1.35rem] border border-white/[0.08] bg-white/[0.025] p-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 font-semibold text-white">{title}</p>
-        <div className="grid w-[11rem] shrink-0 grid-cols-2 gap-2" role="radiogroup" aria-label={title}>
-        {([true, false] as const).map((value) => (
-          <button
-            key={String(value)}
-            type="button"
-            role="radio"
-            aria-checked={paid === value}
-            onClick={() => onChange(value)}
-            className={`min-h-11 rounded-xl border px-3 text-sm font-semibold transition ${
-              paid === value
-                ? "border-white/45 bg-white/[0.12] text-white"
-                : "border-white/[0.07] text-white/46"
-            }`}
-          >
-            {t(value ? "setup.absences.paid" : "setup.absences.unpaid")}
-          </button>
-        ))}
-        </div>
-      </div>
-      {paid ? (
-        <Input
-          label={t("setup.absences.paidHours")}
-          type="number"
-          inputMode="decimal"
-          min="0.25"
-          max="24"
-          step="0.25"
-          value={paidHours}
-          onChange={(event) => onPaidHoursChange(event.currentTarget.value)}
-        />
-      ) : null}
-    </section>
-  );
-}
-
-function validateSetupStep(step: number, values: {
-  firstName: string; lastName: string;
-  compensationType: InitialCompensationType; hourlyRate: string; fixedSalaryAmount: string;
-  paidSickLeave: boolean; sickLeavePaidHours: string; paidVacation: boolean; vacationPaidHours: string;
-}, t: (key: string) => string) {
-  if (step === 1 && (!values.firstName.trim() || !values.lastName.trim())) return t("setup.errors.name");
-  if (step === 2 && values.compensationType === "HOURLY" && (!(Number(values.hourlyRate.replace(",", ".")) >= 0))) return t("setup.errors.rate");
-  if (step === 2 && values.compensationType === "FIXED_SALARY" && (!(Number(values.fixedSalaryAmount.replace(",", ".")) >= 0))) return t("setup.errors.salary");
-  if (step === 3 && values.paidSickLeave && !validPaidHours(values.sickLeavePaidHours)) return t("setup.errors.paidHours");
-  if (step === 3 && values.paidVacation && !validPaidHours(values.vacationPaidHours)) return t("setup.errors.paidHours");
-  return null;
-}
-
-function parseNumber(value: string) {
-  return Number(value.replace(",", "."));
-}
-
-function validPaidHours(value: string) {
-  const hours = parseNumber(value);
-  return hours > 0 && hours <= 24;
-}
+function FlowHeader({title,description}:{title:string;description:string}){return <div className="onboarding-prototype__intro"><h1>{title}</h1><p>{description}</p></div>;}
+function AwayChoice({label,selected,onClick}:{label:string;selected:boolean;onClick:()=>void}){return <button type="button" aria-pressed={selected} onClick={onClick}><i>{selected?<Check/>:null}</i>{label}</button>;}
+function parseNumber(value:string){return Number(value.replace(",","."));}
 
 function TrackingChoices({
   value,

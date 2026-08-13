@@ -6,7 +6,12 @@ export const loginSchema = z.object({
   password: z.string().min(8, i18n.t("auth:validation.passwordMin"))
 });
 
-export const registerSchema = loginSchema;
+export const registerSchema = loginSchema.extend({
+  confirmPassword: z.string().min(8, i18n.t("auth:validation.passwordMin"))
+}).refine((values) => values.password === values.confirmPassword, {
+  path: ["confirmPassword"],
+  message: i18n.t("auth:validation.passwordsMatch")
+});
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email(i18n.t("auth:validation.email"))
@@ -24,7 +29,7 @@ export const resetPasswordSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   email: z.string().email(i18n.t("auth:validation.email")),
-  code: z.string().min(6, i18n.t("auth:validation.codeLength"))
+  code: z.string().regex(/^\d{6}$/, i18n.t("auth:validation.codeLength"))
 });
 
 export type LoginValues = z.infer<typeof loginSchema>;

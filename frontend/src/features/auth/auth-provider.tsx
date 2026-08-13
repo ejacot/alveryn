@@ -16,6 +16,7 @@ import { setAuthFailureHandler } from "../../api/http";
 import { AuthContext } from "./auth-context";
 import type { AuthTokens, CurrentUser } from "../../types/auth";
 import { applyAppTheme } from "../../utils/theme";
+import { clearInitialSetupDraft } from "../onboarding/onboarding-storage";
 
 type Props = {
   children: React.ReactNode;
@@ -98,6 +99,7 @@ export function AuthProvider({ children }: Props) {
         await logout();
       }
     } finally {
+      if (user?.account.id) clearInitialSetupDraft(user.account.id);
       clearTokens();
       queryClient.clear();
       setUser(null);

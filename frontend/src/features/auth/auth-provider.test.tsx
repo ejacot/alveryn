@@ -140,12 +140,14 @@ describe("AuthProvider", () => {
     renderProvider();
     const user = userEvent.setup();
     await screen.findByText("alveryn@example.com");
+    localStorage.setItem("alveryn.onboarding.initial-setup:1", "draft");
 
     await user.click(screen.getByText("Logout"));
 
     await waitFor(() => {
       expect(getStoredAccessToken()).toBeNull();
       expect(hasStoredSession()).toBe(false);
+      expect(localStorage.getItem("alveryn.onboarding.initial-setup:1")).toBeNull();
     });
   });
 });
