@@ -38,12 +38,14 @@ describe("preview routes", () => {
     const routes = buildRoutes(false);
 
     expect(routes.some((route) => route.path === "/preview/dashboard")).toBe(false);
+    expect(routes.some((route) => route.path === "/preview/business-planning")).toBe(false);
   });
 
   it("includes preview routes when enabled", () => {
     const routes = buildRoutes(true);
 
     expect(routes.some((route) => route.path === "/preview/dashboard")).toBe(true);
+    expect(routes.some((route) => route.path === "/preview/business-planning")).toBe(true);
   });
 
   it("includes the settings route tree", () => {

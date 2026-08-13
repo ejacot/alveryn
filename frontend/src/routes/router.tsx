@@ -159,6 +159,11 @@ const PreviewDashboardPage = lazy(() =>
     default: module.PreviewDashboardPage
   }))
 );
+const BusinessPlanningPrototypePage = lazy(() =>
+  import("../pages/business-planning-prototype-page").then((module) => ({
+    default: module.BusinessPlanningPrototypePage
+  }))
+);
 const OnboardingPage = lazy(() =>
   import("../pages/onboarding-page").then((module) => ({
     default: module.OnboardingPage
@@ -273,12 +278,21 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
   ];
 
   if (enablePreviewRoutes) {
-    routes.splice(1, 0, {
-      path: "/preview/dashboard",
-      element: <AppLayout />,
-      errorElement: <RouteErrorPage />,
-      children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
-    });
+    routes.splice(
+      1,
+      0,
+      {
+        path: "/preview/dashboard",
+        element: <AppLayout />,
+        errorElement: <RouteErrorPage />,
+        children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
+      },
+      {
+        path: "/preview/business-planning",
+        element: withSuspense(<BusinessPlanningPrototypePage />),
+        errorElement: <RouteErrorPage />
+      }
+    );
   }
 
   routes.push({
