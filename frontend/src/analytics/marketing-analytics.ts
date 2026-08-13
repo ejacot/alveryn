@@ -1,6 +1,6 @@
 import { buildApiUrl } from "../api/config";
 
-export type MarketingEvent = "LANDING_VIEW" | "REGISTRATION_STARTED";
+export type MarketingEvent = "LANDING_VIEW" | "DEMO_STARTED" | "REGISTRATION_STARTED";
 
 const VISITOR_ID_KEY = "alveryn.marketingVisitorId";
 const SESSION_EVENT_PREFIX = "alveryn.marketingEvent.";

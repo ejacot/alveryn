@@ -66,6 +66,25 @@ export function calculateGrossAmount(workedMinutes: number, hourlyRate: string |
   return (workedMinutes / 60) * numericRate;
 }
 
+export function calculatePerUnitGrossAmount(
+  quantity: string | number,
+  ratePerUnit: string | number
+) {
+  const numericQuantity = Number(quantity);
+  const numericRate = Number(ratePerUnit);
+
+  if (!Number.isFinite(numericQuantity) || !Number.isFinite(numericRate) || numericQuantity <= 0) {
+    return 0;
+  }
+
+  return numericQuantity * numericRate;
+}
+
+export function calculateFixedGrossAmount(amount: string | number) {
+  const numericAmount = Number(amount);
+  return Number.isFinite(numericAmount) && numericAmount > 0 ? numericAmount : 0;
+}
+
 export function parseTimeToMinutes(value: string) {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
   if (!match) {

@@ -7,14 +7,20 @@ import { WelcomePage } from "./welcome-page";
 const authState = {
   isAuthenticated: false,
   isHydrating: false,
-  user: null as null | { preferences?: { onboardingCompleted?: boolean } }
+  user: null as null | { preferences?: { onboardingCompleted?: boolean } },
 };
 
 vi.mock("../features/auth/use-auth", () => ({ useAuth: () => authState }));
-vi.mock("../analytics/marketing-analytics", () => ({ recordMarketingEvent: vi.fn() }));
+vi.mock("../analytics/marketing-analytics", () => ({
+  recordMarketingEvent: vi.fn(),
+}));
 
 function renderPage() {
-  return render(<MemoryRouter><WelcomePage /></MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <WelcomePage />
+    </MemoryRouter>,
+  );
 }
 
 describe("WelcomePage", () => {
@@ -25,64 +31,95 @@ describe("WelcomePage", () => {
     window.localStorage.clear();
     document.documentElement.dataset.theme = "dark";
     vi.mocked(recordMarketingEvent).mockClear();
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({ matches: query.includes("dark"), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("dark"),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
-  it("explains the product clearly in the hero and records conversion intent", () => {
+  it("leads with the product and provides conversion paths", () => {
     renderPage();
-    expect(screen.getByRole("heading", { level: 1, name: "Track your work. See exactly what you earned." })).toBeInTheDocument();
-    expect(screen.getByText(/Record hours, shifts, completed units, fixed-price jobs and absences/i)).toBeInTheDocument();
-    expect(screen.getAllByText("6h 30m × €17.50/hour")).toHaveLength(2);
-    expect(screen.getByText("24 deliveries × €1.80")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("link", { name: /start tracking for free/i })[0]);
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Never guess if your paycheck is right.",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "See your month take shape" }),
+    );
+    expect(recordMarketingEvent).toHaveBeenCalledWith("DEMO_STARTED");
+    expect(
+      screen.getAllByRole("link", { name: /create my free record/i }).length,
+    ).toBeGreaterThan(0);
+    fireEvent.click(
+      screen.getAllByRole("link", { name: "Create my free record" })[0],
+    );
     expect(recordMarketingEvent).toHaveBeenCalledWith("REGISTRATION_STARTED");
   });
 
-  it("shows concrete work modes, workflow, audience and product proof", () => {
+  it("keeps the approved value continuity in one product story", () => {
+    renderPage();
+    expect(screen.getByText("€164.00")).toBeInTheDocument();
+    expect(screen.getByText("€2,730.00")).toBeInTheDocument();
+    expect(screen.getByText("€2,894.00")).toBeInTheDocument();
+    expect(screen.getByText("€2,734.00")).toBeInTheDocument();
+    expect(screen.getByText("Δ €160.00")).toBeInTheDocument();
+    expect(screen.getAllByText("11").length).toBeGreaterThan(0);
+  });
+
+  it("contains no form or backend-connected product demo", () => {
     const { container } = renderPage();
-    expect(screen.getByText("Hourly work")).toBeInTheDocument();
-    expect(screen.getByText("Per-unit work")).toBeInTheDocument();
-    expect(screen.getByText("Fixed-price jobs")).toBeInTheDocument();
-    expect(screen.getByText("Multiple jobs and activities")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Set it up once. Record in seconds." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /people whose work does not fit one simple timer/i })).toBeInTheDocument();
-    expect(container.querySelector("#features")).toBeInTheDocument();
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
-    expect(container.querySelector("#for-who")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Explore Dashboard/i })).toHaveAttribute("href", "/welcome/dashboard");
-    expect(screen.getByRole("link", { name: /Explore Calendar/i })).toHaveAttribute("href", "/welcome/calendar");
-    expect(screen.getByRole("link", { name: /Explore Statistics/i })).toHaveAttribute("href", "/welcome/statistics");
+    expect(container.querySelector("form")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/How one Alveryn record/i)).toBeInTheDocument();
+    expect(recordMarketingEvent).toHaveBeenCalledTimes(1);
+    expect(recordMarketingEvent).toHaveBeenCalledWith("LANDING_VIEW");
   });
 
-  it("offers language and theme controls and renders a real footer", () => {
+  it("exposes a safe optional completed-work interaction", () => {
     renderPage();
-    expect(screen.getAllByLabelText("Choose language").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Use light mode" }));
-    expect(window.localStorage.getItem("alveryn.publicTheme")).toBe("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(screen.getByText("admin@alveryn.com")).toHaveAttribute("href", "mailto:admin@alveryn.com");
-    expect(screen.getByText(/personal work and earnings tracker/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add completed work/i })).toBeEnabled();
+    expect(screen.getAllByText("24 m²").length).toBeGreaterThan(0);
   });
 
-  it("does not contain payment CTAs or unsupported social proof", () => {
+  it("contains no image-based product simulation and no form that can mutate the backend", () => {
+    const { container } = renderPage();
+    expect(container.querySelector("img[src*='landing']")).not.toBeInTheDocument();
+    expect(container.querySelector("form")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Monthly work record/i)).toBeInTheDocument();
+  });
+
+  it("supports language, theme and installed-app routing", () => {
     renderPage();
-    expect(screen.queryByRole("link", { name: /buy|subscribe|pricing|checkout/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/thousands of users|five-star|guaranteed savings/i)).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText("Choose language").length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText("Every kind of work — one record.")).toBeInTheDocument();
+  });
+
+  it("uses the canonical public contact address in the footer for every language", () => {
+    renderPage();
+    const footer = screen.getByRole("contentinfo");
+    const language = screen.getAllByLabelText("Choose language")[0];
+    for (const locale of ["en", "de", "ro", "ru"]) {
+      fireEvent.change(language, { target: { value: locale } });
+      expect(footer).toHaveTextContent("admin@alveryn.com");
+    }
   });
 
   it("redirects authenticated users to the app home", () => {
     authState.isAuthenticated = true;
     authState.user = { preferences: { onboardingCompleted: true } };
-    render(<MemoryRouter initialEntries={["/"]}><Routes><Route path="/" element={<WelcomePage />} /><Route path={APP_HOME_PATH} element={<p>App home</p>} /></Routes></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path={APP_HOME_PATH} element={<p>App home</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
     expect(screen.getByText("App home")).toBeInTheDocument();
-  });
-
-  it("opens the app route from the root in standalone mode but keeps /welcome public", () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({ matches: query.includes("display-mode"), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-    const { unmount } = render(<MemoryRouter initialEntries={["/"]}><Routes><Route path="/" element={<WelcomePage />} /><Route path={APP_HOME_PATH} element={<p>Installed app home</p>} /></Routes></MemoryRouter>);
-    expect(screen.getByText("Installed app home")).toBeInTheDocument();
-    unmount();
-    render(<MemoryRouter initialEntries={["/welcome"]}><Routes><Route path="/welcome" element={<WelcomePage />} /><Route path={APP_HOME_PATH} element={<p>Installed app home</p>} /></Routes></MemoryRouter>);
-    expect(screen.getByRole("heading", { name: /Track your work/i })).toBeInTheDocument();
   });
 });

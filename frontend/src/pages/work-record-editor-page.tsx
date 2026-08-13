@@ -36,7 +36,9 @@ import { addDays, isValidDate, parseLocalIsoDate, safeLocalIsoDate } from "../ut
 import { parseDecimalInput } from "../utils/decimal-input";
 import { formatCurrency, formatMinutesAsDuration } from "../utils/format";
 import {
+  calculateFixedGrossAmount,
   calculateGrossAmount,
+  calculatePerUnitGrossAmount,
   calculateWorkRecordTimeMinutes,
   findApplicableHourlyRate
 } from "../features/work-records/work-record-calculations";
@@ -1767,14 +1769,16 @@ function buildGroupSummary(
       const rate = Number(workType.ratePerUnit);
       const parent = workType.parentId ? workTypes.find((item) => item.id === workType.parentId) : null;
       const workers = workType.teamworkEnabled || parent?.teamworkEnabled ? Number(teamSize) : 1;
-      if (Number.isFinite(rate) && workers > 0) addAmount(((quantity * rate) / workers) * extraMultiplier, workType.currency);
+      if (Number.isFinite(rate) && workers > 0) {
+        addAmount(calculatePerUnitGrossAmount(quantity / workers, rate) * extraMultiplier, workType.currency);
+      }
       const unitsPerHour = Number(workType.unitsPerHour);
       if (unitsPerHour > 0) equivalentMinutes += Math.round((quantity / unitsPerHour) * 60);
       continue;
     }
 
     if (mode === "FIXED_AMOUNT") {
-      addAmount(parseDecimalInput(line.fixedAmount) * extraMultiplier, line.currency);
+      addAmount(calculateFixedGrossAmount(parseDecimalInput(line.fixedAmount)) * extraMultiplier, line.currency);
     }
   }
 
@@ -1805,7 +1809,7 @@ function buildLinePreview(
     }
     return {
       label: workType.name,
-      amount: formatCurrency(String(fixedAmount), currency)
+      amount: formatCurrency(String(calculateFixedGrossAmount(fixedAmount)), currency)
     };
   }
   if (mode === "TIME_HOURLY") {
@@ -1845,7 +1849,9 @@ function buildLinePreview(
   if (mode === "UNITS_PER_UNIT") {
     const rate = Number(workType.ratePerUnit ?? NaN);
     const workers = workType.teamworkEnabled ? Number(teamSize) : 1;
-    const amount = Number.isFinite(rate) && workers > 0 ? (quantity * rate) / workers : null;
+    const amount = Number.isFinite(rate) && workers > 0
+      ? calculatePerUnitGrossAmount(quantity / workers, rate)
+      : null;
     return {
       label: `${quantity} ${unit}`,
       amount: amount !== null && workType.currency ? formatCurrency(String(amount), workType.currency) : null

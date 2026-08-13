@@ -14,8 +14,6 @@ services:
         value: https://api.alveryn.com
       - key: VITE_ENABLE_PREVIEW_ROUTES
         value: false
-      - key: VITE_SUPPORT_EMAIL
-        value: studio365media@gmail.com
     headers:
       - path: /*
         name: X-Frame-Options
