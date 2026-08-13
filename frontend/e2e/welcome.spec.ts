@@ -4,7 +4,14 @@ test.describe("Precision Flow public Welcome", () => {
   test("keeps the complete mobile story readable without backend writes", async ({ page }) => {
     const writes: string[] = [];
     page.on("request", (request) => {
-      if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && request.url().includes("/api/") && !request.url().includes("/analytics/public-event")) writes.push(request.url());
+      const isSessionRestore = request.url().includes("/api/auth/refresh");
+      const isPublicAnalytics = request.url().includes("/analytics/public-event");
+      if (
+        ["POST", "PUT", "PATCH", "DELETE"].includes(request.method())
+        && request.url().includes("/api/")
+        && !isSessionRestore
+        && !isPublicAnalytics
+      ) writes.push(request.url());
     });
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/welcome");
