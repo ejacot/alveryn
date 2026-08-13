@@ -6,7 +6,6 @@ import {
   clearTokens,
   getStoredAccessToken,
   hasStoredSession,
-  markSessionActive,
   setStoredAccessToken,
   storeSession,
   subscribeToAuthStorage
@@ -56,22 +55,6 @@ export function AuthProvider({ children }: Props) {
     }
   }, []);
 
-  const restoreSessionFromCookie = useCallback(async () => {
-    if (getStoredAccessToken()) {
-      return;
-    }
-
-    sessionRestorePromise ??= refreshSession()
-      .then((result) => {
-        setStoredAccessToken(result.accessToken);
-        markSessionActive();
-      })
-      .finally(() => {
-        sessionRestorePromise = null;
-      });
-    await sessionRestorePromise;
-  }, []);
-
   async function loginWithPassword(email: string, password: string) {
     const result = await login({ email, password });
     storeSession(result.accessToken);
@@ -115,8 +98,14 @@ export function AuthProvider({ children }: Props) {
     });
 
     async function hydrate() {
+      if (!hasStoredSession()) {
+        setUser(null);
+        setIsHydrating(false);
+        return;
+      }
+
       try {
-        await restoreSessionFromCookie();
+        await ensureSessionReady();
         await refreshCurrentUser();
       } catch {
         clearTokens();
@@ -156,7 +145,7 @@ export function AuthProvider({ children }: Props) {
       unsubscribe();
       setAuthFailureHandler(null);
     };
-  }, [ensureSessionReady, queryClient, refreshCurrentUser, restoreSessionFromCookie]);
+  }, [ensureSessionReady, queryClient, refreshCurrentUser]);
 
   return (
     <AuthContext.Provider
