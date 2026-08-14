@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,23 @@ public class OrganizationAccessService {
   public boolean canAccess(UUID organizationId, OrganizationUnit unit,
       OrganizationPermission... permissions) {
     return canAccess(activeMembership(organizationId), unit, permissions);
+  }
+
+  /**
+   * Builds one reusable unit-access check for a manager read. Role assignments are loaded once so
+   * filtering a week of requirements does not repeat membership and permission queries per row.
+   */
+  @Transactional(readOnly = true)
+  public Predicate<OrganizationUnit> unitAccessFilter(UUID organizationId,
+      OrganizationPermission... permissions) {
+    var membership = activeMembership(organizationId);
+    if (isLegacyManager(membership)) return ignored -> true;
+    var required = Arrays.asList(permissions);
+    var authorizedScopes = assignments.findAllForAccessCheck(membership.getId()).stream()
+        .filter(value -> value.getRole().getPermissions().stream()
+            .map(OrganizationPermission::valueOf).anyMatch(required::contains))
+        .toList();
+    return target -> authorizedScopes.stream().anyMatch(value -> scopeContains(value, target));
   }
 
   @Transactional(readOnly = true)

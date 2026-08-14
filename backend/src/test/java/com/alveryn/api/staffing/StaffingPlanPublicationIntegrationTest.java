@@ -16,6 +16,7 @@ import com.alveryn.api.staffing.service.StaffingPlanPublicationService;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationService.PublishCommand;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationFaultProbe;
 import com.alveryn.api.staffing.service.StaffingPlanMutationCoordinator;
+import com.alveryn.api.staffing.service.StaffingPlanCoverageService;
 import com.alveryn.api.user.entity.*;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import java.time.LocalDate;
@@ -49,6 +50,7 @@ class StaffingPlanPublicationIntegrationTest {
   @Autowired EntityManager entityManager;
   @Autowired TestFaultProbe faultProbe;
   @Autowired StaffingPlanMutationCoordinator mutations;
+  @Autowired StaffingPlanCoverageService coverage;
   @Autowired ApplicationContext applicationContext;
 
   @AfterEach void clearSecurity() {
@@ -136,12 +138,66 @@ class StaffingPlanPublicationIntegrationTest {
         assignmentId, requirementId, invited.getId(), fixture.owner().getId());
     jdbc.update("insert into staffing_assignments(id,requirement_id,membership_id,assignment_status,assigned_by_membership_id,created_at,updated_at) values(?,?,?,'ASSIGNED',?,current_timestamp,current_timestamp)",
         UUID.randomUUID(), requirementId, active.getId(), fixture.owner().getId());
+    var canonical = coverage.calculate(fixture.organizationId(), fixture.unitId(), fixture.planId());
     var result = publication.publishPlan(command(fixture, fixture.planRevision(), Set.of(
         "INVITATION_PENDING:" + assignmentId), null, "invite-key"));
-    assertThat(result.legacyCoverage().assigned()).isEqualTo(1);
-    assertThat(result.legacyCoverage().percentage()).isEqualByComparingTo("100.00");
+    assertThat(result.legacyCoverage().required()).isEqualTo(canonical.required());
+    assertThat(result.legacyCoverage().assigned()).isEqualTo(canonical.effectiveAssigned());
+    assertThat(result.legacyCoverage().percentage()).isEqualByComparingTo(canonical.percentage());
+    assertThat(result.canonicalCoverage()).isEqualTo(
+        new StaffingPlanPublicationService.CanonicalCoverage(canonical.required(),
+            canonical.assigned(), canonical.effectiveAssigned(), canonical.covered(),
+            canonical.missing(), canonical.overstaffed(), canonical.percentage()));
+    assertThat(result.warningsAcknowledged()).containsExactly(
+        canonical.issues().stream().filter(StaffingPlanCoverageService.PlanningIssue::acknowledgementRequired)
+            .map(StaffingPlanCoverageService.PlanningIssue::issueKey).findFirst().orElseThrow());
     assertThat(jdbc.queryForObject("select membership_status_snapshot from staffing_plan_version_assignments where version_id=? and organization_membership_id=?",
         String.class, result.versionId(), invited.getId())).isEqualTo("INVITED");
+  }
+
+  @Test void atomicSnapshotPersistsRawEffectiveCoveredMissingAndOverstaffedSeparately() {
+    Fixture fixture = fixture("canonical-snapshot");
+    UUID requirementId = requirement(fixture);
+    OrganizationMembership first = activeEmployee(fixture, "first-active");
+    OrganizationMembership second = activeEmployee(fixture, "second-active");
+    assignment(fixture, requirementId, first);
+    assignment(fixture, requirementId, second);
+    var invited = memberships.saveAndFlush(new OrganizationMembership(fixture.organization(),
+        "Pending", "Worker", "pending-" + UUID.randomUUID() + "@example.com"));
+    UUID invitedAssignment = UUID.randomUUID();
+    jdbc.update("""
+        insert into staffing_assignments(id,requirement_id,membership_id,assignment_status,
+          assigned_by_membership_id,created_at,updated_at)
+        values(?,?,?,'ASSIGNED',?,current_timestamp,current_timestamp)
+        """, invitedAssignment, requirementId, invited.getId(), fixture.owner().getId());
+
+    var canonical = coverage.calculate(fixture.organizationId(), fixture.unitId(), fixture.planId());
+    assertThat(canonical.required()).isEqualTo(1);
+    assertThat(canonical.assigned()).isEqualTo(3);
+    assertThat(canonical.effectiveAssigned()).isEqualTo(2);
+    assertThat(canonical.covered()).isEqualTo(1);
+    assertThat(canonical.missing()).isZero();
+    assertThat(canonical.overstaffed()).isEqualTo(1);
+
+    var result = publication.publishPlan(command(fixture, fixture.planRevision(), Set.of(
+        "INVITATION_PENDING:" + invitedAssignment,
+        "OVERSTAFFING:" + requirementId), null, "canonical-snapshot-key"));
+
+    assertThat(result.legacyCoverage().assigned()).isEqualTo(2);
+    assertThat(result.canonicalCoverage()).isEqualTo(
+        new StaffingPlanPublicationService.CanonicalCoverage(1, 3, 2, 1, 0, 1,
+            canonical.percentage()));
+    assertThat(jdbc.queryForMap("""
+        select coverage_assigned, coverage_raw_assigned, coverage_effective_assigned,
+          coverage_covered, coverage_missing, coverage_overstaffed
+        from staffing_plan_versions where id=?
+        """, result.versionId())).containsAllEntriesOf(Map.of(
+            "coverage_assigned", 2,
+            "coverage_raw_assigned", 3,
+            "coverage_effective_assigned", 2,
+            "coverage_covered", 1,
+            "coverage_missing", 0,
+            "coverage_overstaffed", 1));
   }
 
   @Test void warningsRequireAcknowledgementAndFailuresRollbackOperation() {

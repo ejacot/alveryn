@@ -11,6 +11,19 @@ public interface StaffingAssignmentRepository extends JpaRepository<StaffingAssi
   @Query("""
       select assignment from StaffingAssignment assignment
       join fetch assignment.requirement requirement
+      join fetch requirement.organization
+      join fetch requirement.unit
+      join fetch requirement.workType
+      join fetch assignment.membership membership
+      left join fetch membership.user
+      where requirement.id in :requirementIds and assignment.status = 'ASSIGNED'
+      order by assignment.createdAt asc, assignment.id asc
+      """)
+  List<StaffingAssignment> findAssignedForRequirements(
+      @Param("requirementIds") Collection<UUID> requirementIds);
+  @Query("""
+      select assignment from StaffingAssignment assignment
+      join fetch assignment.requirement requirement
       join fetch requirement.unit
       join fetch requirement.workType
       where assignment.membership.id = :membershipId

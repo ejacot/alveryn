@@ -11,6 +11,23 @@ public interface StaffingRequirementRepository extends JpaRepository<StaffingReq
     UUID getUnitId();
   }
   List<StaffingRequirement> findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(UUID organizationId, LocalDate from, LocalDate to);
+  @Query("""
+      select requirement from StaffingRequirement requirement
+      join fetch requirement.organization
+      join fetch requirement.unit
+      join fetch requirement.workType
+      join fetch requirement.planDay planDay
+      join fetch planDay.plan plan
+      join fetch plan.organization
+      join fetch plan.unit
+      where requirement.organization.id = :organizationId
+        and requirement.date between :from and :to
+      order by requirement.date asc, requirement.startTime asc, requirement.id asc
+      """)
+  List<StaffingRequirement> findAllForManagerRange(
+      @Param("organizationId") UUID organizationId,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to);
   Optional<StaffingRequirement> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
   @Query("""

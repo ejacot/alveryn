@@ -40,6 +40,9 @@ class StaffingPlannerIntegrationTest {
     String first = create("/api/organizations/" + orgId + "/members", "{\"firstName\":\"Ana\",\"lastName\":\"Test\"}");
     String second = create("/api/organizations/" + orgId + "/members", "{\"firstName\":\"Maria\",\"lastName\":\"Test\"}");
     String third = create("/api/organizations/" + orgId + "/members", "{\"firstName\":\"Elena\",\"lastName\":\"Test\"}");
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id in (?,?,?)",
+        java.util.UUID.fromString(first), java.util.UUID.fromString(second),
+        java.util.UUID.fromString(third));
     String type = create("/api/organizations/" + orgId + "/staffing/work-types", "{\"unitId\":\"" + team + "\",\"code\":\"PF\",\"name\":\"Public early\",\"color\":\"#10B981\",\"defaultStartTime\":\"05:00\",\"defaultEndTime\":\"13:30\",\"defaultBreakMinutes\":30}");
     String requirementBody = createBody("/api/organizations/" + orgId + "/staffing/requirements", "{\"unitId\":\"" + team + "\",\"workTypeId\":\"" + type + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":2}");
     String requirement = id(requirementBody);

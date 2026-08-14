@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class StaffingPlanPublicationService {
   private final StaffingPlanRepository plans;
   private final StaffingPlanPublicationWriter writer;
+  private final StaffingPlanCoverageService coverageService;
   private final OrganizationAccessService access;
   private final StaffingChangeEventRepository audit;
   private final EntityManager entityManager;
@@ -98,30 +99,32 @@ public class StaffingPlanPublicationService {
 
     String sourceBefore = writer.sourceFingerprint(command.organizationId(), command.unitId(),
         command.planId());
-    List<StaffingPlanPublicationWriter.Issue> issues = writer.review(command.organizationId(),
-        command.unitId(), command.planId());
+    StaffingPlanCoverageService.CoverageResult coverage = coverageService.calculate(
+        command.organizationId(), command.unitId(), command.planId());
+    List<StaffingPlanCoverageService.PlanningIssue> issues = coverage.issues();
     List<String> blockers = issues.stream()
-        .filter(issue -> issue.severity() == StaffingPlanPublicationWriter.Severity.BLOCKING_CONFLICT)
-        .map(StaffingPlanPublicationWriter.Issue::key).toList();
+        .filter(StaffingPlanCoverageService.PlanningIssue::publishBlocking)
+        .map(StaffingPlanCoverageService.PlanningIssue::issueKey).toList();
     if (!blockers.isEmpty()) {
       throw new ConflictException("Staffing plan has blocking conflicts",
           "PUBLICATION_BLOCKED", blockers);
     }
     Set<String> actualWarnings = new LinkedHashSet<>();
-    issues.stream().filter(issue -> issue.severity() == StaffingPlanPublicationWriter.Severity.WARNING)
-        .map(StaffingPlanPublicationWriter.Issue::key).forEach(actualWarnings::add);
+    issues.stream().filter(StaffingPlanCoverageService.PlanningIssue::acknowledgementRequired)
+        .map(StaffingPlanCoverageService.PlanningIssue::issueKey).forEach(actualWarnings::add);
     List<String> unknown = acknowledgedKeys.stream().filter(key -> !actualWarnings.contains(key)).toList();
     if (!unknown.isEmpty()) {
       throw new ValidationException("Acknowledged issue keys are not present in the current review");
     }
-    List<String> missing = issues.stream().filter(StaffingPlanPublicationWriter.Issue::acknowledgementRequired)
-        .map(StaffingPlanPublicationWriter.Issue::key).filter(key -> !acknowledgedKeys.contains(key)).toList();
+    List<String> missing = issues.stream()
+        .filter(StaffingPlanCoverageService.PlanningIssue::acknowledgementRequired)
+        .map(StaffingPlanCoverageService.PlanningIssue::issueKey)
+        .filter(key -> !acknowledgedKeys.contains(key)).toList();
     if (!missing.isEmpty()) {
       throw new ConflictException("Warnings must be acknowledged before publication",
           "WARNINGS_NOT_ACKNOWLEDGED", missing);
     }
 
-    StaffingPlanPublicationWriter.Coverage coverage = writer.coverage(command.planId());
     int versionNumber = writer.nextVersionNumber(command.planId());
     UUID previousVersionId = plan.getLatestPublishedVersion() == null ? null
         : plan.getLatestPublishedVersion().getId();
@@ -130,15 +133,15 @@ public class StaffingPlanPublicationService {
     writer.insertVersion(versionId, command.organizationId(), command.unitId(), command.planId(),
         versionNumber, command.expectedDraftRevision(), previousVersionId, publisher.getId(),
         publisherName, now, plan.getTimezone(), plan.getWeekStart(), coverage,
-        actualWarnings.size(), note);
+        coverage.warningCount(), note);
     faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_HEADER);
     writer.snapshotDaysAndRequirements(versionId, command.planId(), command.organizationId(), now);
     faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_REQUIREMENTS);
     writer.snapshotAssignments(versionId, command.planId(), command.organizationId(), now);
     faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_ASSIGNMENTS);
     writer.snapshotMemberDays(versionId, command.planId(), command.organizationId(), now);
-    List<StaffingPlanPublicationWriter.Issue> acknowledgedIssues = issues.stream()
-        .filter(issue -> acknowledgedKeys.contains(issue.key())).toList();
+    List<StaffingPlanCoverageService.PlanningIssue> acknowledgedIssues = issues.stream()
+        .filter(issue -> acknowledgedKeys.contains(issue.issueKey())).toList();
     writer.acknowledgements(versionId, acknowledgedIssues, publisher.getId(), publisherName, now);
     String checksum = writer.calculateAndStoreChecksum(versionId);
     String sourceAfter = writer.sourceFingerprint(command.organizationId(), command.unitId(),
@@ -158,7 +161,9 @@ public class StaffingPlanPublicationService {
 
     var summary = new StaffingPlanPublicationWriter.VersionSummary(versionId, versionNumber,
         command.expectedDraftRevision(), now, checksum, "ATOMIC_WEEKLY", coverage.required(),
-        coverage.assigned(), percentage(coverage), actualWarnings.size());
+        coverage.effectiveAssigned(), coverage.assigned(), coverage.effectiveAssigned(),
+        coverage.covered(), coverage.missing(), coverage.overstaffed(), coverage.percentage(),
+        coverage.warningCount());
     return result(command, false, acknowledgedKeys, summary, false);
   }
 
@@ -168,13 +173,18 @@ public class StaffingPlanPublicationService {
     return new PublicationResult(command.planId(), version.id(), version.versionNumber(),
         version.revision(), version.publishedAt(), version.checksum(), version.publicationKind(),
         hasUnpublishedChanges, new LegacyCoverage(version.required(), version.assigned(),
-            version.percentage(), "LEGACY_V90"), List.copyOf(acknowledged), replay);
+            version.percentage(), "LEGACY_V90"), canonicalCoverage(version),
+        List.copyOf(acknowledged), replay);
   }
 
-  private static BigDecimal percentage(StaffingPlanPublicationWriter.Coverage coverage) {
-    return coverage.required() == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(coverage.assigned())
-        .multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(coverage.required()), 2,
-            java.math.RoundingMode.HALF_UP);
+  private static CanonicalCoverage canonicalCoverage(
+      StaffingPlanPublicationWriter.VersionSummary version) {
+    if (version.rawAssigned() == null || version.effectiveAssigned() == null
+        || version.covered() == null || version.missing() == null
+        || version.overstaffed() == null) return null;
+    return new CanonicalCoverage(version.required(), version.rawAssigned(),
+        version.effectiveAssigned(), version.covered(), version.missing(),
+        version.overstaffed(), version.percentage());
   }
 
   private static void validate(PublishCommand command) {
@@ -224,7 +234,11 @@ public class StaffingPlanPublicationService {
   public record PublicationResult(UUID planId, UUID versionId, int versionNumber,
       long publishedRevision, OffsetDateTime publishedAt, String checksum,
       String publicationKind, boolean hasUnpublishedChanges, LegacyCoverage legacyCoverage,
-      List<String> warningsAcknowledged, boolean idempotentReplay) {}
+      CanonicalCoverage canonicalCoverage, List<String> warningsAcknowledged,
+      boolean idempotentReplay) {}
 
   public record LegacyCoverage(int required, int assigned, BigDecimal percentage, String basis) {}
+
+  public record CanonicalCoverage(int required, int assigned, int effectiveAssigned, int covered,
+      int missing, int overstaffed, BigDecimal percentage) {}
 }

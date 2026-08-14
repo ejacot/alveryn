@@ -47,6 +47,11 @@ public class StaffingPlanVersion {
   @Column(name = "week_start", nullable = false) private LocalDate weekStart;
   @Column(name = "coverage_required", nullable = false) private int coverageRequired;
   @Column(name = "coverage_assigned", nullable = false) private int coverageAssigned;
+  @Column(name = "coverage_raw_assigned") private Integer coverageRawAssigned;
+  @Column(name = "coverage_effective_assigned") private Integer coverageEffectiveAssigned;
+  @Column(name = "coverage_covered") private Integer coverageCovered;
+  @Column(name = "coverage_missing") private Integer coverageMissing;
+  @Column(name = "coverage_overstaffed") private Integer coverageOverstaffed;
   @Column(name = "coverage_percentage", nullable = false, precision = 8, scale = 2)
   private BigDecimal coveragePercentage;
 

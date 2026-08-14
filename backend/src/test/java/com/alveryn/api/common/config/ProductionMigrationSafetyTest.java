@@ -79,6 +79,38 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
+  void existingV93SchemaMigratesToV94WithNullableCanonicalCoverage() throws Exception {
+    String schema = "flyway_v93_coverage_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "93").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v94 = flyway(url, username, password, schema, "94");
+      assertThat(v94.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(v94.info().current().getVersion().getVersion()).isEqualTo("94");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from information_schema.columns where table_schema='" + schema
+                + "' and table_name='staffing_plan_versions' and column_name in "
+                + "('coverage_raw_assigned','coverage_effective_assigned','coverage_covered',"
+                + "'coverage_missing','coverage_overstaffed')",
+            5);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname="
+                + "'ck_staffing_plan_versions_canonical_coverage' "
+                + "and conrelid='staffing_plan_versions'::regclass",
+            1);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
   void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
       throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
@@ -100,8 +132,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(3);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("93");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(4);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("94");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -173,6 +205,12 @@ class ProductionMigrationSafetyTest {
                 + "and coverage_percentage = 25.00 and warning_count = 1 "
                 + "and published_by_membership_id is null "
                 + "and checksum ~ '^[0-9a-f]{64}$'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions where publication_kind='LEGACY_PARTIAL' "
+                + "and coverage_raw_assigned is null and coverage_effective_assigned is null "
+                + "and coverage_covered is null and coverage_missing is null "
+                + "and coverage_overstaffed is null",
             1);
         assertQueryCount(statement,
             "select count(*) from staffing_plans "
@@ -532,13 +570,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(3);
+          .isEqualTo(4);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(3);
+          .isEqualTo(4);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

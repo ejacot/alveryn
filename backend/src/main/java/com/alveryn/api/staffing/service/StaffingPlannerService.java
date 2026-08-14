@@ -32,15 +32,17 @@ public class StaffingPlannerService {
   private final StaffingAbsenceRequestRepository absenceRequests;
   private final OrganizationAccessService access;
   private final StaffingPlanMutationCoordinator mutations;
+  private final StaffingPlanCoverageService coverageService;
   private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
   public List<WorkTypeResponse> listWorkTypes(UUID organizationId) {
     access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
         OrganizationPermission.MANAGE_SCHEDULE);
+    var canViewUnit = access.unitAccessFilter(organizationId,
+        OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE);
     return workTypes.findAllByOrganizationIdOrderByNameAsc(organizationId).stream()
-        .filter(value -> access.canAccess(organizationId, value.getUnit(),
-            OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE))
+        .filter(value -> canViewUnit.test(value.getUnit()))
         .map(this::workTypeResponse).toList();
   }
   @Transactional
@@ -78,10 +80,12 @@ public class StaffingPlannerService {
     access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
         OrganizationPermission.MANAGE_SCHEDULE);
     if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
-    return requirements.findAllByOrganizationIdAndDateBetweenOrderByDateAscStartTimeAsc(organizationId, from, to)
-        .stream().filter(value -> access.canAccess(organizationId, value.getUnit(),
-            OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE))
-        .map(this::requirementResponse).toList();
+    var canViewUnit = access.unitAccessFilter(organizationId,
+        OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE);
+    List<StaffingRequirement> visible = requirements
+        .findAllForManagerRange(organizationId, from, to)
+        .stream().filter(value -> canViewUnit.test(value.getUnit())).toList();
+    return requirementResponses(visible);
   }
   @Transactional
   public RequirementResponse createRequirement(UUID organizationId, RequirementRequest request) {
@@ -125,8 +129,7 @@ public class StaffingPlannerService {
           audit(manager, "REQUIREMENTS_CREATED", "REQUIREMENT", null,
               request.dates().stream().min(LocalDate::compareTo).orElse(null),
               workType.getCode() + " × " + request.dates().size());
-          return new StaffingPlanMutationCoordinator.Change<>(values.stream()
-              .map(this::requirementResponse).toList(), true,
+          return new StaffingPlanMutationCoordinator.Change<>(requirementResponses(values), true,
               values.stream().map(StaffingRequirement::getId).collect(java.util.stream.Collectors.toSet()));
         }).value();
   }
@@ -420,31 +423,93 @@ public class StaffingPlannerService {
   private String workTypeFingerprint(OrganizationWorkType value){return String.join("\u001f",Objects.toString(value.getUnit()==null?null:value.getUnit().getId(),""),Objects.toString(value.getParent()==null?null:value.getParent().getId(),""),value.getCode(),value.getName(),Objects.toString(value.getColor(),""),Objects.toString(value.getDefaultStartTime(),""),Objects.toString(value.getDefaultEndTime(),""),Integer.toString(value.getDefaultBreakMinutes()),value.getCalculationMethod().name(),value.getCompensationMethod().name(),Objects.toString(value.getUnitLabel(),""),Objects.toString(value.getUnitSymbol(),""),Objects.toString(value.getUnitsPerHour(),""),Objects.toString(value.getRatePerUnit(),""),Objects.toString(value.getCurrency(),""),Boolean.toString(value.isTeamworkEnabled()),Boolean.toString(value.isExtraPayEnabled()),Boolean.toString(value.isCompositeEnabled()),Integer.toString(value.getDisplayOrder()),Boolean.toString(value.isActive()));}
   private void requireSchedulable(OrganizationWorkType value) { if (!value.isActive() || value.isCompositeEnabled()) throw new IllegalArgumentException("only active work types can be scheduled"); }
   private WorkTypeResponse workTypeResponse(OrganizationWorkType value) { return new WorkTypeResponse(value.getId(), value.getUnit() == null ? null : value.getUnit().getId(),value.getParent()==null?null:value.getParent().getId(), value.getCode(), value.getName(), value.getColor(), value.getDefaultStartTime(), value.getDefaultEndTime(), value.getDefaultBreakMinutes(),value.getCalculationMethod(),value.getCompensationMethod(),value.getUnitLabel(),value.getUnitSymbol(),value.getUnitsPerHour(),value.getRatePerUnit(),value.getCurrency(),value.isTeamworkEnabled(),value.isExtraPayEnabled(),value.isCompositeEnabled(),value.getDisplayOrder(),value.isActive()); }
+  private List<RequirementResponse> requirementResponses(Collection<StaffingRequirement> values) {
+    if (values.isEmpty()) return List.of();
+    entityManager.flush();
+    Set<UUID> requirementIds = values.stream().map(StaffingRequirement::getId)
+        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    List<StaffingAssignment> assigned = assignments.findAssignedForRequirements(requirementIds);
+    Map<UUID, List<StaffingAssignment>> assignmentsByRequirement = assigned.stream()
+        .collect(java.util.stream.Collectors.groupingBy(value -> value.getRequirement().getId(),
+            LinkedHashMap::new, java.util.stream.Collectors.toList()));
+    Map<UUID, StaffingAssignmentResult> resultsByAssignment = assigned.isEmpty() ? Map.of()
+        : assignmentResults.findAllForAssignments(
+                assigned.stream().map(StaffingAssignment::getId).toList()).stream()
+            .collect(java.util.stream.Collectors.toMap(
+                value -> value.getAssignment().getId(), java.util.function.Function.identity()));
+    Map<ReceiptKey, StaffingScheduleReceipt> receiptsByScope = loadReceipts(values, assigned);
+    Map<UUID, StaffingPlanCoverageService.CoverageResult> coverageByPlan = new HashMap<>();
+    for (StaffingRequirement value : values) {
+      StaffingPlan plan = Objects.requireNonNull(value.getPlanDay(), "requirement plan day is required")
+          .getPlan();
+      coverageByPlan.computeIfAbsent(plan.getId(), ignored -> coverageService.calculate(
+          plan.getOrganization().getId(), plan.getUnit().getId(), plan.getId()));
+    }
+    return values.stream().map(value -> {
+      StaffingPlan plan = value.getPlanDay().getPlan();
+      return requirementResponse(value, coverageByPlan.get(plan.getId()),
+          assignmentsByRequirement.getOrDefault(value.getId(), List.of()), resultsByAssignment,
+          receiptsByScope);
+    }).toList();
+  }
+
   private RequirementResponse requirementResponse(StaffingRequirement value) {
-    var assigned = assignments.findAllByRequirementIdAndStatusOrderByCreatedAtAsc(value.getId(), "ASSIGNED");
-    int difference = assigned.size() - value.getRequiredWorkers();
+    return requirementResponses(List.of(value)).getFirst();
+  }
+
+  private RequirementResponse requirementResponse(StaffingRequirement value,
+      StaffingPlanCoverageService.CoverageResult coverageResult,
+      List<StaffingAssignment> assigned, Map<UUID, StaffingAssignmentResult> resultsByAssignment,
+      Map<ReceiptKey, StaffingScheduleReceipt> receiptsByScope) {
+    StaffingPlanCoverageService.RequirementCoverage canonical = Objects.requireNonNull(
+        coverageResult.requirement(value.getId()), "canonical requirement coverage is required");
+    int difference = canonical.effectiveAssigned() - canonical.required();
     String coverage = difference < 0 ? "UNDERSTAFFED" : difference > 0 ? "OVERSTAFFED" : "COVERED";
     var assignmentResponses = assigned.stream().map(item -> {
-      var conflicts = conflicts(item);
+      var conflicts = conflictingAssignmentIds(coverageResult, item.getId());
+      boolean hasConflict = !conflicts.isEmpty() || coverageResult.issues().stream()
+          .anyMatch(issue -> item.getId().equals(issue.assignmentId())
+              && (issue.code() == StaffingPlanCoverageService.IssueCode.INCOMPATIBLE_OVERLAP
+                  || issue.code() == StaffingPlanCoverageService.IssueCode.DUPLICATE_ASSIGNMENT));
       return new AssignmentResponse(item.getId(), item.getMembership().getId(), memberName(item.getMembership()),
-          effectiveStart(item), effectiveEnd(item), !conflicts.isEmpty(), conflicts, viewed(value, item.getMembership()),
-          assignmentResults.findByAssignmentId(item.getId()).map(this::resultResponse).orElse(null));
+          effectiveStart(item), effectiveEnd(item), hasConflict, conflicts,
+          viewed(value, item.getMembership(), receiptsByScope),
+          Optional.ofNullable(resultsByAssignment.get(item.getId())).map(this::resultResponse).orElse(null));
     }).toList();
-    return new RequirementResponse(value.getId(), value.getUnit().getId(), value.getUnit().getName(), value.getWorkType().getId(), value.getWorkType().getCode(), value.getWorkType().getName(), value.getWorkType().getColor(), value.getDate(), value.getStartTime(), value.getEndTime(), value.getRequiredWorkers(), value.getRequiredQuantity(), assigned.size(), difference, coverage, value.getPublicationStatus(), value.getUnit().getCheckInMode().name(), assignmentResponses);
+    return new RequirementResponse(value.getId(), value.getUnit().getId(), value.getUnit().getName(), value.getWorkType().getId(), value.getWorkType().getCode(), value.getWorkType().getName(), value.getWorkType().getColor(), value.getDate(), value.getStartTime(), value.getEndTime(), value.getRequiredWorkers(), value.getRequiredQuantity(), canonical.assigned(), difference, coverage, value.getPublicationStatus(), value.getUnit().getCheckInMode().name(), assignmentResponses);
   }
-  private List<UUID> conflicts(StaffingAssignment item) {
-    var start = effectiveStart(item);
-    if (start == null) return List.of();
-    var end = effectiveEnd(item);
-    return assignments.findAllByMembershipIdAndStatusAndRequirementDate(item.getMembership().getId(), "ASSIGNED", item.getRequirement().getDate()).stream()
-        .filter(other -> !other.getId().equals(item.getId()))
-        .filter(other -> overlaps(start, end, effectiveStart(other), effectiveEnd(other)))
-        .map(StaffingAssignment::getId).toList();
+
+  private List<UUID> conflictingAssignmentIds(
+      StaffingPlanCoverageService.CoverageResult coverage, UUID assignmentId) {
+    LinkedHashSet<UUID> result = new LinkedHashSet<>();
+    coverage.issues().stream().filter(issue -> issue.code()
+        == StaffingPlanCoverageService.IssueCode.INCOMPATIBLE_OVERLAP
+        || issue.code() == StaffingPlanCoverageService.IssueCode.DUPLICATE_ASSIGNMENT)
+        .map(issue -> issue.parameters().get("assignmentPair")).filter(Objects::nonNull)
+        .map(pair -> Arrays.stream(pair.split(":"))
+            .map(UUID::fromString).toList())
+        .filter(pair -> pair.contains(assignmentId))
+        .flatMap(Collection::stream).filter(value -> !value.equals(assignmentId))
+        .forEach(result::add);
+    return List.copyOf(result);
   }
-  private boolean overlaps(java.time.LocalTime firstStart, java.time.LocalTime firstEnd,
-      java.time.LocalTime secondStart, java.time.LocalTime secondEnd) {
-    if (secondStart == null) return false;
-    return (secondEnd == null || firstStart.isBefore(secondEnd)) && (firstEnd == null || secondStart.isBefore(firstEnd));
+  private Map<ReceiptKey, StaffingScheduleReceipt> loadReceipts(
+      Collection<StaffingRequirement> requirements, Collection<StaffingAssignment> assigned) {
+    if (assigned.isEmpty() || requirements.stream().noneMatch(value -> value.getPublishedAt() != null)) {
+      return Map.of();
+    }
+    Set<UUID> organizations = requirements.stream().map(value -> value.getOrganization().getId())
+        .collect(java.util.stream.Collectors.toSet());
+    Set<UUID> members = assigned.stream().map(value -> value.getMembership().getId())
+        .collect(java.util.stream.Collectors.toSet());
+    Set<LocalDate> weeks = requirements.stream().map(value -> value.getDate().with(
+        java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)))
+        .collect(java.util.stream.Collectors.toSet());
+    return receipts.findAllForScopes(
+        organizations, members, weeks).stream().collect(java.util.stream.Collectors.toMap(
+            value -> new ReceiptKey(value.getOrganization().getId(), value.getMembership().getId(),
+                value.getWeekStart()), java.util.function.Function.identity(),
+            (left, right) -> left));
   }
   private java.time.LocalTime effectiveStart(StaffingAssignment item) { return item.getStartTime() == null ? item.getRequirement().getStartTime() : item.getStartTime(); }
   private java.time.LocalTime effectiveEnd(StaffingAssignment item) { return item.getEndTime() == null ? item.getRequirement().getEndTime() : item.getEndTime(); }
@@ -472,11 +537,13 @@ public class StaffingPlannerService {
         value.getReviewedAt(), value.getCheckedInAt(), value.getCheckedOutAt(),
         value.getTimeCaptureSource());
   }
-  private boolean viewed(StaffingRequirement requirement, OrganizationMembership member) {
+  private boolean viewed(StaffingRequirement requirement, OrganizationMembership member,
+      Map<ReceiptKey, StaffingScheduleReceipt> receiptsByScope) {
     if (requirement.getPublishedAt() == null) return false;
     var weekStart = requirement.getDate().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-    return receipts.findByOrganizationIdAndMembershipIdAndWeekStart(requirement.getOrganization().getId(), member.getId(), weekStart)
-        .map(value -> !value.getViewedAt().isBefore(requirement.getPublishedAt())).orElse(false);
+    StaffingScheduleReceipt receipt = receiptsByScope.get(new ReceiptKey(
+        requirement.getOrganization().getId(), member.getId(), weekStart));
+    return receipt != null && !receipt.getViewedAt().isBefore(requirement.getPublishedAt());
   }
   private void audit(OrganizationMembership actor, String eventType, String entityType, UUID entityId, LocalDate date, String summary) { changeEvents.save(new StaffingChangeEvent(actor.getOrganization(), actor, eventType, entityType, entityId, date, summary)); }
   private AssignmentResultResponse resultResponse(StaffingAssignmentResult value) {
@@ -508,4 +575,5 @@ public class StaffingPlannerService {
   }
   private AbsenceRequestResponse absenceResponse(StaffingAbsenceRequest value){return new AbsenceRequestResponse(value.getId(),value.getOrganization().getId(),value.getOrganization().getName(),value.getMembership().getId(),memberName(value.getMembership()),value.getType(),value.getStartDate(),value.getEndDate(),value.getNotes(),value.getStatus(),value.getCreatedAt(),value.getReviewedAt());}
   private String memberName(OrganizationMembership member) { if (member.getUser() != null) return member.getUser().getEmail(); return String.join(" ", List.of(member.getFirstName() == null ? "" : member.getFirstName(), member.getLastName() == null ? "" : member.getLastName())).trim(); }
+  private record ReceiptKey(UUID organizationId, UUID membershipId, LocalDate weekStart) {}
 }
