@@ -2,6 +2,10 @@ import type { ApiResponse } from "../types/api";
 import type { AxiosResponse } from "axios";
 import type {
   ApiEntityResult,
+  StaffingAssignmentBatchAction,
+  StaffingAssignmentCandidates,
+  StaffingAssignmentInput,
+  StaffingAssignmentUpdateInput,
   StaffingDemand,
   StaffingDemandBatchAction,
   StaffingMutationResult,
@@ -9,6 +13,7 @@ import type {
   StaffingPlanLookup,
   StaffingRequirementInput,
   StaffingRequirementUpdateInput,
+  StaffingSchedule,
 } from "../types/business-planning";
 import { http } from "./http";
 
@@ -66,6 +71,92 @@ export async function getStaffingDemand(
   return response(
     await http.get<ApiResponse<StaffingDemand>>(
       `${planPath(organizationId)}/${planId}/demand`,
+    ),
+  );
+}
+
+export async function getStaffingSchedule(
+  organizationId: string,
+  planId: string,
+) {
+  return response(
+    await http.get<ApiResponse<StaffingSchedule>>(
+      `${planPath(organizationId)}/${planId}/schedule`,
+    ),
+  );
+}
+
+export async function getStaffingAssignmentCandidates(
+  organizationId: string,
+  planId: string,
+  requirementId: string,
+) {
+  return response(
+    await http.get<ApiResponse<StaffingAssignmentCandidates>>(
+      `${planPath(organizationId)}/${planId}/assignment-candidates`,
+      { params: { requirementId } },
+    ),
+  );
+}
+
+export async function createStaffingAssignment(
+  organizationId: string,
+  planId: string,
+  etag: string,
+  idempotencyKey: string,
+  input: StaffingAssignmentInput,
+) {
+  return response(
+    await http.post<ApiResponse<StaffingMutationResult>>(
+      `${planPath(organizationId)}/${planId}/schedule/assignments`,
+      input,
+      { headers: { "If-Match": etag, "Idempotency-Key": idempotencyKey } },
+    ),
+  );
+}
+
+export async function updateStaffingAssignment(
+  organizationId: string,
+  planId: string,
+  assignmentId: string,
+  etag: string,
+  input: StaffingAssignmentUpdateInput,
+) {
+  return response(
+    await http.put<ApiResponse<StaffingMutationResult>>(
+      `${planPath(organizationId)}/${planId}/schedule/assignments/${assignmentId}`,
+      input,
+      { headers: { "If-Match": etag } },
+    ),
+  );
+}
+
+export async function cancelStaffingAssignment(
+  organizationId: string,
+  planId: string,
+  assignmentId: string,
+  etag: string,
+) {
+  return response(
+    await http.delete<ApiResponse<StaffingMutationResult>>(
+      `${planPath(organizationId)}/${planId}/schedule/assignments/${assignmentId}`,
+      { headers: { "If-Match": etag } },
+    ),
+  );
+}
+
+export async function batchStaffingAssignments(
+  organizationId: string,
+  planId: string,
+  etag: string,
+  idempotencyKey: string,
+  actions: StaffingAssignmentBatchAction[],
+) {
+  return response(
+    await http.post<ApiResponse<StaffingMutationResult>>(
+      `${planPath(organizationId)}/${planId}/schedule/assignments/batch`,
+      { actions },
+      { headers: { "If-Match": etag, "Idempotency-Key": idempotencyKey } },
     ),
   );
 }

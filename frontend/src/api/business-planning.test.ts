@@ -1,8 +1,12 @@
 import AxiosMockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  batchStaffingAssignments,
   batchStaffingDemand,
+  createStaffingAssignment,
   createStaffingPlan,
+  getStaffingAssignmentCandidates,
+  getStaffingSchedule,
   updateStaffingRequirement,
 } from "./business-planning";
 import { http } from "./http";
@@ -75,6 +79,65 @@ describe("business planning API", () => {
         },
         update: null,
       }],
+    );
+  });
+
+  it("reads the aggregate schedule and explainable candidates without legacy calls", async () => {
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/schedule")
+      .reply(200, { data: { planId: "plan-1", days: [], members: [] } }, { ETag: '"plan-plan-1-rev-5"' });
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/assignment-candidates", {
+      params: { requirementId: "req-1" },
+    }).reply(200, { data: { planId: "plan-1", requirementId: "req-1", candidates: [] } });
+
+    const [schedule, candidates] = await Promise.all([
+      getStaffingSchedule("org-1", "plan-1"),
+      getStaffingAssignmentCandidates("org-1", "plan-1", "req-1"),
+    ]);
+
+    expect(schedule.etag).toBe('"plan-plan-1-rev-5"');
+    expect(candidates.data.requirementId).toBe("req-1");
+  });
+
+  it("sends strong concurrency and stable idempotency headers for assignments", async () => {
+    mock.onPost("/api/organizations/org-1/staffing/plans/plan-1/schedule/assignments")
+      .reply((config) => {
+        expect(config.headers?.["If-Match"]).toBe('"plan-plan-1-rev-5"');
+        expect(config.headers?.["Idempotency-Key"]).toBe("assign-key");
+        return [201, { data: { planId: "plan-1", currentDraftRevision: 6 } }, { ETag: '"plan-plan-1-rev-6"' }];
+      });
+
+    await createStaffingAssignment(
+      "org-1",
+      "plan-1",
+      '"plan-plan-1-rev-5"',
+      "assign-key",
+      { requirementId: "req-1", membershipId: "member-1", startTime: "12:00", endTime: "20:30" },
+    );
+  });
+
+  it("reassigns through one atomic C5b batch", async () => {
+    mock.onPost("/api/organizations/org-1/staffing/plans/plan-1/schedule/assignments/batch")
+      .reply((config) => {
+        expect(config.headers?.["If-Match"]).toBe('"plan-plan-1-rev-5"');
+        expect(config.headers?.["Idempotency-Key"]).toBe("replace-key");
+        expect(JSON.parse(config.data).actions).toHaveLength(2);
+        return [200, { data: { planId: "plan-1", currentDraftRevision: 6 } }];
+      });
+
+    await batchStaffingAssignments(
+      "org-1",
+      "plan-1",
+      '"plan-plan-1-rev-5"',
+      "replace-key",
+      [
+        { operation: "CANCEL", assignmentId: "assignment-old", create: null, update: null },
+        {
+          operation: "CREATE",
+          assignmentId: null,
+          create: { requirementId: "req-1", membershipId: "member-2", startTime: "12:00", endTime: "20:30" },
+          update: null,
+        },
+      ],
     );
   });
 });

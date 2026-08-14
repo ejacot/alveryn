@@ -28,6 +28,13 @@ describe("preview routes", () => {
     expect(hasRoutePath("/tracking-setup", routes)).toBe(true);
   });
 
+  it("includes the aggregate-native Business planning routes", () => {
+    const routes = buildRoutes(false);
+
+    expect(hasRoutePath("/business/:organizationId/plan/demand", routes)).toBe(true);
+    expect(hasRoutePath("/business/:organizationId/plan/schedule", routes)).toBe(true);
+  });
+
   it("includes the public OAuth callback route", () => {
     const routes = buildRoutes(false);
 

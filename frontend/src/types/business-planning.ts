@@ -132,6 +132,175 @@ export type StaffingMutationResult = {
   affectedResourceIds: string[];
 };
 
+export type StaffingIssue = {
+  issueKey: string;
+  code: string;
+  severity: "BLOCKING_CONFLICT" | "WARNING" | "INFORMATION" | "PENDING_REQUEST" | "UNCONFIRMED_CHANGE";
+  date: string | null;
+  requirementId: string | null;
+  assignmentId: string | null;
+  membershipId: string | null;
+  messageKey: string;
+  parameters: Record<string, string>;
+  acknowledgementRequired: boolean;
+  publishBlocking: boolean;
+};
+
+export type StaffingScheduleAssignment = {
+  assignmentId: string;
+  requirementId: string;
+  membershipId: string;
+  memberDisplayName: string;
+  membershipStatus: "ACTIVE" | "INVITED" | "SUSPENDED";
+  status: "ASSIGNED" | "CANCELLED";
+  startTime: string | null;
+  endTime: string | null;
+  intervalOverride: boolean;
+  effective: boolean;
+  issueKeys: string[];
+};
+
+export type StaffingDayStatus = {
+  membershipId: string;
+  date: string;
+  status: "REST_DAY" | "VACATION" | "SICK" | "UNAVAILABLE" | string;
+  source: string;
+  pending: boolean;
+};
+
+export type StaffingScheduleMember = {
+  membershipId: string;
+  displayName: string;
+  membershipStatus: "ACTIVE" | "INVITED" | "SUSPENDED";
+  assignmentIds: string[];
+  dayStatuses: StaffingDayStatus[];
+};
+
+export type StaffingScheduleRequirement = {
+  requirementId: string;
+  planDayId: string;
+  date: string;
+  workTypeId: string;
+  workTypeCode: string;
+  workTypeName: string;
+  startTime: string | null;
+  endTime: string | null;
+  breakMinutes: number;
+  requiredWorkers: number;
+  coverage: StaffingCoverageTotals;
+  assignments: StaffingScheduleAssignment[];
+  issueKeys: string[];
+};
+
+export type StaffingScheduleDay = {
+  planDayId: string | null;
+  date: string;
+  persisted: boolean;
+  roomsContext: number | null;
+  source: string | null;
+  coverage: StaffingCoverageTotals;
+  requirements: StaffingScheduleRequirement[];
+  issueKeys: string[];
+};
+
+export type StaffingSchedule = {
+  planId: string;
+  organizationId: string;
+  unitId: string;
+  weekStart: string;
+  weekEnd: string;
+  draftRevision: number;
+  etag: string;
+  coverage: StaffingCoverageTotals;
+  days: StaffingScheduleDay[];
+  members: StaffingScheduleMember[];
+  issues: StaffingIssue[];
+};
+
+export type StaffingCandidateReason = {
+  code: string;
+  messageKey: string;
+  parameters: Record<string, string>;
+};
+
+export type StaffingAssignmentCandidate = {
+  membershipId: string;
+  displayName: string;
+  membershipStatus: "ACTIVE" | "INVITED" | "SUSPENDED";
+  recommended: boolean;
+  rank: number | null;
+  eligibility: "ELIGIBLE" | "ELIGIBLE_WITH_WARNING" | "INELIGIBLE";
+  availability: string;
+  alreadyAssignedThisDay: boolean;
+  weeklyScheduledMinutes: number;
+  matchingWorkTypeAssignments: number | null;
+  conflict: {
+    duplicateAssignment: boolean;
+    overlappingAssignment: boolean;
+    assignmentsOnDay: number;
+  };
+  reasons: StaffingCandidateReason[];
+};
+
+export type StaffingAssignmentCandidates = {
+  planId: string;
+  requirementId: string;
+  draftRevision: number;
+  etag: string;
+  requirement: {
+    requirementId: string;
+    date: string;
+    workTypeId: string;
+    workTypeCode: string;
+    workTypeName: string;
+    startTime: string | null;
+    endTime: string | null;
+    requiredWorkers: number;
+    coverage: StaffingCoverageTotals;
+  };
+  candidates: StaffingAssignmentCandidate[];
+  projection: {
+    membershipId: string;
+    before: StaffingCoverageTotals;
+    after: StaffingCoverageTotals;
+    resolvesOpenPosition: boolean;
+  } | null;
+  limitations: string[];
+  capabilities: StaffingPlanCapabilities;
+};
+
+export type StaffingAssignmentInput = {
+  requirementId: string;
+  membershipId: string;
+  startTime: string | null;
+  endTime: string | null;
+};
+
+export type StaffingAssignmentUpdateInput = {
+  startTime: string | null;
+  endTime: string | null;
+};
+
+export type StaffingAssignmentBatchAction =
+  | {
+      operation: "CREATE";
+      assignmentId: null;
+      create: StaffingAssignmentInput;
+      update: null;
+    }
+  | {
+      operation: "UPDATE";
+      assignmentId: string;
+      create: null;
+      update: StaffingAssignmentUpdateInput;
+    }
+  | {
+      operation: "CANCEL";
+      assignmentId: string;
+      create: null;
+      update: null;
+    };
+
 export type StaffingPlanBootstrapResult = {
   planId: string;
   organizationId: string;

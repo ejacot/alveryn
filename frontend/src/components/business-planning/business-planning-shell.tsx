@@ -59,6 +59,7 @@ export function BusinessPlanningShell({
   const navigate = useNavigate();
   const locale = normalizeLanguage(i18n.resolvedLanguage);
   const weekLabel = formatWeek(weekStart, weekEnd, locale);
+  const planningSearch = `?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`;
 
   return (
     <div className="business-planning">
@@ -121,15 +122,14 @@ export function BusinessPlanningShell({
 
       <aside className="business-planning__rail" aria-label={t("planning.navigation.label")}>
         <nav>
-          <NavLink to={`/business/${organizationId}/plan/demand`}>
+          <NavLink to={`/business/${organizationId}/plan/demand${planningSearch}`}>
             <ClipboardList aria-hidden="true" />
             <span>{t("planning.navigation.demand")}</span>
           </NavLink>
-          <span className="is-upcoming" aria-disabled="true">
+          <NavLink to={`/business/${organizationId}/plan/schedule${planningSearch}`}>
             <CalendarRange aria-hidden="true" />
             <span>{t("planning.navigation.schedule")}</span>
-            <small>{t("planning.navigation.next")}</small>
-          </span>
+          </NavLink>
           <span className="is-upcoming" aria-disabled="true">
             <BarChart3 aria-hidden="true" />
             <span>{t("planning.navigation.review")}</span>
