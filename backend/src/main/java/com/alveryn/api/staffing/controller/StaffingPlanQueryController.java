@@ -2,6 +2,7 @@ package com.alveryn.api.staffing.controller;
 
 import com.alveryn.api.common.response.ApiResponse;
 import com.alveryn.api.staffing.dto.StaffingPlanQueryDtos.QueryResult;
+import com.alveryn.api.staffing.service.StaffingAssignmentCandidateService;
 import com.alveryn.api.staffing.service.StaffingPlanQueryService;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class StaffingPlanQueryController {
   private final StaffingPlanQueryService service;
+  private final StaffingAssignmentCandidateService candidateService;
 
   @GetMapping
   public ResponseEntity<?> find(@PathVariable UUID organizationId, @RequestParam UUID unitId,
@@ -59,6 +61,14 @@ public class StaffingPlanQueryController {
   public ResponseEntity<?> review(@PathVariable UUID organizationId, @PathVariable UUID planId,
       @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
     return response(service.review(organizationId, planId, ifNoneMatch));
+  }
+
+  @GetMapping("/{planId}/assignment-candidates")
+  public ResponseEntity<?> candidates(@PathVariable UUID organizationId,
+      @PathVariable UUID planId, @RequestParam UUID requirementId,
+      @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
+    return response(candidateService.candidates(organizationId, planId, requirementId,
+        ifNoneMatch));
   }
 
   @GetMapping("/{planId}/versions")

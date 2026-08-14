@@ -63,6 +63,68 @@ public class StaffingPlanCoverageService {
     return assemble(plan, requirements, evaluation);
   }
 
+  /**
+   * Read-only projection of one proposed assignment through the canonical coverage evaluator.
+   *
+   * <p>The proposed row exists only in memory. This keeps candidate recommendations and the
+   * manager review on exactly the same coverage semantics without writing a temporary assignment
+   * or maintaining a second counter in the recommendation feature.
+   */
+  @Transactional(readOnly = true)
+  public CoverageProjection projectAssignment(UUID organizationId, UUID unitId, UUID planId,
+      UUID requirementId, UUID membershipId) {
+    Objects.requireNonNull(requirementId, "requirementId is required");
+    Objects.requireNonNull(membershipId, "membershipId is required");
+    PlanRow plan = findPlan(organizationId, unitId, planId);
+    LinkedHashMap<UUID, RequirementBuilder> requirements = loadPlanSource(plan);
+    RequirementBuilder requirement = requirements.get(requirementId);
+    if (requirement == null) throw new NotFoundException("Staffing requirement", requirementId);
+
+    CandidateMembershipRow member = loadCandidateMembership(plan, membershipId);
+    Set<UUID> memberIds = requirements.values().stream()
+        .flatMap(value -> value.assignments.values().stream())
+        .map(value -> value.membershipId)
+        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    memberIds.add(membershipId);
+    Map<MemberDate, String> dayEntries = loadDayEntries(plan, memberIds);
+    List<PendingRequestRow> pendingRequests = loadPendingRequests(plan, memberIds);
+    List<ComparableAssignment> comparableAssignments = new ArrayList<>(
+        loadComparableAssignments(plan, memberIds));
+
+    Evaluation beforeEvaluation = evaluate(plan, requirements, dayEntries, pendingRequests,
+        comparableAssignments);
+    CoverageResult before = assemble(plan, requirements, beforeEvaluation);
+    boolean alreadyAssigned = requirement.assignments.values().stream()
+        .anyMatch(value -> value.membershipId.equals(membershipId)
+            && "ASSIGNED".equals(value.status));
+    if (alreadyAssigned) return new CoverageProjection(before, before);
+
+    UUID projectedId = UUID.nameUUIDFromBytes(
+        ("staffing-projection:" + planId + ':' + requirementId + ':' + membershipId)
+            .getBytes(StandardCharsets.UTF_8));
+    AssignmentRow projected = new AssignmentRow(projectedId, requirement.id, membershipId,
+        member.organizationId, member.status, null, null, requirement.start, requirement.end,
+        "ASSIGNED");
+    requirement.assignments.put(projectedId, projected);
+    comparableAssignments.add(new ComparableAssignment(projectedId, membershipId,
+        requirement.id, requirement.date, requirement.unitId, requirement.start, requirement.end));
+    Evaluation afterEvaluation = evaluate(plan, requirements, dayEntries, pendingRequests,
+        comparableAssignments);
+    return new CoverageProjection(before, assemble(plan, requirements, afterEvaluation));
+  }
+
+  private CandidateMembershipRow loadCandidateMembership(PlanRow plan, UUID membershipId) {
+    List<CandidateMembershipRow> rows = jdbc.query("""
+        select id, organization_id, membership_status
+        from organization_memberships
+        where id=:membership and organization_id=:organization
+        """, params("membership", membershipId, "organization", plan.organizationId),
+        (rs, row) -> new CandidateMembershipRow(rs.getObject("id", UUID.class),
+            rs.getObject("organization_id", UUID.class), rs.getString("membership_status")));
+    return rows.stream().findFirst()
+        .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
+  }
+
   private PlanRow findPlan(UUID organizationId, UUID unitId, UUID planId) {
     List<PlanRow> rows = jdbc.query("""
         select id, organization_id, unit_id, week_start, timezone, draft_revision
@@ -554,6 +616,8 @@ public class StaffingPlanCoverageService {
   private record PendingRequestRow(UUID id, UUID membershipId, String type, LocalDate start,
       LocalDate end) {}
 
+  private record CandidateMembershipRow(UUID id, UUID organizationId, String status) {}
+
   private record MemberDate(UUID membershipId, LocalDate date) {}
 
   private record Counts(int required, int assigned, int effectiveAssigned, int covered,
@@ -656,4 +720,6 @@ public class StaffingPlanCoverageService {
           .findFirst().orElse(null);
     }
   }
+
+  public record CoverageProjection(CoverageResult before, CoverageResult after) {}
 }

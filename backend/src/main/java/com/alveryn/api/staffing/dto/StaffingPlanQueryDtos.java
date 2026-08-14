@@ -74,6 +74,30 @@ public final class StaffingPlanQueryDtos {
       CoverageTotals coverage, List<ScheduleDayResponse> days, List<MemberResponse> members,
       List<IssueResponse> issues) {}
 
+  public record CandidateRequirementResponse(UUID requirementId, LocalDate date,
+      UUID workTypeId, String workTypeCode, String workTypeName, LocalTime startTime,
+      LocalTime endTime, int requiredWorkers, CoverageTotals coverage) {}
+
+  public record CandidateReasonResponse(String code, String messageKey,
+      Map<String, String> parameters) {}
+
+  public record CandidateConflictResponse(boolean duplicateAssignment,
+      boolean overlappingAssignment, int assignmentsOnDay) {}
+
+  public record AssignmentCandidateResponse(UUID membershipId, String displayName,
+      String membershipStatus, boolean recommended, Integer rank, String eligibility,
+      String availability, boolean alreadyAssignedThisDay, int weeklyScheduledMinutes,
+      Integer matchingWorkTypeAssignments, CandidateConflictResponse conflict,
+      List<CandidateReasonResponse> reasons) {}
+
+  public record CandidateCoverageProjection(UUID membershipId, CoverageTotals before,
+      CoverageTotals after, boolean resolvesOpenPosition) {}
+
+  public record AssignmentCandidatesResponse(UUID planId, UUID requirementId,
+      long draftRevision, String etag, CandidateRequirementResponse requirement,
+      List<AssignmentCandidateResponse> candidates, CandidateCoverageProjection projection,
+      List<String> limitations, PlanCapabilities capabilities) {}
+
   public record CoverageResponse(UUID planId, UUID organizationId, UUID unitId,
       LocalDate weekStart, long draftRevision, String etag, CoverageTotals totals,
       List<RequirementCoverageResponse> requirements, List<DayCoverageResponse> days,
