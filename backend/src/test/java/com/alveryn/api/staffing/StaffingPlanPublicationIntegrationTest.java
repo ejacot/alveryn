@@ -10,12 +10,15 @@ import com.alveryn.api.common.exception.ValidationException;
 import com.alveryn.api.organization.entity.*;
 import com.alveryn.api.organization.repository.*;
 import com.alveryn.api.staffing.entity.StaffingPlanDaySource;
+import com.alveryn.api.staffing.dto.StaffingPlanMutationDtos.RequirementUpdateInput;
 import com.alveryn.api.staffing.repository.StaffingPlanRepository;
+import com.alveryn.api.staffing.service.StaffingPlanDraftMutationService;
 import com.alveryn.api.staffing.service.StaffingPlanFoundationService;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationService;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationService.PublishCommand;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationFaultProbe;
 import com.alveryn.api.staffing.service.StaffingPlanMutationCoordinator;
+import com.alveryn.api.staffing.service.StaffingPlanMutationFaultProbe;
 import com.alveryn.api.staffing.service.StaffingPlanCoverageService;
 import com.alveryn.api.user.entity.*;
 import com.alveryn.api.user.repository.UserAccountRepository;
@@ -49,13 +52,16 @@ class StaffingPlanPublicationIntegrationTest {
   @Autowired JdbcTemplate jdbc;
   @Autowired EntityManager entityManager;
   @Autowired TestFaultProbe faultProbe;
+  @Autowired TestMutationFaultProbe mutationFaultProbe;
   @Autowired StaffingPlanMutationCoordinator mutations;
+  @Autowired StaffingPlanDraftMutationService draftMutations;
   @Autowired StaffingPlanCoverageService coverage;
   @Autowired ApplicationContext applicationContext;
 
   @AfterEach void clearSecurity() {
     SecurityContextHolder.clearContext();
     faultProbe.reset();
+    mutationFaultProbe.reset();
   }
 
   @Test void publishesReplaysAndKeepsEarlierVersionImmutable() {
@@ -506,21 +512,22 @@ class StaffingPlanPublicationIntegrationTest {
     Fixture fixture = fixture("mutation-wins");
     UUID requirementId = requirement(fixture);
     long expected = fixture.planRevision();
-    var scope = new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId());
-    CountDownLatch mutationHasLock = new CountDownLatch(1);
-    CountDownLatch releaseMutation = new CountDownLatch(1);
+    mutationFaultProbe.pause();
     ExecutorService executor = Executors.newFixedThreadPool(2);
     try {
       Future<?> mutation = executor.submit(() -> {
-        var actor = memberships.findByIdAndOrganizationId(
-            fixture.owner().getId(), fixture.organizationId()).orElseThrow();
-        return mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, null, () -> {
-          mutationHasLock.countDown();
-          await(releaseMutation);
-          return StaffingPlanMutationCoordinator.Change.changed("manager edit");
-        });
+        authenticate(fixture.user());
+        try {
+          return draftMutations.updateRequirement(fixture.organizationId(), fixture.planId(),
+              requirementId, StaffingPlanMutationCoordinator.etag(fixture.planId(), expected),
+              new RequirementUpdateInput(java.time.LocalTime.of(10, 0),
+                  java.time.LocalTime.of(18, 0), 2, java.math.BigDecimal.valueOf(2),
+                  "manager edit"));
+        } finally {
+          SecurityContextHolder.clearContext();
+        }
       });
-      assertThat(mutationHasLock.await(10, TimeUnit.SECONDS)).isTrue();
+      assertThat(mutationFaultProbe.awaitPause()).isTrue();
       Future<Object> publish = executor.submit(() -> {
         authenticate(fixture.user());
         try {
@@ -532,11 +539,11 @@ class StaffingPlanPublicationIntegrationTest {
           SecurityContextHolder.clearContext();
         }
       });
-      releaseMutation.countDown();
+      mutationFaultProbe.release();
       mutation.get(20, TimeUnit.SECONDS);
       assertThat(publish.get(20, TimeUnit.SECONDS)).isInstanceOf(PreconditionFailedException.class);
     } finally {
-      releaseMutation.countDown();
+      mutationFaultProbe.release();
       executor.shutdownNow();
     }
     assertThat(jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
@@ -550,7 +557,6 @@ class StaffingPlanPublicationIntegrationTest {
     Fixture fixture = fixture("publish-wins");
     UUID requirementId = requirement(fixture);
     long expected = fixture.planRevision();
-    var scope = new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId());
     faultProbe.pauseAt(StaffingPlanPublicationFaultProbe.Stage.AFTER_HEADER);
     ExecutorService executor = Executors.newFixedThreadPool(2);
     try {
@@ -565,10 +571,16 @@ class StaffingPlanPublicationIntegrationTest {
       });
       assertThat(faultProbe.awaitPause()).isTrue();
       Future<?> mutation = executor.submit(() -> {
-        var actor = memberships.findByIdAndOrganizationId(
-            fixture.owner().getId(), fixture.organizationId()).orElseThrow();
-        return mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, null,
-            () -> StaffingPlanMutationCoordinator.Change.changed("post-publish edit"));
+        authenticate(fixture.user());
+        try {
+          return draftMutations.updateRequirement(fixture.organizationId(), fixture.planId(),
+              requirementId, StaffingPlanMutationCoordinator.etag(fixture.planId(), expected),
+              new RequirementUpdateInput(java.time.LocalTime.of(10, 0),
+                  java.time.LocalTime.of(18, 0), 2, java.math.BigDecimal.valueOf(2),
+                  "post-publish edit"));
+        } finally {
+          SecurityContextHolder.clearContext();
+        }
       });
       faultProbe.release();
       var published = publish.get(20, TimeUnit.SECONDS);
@@ -810,6 +822,9 @@ class StaffingPlanPublicationIntegrationTest {
   @TestConfiguration
   static class FaultConfiguration {
     @Bean @Primary TestFaultProbe testFaultProbe() { return new TestFaultProbe(); }
+    @Bean @Primary TestMutationFaultProbe testMutationFaultProbe() {
+      return new TestMutationFaultProbe();
+    }
   }
 
   static class TestFaultProbe implements StaffingPlanPublicationFaultProbe {
@@ -841,4 +856,34 @@ class StaffingPlanPublicationIntegrationTest {
   }
 
   static class InjectedPublicationFailure extends RuntimeException {}
+
+  static class TestMutationFaultProbe implements StaffingPlanMutationFaultProbe {
+    volatile boolean pause;
+    volatile CountDownLatch paused = new CountDownLatch(1);
+    volatile CountDownLatch resume = new CountDownLatch(1);
+
+    @Override public void afterChildMutation() {
+      if (pause) {
+        paused.countDown();
+        await(resume);
+      }
+    }
+
+    void pause() {
+      pause = true;
+      paused = new CountDownLatch(1);
+      resume = new CountDownLatch(1);
+    }
+
+    boolean awaitPause() throws InterruptedException {
+      return paused.await(10, TimeUnit.SECONDS);
+    }
+
+    void release() { resume.countDown(); }
+
+    void reset() {
+      release();
+      pause = false;
+    }
+  }
 }

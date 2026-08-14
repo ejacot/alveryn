@@ -9,6 +9,10 @@ import com.alveryn.api.organization.repository.*;
 import com.alveryn.api.organization.service.BusinessOrganizationService;
 import com.alveryn.api.staffing.dto.StaffingDtos.RequirementRequest;
 import com.alveryn.api.staffing.dto.StaffingDtos.BulkRequirementRequest;
+import com.alveryn.api.staffing.dto.StaffingPlanMutationDtos.BatchOperation;
+import com.alveryn.api.staffing.dto.StaffingPlanMutationDtos.DemandBatchAction;
+import com.alveryn.api.staffing.dto.StaffingPlanMutationDtos.DemandBatchRequest;
+import com.alveryn.api.staffing.dto.StaffingPlanMutationDtos.RequirementInput;
 import com.alveryn.api.staffing.entity.StaffingPlanDaySource;
 import com.alveryn.api.staffing.service.*;
 import com.alveryn.api.user.entity.*;
@@ -17,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 import java.util.Set;
+import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +41,7 @@ class StaffingPlanMutationTransactionIntegrationTest {
   private static final LocalDate WEEK = LocalDate.of(2026, 8, 10);
 
   @Autowired StaffingPlannerService planner;
+  @Autowired StaffingPlanDraftMutationService draftMutations;
   @Autowired StaffingPlanFoundationService foundation;
   @Autowired BusinessOrganizationService organizationsService;
   @Autowired OrganizationRepository organizations;
@@ -66,6 +72,34 @@ class StaffingPlanMutationTransactionIntegrationTest {
         Integer.class, fixture.organizationId())).isZero();
     assertThat(jdbc.queryForObject("select count(*) from staffing_requirements where organization_id=?",
         Integer.class, fixture.organizationId())).isZero();
+  }
+
+  @Test void aggregateBatchRollsBackChildrenIdempotencyAndRevisionTogether() {
+    Fixture fixture = fixture("native-batch-rollback");
+    UUID workTypeId = workType(fixture);
+    var plan = foundation.getOrCreate(fixture.organizationId(), fixture.unitId(), WEEK,
+        fixture.owner().getId());
+    faultProbe.fail = true;
+    var request = new DemandBatchRequest(List.of(
+        new DemandBatchAction(BatchOperation.CREATE, null,
+            new RequirementInput(WEEK, workTypeId, null, null, 1, BigDecimal.ONE, "one"), null),
+        new DemandBatchAction(BatchOperation.CREATE, null,
+            new RequirementInput(WEEK.plusDays(1), workTypeId, null, null, 1, BigDecimal.ONE,
+                "two"), null)));
+
+    assertThatThrownBy(() -> draftMutations.batchDemand(fixture.organizationId(), plan.getId(),
+        StaffingPlanMutationCoordinator.etag(plan.getId(), 0), "rollback-key", request))
+        .isInstanceOf(InjectedMutationFailure.class);
+
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_days where plan_id=?",
+        Integer.class, plan.getId())).isZero();
+    assertThat(jdbc.queryForObject("select count(*) from staffing_requirements where organization_id=?",
+        Integer.class, fixture.organizationId())).isZero();
+    assertThat(jdbc.queryForObject("""
+        select count(*) from staffing_plan_draft_mutation_operations where plan_id=?
+        """, Integer.class, plan.getId())).isZero();
+    assertThat(jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
+        Long.class, plan.getId())).isZero();
   }
 
   @Test void organizationMutationRollsBackMembershipAndPlanRevisionTogether() {

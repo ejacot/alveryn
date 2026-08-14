@@ -31,6 +31,22 @@ public interface StaffingRequirementRepository extends JpaRepository<StaffingReq
   Optional<StaffingRequirement> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
   @Query("""
+      select requirement from StaffingRequirement requirement
+      join fetch requirement.planDay day
+      join fetch day.plan plan
+      join fetch requirement.organization
+      join fetch requirement.unit
+      join fetch requirement.workType
+      where requirement.id = :requirementId
+        and requirement.organization.id = :organizationId
+        and plan.id = :planId
+      """)
+  Optional<StaffingRequirement> findForPlan(
+      @Param("organizationId") UUID organizationId,
+      @Param("planId") UUID planId,
+      @Param("requirementId") UUID requirementId);
+
+  @Query("""
       select plan.id as planId, plan.unit.id as unitId
       from StaffingRequirement requirement
       join requirement.planDay day

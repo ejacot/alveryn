@@ -71,6 +71,16 @@ public class StaffingPlanMutationCoordinator {
     return finish(locked, actor, change);
   }
 
+  /** Aggregate-native single-plan mutation. The callback runs after the scoped row lock. */
+  @Transactional
+  public <T> MutationResult<T> mutatePlan(UUID organizationId, Scope requested,
+      OrganizationMembership actor, Function<StaffingPlan, Change<T>> operation) {
+    StaffingPlan locked = lockAll(organizationId, List.of(requested)).getFirst();
+    Change<T> change = Objects.requireNonNull(operation.apply(locked));
+    faultProbe.afterChildMutation();
+    return finish(List.of(locked), actor, change);
+  }
+
   public Scope requirementScope(UUID organizationId, UUID requirementId,
       com.alveryn.api.staffing.repository.StaffingRequirementRepository requirements) {
     return requirements.findPlanScope(organizationId, requirementId)

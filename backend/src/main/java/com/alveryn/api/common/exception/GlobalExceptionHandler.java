@@ -23,10 +23,29 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.firewall.RequestRejectedException;
+import com.alveryn.api.staffing.exception.StaffingPlanMutationApiException;
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+  @ExceptionHandler(RequestRejectedException.class)
+  ResponseEntity<ApiErrorResponse> handleRejectedRequest(
+      RequestRejectedException e, HttpServletRequest r) {
+    return response(HttpStatus.BAD_REQUEST, "Request header is invalid", "VALIDATION_FAILED",
+        r, List.of());
+  }
+
+  @ExceptionHandler(StaffingPlanMutationApiException.class)
+  ResponseEntity<ApiErrorResponse> handleStaffingMutation(
+      StaffingPlanMutationApiException e, HttpServletRequest r) {
+    var body = new ApiErrorResponse(OffsetDateTime.now(), e.getStatus().value(), e.getMessage(),
+        e.getCode(), r.getRequestURI(), List.of());
+    var response = ResponseEntity.status(e.getStatus());
+    if (e.getEtag() != null) response.header("ETag", e.getEtag());
+    return response.body(body);
+  }
+
   @ExceptionHandler(NotFoundException.class)
   ResponseEntity<ApiErrorResponse> handleNotFound(NotFoundException e, HttpServletRequest r) {
     return response(HttpStatus.NOT_FOUND, e.getMessage(), e.getCode(), r, List.of());
@@ -71,7 +90,8 @@ public class GlobalExceptionHandler {
     return response(
         HttpStatus.BAD_REQUEST,
         "Validation failed",
-        e instanceof BusinessException businessException ? businessException.getCode() : null,
+        e instanceof BusinessException businessException && businessException.getCode() != null
+            ? businessException.getCode() : "VALIDATION_FAILED",
         r,
         errors);
   }

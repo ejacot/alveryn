@@ -8,6 +8,23 @@ public interface StaffingAssignmentRepository extends JpaRepository<StaffingAssi
   List<StaffingAssignment> findAllByRequirementIdAndStatusOrderByCreatedAtAsc(UUID requirementId, String status);
   List<StaffingAssignment> findAllByMembershipIdAndStatusAndRequirementDate(UUID membershipId, String status, java.time.LocalDate date);
   Optional<StaffingAssignment> findByIdAndRequirementId(UUID id, UUID requirementId);
+  boolean existsByRequirementId(UUID requirementId);
+  boolean existsByRequirementIdAndMembershipId(UUID requirementId, UUID membershipId);
+
+  @Query("""
+      select assignment from StaffingAssignment assignment
+      join fetch assignment.requirement requirement
+      join fetch requirement.planDay day
+      join fetch day.plan plan
+      join fetch assignment.membership
+      where assignment.id = :assignmentId
+        and requirement.organization.id = :organizationId
+        and plan.id = :planId
+      """)
+  Optional<StaffingAssignment> findForPlan(
+      @Param("organizationId") UUID organizationId,
+      @Param("planId") UUID planId,
+      @Param("assignmentId") UUID assignmentId);
   @Query("""
       select assignment from StaffingAssignment assignment
       join fetch assignment.requirement requirement

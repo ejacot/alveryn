@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -111,6 +112,57 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
+  void existingV94SchemaMigratesToV95WithEmptyDraftIdempotencyLedger() throws Exception {
+    String schema = "flyway_v94_mutations_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "94").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v95 = flyway(url, username, password, schema, "95");
+      assertThat(v95.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(v95.info().current().getVersion().getVersion()).isEqualTo("95");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plan_draft_mutation_operations", 0);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname="
+                + "'ux_staffing_plan_draft_operations_key' "
+                + "and conrelid='staffing_plan_draft_mutation_operations'::regclass",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname="
+                + "'fk_staffing_plan_draft_operations_plan' "
+                + "and confdeltype='c' "
+                + "and conrelid='staffing_plan_draft_mutation_operations'::regclass",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname="
+                + "'fk_staffing_plan_draft_operations_actor' "
+                + "and conrelid='staffing_plan_draft_mutation_operations'::regclass",
+            0);
+        for (String constraint : List.of(
+            "ck_staffing_plan_draft_operations_status",
+            "ck_staffing_plan_draft_operations_family",
+            "ck_staffing_plan_draft_operations_key",
+            "ck_staffing_plan_draft_operations_revision",
+            "ck_staffing_plan_draft_operations_fingerprint",
+            "ck_staffing_plan_draft_operations_completion",
+            "ck_staffing_plan_draft_operations_response")) {
+          assertQueryCount(statement,
+              "select count(*) from pg_constraint where conname='" + constraint + "' "
+                  + "and conrelid='staffing_plan_draft_mutation_operations'::regclass",
+              1);
+        }
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
   void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
       throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
@@ -132,8 +184,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(4);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("94");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("95");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -150,6 +202,7 @@ class ProductionMigrationSafetyTest {
         assertCount(statement, "staffing_plan_version_member_days", 1);
         assertCount(statement, "staffing_plan_version_acknowledgements", 0);
         assertCount(statement, "staffing_plan_publication_operations", 0);
+        assertCount(statement, "staffing_plan_draft_mutation_operations", 0);
         assertQueryCount(statement,
             "select count(*) from staffing_requirements where plan_day_id is null", 0);
         assertQueryCount(statement,
@@ -570,13 +623,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(4);
+          .isEqualTo(5);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(4);
+          .isEqualTo(5);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

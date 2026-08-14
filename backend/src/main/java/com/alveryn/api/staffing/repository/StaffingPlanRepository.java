@@ -24,6 +24,8 @@ public interface StaffingPlanRepository extends JpaRepository<StaffingPlan, UUID
   Optional<StaffingPlan> findByIdAndOrganizationIdAndUnitId(
       UUID id, UUID organizationId, UUID unitId);
 
+  Optional<StaffingPlan> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select plan from StaffingPlan plan where plan.id = :planId "
       + "and plan.organization.id = :organizationId and plan.unit.id = :unitId")
