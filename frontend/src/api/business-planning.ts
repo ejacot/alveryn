@@ -6,14 +6,21 @@ import type {
   StaffingAssignmentCandidates,
   StaffingAssignmentInput,
   StaffingAssignmentUpdateInput,
+  StaffingCoverage,
   StaffingDemand,
   StaffingDemandBatchAction,
   StaffingMutationResult,
   StaffingPlanBootstrapResult,
+  StaffingPlanHeader,
   StaffingPlanLookup,
+  StaffingPublishInput,
+  StaffingPublishResult,
+  StaffingReview,
   StaffingRequirementInput,
   StaffingRequirementUpdateInput,
   StaffingSchedule,
+  StaffingVersionDetail,
+  StaffingVersions,
 } from "../types/business-planning";
 import { http } from "./http";
 
@@ -26,9 +33,13 @@ function response<T>(
   const replay = typeof value.headers.get === "function"
     ? value.headers.get("idempotent-replay")
     : value.headers["idempotent-replay"];
+  const location = typeof value.headers.get === "function"
+    ? value.headers.get("location")
+    : value.headers.location;
   return {
     data: value.data.data,
     etag: typeof rawEtag === "string" ? rawEtag : null,
+    location: typeof location === "string" ? location : null,
     status: value.status,
     idempotentReplay: replay === "true",
   };
@@ -82,6 +93,108 @@ export async function getStaffingSchedule(
   return response(
     await http.get<ApiResponse<StaffingSchedule>>(
       `${planPath(organizationId)}/${planId}/schedule`,
+    ),
+  );
+}
+
+export async function getStaffingPlanHeader(
+  organizationId: string,
+  planId: string,
+) {
+  return response(
+    await http.get<ApiResponse<StaffingPlanHeader>>(
+      `${planPath(organizationId)}/${planId}`,
+    ),
+  );
+}
+
+export async function getStaffingCoverage(
+  organizationId: string,
+  planId: string,
+) {
+  return response(
+    await http.get<ApiResponse<StaffingCoverage>>(
+      `${planPath(organizationId)}/${planId}/coverage`,
+    ),
+  );
+}
+
+export async function getStaffingReview(
+  organizationId: string,
+  planId: string,
+) {
+  return response(
+    await http.get<ApiResponse<StaffingReview>>(
+      `${planPath(organizationId)}/${planId}/review`,
+    ),
+  );
+}
+
+export async function getStaffingVersions(
+  organizationId: string,
+  planId: string,
+  options: { limit?: number; beforeVersion?: number; ifNoneMatch?: string } = {},
+) {
+  const result = await http.get<ApiResponse<StaffingVersions>>(
+    `${planPath(organizationId)}/${planId}/versions`,
+    {
+      params: {
+        limit: options.limit,
+        beforeVersion: options.beforeVersion,
+      },
+      headers: options.ifNoneMatch ? { "If-None-Match": options.ifNoneMatch } : undefined,
+      validateStatus: (status) => status === 200 || status === 304,
+    },
+  );
+  if (result.status === 304) {
+    return {
+      data: null,
+      etag: typeof result.headers.etag === "string" ? result.headers.etag : null,
+      location: null,
+      status: 304,
+      idempotentReplay: false,
+    };
+  }
+  return response(result);
+}
+
+export async function getStaffingVersion(
+  organizationId: string,
+  planId: string,
+  versionNumber: number,
+  ifNoneMatch?: string,
+) {
+  const result = await http.get<ApiResponse<StaffingVersionDetail>>(
+    `${planPath(organizationId)}/${planId}/versions/${versionNumber}`,
+    {
+      headers: ifNoneMatch ? { "If-None-Match": ifNoneMatch } : undefined,
+      validateStatus: (status) => status === 200 || status === 304,
+    },
+  );
+  if (result.status === 304) {
+    return {
+      data: null,
+      etag: typeof result.headers.etag === "string" ? result.headers.etag : null,
+      location: null,
+      status: 304,
+      idempotentReplay: false,
+    };
+  }
+  return response(result);
+}
+
+export async function publishStaffingPlan(
+  organizationId: string,
+  planId: string,
+  etag: string,
+  idempotencyKey: string,
+  input: StaffingPublishInput,
+) {
+  return response(
+    await http.post<ApiResponse<StaffingPublishResult>>(
+      `${planPath(organizationId)}/${planId}/publish`,
+      input,
+      { headers: { "If-Match": etag, "Idempotency-Key": idempotencyKey } },
     ),
   );
 }

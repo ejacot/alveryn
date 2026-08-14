@@ -6,7 +6,12 @@ import {
   createStaffingAssignment,
   createStaffingPlan,
   getStaffingAssignmentCandidates,
+  getStaffingCoverage,
+  getStaffingReview,
   getStaffingSchedule,
+  getStaffingVersion,
+  getStaffingVersions,
+  publishStaffingPlan,
   updateStaffingRequirement,
 } from "./business-planning";
 import { http } from "./http";
@@ -139,5 +144,77 @@ describe("business planning API", () => {
         },
       ],
     );
+  });
+
+  it("reads canonical coverage and review from the aggregate endpoints", async () => {
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/coverage")
+      .reply(200, { data: { planId: "plan-1", totals: { required: 8 } } }, { ETag: '"plan-plan-1-rev-6"' });
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/review")
+      .reply(200, { data: { planId: "plan-1", requiredAcknowledgementKeys: ["warning-1"] } }, { ETag: '"plan-plan-1-rev-6"' });
+
+    const [coverage, review] = await Promise.all([
+      getStaffingCoverage("org-1", "plan-1"),
+      getStaffingReview("org-1", "plan-1"),
+    ]);
+
+    expect(coverage.data.totals.required).toBe(8);
+    expect(review.data.requiredAcknowledgementKeys).toEqual(["warning-1"]);
+    expect(review.etag).toBe('"plan-plan-1-rev-6"');
+  });
+
+  it("publishes with the reviewed ETag and a dedicated idempotency key", async () => {
+    mock.onPost("/api/organizations/org-1/staffing/plans/plan-1/publish")
+      .reply((config) => {
+        expect(config.headers?.["If-Match"]).toBe('"plan-plan-1-rev-6"');
+        expect(config.headers?.["Idempotency-Key"]).toBe("publish-key");
+        expect(JSON.parse(config.data)).toEqual({
+          acknowledgementKeys: ["warning-1"],
+          publicationNote: "Reviewed with the hotel",
+        });
+        return [
+          201,
+          { data: { planId: "plan-1", versionId: "version-2", versionNumber: 2 } },
+          {
+            ETag: '"staffing-version-version-2-checksum"',
+            Location: "/api/organizations/org-1/staffing/plans/plan-1/versions/2",
+          },
+        ];
+      });
+
+    const result = await publishStaffingPlan(
+      "org-1",
+      "plan-1",
+      '"plan-plan-1-rev-6"',
+      "publish-key",
+      { acknowledgementKeys: ["warning-1"], publicationNote: "Reviewed with the hotel" },
+    );
+
+    expect(result.status).toBe(201);
+    expect(result.location).toBe("/api/organizations/org-1/staffing/plans/plan-1/versions/2");
+    expect(result.etag).toBe('"staffing-version-version-2-checksum"');
+  });
+
+  it("reuses conditional version reads without replacing cached immutable data", async () => {
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/versions")
+      .reply((config) => {
+        expect(config.params).toEqual({ limit: 8, beforeVersion: 4 });
+        expect(config.headers?.["If-None-Match"]).toBe('"versions-page"');
+        return [304, undefined, { ETag: '"versions-page"' }];
+      });
+    mock.onGet("/api/organizations/org-1/staffing/plans/plan-1/versions/3")
+      .reply((config) => {
+        expect(config.headers?.["If-None-Match"]).toBe('"version-3"');
+        return [304, undefined, { ETag: '"version-3"' }];
+      });
+
+    const [versions, detail] = await Promise.all([
+      getStaffingVersions("org-1", "plan-1", { limit: 8, beforeVersion: 4, ifNoneMatch: '"versions-page"' }),
+      getStaffingVersion("org-1", "plan-1", 3, '"version-3"'),
+    ]);
+
+    expect(versions.status).toBe(304);
+    expect(versions.data).toBeNull();
+    expect(detail.status).toBe(304);
+    expect(detail.data).toBeNull();
   });
 });

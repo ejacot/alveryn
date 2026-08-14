@@ -130,11 +130,10 @@ export function BusinessPlanningShell({
             <CalendarRange aria-hidden="true" />
             <span>{t("planning.navigation.schedule")}</span>
           </NavLink>
-          <span className="is-upcoming" aria-disabled="true">
+          <NavLink to={`/business/${organizationId}/plan/review${planningSearch}`}>
             <BarChart3 aria-hidden="true" />
             <span>{t("planning.navigation.review")}</span>
-            <small>{t("planning.navigation.next")}</small>
-          </span>
+          </NavLink>
         </nav>
         <div className="business-planning__rail-secondary">
           <Link to="/business">

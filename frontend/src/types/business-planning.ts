@@ -146,6 +146,205 @@ export type StaffingIssue = {
   publishBlocking: boolean;
 };
 
+export type StaffingRequirementCoverage = {
+  requirementId: string;
+  planDayId: string;
+  date: string;
+  workTypeId: string;
+  workTypeCode: string;
+  workTypeName: string;
+  startTime: string | null;
+  endTime: string | null;
+  totals: StaffingCoverageTotals;
+  assignmentIds: string[];
+  effectiveAssignmentIds: string[];
+  issueKeys: string[];
+};
+
+export type StaffingDayCoverage = {
+  date: string;
+  totals: StaffingCoverageTotals;
+  issueKeys: string[];
+};
+
+export type StaffingCoverage = {
+  planId: string;
+  organizationId: string;
+  unitId: string;
+  weekStart: string;
+  draftRevision: number;
+  etag: string;
+  totals: StaffingCoverageTotals;
+  requirements: StaffingRequirementCoverage[];
+  days: StaffingDayCoverage[];
+  issues: StaffingIssue[];
+  blockingIssueCount: number;
+  warningCount: number;
+  informationCount: number;
+  publishable: boolean;
+};
+
+export type StaffingIssueGroup = {
+  severity: StaffingIssue["severity"];
+  count: number;
+  issues: StaffingIssue[];
+};
+
+export type StaffingReview = {
+  planId: string;
+  organizationId: string;
+  unitId: string;
+  weekStart: string;
+  draftRevision: number;
+  etag: string;
+  coverage: StaffingCoverageTotals;
+  groups: StaffingIssueGroup[];
+  blockingIssueCount: number;
+  warningCount: number;
+  informationCount: number;
+  publishable: boolean;
+  requiredAcknowledgementKeys: string[];
+};
+
+export type StaffingVersionListItem = {
+  versionId: string;
+  versionNumber: number;
+  sourceDraftRevision: number;
+  required: number | null;
+  rawAssigned: number | null;
+  effectiveAssigned: number | null;
+  covered: number | null;
+  missing: number | null;
+  overstaffed: number | null;
+  percentage: number | null;
+  coverageBasis: string;
+  warningCount: number;
+  checksum: string;
+  publicationKind: string;
+  sourceDraftComplete: boolean;
+  publisherDisplayName: string | null;
+  publishedAt: string;
+  latest: boolean;
+};
+
+export type StaffingVersions = {
+  planId: string;
+  organizationId: string;
+  unitId: string;
+  limit: number;
+  nextBeforeVersion: number | null;
+  hasMore: boolean;
+  versions: StaffingVersionListItem[];
+};
+
+export type StaffingVersionDay = {
+  sourcePlanDayId: string | null;
+  date: string;
+  roomsContext: number | null;
+  source: string;
+};
+
+export type StaffingVersionRequirement = {
+  sourceRequirementId: string | null;
+  sourcePlanDayId: string | null;
+  date: string;
+  unitId: string;
+  unitName: string;
+  workTypeId: string | null;
+  workTypeCode: string;
+  workTypeName: string;
+  startTime: string | null;
+  endTime: string | null;
+  breakMinutes: number;
+  requiredWorkers: number;
+  requiredQuantity: number | null;
+  legacyPublicationStatus: string;
+};
+
+export type StaffingVersionAssignment = {
+  sourceAssignmentId: string | null;
+  sourceRequirementId: string | null;
+  membershipId: string | null;
+  memberDisplayName: string;
+  membershipStatus: string;
+  date: string;
+  unitId: string;
+  unitName: string;
+  workTypeId: string | null;
+  workTypeCode: string;
+  workTypeName: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  checkInMode: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
+};
+
+export type StaffingVersionMemberDay = {
+  sourceDayEntryId: string | null;
+  membershipId: string | null;
+  memberDisplayName: string;
+  date: string;
+  status: string;
+  source: string;
+};
+
+export type StaffingVersionAcknowledgement = {
+  issueKey: string;
+  severity: StaffingIssue["severity"];
+  acknowledgedAt: string;
+};
+
+export type StaffingVersionDetail = {
+  versionId: string;
+  planId: string;
+  organizationId: string;
+  unitId: string;
+  versionNumber: number;
+  sourceDraftRevision: number;
+  required: number | null;
+  rawAssigned: number | null;
+  effectiveAssigned: number | null;
+  covered: number | null;
+  missing: number | null;
+  overstaffed: number | null;
+  percentage: number | null;
+  coverageBasis: string;
+  warningCount: number;
+  checksum: string;
+  publicationKind: string;
+  sourceDraftComplete: boolean;
+  publisherDisplayName: string | null;
+  publishedAt: string;
+  timezone: string;
+  weekStart: string;
+  days: StaffingVersionDay[];
+  requirements: StaffingVersionRequirement[];
+  assignments: StaffingVersionAssignment[];
+  memberDays: StaffingVersionMemberDay[];
+  acknowledgements: StaffingVersionAcknowledgement[];
+};
+
+export type StaffingPublishInput = {
+  acknowledgementKeys: string[];
+  publicationNote: string | null;
+};
+
+export type StaffingPublishResult = {
+  planId: string;
+  versionId: string;
+  versionNumber: number;
+  sourceDraftRevision: number;
+  publishedRevision: number;
+  publishedAt: string;
+  publicationKind: string;
+  canonicalCoverage: Omit<StaffingCoverageTotals, "openPositions">;
+  warningCount: number;
+  checksum: string;
+  idempotentReplay: boolean;
+};
+
 export type StaffingScheduleAssignment = {
   assignmentId: string;
   requirementId: string;
@@ -317,6 +516,7 @@ export type StaffingPlanBootstrapResult = {
 export type ApiEntityResult<T> = {
   data: T;
   etag: string | null;
+  location: string | null;
   status: number;
   idempotentReplay: boolean;
 };

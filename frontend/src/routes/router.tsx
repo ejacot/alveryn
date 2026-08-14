@@ -183,6 +183,9 @@ const BusinessDemandPage = lazy(() =>
 const BusinessSchedulePage = lazy(() =>
   import("../pages/business-schedule-page").then((module) => ({ default: module.BusinessSchedulePage }))
 );
+const BusinessReviewPage = lazy(() =>
+  import("../pages/business-review-page").then((module) => ({ default: module.BusinessReviewPage }))
+);
 const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
 const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
 const SchedulePage = lazy(() => import("../pages/schedule-page").then((module) => ({ default: module.SchedulePage })));
@@ -248,6 +251,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/business", element: withSuspense(<BusinessPage />) },
             { path: "/business/:organizationId/plan/demand", element: withSuspense(<BusinessDemandPage />) },
             { path: "/business/:organizationId/plan/schedule", element: withSuspense(<BusinessSchedulePage />) },
+            { path: "/business/:organizationId/plan/review", element: withSuspense(<BusinessReviewPage />) },
             { path: "/business/:organizationId/work-types", element: withSuspense(<BusinessWorkTypesPage />) },
             { path: "/business/:organizationId/work-types/new", element: withSuspense(<BusinessWorkTypeEditorPage />) },
             { path: "/business/:organizationId/work-types/:workTypeId", element: withSuspense(<BusinessWorkTypeEditorPage />) },
