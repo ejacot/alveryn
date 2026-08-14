@@ -21,7 +21,16 @@ class StaffingPlannerIntegrationTest {
   @Autowired WebApplicationContext context; @Autowired JwtService jwt;
   @Autowired UserAccountRepository users; @Autowired OrganizationRepository organizations;
   MockMvc mvc; UserAccount owner;
-  @BeforeEach void setup() { mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build(); organizations.deleteAll(); users.deleteAll(); owner = new UserAccount("planner@example.com", "hash"); owner.verifyEmail(); owner = users.saveAndFlush(owner); }
+  @BeforeEach void setup() {
+    mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+    context.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+        .update("delete from staffing_plan_publication_operations");
+    organizations.deleteAll();
+    users.deleteAll();
+    owner = new UserAccount("planner@example.com", "hash");
+    owner.verifyEmail();
+    owner = users.saveAndFlush(owner);
+  }
 
   @Test void coverageMovesFromUnderstaffedToCoveredAndOverstaffed() throws Exception {
     String orgId = create("/api/organizations", "{\"name\":\"Hotel\",\"timezone\":\"Europe/Berlin\"}");

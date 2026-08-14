@@ -53,6 +53,32 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
+  void existingV92SchemaMigratesToV93WithoutChangingImmutableVersions() throws Exception {
+    String schema = "flyway_v92_publish_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "92").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v93 = flyway(url, username, password, schema, "93");
+      assertThat(v93.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(v93.info().current().getVersion().getVersion()).isEqualTo("93");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plan_publication_operations", 0);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname='ck_staffing_plan_versions_kind' "
+                + "and conrelid='staffing_plan_versions'::regclass",
+            1);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
   void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
       throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
@@ -74,8 +100,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("92");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(3);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("93");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -91,6 +117,7 @@ class ProductionMigrationSafetyTest {
         assertCount(statement, "staffing_plan_version_assignments", 1);
         assertCount(statement, "staffing_plan_version_member_days", 1);
         assertCount(statement, "staffing_plan_version_acknowledgements", 0);
+        assertCount(statement, "staffing_plan_publication_operations", 0);
         assertQueryCount(statement,
             "select count(*) from staffing_requirements where plan_day_id is null", 0);
         assertQueryCount(statement,
@@ -505,13 +532,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(2);
+          .isEqualTo(3);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(2);
+          .isEqualTo(3);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

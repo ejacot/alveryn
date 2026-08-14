@@ -95,6 +95,18 @@ public class StaffingPlan extends BaseEntity {
         || draftRevision > publishedRevision;
   }
 
+  public void recordPublication(StaffingPlanVersion version, long revision,
+      java.time.OffsetDateTime publicationTime) {
+    Objects.requireNonNull(version, "version is required");
+    Objects.requireNonNull(publicationTime, "publication time is required");
+    if (revision != draftRevision) {
+      throw new IllegalArgumentException("published revision must equal the current draft revision");
+    }
+    latestPublishedVersion = version;
+    publishedRevision = revision;
+    publishedAt = publicationTime;
+  }
+
   private LocalDate requireMonday(LocalDate value) {
     Objects.requireNonNull(value, "week start is required");
     if (value.getDayOfWeek() != DayOfWeek.MONDAY) {

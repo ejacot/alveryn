@@ -37,6 +37,12 @@ public class GlobalExceptionHandler {
     return response(HttpStatus.CONFLICT, e.getMessage(), e.getCode(), r, e.getErrors());
   }
 
+  @ExceptionHandler(PreconditionFailedException.class)
+  ResponseEntity<ApiErrorResponse> handlePreconditionFailed(
+      PreconditionFailedException e, HttpServletRequest r) {
+    return response(HttpStatus.PRECONDITION_FAILED, e.getMessage(), e.getCode(), r, List.of());
+  }
+
   @ExceptionHandler(AccessDeniedException.class)
   ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException e, HttpServletRequest r) {
     return response(HttpStatus.FORBIDDEN, e.getMessage(), "ACCESS_DENIED", r, List.of());
