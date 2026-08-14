@@ -163,6 +163,40 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
+  void existingV95SchemaMigratesToV96WithPlanCreateIdempotencyScope() throws Exception {
+    String schema = "flyway_v95_plan_create_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "95").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v96 = flyway(url, username, password, schema, "96");
+      assertThat(v96.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(v96.info().current().getVersion().getVersion()).isEqualTo("96");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname="
+                + "'ck_staffing_plan_draft_operations_family' and "
+                + "pg_get_constraintdef(oid) like '%PLAN_CREATE%' "
+                + "and conrelid='staffing_plan_draft_mutation_operations'::regclass",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from pg_indexes where schemaname=current_schema() and tablename="
+                + "'staffing_plan_draft_mutation_operations' and indexname="
+                + "'ux_staffing_plan_create_operations_key' "
+                + "and indexdef like '%WHERE%' and indexdef like '%PLAN_CREATE%'",
+            1);
+        assertCount(statement, "staffing_plan_draft_mutation_operations", 0);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
   void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
       throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
@@ -184,8 +218,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("95");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(6);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("96");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -623,13 +657,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(5);
+          .isEqualTo(6);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(5);
+          .isEqualTo(6);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

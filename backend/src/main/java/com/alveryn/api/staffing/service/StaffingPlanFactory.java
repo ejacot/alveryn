@@ -29,6 +29,12 @@ class StaffingPlanFactory {
   @Transactional(propagation = Propagation.MANDATORY)
   StaffingPlan getOrCreate(
       UUID organizationId, UUID unitId, LocalDate weekStart, UUID actorMembershipId) {
+    return getOrCreateResult(organizationId, unitId, weekStart, actorMembershipId).plan();
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  CreationResult getOrCreateResult(
+      UUID organizationId, UUID unitId, LocalDate weekStart, UUID actorMembershipId) {
     requireMonday(weekStart);
     var organization = organizations.findById(organizationId)
         .filter(value -> value.getOrganizationType() == OrganizationType.BUSINESS)
@@ -38,9 +44,11 @@ class StaffingPlanFactory {
     var unit = units.lockByIdAndOrganizationId(unitId, organizationId)
         .orElseThrow(() -> new NotFoundException("Organization unit", unitId));
     var actor = activeMembership(organizationId, actorMembershipId);
-    return plans.findByOrganizationIdAndUnitIdAndWeekStart(organizationId, unitId, weekStart)
-        .orElseGet(() -> plans.saveAndFlush(
-            new StaffingPlan(organization, unit, weekStart, organization.getTimezone(), actor)));
+    var existing = plans.findByOrganizationIdAndUnitIdAndWeekStart(
+        organizationId, unitId, weekStart);
+    if (existing.isPresent()) return new CreationResult(existing.get(), false);
+    return new CreationResult(plans.saveAndFlush(
+        new StaffingPlan(organization, unit, weekStart, organization.getTimezone(), actor)), true);
   }
 
   private OrganizationMembership activeMembership(UUID organizationId, UUID membershipId) {
@@ -54,4 +62,6 @@ class StaffingPlanFactory {
       throw new IllegalArgumentException("week start must be Monday");
     }
   }
+
+  record CreationResult(StaffingPlan plan, boolean created) {}
 }
