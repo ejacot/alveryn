@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import {
   createBusinessOrganization,
   createOrganizationMember,
@@ -264,18 +265,28 @@ export function BusinessPage() {
           </p>
         </div>
         {businessOrganizations.length ? (
-          <Select
-            label={t("organization")}
-            value={activeId ?? ""}
-            onChange={(event) => setSelectedId(event.target.value)}
-            className="min-w-56"
-          >
-            {businessOrganizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </Select>
+          <div className="flex flex-wrap items-end gap-2">
+            <Select
+              label={t("organization")}
+              value={activeId ?? ""}
+              onChange={(event) => setSelectedId(event.target.value)}
+              className="min-w-56"
+            >
+              {businessOrganizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </Select>
+            {activeId && (unitsQuery.data ?? []).some((unit) => unit.active) ? (
+              <Link
+                to={`/business/${activeId}/plan/demand?unit=${(unitsQuery.data ?? []).find((unit) => unit.active)?.id}`}
+                className="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-emerald-950"
+              >
+                {t("planning.openPlanner")}
+              </Link>
+            ) : null}
+          </div>
         ) : null}
       </header>
 

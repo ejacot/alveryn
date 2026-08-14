@@ -10,7 +10,8 @@ export function AppLayout() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const location = useLocation();
   const settingsSplitView = location.pathname.startsWith("/settings/");
-  const businessWorkspaceView = location.pathname === "/business";
+  const businessPlanningView = /^\/business\/[^/]+\/plan\//.test(location.pathname);
+  const businessWorkspaceView = location.pathname === "/business" || businessPlanningView;
   const desktopWorkspaceView = [
     APP_HOME_PATH,
     "/calendar",
@@ -19,13 +20,15 @@ export function AppLayout() {
     "/business",
   ].includes(location.pathname);
   const showBottomNavigation =
-    !settingsSplitView && !location.pathname.startsWith("/records/");
+    !settingsSplitView &&
+    !location.pathname.startsWith("/records/") &&
+    !businessPlanningView;
   const ambientView =
     location.pathname === APP_HOME_PATH ||
     location.pathname === "/preview/dashboard" ||
     location.pathname === "/calendar" ||
     location.pathname === "/statistics" ||
-    location.pathname === "/business" ||
+    location.pathname.startsWith("/business") ||
     location.pathname === "/schedule" ||
     location.pathname === "/profile" ||
     location.pathname.startsWith("/records/") ||
@@ -55,6 +58,7 @@ export function AppLayout() {
           "screen-shell space-y-4",
           desktopWorkspaceView && "desktop-workspace-shell",
           businessWorkspaceView && "business-workspace-shell",
+          businessPlanningView && "business-planning-route-shell",
         )}
       >
         <Outlet context={{ selectedDate, setSelectedDate }} />

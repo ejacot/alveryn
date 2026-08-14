@@ -17,7 +17,7 @@ export default defineConfig({
       : undefined,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure"
+    video: process.env.ALVERYN_E2E_RECORD_VIDEO === "true" ? "on" : "retain-on-failure"
   },
   projects: [
     {
