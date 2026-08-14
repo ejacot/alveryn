@@ -41,6 +41,8 @@ public interface StaffingAssignmentRepository extends JpaRepository<StaffingAssi
   @Query("""
       select assignment from StaffingAssignment assignment
       join fetch assignment.requirement requirement
+      join fetch requirement.planDay planDay
+      join fetch planDay.plan
       join fetch requirement.unit
       join fetch requirement.workType
       where assignment.membership.id = :membershipId

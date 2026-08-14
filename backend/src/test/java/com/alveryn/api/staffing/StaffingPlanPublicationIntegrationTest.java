@@ -78,6 +78,9 @@ class StaffingPlanPublicationIntegrationTest {
     assertThat(replay.idempotentReplay()).isTrue();
     assertThat(jdbc.queryForObject("select count(*) from staffing_plan_versions where plan_id=?", Integer.class,
         fixture.planId())).isEqualTo(1);
+    assertThat(jdbc.queryForObject("select count(*) from staffing_change_events "
+        + "where organization_id=? and entity_id=? and event_type='WEEKLY_PLAN_PUBLISHED'",
+        Integer.class, fixture.organizationId(), fixture.planId())).isEqualTo(1);
 
     String checksum = first.checksum();
     mutations.mutateScopes(fixture.organizationId(), List.of(
@@ -219,6 +222,34 @@ class StaffingPlanPublicationIntegrationTest {
     assertThatThrownBy(() -> publication.publishPlan(command(fixture, fixture.planRevision(),
         Set.of("UNDERCOVERAGE:" + requirementId), "different", "warning-key")))
         .isInstanceOf(ConflictException.class).hasMessageContaining("another request");
+  }
+
+  @Test void publicationNoteIsCanonicalUnicodeSafeAndPartOfIdempotency() {
+    Fixture fixture = fixture("publication-note");
+    UUID requirementId = requirement(fixture);
+    Set<String> warnings = Set.of("UNDERCOVERAGE:" + requirementId);
+
+    var first = publication.publishPlan(command(fixture, fixture.planRevision(), warnings,
+        "  Verifică\t planul\n înainte   de publicare  ", "canonical-note"));
+    var replay = publication.publishPlan(command(fixture, fixture.planRevision(), warnings,
+        "Verifică planul înainte de publicare", "canonical-note"));
+
+    assertThat(replay.versionId()).isEqualTo(first.versionId());
+    assertThat(replay.idempotentReplay()).isTrue();
+    assertThat(jdbc.queryForObject(
+        "select publication_note from staffing_plan_versions where id=?", String.class,
+        first.versionId())).isEqualTo("Verifică planul înainte de publicare");
+    assertThatThrownBy(() -> publication.publishPlan(command(fixture, fixture.planRevision(),
+        warnings, "Altă notă", "canonical-note")))
+        .isInstanceOf(ConflictException.class).hasMessageContaining("another request");
+
+    Fixture invalid = fixture("publication-note-control");
+    UUID invalidRequirement = requirement(invalid);
+    assertThatThrownBy(() -> publication.publishPlan(command(invalid, invalid.planRevision(),
+        Set.of("UNDERCOVERAGE:" + invalidRequirement), "unsafe\u0000note", "control-note")))
+        .isInstanceOf(ValidationException.class).hasMessageContaining("control characters");
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_versions where plan_id=?",
+        Integer.class, invalid.planId())).isZero();
   }
 
   @Test void acknowledgementsMustMatchEveryCurrentWarningAndNeverAcknowledgeBlockers() {

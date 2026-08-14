@@ -40,14 +40,13 @@ public class StaffingPlanPublicationService {
    * fingerprints protect the immutable snapshot. The fingerprints remain a defence-in-depth guard
    * for database changes outside the application mutation boundary.
    *
-   * <p><strong>Do not expose this service through a production endpoint or legacy flow</strong>
-   * until aggregate-native Demand/Schedule routes expose ETags and enforce {@code If-Match}. Legacy
-   * routes now participate in plan locking and revisioning, but remain temporarily unconditional.
+   * <p>The production manager endpoint delegates here after authenticating the actor and validating
+   * the strong draft ETag. Legacy routes remain temporarily available but never write versions.
    */
   @Transactional
   public PublicationResult publishPlan(PublishCommand command) {
     validate(command);
-    String note = clean(command.publicationNote());
+    String note = normalizePublicationNote(command.publicationNote());
     List<String> acknowledgedKeys = command.acknowledgedIssueKeys().stream()
         .filter(Objects::nonNull).map(String::trim).filter(value -> !value.isEmpty())
         .distinct().sorted().toList();
@@ -174,7 +173,7 @@ public class StaffingPlanPublicationService {
         version.revision(), version.publishedAt(), version.checksum(), version.publicationKind(),
         hasUnpublishedChanges, new LegacyCoverage(version.required(), version.assigned(),
             version.percentage(), "LEGACY_V90"), canonicalCoverage(version),
-        List.copyOf(acknowledged), replay);
+        version.warningCount(), List.copyOf(acknowledged), replay);
   }
 
   private static CanonicalCoverage canonicalCoverage(
@@ -195,12 +194,10 @@ public class StaffingPlanPublicationService {
     Objects.requireNonNull(command.publisherMembershipId(), "publisherMembershipId is required");
     Objects.requireNonNull(command.acknowledgedIssueKeys(), "acknowledgedIssueKeys is required");
     if (command.expectedDraftRevision() < 0) throw new IllegalArgumentException("revision is invalid");
-    if (command.idempotencyKey() == null || command.idempotencyKey().isBlank()
-        || command.idempotencyKey().trim().length() > 200) {
-      throw new IllegalArgumentException("idempotencyKey is required and must not exceed 200 characters");
-    }
-    if (command.publicationNote() != null && command.publicationNote().trim().length() > 1000) {
-      throw new IllegalArgumentException("publicationNote must not exceed 1000 characters");
+    if (command.idempotencyKey() == null
+        || !command.idempotencyKey().trim().matches("[\\x21-\\x7e]{1,200}")) {
+      throw new IllegalArgumentException(
+          "idempotencyKey must contain 1 to 200 visible ASCII characters");
     }
   }
 
@@ -223,8 +220,28 @@ public class StaffingPlanPublicationService {
     }
   }
 
-  private static String clean(String value) {
-    return value == null || value.isBlank() ? null : value.trim();
+  private static String normalizePublicationNote(String value) {
+    if (value == null || value.isBlank()) return null;
+    StringBuilder normalized = new StringBuilder();
+    boolean pendingSpace = false;
+    for (int offset = 0; offset < value.length();) {
+      int codePoint = value.codePointAt(offset);
+      offset += Character.charCount(codePoint);
+      if (Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint)) {
+        pendingSpace = normalized.length() > 0;
+        continue;
+      }
+      if (Character.isISOControl(codePoint)) {
+        throw new ValidationException("publicationNote contains unsupported control characters");
+      }
+      if (pendingSpace) normalized.append(' ');
+      normalized.appendCodePoint(codePoint);
+      pendingSpace = false;
+      if (normalized.length() > 1000) {
+        throw new ValidationException("publicationNote must not exceed 1000 characters");
+      }
+    }
+    return normalized.isEmpty() ? null : normalized.toString();
   }
 
   public record PublishCommand(UUID organizationId, UUID unitId, UUID planId,
@@ -234,7 +251,7 @@ public class StaffingPlanPublicationService {
   public record PublicationResult(UUID planId, UUID versionId, int versionNumber,
       long publishedRevision, OffsetDateTime publishedAt, String checksum,
       String publicationKind, boolean hasUnpublishedChanges, LegacyCoverage legacyCoverage,
-      CanonicalCoverage canonicalCoverage, List<String> warningsAcknowledged,
+      CanonicalCoverage canonicalCoverage, int warningCount, List<String> warningsAcknowledged,
       boolean idempotentReplay) {}
 
   public record LegacyCoverage(int required, int assigned, BigDecimal percentage, String basis) {}

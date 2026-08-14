@@ -455,6 +455,559 @@ class StaffingPlannerIntegrationTest {
     org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("SECOND"), secondCodes);
   }
 
+  @Test void atomicPublishEndpointFeedsOnlyTheEmployeesLatestImmutableSchedule() throws Exception {
+    UserAccount employee = verifiedUser("atomic-worker@example.com");
+    String organization = create("/api/organizations",
+        "{\"name\":\"Atomic Hotel\",\"timezone\":\"Europe/Berlin\"}");
+    String unit = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"Housekeeping\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String employeeMember = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Eva\",\"lastName\":\"Worker\","
+            + "\"email\":\"atomic-worker@example.com\"}");
+    String colleague = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Private\",\"lastName\":\"Colleague\"}");
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id in (?,?)",
+        java.util.UUID.fromString(employeeMember), java.util.UUID.fromString(colleague));
+    String type = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + unit + "\",\"code\":\"ROOM\",\"name\":\"Room cleaning\","
+            + "\"color\":\"#10B981\",\"defaultStartTime\":\"09:00\","
+            + "\"defaultEndTime\":\"16:30\",\"defaultBreakMinutes\":30}");
+    String requirement = create("/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unit + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":2}");
+    assign(organization, requirement, employeeMember, "UNDERSTAFFED", -1);
+    assign(organization, requirement, colleague, "COVERED", 0);
+    String colleagueAssignment = jdbc.queryForObject(
+        "select id::text from staffing_assignments where requirement_id=?::uuid "
+            + "and membership_id=?::uuid",
+        String.class, requirement, colleague);
+    String plan = planId(organization, unit, "2026-08-10");
+    String etag = planEtag(plan, planRevision(organization, unit, "2026-08-10"));
+
+    var created = mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH, etag)
+            .header("Idempotency-Key", "atomic-v1").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[],\"publicationNote\":\"First week\"}"))
+        .andExpect(status().isCreated()).andExpect(header().string(HttpHeaders.LOCATION,
+            org.hamcrest.Matchers.endsWith("/versions/1")))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL,
+            org.hamcrest.Matchers.containsString("private")))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL,
+            org.hamcrest.Matchers.containsString("no-cache")))
+        .andExpect(header().doesNotExist("Idempotent-Replay"))
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.data.versionNumber").value(1))
+        .andExpect(jsonPath("$.data.publishedRevision").value(
+            planRevision(organization, unit, "2026-08-10")))
+        .andExpect(jsonPath("$.data.canonicalCoverage.required").value(2))
+        .andExpect(jsonPath("$.data.canonicalCoverage.effectiveAssigned").value(2))
+        .andExpect(jsonPath("$.data.idempotentReplay").value(false))
+        .andReturn();
+    String immutableEtag = created.getResponse().getHeader(HttpHeaders.ETAG);
+    String createdBody = created.getResponse().getContentAsString();
+    String createdVersionId = com.jayway.jsonpath.JsonPath.read(createdBody,
+        "$.data.versionId");
+    String createdChecksum = com.jayway.jsonpath.JsonPath.read(createdBody,
+        "$.data.checksum");
+    org.junit.jupiter.api.Assertions.assertEquals(
+        com.alveryn.api.staffing.service.StaffingPlanQueryService.immutableVersionEtag(
+            java.util.UUID.fromString(createdVersionId), createdChecksum), immutableEtag);
+
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH, etag)
+            .header("Idempotency-Key", "atomic-v1").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[],\"publicationNote\":\"First week\"}"))
+        .andExpect(status().isOk()).andExpect(header().string("Idempotent-Replay", "true"))
+        .andExpect(header().string(HttpHeaders.ETAG, immutableEtag))
+        .andExpect(jsonPath("$.data.idempotentReplay").value(true));
+
+    String selfV1 = mvc.perform(get("/api/my/business-schedule")
+            .param("from", "2026-08-10").param("to", "2026-08-16")
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].publishedVersions[0].versionNumber").value(1))
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(1))
+        .andExpect(jsonPath("$.data[0].assignments[0].workTypeCode").value("ROOM"))
+        .andExpect(jsonPath("$.data[0].requirements").doesNotExist())
+        .andReturn().getResponse().getContentAsString();
+    for (String forbiddenField : java.util.List.of("requirements", "coverage", "reviewIssues",
+        "warningAcknowledgements", "acknowledgementKeys", "publicationNote", "publisher",
+        "publisherMembershipId", "draftRevision", "sourceDraftRevision", "publishedRevision",
+        "hasUnpublishedChanges", "publicationKind", "checksum", "warningCount", "membershipId",
+        "memberName", "memberEmail")) {
+      org.junit.jupiter.api.Assertions.assertFalse(
+          selfV1.contains("\"" + forbiddenField + "\""), forbiddenField);
+    }
+    org.junit.jupiter.api.Assertions.assertFalse(selfV1.contains("Private Colleague"));
+    org.junit.jupiter.api.Assertions.assertFalse(selfV1.contains("atomic-worker@example.com"));
+    org.junit.jupiter.api.Assertions.assertFalse(selfV1.contains(colleagueAssignment));
+
+    String ownAssignmentId = com.jayway.jsonpath.JsonPath.read(selfV1,
+        "$.data[0].assignments[0].id");
+    mvc.perform(post("/api/my/business-schedule/assignments/{assignment}/check-in",
+            ownAssignmentId)
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.checkedInAt").isNotEmpty());
+
+    long revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(post(
+            "/api/organizations/{org}/staffing/plans/{plan}/demand/requirements", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH,
+                planEtag(plan, revision)).header("Idempotency-Key", "coworker-demand")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"date\":\"2026-08-11\",\"workTypeId\":\"" + type
+                + "\",\"requiredWorkers\":1}"))
+        .andExpect(status().isCreated());
+    String secondRequirement = jdbc.queryForObject(
+        "select id::text from staffing_requirements where plan_day_id in "
+            + "(select id from staffing_plan_days where plan_id=?::uuid) and work_date='2026-08-11'",
+        String.class, plan);
+    revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/schedule/assignments", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH,
+                planEtag(plan, revision)).header("Idempotency-Key", "coworker-assignment")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"requirementId\":\"" + secondRequirement + "\",\"membershipId\":\""
+                + colleague + "\"}"))
+        .andExpect(status().isCreated());
+
+    String beforeV2 = mvc.perform(get("/api/my/business-schedule")
+            .param("from", "2026-08-10").param("to", "2026-08-16")
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].publishedVersions[0].versionNumber")
+            .value(1)).andExpect(jsonPath("$.data[0].assignments.length()").value(1))
+        .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertFalse(beforeV2.contains("2026-08-11"));
+
+    revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH, etag)
+            .header("Idempotency-Key", "atomic-v1").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[],\"publicationNote\":\"First week\"}"))
+        .andExpect(status().isOk()).andExpect(header().string("Idempotent-Replay", "true"))
+        .andExpect(jsonPath("$.data.versionNumber").value(1));
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH,
+                planEtag(plan, revision)).header("Idempotency-Key", "atomic-v1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[],\"publicationNote\":\"First week\"}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH,
+                planEtag(plan, revision)).header("Idempotency-Key", "atomic-v2")
+            .contentType(MediaType.APPLICATION_JSON).content("{\"acknowledgementKeys\":[]}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.versionNumber").value(2));
+    String selfV2 = mvc.perform(get("/api/my/business-schedule")
+            .param("from", "2026-08-10").param("to", "2026-08-16")
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].publishedVersions[0].versionNumber")
+            .value(2)).andExpect(jsonPath("$.data[0].assignments.length()").value(1))
+        .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertFalse(selfV2.contains("Private Colleague"));
+    org.junit.jupiter.api.Assertions.assertFalse(selfV2.contains(secondRequirement));
+  }
+
+  @Test void atomicPublishHttpPreconditionsAndAcknowledgementsAreStrict() throws Exception {
+    UserAccount scopedEmployee = verifiedUser("publish-employee@example.com");
+    UserAccount outsider = verifiedUser("publish-outsider@example.com");
+    String org = create("/api/organizations",
+        "{\"name\":\"Publish Contract\",\"timezone\":\"Europe/Berlin\"}");
+    String unit = create("/api/organizations/" + org + "/units",
+        "{\"name\":\"Team\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String type = create("/api/organizations/" + org + "/staffing/work-types",
+        "{\"unitId\":\"" + unit + "\",\"code\":\"PF\",\"name\":\"Public early\","
+            + "\"defaultStartTime\":\"05:00\",\"defaultEndTime\":\"13:30\"}");
+    String requirement = create("/api/organizations/" + org + "/staffing/requirements",
+        "{\"unitId\":\"" + unit + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
+    String plan = planId(org, unit, "2026-08-10");
+    String current = planEtag(plan, planRevision(org, unit, "2026-08-10"));
+    String endpoint = "/api/organizations/" + org + "/staffing/plans/" + plan + "/publish";
+    String scopedMembership = create("/api/organizations/" + org + "/members",
+        "{\"firstName\":\"Scoped\",\"lastName\":\"Employee\","
+            + "\"email\":\"publish-employee@example.com\"}");
+    jdbc.update("update organization_memberships set membership_status='INVITED' where id=?::uuid",
+        scopedMembership);
+
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token(outsider))
+            .header(HttpHeaders.IF_MATCH, "\"plan-00000000-0000-0000-0000-000000000000-r99\"")
+            .header("Idempotency-Key", "outsider-hidden").contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isNotFound());
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token(scopedEmployee))
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "invited-hidden")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isNotFound());
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id=?::uuid",
+        scopedMembership);
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token(scopedEmployee))
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "forbidden")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isForbidden());
+    jdbc.update("update organization_memberships set membership_status='SUSPENDED' where id=?::uuid",
+        scopedMembership);
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token(scopedEmployee))
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "suspended-hidden")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isNotFound());
+
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header("Idempotency-Key", "missing-precondition").contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isPreconditionRequired())
+        .andExpect(jsonPath("$.code").value("PRECONDITION_REQUIRED"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, "W/" + current).header("Idempotency-Key", "weak")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IF_MATCH"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, "*").header("Idempotency-Key", "wildcard")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IF_MATCH"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, "\"plan-000000000000000000000000000000000000-r1\"")
+            .header("Idempotency-Key", "malformed").contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IF_MATCH"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, current).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_IDEMPOTENCY_KEY"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "note-too-long")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"publicationNote\":\"" + "a".repeat(1001) + "\"}"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(plan, 0)).header("Idempotency-Key", "stale")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isPreconditionFailed()).andExpect(header().string(HttpHeaders.ETAG, current))
+        .andExpect(jsonPath("$.code").value("STALE_PLAN_REVISION"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(java.util.UUID.randomUUID().toString(), 9)
+                + ", " + planEtag(java.util.UUID.randomUUID().toString(), 10))
+            .header("Idempotency-Key", "foreign-list").contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isPreconditionFailed())
+        .andExpect(jsonPath("$.code").value("STALE_PLAN_REVISION"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "unknown-warning")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[\"UNKNOWN:issue\"]}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, current).header("Idempotency-Key", "missing-warning")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WARNINGS_NOT_ACKNOWLEDGED"));
+    mvc.perform(post(endpoint).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(java.util.UUID.randomUUID().toString(), 8)
+                + ", " + current).header("Idempotency-Key", "acknowledged")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"acknowledgementKeys\":[\"UNDERCOVERAGE:" + requirement
+                + "\",\"UNDERCOVERAGE:" + requirement + "\"],"
+                + "\"publicationNote\":\"  Publish   after\\nreview  \","
+                + "\"publisherMembershipId\":\"00000000-0000-0000-0000-000000000000\","
+                + "\"coverage\":{\"required\":999},\"versionNumber\":99}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.warningCount").value(1))
+        .andExpect(jsonPath("$.data.canonicalCoverage.missing").value(1))
+        .andExpect(jsonPath("$.data.versionNumber").value(1))
+        .andExpect(jsonPath("$.data.canonicalCoverage.required").value(1));
+  }
+
+  @Test void latestPublishedVersionRemainsAuthoritativeWhenItRemovesTheEmployeeAssignment()
+      throws Exception {
+    UserAccount employee = verifiedUser("removed-from-latest@example.com");
+    String organization = create("/api/organizations",
+        "{\"name\":\"Authoritative Latest\",\"timezone\":\"Europe/Berlin\"}");
+    String unit = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"Housekeeping\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String employeeMember = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Latest\",\"lastName\":\"Worker\","
+            + "\"email\":\"removed-from-latest@example.com\"}");
+    String colleague = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Replacement\",\"lastName\":\"Worker\"}");
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id in (?,?)",
+        java.util.UUID.fromString(employeeMember), java.util.UUID.fromString(colleague));
+    String type = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + unit + "\",\"code\":\"ROOM\",\"name\":\"Room cleaning\","
+            + "\"defaultStartTime\":\"09:00\",\"defaultEndTime\":\"16:30\"}");
+    String requirement = create("/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unit + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
+    assign(organization, requirement, employeeMember, "COVERED", 0);
+    String employeeAssignment = jdbc.queryForObject(
+        "select id::text from staffing_assignments where requirement_id=?::uuid "
+            + "and membership_id=?::uuid", String.class, requirement, employeeMember);
+    String plan = planId(organization, unit, "2026-08-10");
+
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH,
+                planEtag(plan, planRevision(organization, unit, "2026-08-10")))
+            .header("Idempotency-Key", "employee-present-v1")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.versionNumber").value(1));
+    String versionOneId = jdbc.queryForObject("""
+        select id::text from staffing_plan_versions where plan_id=?::uuid and version_number=1
+        """, String.class, plan);
+    String versionOneChecksum = jdbc.queryForObject("""
+        select checksum from staffing_plan_versions where id=?::uuid
+        """, String.class, versionOneId);
+    Long versionOneRevision = jdbc.queryForObject("""
+        select source_draft_revision from staffing_plan_versions where id=?::uuid
+        """, Long.class, versionOneId);
+    String versionOneEtag = mvc.perform(get(
+            "/api/organizations/{org}/staffing/plans/{plan}/versions/{version}",
+            organization, plan, 1).header(HttpHeaders.AUTHORIZATION, token()))
+        .andExpect(status().isOk()).andReturn().getResponse().getHeader(HttpHeaders.ETAG);
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-08-10")
+            .param("to", "2026-08-16").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments[0].id").value(employeeAssignment));
+
+    mvc.perform(post("/api/my/business-schedule/assignments/{assignment}/check-in",
+            employeeAssignment).header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.checkedInAt").isNotEmpty());
+    mvc.perform(post("/api/my/business-schedule/assignments/{assignment}/check-out",
+            employeeAssignment).header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.checkedOutAt").isNotEmpty());
+
+    long revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(delete(
+            "/api/organizations/{org}/staffing/plans/{plan}/schedule/assignments/{assignment}",
+            organization, plan, employeeAssignment)
+            .header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(plan, revision)))
+        .andExpect(status().isOk());
+    mvc.perform(put("/api/my/business-schedule/assignments/{assignment}/result",
+            employeeAssignment).header(HttpHeaders.AUTHORIZATION, token(employee))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"actualStartTime\":\"09:00\",\"actualEndTime\":\"16:30\","
+                + "\"breakMinutes\":30,\"completedQuantity\":12,"
+                + "\"notes\":\"actual remains attached to v1\",\"submit\":true}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.completedQuantity").value(12));
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-08-10")
+            .param("to", "2026-08-16").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments[0].id").value(employeeAssignment))
+        .andExpect(jsonPath("$.data[0].assignments[0].result.completedQuantity").value(12))
+        .andExpect(jsonPath("$.data[0].assignments[0].result.checkedInAt").isNotEmpty())
+        .andExpect(jsonPath("$.data[0].assignments[0].result.checkedOutAt").isNotEmpty());
+    org.junit.jupiter.api.Assertions.assertEquals("CANCELLED", jdbc.queryForObject(
+        "select assignment_status from staffing_assignments where id=?::uuid", String.class,
+        employeeAssignment));
+    org.junit.jupiter.api.Assertions.assertEquals(versionOneChecksum, jdbc.queryForObject(
+        "select checksum from staffing_plan_versions where id=?::uuid", String.class,
+        versionOneId));
+    org.junit.jupiter.api.Assertions.assertEquals(versionOneRevision, jdbc.queryForObject(
+        "select source_draft_revision from staffing_plan_versions where id=?::uuid", Long.class,
+        versionOneId));
+    org.junit.jupiter.api.Assertions.assertEquals(versionOneRevision, jdbc.queryForObject(
+        "select published_revision from staffing_plans where id=?::uuid", Long.class, plan));
+    mvc.perform(get("/api/organizations/{org}/staffing/plans/{plan}/versions/{version}",
+            organization, plan, 1).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_NONE_MATCH, versionOneEtag))
+        .andExpect(status().isNotModified())
+        .andExpect(header().string(HttpHeaders.ETAG, versionOneEtag));
+    revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(post(
+            "/api/organizations/{org}/staffing/plans/{plan}/schedule/assignments", organization,
+            plan).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(plan, revision))
+            .header("Idempotency-Key", "replacement-assignment")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"requirementId\":\"" + requirement + "\",\"membershipId\":\""
+                + colleague + "\"}"))
+        .andExpect(status().isCreated());
+    revision = planRevision(organization, unit, "2026-08-10");
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH, planEtag(plan, revision))
+            .header("Idempotency-Key", "employee-absent-v2")
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.versionNumber").value(2));
+
+    String self = mvc.perform(get("/api/my/business-schedule").param("from", "2026-08-10")
+            .param("to", "2026-08-16").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(0))
+        .andExpect(jsonPath("$.data[0].dayEntries.length()").value(0))
+        .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertFalse(self.contains(employeeAssignment));
+    org.junit.jupiter.api.Assertions.assertFalse(self.contains("actual remains attached to v1"));
+    mvc.perform(put("/api/my/business-schedule/assignments/{assignment}/result",
+            employeeAssignment).header(HttpHeaders.AUTHORIZATION, token(employee))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"actualStartTime\":\"09:00\",\"actualEndTime\":\"16:30\","
+                + "\"breakMinutes\":30,\"submit\":true}"))
+        .andExpect(status().isNotFound());
+    org.junit.jupiter.api.Assertions.assertEquals(1, jdbc.queryForObject("""
+        select count(*) from staffing_plan_version_assignments va
+        join staffing_plan_versions v on v.id=va.version_id
+        where v.plan_id=?::uuid and v.version_number=1
+          and va.source_assignment_id=?::uuid and va.assignment_status='ASSIGNED'
+        """, Integer.class, plan, employeeAssignment));
+  }
+
+  @Test void publishedSelfScheduleUsesInclusiveLocalDateRangesAcrossWeeksMonthsAndDst()
+      throws Exception {
+    UserAccount employee = verifiedUser("range-worker@example.com");
+    String organization = create("/api/organizations",
+        "{\"name\":\"Range Hotel\",\"timezone\":\"Europe/Berlin\"}");
+    String unitA = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"Hotel North\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String unitB = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"Hotel South\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String employeeMember = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Range\",\"lastName\":\"Worker\","
+            + "\"email\":\"range-worker@example.com\"}");
+    String colleague = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Range\",\"lastName\":\"Colleague\"}");
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id in (?,?)",
+        java.util.UUID.fromString(employeeMember), java.util.UUID.fromString(colleague));
+    String typeA = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + unitA + "\",\"code\":\"PF\",\"name\":\"Public early\","
+            + "\"defaultStartTime\":\"05:00\",\"defaultEndTime\":\"08:00\"}");
+    String typeB = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + unitB + "\",\"code\":\"SPA\",\"name\":\"Spa late\","
+            + "\"defaultStartTime\":\"12:00\",\"defaultEndTime\":\"20:00\"}");
+
+    java.util.Map<String, String> ownRequirements = new java.util.LinkedHashMap<>();
+    for (String date : java.util.List.of("2026-03-23", "2026-03-29", "2026-03-30",
+        "2026-04-01", "2026-04-23")) {
+      String requirement = create("/api/organizations/" + organization + "/staffing/requirements",
+          "{\"unitId\":\"" + unitA + "\",\"workTypeId\":\"" + typeA
+              + "\",\"date\":\"" + date + "\",\"requiredWorkers\":1}");
+      assign(organization, requirement, employeeMember, "COVERED", 0);
+      ownRequirements.put(date + ":" + unitA, requirement);
+    }
+    String secondUnitRequirement = create(
+        "/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unitB + "\",\"workTypeId\":\"" + typeB
+            + "\",\"date\":\"2026-04-01\",\"requiredWorkers\":1}");
+    assign(organization, secondUnitRequirement, employeeMember, "COVERED", 0);
+    String outsideRequirement = create(
+        "/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unitA + "\",\"workTypeId\":\"" + typeA
+            + "\",\"date\":\"2026-04-24\",\"requiredWorkers\":1}");
+    assign(organization, outsideRequirement, colleague, "COVERED", 0);
+    mvc.perform(put("/api/organizations/{org}/staffing/members/{member}/days/{date}",
+            organization, employeeMember, "2026-04-24")
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"type\":\"REST_DAY\",\"notes\":\"outside requested range\"}"))
+        .andExpect(status().isOk());
+
+    publishAtomic(organization, unitA, "2026-03-23", "range-u1-w1");
+    publishAtomic(organization, unitA, "2026-03-30", "range-u1-w2");
+    publishAtomic(organization, unitB, "2026-03-30", "range-u2-w2");
+    publishAtomic(organization, unitA, "2026-04-20", "range-u1-w5");
+
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-03-23")
+            .param("to", "2026-03-29").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(2))
+        .andExpect(jsonPath("$.data[0].assignments[0].date").value("2026-03-23"))
+        .andExpect(jsonPath("$.data[0].assignments[1].date").value("2026-03-29"));
+
+    org.junit.jupiter.api.Assertions.assertEquals("Europe/Berlin", jdbc.queryForObject(
+        "select timezone from organizations where id=?::uuid", String.class, organization));
+    java.util.TimeZone previousDefault = java.util.TimeZone.getDefault();
+    try {
+      java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Los_Angeles"));
+      mvc.perform(get("/api/my/business-schedule").param("from", "2026-03-29")
+              .param("to", "2026-04-01").header(HttpHeaders.AUTHORIZATION, token(employee)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data[0].assignments.length()").value(4))
+          .andExpect(jsonPath("$.data[0].assignments[0].date").value("2026-03-29"))
+          .andExpect(jsonPath("$.data[0].assignments[1].date").value("2026-03-30"))
+          .andExpect(jsonPath("$.data[0].assignments[2].date").value("2026-04-01"))
+          .andExpect(jsonPath("$.data[0].assignments[3].date").value("2026-04-01"))
+          .andExpect(jsonPath("$.data[0].assignments[2].unitId").value(unitA))
+          .andExpect(jsonPath("$.data[0].assignments[3].unitId").value(unitB));
+    } finally {
+      java.util.TimeZone.setDefault(previousDefault);
+    }
+
+    String exactMaximum = mvc.perform(get("/api/my/business-schedule")
+            .param("from", "2026-03-23").param("to", "2026-04-23")
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(6))
+        .andExpect(jsonPath("$.data[0].dayEntries.length()").value(0))
+        .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertFalse(exactMaximum.contains("2026-04-24"));
+    org.junit.jupiter.api.Assertions.assertTrue(exactMaximum.contains("2026-03-29"));
+
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-04-24")
+            .param("to", "2026-04-24").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(0))
+        .andExpect(jsonPath("$.data[0].dayEntries.length()").value(1))
+        .andExpect(jsonPath("$.data[0].dayEntries[0].date").value("2026-04-24"));
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-03-23")
+            .param("to", "2026-04-24").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isBadRequest());
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-04-02")
+            .param("to", "2026-04-01").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test void latestLegacyPartialSnapshotTakesPriorityWithoutMixingDirectLegacyRows()
+      throws Exception {
+    UserAccount employee = verifiedUser("legacy-snapshot-worker@example.com");
+    String organization = create("/api/organizations",
+        "{\"name\":\"Legacy Snapshot Hotel\",\"timezone\":\"Europe/Berlin\"}");
+    String unit = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"Housekeeping\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String membership = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Legacy\",\"lastName\":\"Worker\","
+            + "\"email\":\"legacy-snapshot-worker@example.com\"}");
+    jdbc.update("update organization_memberships set membership_status='ACTIVE' where id=?::uuid",
+        membership);
+    String type = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + unit + "\",\"code\":\"ROOM\",\"name\":\"Room cleaning\","
+            + "\"defaultStartTime\":\"09:00\",\"defaultEndTime\":\"16:30\"}");
+    String snapshottedRequirement = create(
+        "/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unit + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
+    assign(organization, snapshottedRequirement, membership, "COVERED", 0);
+    String plan = planId(organization, unit, "2026-08-10");
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish", organization, plan)
+            .header(HttpHeaders.AUTHORIZATION, token()).header(HttpHeaders.IF_MATCH,
+                planEtag(plan, planRevision(organization, unit, "2026-08-10")))
+            .header("Idempotency-Key", "legacy-snapshot").contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isCreated());
+    jdbc.update("update staffing_plan_versions set publication_kind='LEGACY_PARTIAL' "
+        + "where id=(select latest_published_version_id from staffing_plans where id=?::uuid)", plan);
+
+    String directLegacyRequirement = create(
+        "/api/organizations/" + organization + "/staffing/requirements",
+        "{\"unitId\":\"" + unit + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-11\",\"requiredWorkers\":1}");
+    assign(organization, directLegacyRequirement, membership, "COVERED", 0);
+    mvc.perform(post("/api/organizations/{org}/staffing/publish", organization)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"from\":\"2026-08-10\",\"to\":\"2026-08-16\","
+                + "\"requirementIds\":[\"" + directLegacyRequirement + "\"]}"))
+        .andExpect(status().isOk());
+
+    String body = mvc.perform(get("/api/my/business-schedule")
+            .param("from", "2026-08-10").param("to", "2026-08-16")
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].publishedVersions[0].publicationKind").doesNotExist())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(1))
+        .andExpect(jsonPath("$.data[0].assignments[0].date").value("2026-08-10"))
+        .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertFalse(body.contains(directLegacyRequirement));
+    org.junit.jupiter.api.Assertions.assertFalse(body.contains("2026-08-11"));
+  }
+
   private void assign(String organizationId, String requirement, String member, String status, int difference) throws Exception {
     var result = mvc.perform(post("/api/organizations/{org}/staffing/requirements/{req}/assignments", organizationId, requirement).header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON).content("{\"membershipId\":\"" + member + "\"}"))
         .andExpect(status().isCreated()).andExpect(jsonPath("$.data.coverageStatus").value(status)).andExpect(jsonPath("$.data.coverageDifference").value(difference));
@@ -483,6 +1036,25 @@ class StaffingPlannerIntegrationTest {
         .andExpect(status().isOk());
   }
   private String createBody(String path, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(); }
+  private String planId(String organizationId, String unitId, String weekStart) {
+    return jdbc.queryForObject("select id::text from staffing_plans where organization_id=?::uuid "
+        + "and unit_id=?::uuid and week_start=?::date", String.class, organizationId, unitId,
+        weekStart);
+  }
+  private String planEtag(String planId, long revision) {
+    return "\"plan-" + planId + "-r" + revision + "\"";
+  }
+  private void publishAtomic(String organizationId, String unitId, String weekStart,
+      String idempotencyKey) throws Exception {
+    String plan = planId(organizationId, unitId, weekStart);
+    mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish",
+            organizationId, plan).header(HttpHeaders.AUTHORIZATION, token())
+            .header(HttpHeaders.IF_MATCH,
+                planEtag(plan, planRevision(organizationId, unitId, weekStart)))
+            .header("Idempotency-Key", idempotencyKey).contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andExpect(status().isCreated());
+  }
   private String token() { return "Bearer " + jwt.generateAccessToken(owner); }
   private String token(UserAccount user) { return "Bearer " + jwt.generateAccessToken(user); }
   private void assertPlanRevision(String organizationId, String unitId, String weekStart,

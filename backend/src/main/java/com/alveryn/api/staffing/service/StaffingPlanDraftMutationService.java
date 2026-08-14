@@ -41,7 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -53,8 +52,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class StaffingPlanDraftMutationService {
-  private static final Pattern PLAN_ETAG = Pattern.compile(
-      "\\\"plan-([0-9a-fA-F-]{36})-r([0-9]+)\\\"");
   private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("^[!-~]{1,200}$");
 
   private final StaffingPlanRepository plans;
@@ -66,6 +63,7 @@ public class StaffingPlanDraftMutationService {
   private final OrganizationUnitRepository units;
   private final OrganizationAccessService access;
   private final StaffingPlanMutationCoordinator coordinator;
+  private final StaffingPlanIfMatchParser ifMatchParser;
   private final StaffingChangeEventRepository changeEvents;
   private final JdbcTemplate jdbc;
   private final ObjectMapper objectMapper;
@@ -279,7 +277,7 @@ public class StaffingPlanDraftMutationService {
 
   private MutationResponse regular(AuthorizedPlan authorized, String ifMatch,
       Function<StaffingPlan, Outcome> mutation) {
-    Set<Long> expected = parseIfMatch(ifMatch, authorized.plan().getId());
+    Set<Long> expected = ifMatchParser.parse(ifMatch, authorized.plan().getId());
     var result = coordinator.mutatePlan(authorized.organizationId(), authorized.scope(),
         authorized.actor(), plan -> {
           requireCurrent(plan, expected);
@@ -298,7 +296,7 @@ public class StaffingPlanDraftMutationService {
       String idempotencyKey, String family, Object payload,
       Function<StaffingPlan, Outcome> mutation) {
     requireIdempotencyKey(idempotencyKey);
-    Set<Long> expected = parseIfMatch(ifMatch, authorized.plan().getId());
+    Set<Long> expected = ifMatchParser.parse(ifMatch, authorized.plan().getId());
     String fingerprint = fingerprint(authorized.actor().getId(), family, expected, payload);
     var result = coordinator.mutatePlan(authorized.organizationId(), authorized.scope(),
         authorized.actor(), plan -> {
@@ -401,32 +399,6 @@ public class StaffingPlanDraftMutationService {
     return planDays.findByPlanIdAndOrganizationIdAndDate(plan.getId(),
         plan.getOrganization().getId(), date).orElseGet(() -> planDays.save(
             new StaffingPlanDay(plan, date, null, null, StaffingPlanDaySource.MANUAL)));
-  }
-
-  private Set<Long> parseIfMatch(String value, UUID planId) {
-    if (value == null || value.isBlank()) {
-      throw error(HttpStatus.PRECONDITION_REQUIRED, "PRECONDITION_REQUIRED",
-          "If-Match is required");
-    }
-    if (value.trim().equals("*") || value.contains("W/")) {
-      throw error(HttpStatus.BAD_REQUEST, "INVALID_IF_MATCH",
-          "If-Match requires one or more strong plan revision ETags");
-    }
-    Set<Long> revisions = new LinkedHashSet<>();
-    for (String token : value.split(",")) {
-      Matcher matcher = PLAN_ETAG.matcher(token.trim());
-      if (!matcher.matches()) {
-        throw error(HttpStatus.BAD_REQUEST, "INVALID_IF_MATCH", "If-Match is malformed");
-      }
-      if (UUID.fromString(matcher.group(1)).equals(planId)) {
-        revisions.add(Long.parseLong(matcher.group(2)));
-      }
-    }
-    if (revisions.isEmpty()) {
-      throw error(HttpStatus.PRECONDITION_FAILED, "STALE_PLAN_REVISION",
-          "If-Match belongs to another staffing plan");
-    }
-    return Set.copyOf(revisions);
   }
 
   private void requireCurrent(StaffingPlan plan, Set<Long> expected) {

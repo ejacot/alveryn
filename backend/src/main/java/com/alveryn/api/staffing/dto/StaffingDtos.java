@@ -59,13 +59,18 @@ public final class StaffingDtos {
       Integer calculatedMinutes, String notes, String approvalStatus,
       OffsetDateTime submittedAt, OffsetDateTime reviewedAt, OffsetDateTime checkedInAt,
       OffsetDateTime checkedOutAt, String timeCaptureSource) {}
-  public record PersonalAssignmentResponse(UUID id, LocalDate date, UUID unitId, String unitName,
+  public record PersonalAssignmentResponse(UUID id, UUID versionId, LocalDate date,
+      UUID unitId, String unitName,
       UUID workTypeId, String workTypeCode, String workTypeName, String color,
       LocalTime startTime, LocalTime endTime, String checkInMode,
       PersonalAssignmentResultResponse result) {}
-  public record PersonalDayEntryResponse(UUID id, LocalDate date, String type, String notes,
+  public record PersonalDayEntryResponse(UUID id, UUID versionId, LocalDate date,
+      String type, String notes,
       boolean hasWorkConflict) {}
+  public record PersonalPublishedVersionResponse(UUID planId, UUID unitId, UUID versionId,
+      int versionNumber, OffsetDateTime publishedAt, LocalDate weekStart) {}
   public record PersonalScheduleResponse(UUID organizationId, String organizationName, LocalDate from, LocalDate to,
+      List<PersonalPublishedVersionResponse> publishedVersions,
       List<PersonalAssignmentResponse> assignments, List<PersonalDayEntryResponse> dayEntries) {}
   public record ChangeEventResponse(UUID id, String eventType, String entityType, UUID entityId, LocalDate workDate,
       String summary, String actorName, OffsetDateTime createdAt) {}

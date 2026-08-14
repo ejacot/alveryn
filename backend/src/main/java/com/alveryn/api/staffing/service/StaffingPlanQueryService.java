@@ -576,8 +576,12 @@ public class StaffingPlanQueryService {
   }
 
   private static String versionEtag(VersionRow version) {
-    String checksum = version.checksum == null ? "missing" : version.checksum;
-    return '"' + "plan-version-" + version.id + '-' + checksum + '"';
+    return immutableVersionEtag(version.id, version.checksum);
+  }
+
+  public static String immutableVersionEtag(UUID versionId, String checksum) {
+    String safeChecksum = checksum == null ? "missing" : checksum;
+    return '"' + "plan-version-" + versionId + '-' + safeChecksum + '"';
   }
 
   private static String versionsEtag(UUID planId, int limit, Integer beforeVersion,

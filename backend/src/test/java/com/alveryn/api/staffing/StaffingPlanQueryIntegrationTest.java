@@ -502,6 +502,156 @@ class StaffingPlanQueryIntegrationTest {
   }
 
   @Test
+  void publishedSelfScheduleQueryCountIsBoundedAcrossUnitsWeeksColleaguesAndActuals()
+      throws Exception {
+    UserAccount employee = verified("self-query-worker-" + UUID.randomUUID() + "@example.com");
+    String organization = create("/api/organizations",
+        "{\"name\":\"Self Query Hotel\",\"timezone\":\"Europe/Berlin\"}");
+    String firstUnit = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"North\",\"type\":\"LOCATION\",\"checkInMode\":\"OPTIONAL\"}");
+    String secondUnit = create("/api/organizations/" + organization + "/units",
+        "{\"name\":\"South\",\"type\":\"LOCATION\",\"checkInMode\":\"OPTIONAL\"}");
+    String employeeMembership = create("/api/organizations/" + organization + "/members",
+        "{\"firstName\":\"Self\",\"lastName\":\"Worker\",\"email\":\""
+            + employee.getEmail() + "\"}");
+    List<String> colleagues = new java.util.ArrayList<>();
+    for (int index = 0; index < 4; index++) {
+      colleagues.add(create("/api/organizations/" + organization + "/members",
+          "{\"firstName\":\"Colleague\",\"lastName\":\"" + (index + 1) + "\"}"));
+    }
+    jdbc.update("""
+        update organization_memberships set membership_status='ACTIVE'
+        where id in (?::uuid,?::uuid,?::uuid,?::uuid,?::uuid)
+        """, employeeMembership, colleagues.get(0), colleagues.get(1), colleagues.get(2),
+        colleagues.get(3));
+    String firstType = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + firstUnit + "\",\"code\":\"ROOM\","
+            + "\"name\":\"Room cleaning\",\"defaultStartTime\":\"09:00\","
+            + "\"defaultEndTime\":\"16:30\"}");
+    String secondType = create("/api/organizations/" + organization + "/staffing/work-types",
+        "{\"unitId\":\"" + secondUnit + "\",\"code\":\"SPA\","
+            + "\"name\":\"Spa late\",\"defaultStartTime\":\"12:00\","
+            + "\"defaultEndTime\":\"20:30\"}");
+
+    String firstRequirement = create("/api/organizations/" + organization
+        + "/staffing/requirements", "{\"unitId\":\"" + firstUnit
+            + "\",\"workTypeId\":\"" + firstType
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
+    create("/api/organizations/" + organization + "/staffing/requirements/"
+        + firstRequirement + "/assignments", "{\"membershipId\":\""
+            + employeeMembership + "\"}");
+    String firstPlan = planId(organization, firstUnit, "2026-08-10");
+    publishAtomic(organization, firstUnit, firstPlan, "2026-08-10", "self-small-v1");
+    String firstOwnAssignment = jdbc.queryForObject("""
+        select id::text from staffing_assignments
+        where requirement_id=?::uuid and membership_id=?::uuid
+        """, String.class, firstRequirement, employeeMembership);
+    mvc.perform(put("/api/my/business-schedule/assignments/{assignment}/result",
+            firstOwnAssignment).header(HttpHeaders.AUTHORIZATION, token(employee))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"actualStartTime\":\"09:00\",\"actualEndTime\":\"16:30\","
+                + "\"breakMinutes\":30,\"completedQuantity\":8,\"submit\":true}"))
+        .andExpect(status().isOk());
+
+    clearAllQueries();
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-08-10")
+            .param("to", "2026-08-16").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(1))
+        .andExpect(jsonPath("$.data[0].assignments[0].result.completedQuantity").value(8));
+    QueryCounts smallQueries = queryCounts();
+
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{requirement}",
+            organization, firstRequirement).header(HttpHeaders.AUTHORIZATION, token(owner))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"startTime\":\"09:00\",\"endTime\":\"16:30\","
+                + "\"requiredWorkers\":5}"))
+        .andExpect(status().isOk());
+    for (String colleague : colleagues) {
+      create("/api/organizations/" + organization + "/staffing/requirements/"
+          + firstRequirement + "/assignments", "{\"membershipId\":\"" + colleague + "\"}");
+    }
+    publishAtomic(organization, firstUnit, firstPlan, "2026-08-10", "self-large-first-v2");
+
+    List<String> weeks = List.of("2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31");
+    List<String> ownAssignments = new java.util.ArrayList<>();
+    ownAssignments.add(firstOwnAssignment);
+    for (String unit : List.of(firstUnit, secondUnit)) {
+      String type = unit.equals(firstUnit) ? firstType : secondType;
+      for (String week : weeks) {
+        if (unit.equals(firstUnit) && week.equals("2026-08-10")) continue;
+        String workDate = unit.equals(firstUnit) ? week
+            : java.time.LocalDate.parse(week).plusDays(1).toString();
+        String requirement = create("/api/organizations/" + organization
+            + "/staffing/requirements", "{\"unitId\":\"" + unit
+                + "\",\"workTypeId\":\"" + type + "\",\"date\":\"" + workDate
+                + "\",\"requiredWorkers\":5}");
+        create("/api/organizations/" + organization + "/staffing/requirements/"
+            + requirement + "/assignments", "{\"membershipId\":\""
+                + employeeMembership + "\"}");
+        for (String colleague : colleagues) {
+          create("/api/organizations/" + organization + "/staffing/requirements/"
+              + requirement + "/assignments", "{\"membershipId\":\"" + colleague + "\"}");
+        }
+        ownAssignments.add(jdbc.queryForObject("""
+            select id::text from staffing_assignments
+            where requirement_id=?::uuid and membership_id=?::uuid
+            """, String.class, requirement, employeeMembership));
+        String plan = planId(organization, unit, week);
+        publishAtomic(organization, unit, plan, week,
+            "self-large-" + unit.substring(0, 8) + "-" + week);
+      }
+    }
+    String legacyRequirement = create("/api/organizations/" + organization
+        + "/staffing/requirements", "{\"unitId\":\"" + firstUnit
+            + "\",\"workTypeId\":\"" + firstType
+            + "\",\"date\":\"2026-09-07\",\"requiredWorkers\":1}");
+    create("/api/organizations/" + organization + "/staffing/requirements/"
+        + legacyRequirement + "/assignments", "{\"membershipId\":\""
+            + employeeMembership + "\"}");
+    ownAssignments.add(jdbc.queryForObject("""
+        select id::text from staffing_assignments
+        where requirement_id=?::uuid and membership_id=?::uuid
+        """, String.class, legacyRequirement, employeeMembership));
+    mvc.perform(post("/api/organizations/{org}/staffing/publish", organization)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"from\":\"2026-09-07\",\"to\":\"2026-09-07\","
+                + "\"requirementIds\":[\"" + legacyRequirement + "\"]}"))
+        .andExpect(status().isOk());
+    for (int index : List.of(2, 4, 6, 8)) {
+      mvc.perform(put("/api/my/business-schedule/assignments/{assignment}/result",
+              ownAssignments.get(index)).header(HttpHeaders.AUTHORIZATION, token(employee))
+              .contentType(MediaType.APPLICATION_JSON)
+              .content("{\"actualStartTime\":\"09:00\",\"actualEndTime\":\"16:30\","
+                  + "\"breakMinutes\":30,\"completedQuantity\":" + (index + 1)
+                  + ",\"submit\":true}"))
+          .andExpect(status().isOk());
+    }
+    assertThat(jdbc.queryForObject("""
+        select count(*) from staffing_plan_version_assignments va
+        join staffing_plan_versions v on v.id=va.version_id
+        where v.organization_id=?::uuid and v.id in (
+          select latest_published_version_id from staffing_plans
+          where organization_id=?::uuid)
+        """, Integer.class, organization, organization)).isGreaterThanOrEqualTo(40);
+
+    clearAllQueries();
+    mvc.perform(get("/api/my/business-schedule").param("from", "2026-08-10")
+            .param("to", "2026-09-10").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data[0].assignments.length()").value(9));
+    QueryCounts largeQueries = queryCounts();
+
+    assertThat(smallQueries.named()).as("direct JDBC queries, small").isLessThanOrEqualTo(5);
+    assertThat(largeQueries.named()).as("direct JDBC queries, large")
+        .isEqualTo(smallQueries.named());
+    assertThat(largeQueries.hibernate()).as("JPA/Hibernate queries, large")
+        .isEqualTo(smallQueries.hibernate());
+    assertThat(largeQueries.total()).as("all observed database statements, large")
+        .isEqualTo(smallQueries.total());
+  }
+
+  @Test
   void unitScopedViewerGetsTargetPlanAndOpaque404ForSiblingUnit() throws Exception {
     Fixture target = fixture(1, false);
     UserAccount planner = verified("scoped-query-" + UUID.randomUUID() + "@example.com");
@@ -630,6 +780,32 @@ class StaffingPlanQueryIntegrationTest {
         .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
     int start = response.indexOf("\"id\":\"") + 6;
     return response.substring(start, response.indexOf('"', start));
+  }
+
+  private String planId(String organizationId, String unitId, String weekStart) {
+    return jdbc.queryForObject("""
+        select id::text from staffing_plans
+        where organization_id=?::uuid and unit_id=?::uuid and week_start=?::date
+        """, String.class, organizationId, unitId, weekStart);
+  }
+
+  private long planRevision(String planId) {
+    return jdbc.queryForObject("select draft_revision from staffing_plans where id=?::uuid",
+        Long.class, planId);
+  }
+
+  private void publishAtomic(String organizationId, String unitId, String planId,
+      String weekStart, String idempotencyKey) throws Exception {
+    assertThat(planId(organizationId, unitId, weekStart)).isEqualTo(planId);
+    var response = mvc.perform(post("/api/organizations/{org}/staffing/plans/{plan}/publish",
+            organizationId, planId).header(HttpHeaders.AUTHORIZATION, token(owner))
+            .header(HttpHeaders.IF_MATCH,
+                "\"plan-" + planId + "-r" + planRevision(planId) + "\"")
+            .header("Idempotency-Key", idempotencyKey).contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+        .andReturn().getResponse();
+    assertThat(response.getStatus()).withFailMessage(response.getContentAsString())
+        .isEqualTo(201);
   }
 
   private UserAccount verified(String email) {

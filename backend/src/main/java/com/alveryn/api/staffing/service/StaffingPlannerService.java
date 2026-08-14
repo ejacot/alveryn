@@ -33,6 +33,7 @@ public class StaffingPlannerService {
   private final OrganizationAccessService access;
   private final StaffingPlanMutationCoordinator mutations;
   private final StaffingPlanCoverageService coverageService;
+  private final StaffingPublishedScheduleService publishedSchedule;
   private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
@@ -252,23 +253,6 @@ public class StaffingPlannerService {
           : StaffingPlanMutationCoordinator.Change.unchanged(response);
     }).value();
   }
-  @Transactional
-  public List<PersonalScheduleResponse> personalSchedule(LocalDate from, LocalDate to) {
-    if (to.isBefore(from) || to.isAfter(from.plusDays(31))) throw new IllegalArgumentException("invalid planner range");
-    return memberships.findAllByUserIdAndStatusOrderByCreatedAtAsc(currentUser.requireUserId(), MembershipStatus.ACTIVE).stream()
-        .filter(member -> member.getOrganization().getOrganizationType() == OrganizationType.BUSINESS).map(member -> {
-          var ownAssignments = assignments.findPublishedForMembership(member.getId(), from, to);
-          var published = ownAssignments.stream().map(this::personalAssignmentResponse).toList();
-          var publishedAssignmentDates = ownAssignments.stream()
-              .map(value -> value.getRequirement().getDate()).collect(java.util.stream.Collectors.toSet());
-          var entries = dayEntries.findAllByOrganizationIdAndMembershipIdAndDateBetweenOrderByDateAsc(
-              member.getOrganization().getId(), member.getId(), from, to).stream()
-              .map(value -> personalDayEntryResponse(value, publishedAssignmentDates.contains(value.getDate())))
-              .toList();
-          return new PersonalScheduleResponse(member.getOrganization().getId(), member.getOrganization().getName(),
-              from, to, published, entries);
-        }).toList();
-  }
   @Transactional(readOnly = true)
   public List<ChangeEventResponse> history(UUID organizationId, int limit) {
     access.require(organizationId, OrganizationPermission.VIEW_SCHEDULE,
@@ -280,7 +264,8 @@ public class StaffingPlannerService {
   public AssignmentResultResponse saveMyResult(UUID assignmentId, ResultRequest request) {
     var assignment = assignments.findById(assignmentId)
         .filter(value -> value.getMembership().getUser() != null && value.getMembership().getUser().getId().equals(currentUser.requireUserId()))
-        .filter(value -> "ASSIGNED".equals(value.getStatus()) && "PUBLISHED".equals(value.getRequirement().getPublicationStatus()))
+        .filter(value -> publishedSchedule.isCurrentPublishedAssignment(
+            currentUser.requireUserId(), assignmentId))
         .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
     var result = assignmentResults.findByAssignmentId(assignmentId).orElseGet(() -> new StaffingAssignmentResult(assignment));
     if ("APPROVED".equals(result.getApprovalStatus())) throw new IllegalArgumentException("approved result cannot be changed");
@@ -519,7 +504,7 @@ public class StaffingPlannerService {
   }
   private PersonalAssignmentResponse personalAssignmentResponse(StaffingAssignment value) {
     var requirement = value.getRequirement();
-    return new PersonalAssignmentResponse(value.getId(), requirement.getDate(), requirement.getUnit().getId(),
+    return new PersonalAssignmentResponse(value.getId(), null, requirement.getDate(), requirement.getUnit().getId(),
         requirement.getUnit().getName(), requirement.getWorkType().getId(), requirement.getWorkType().getCode(),
         requirement.getWorkType().getName(), requirement.getWorkType().getColor(), effectiveStart(value),
         effectiveEnd(value), requirement.getUnit().getCheckInMode().name(),
@@ -527,7 +512,7 @@ public class StaffingPlannerService {
   }
   private PersonalDayEntryResponse personalDayEntryResponse(StaffingMemberDayEntry value,
       boolean hasPublishedWorkConflict) {
-    return new PersonalDayEntryResponse(value.getId(), value.getDate(), value.getType(), value.getNotes(),
+    return new PersonalDayEntryResponse(value.getId(), null, value.getDate(), value.getType(), value.getNotes(),
         hasPublishedWorkConflict);
   }
   private PersonalAssignmentResultResponse personalResultResponse(StaffingAssignmentResult value) {
@@ -569,8 +554,8 @@ public class StaffingPlannerService {
     return assignments.findById(assignmentId)
         .filter(value -> value.getMembership().getUser() != null
             && value.getMembership().getUser().getId().equals(currentUser.requireUserId()))
-        .filter(value -> "ASSIGNED".equals(value.getStatus())
-            && "PUBLISHED".equals(value.getRequirement().getPublicationStatus()))
+        .filter(value -> publishedSchedule.isCurrentPublishedAssignment(
+            currentUser.requireUserId(), assignmentId))
         .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
   }
   private AbsenceRequestResponse absenceResponse(StaffingAbsenceRequest value){return new AbsenceRequestResponse(value.getId(),value.getOrganization().getId(),value.getOrganization().getName(),value.getMembership().getId(),memberName(value.getMembership()),value.getType(),value.getStartDate(),value.getEndDate(),value.getNotes(),value.getStatus(),value.getCreatedAt(),value.getReviewedAt());}
