@@ -6,6 +6,8 @@ import com.alveryn.api.organization.dto.*;
 import com.alveryn.api.organization.entity.*;
 import com.alveryn.api.organization.repository.*;
 import com.alveryn.api.user.repository.UserAccountRepository;
+import com.alveryn.api.staffing.service.StaffingPlanMutationCoordinator;
+import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class BusinessOrganizationService {
   private final OrganizationRoleAssignmentRepository roleAssignments;
   private final BusinessInvitationEmailService invitationEmails;
   private final OrganizationAccessService access;
+  private final StaffingPlanMutationCoordinator staffingMutations;
+  private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
   public List<OrganizationResponse> list() {
@@ -107,20 +111,34 @@ public class BusinessOrganizationService {
 
   @Transactional
   public OrganizationMemberResponse suspendMember(UUID organizationId, UUID membershipId) {
-    access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS);
+    var manager = access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS);
     var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
         .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
-    member.suspend();
-    return memberResponse(member);
+    var scopes = staffingMutations.memberScopes(organizationId, membershipId);
+    return staffingMutations.mutateScopes(organizationId, scopes, manager, null, () -> {
+      entityManager.refresh(member);
+      if (member.getStatus() == MembershipStatus.SUSPENDED) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(memberResponse(member));
+      }
+      member.suspend();
+      return StaffingPlanMutationCoordinator.Change.changed(memberResponse(member), membershipId);
+    }).value();
   }
 
   @Transactional
   public OrganizationMemberResponse reactivateMember(UUID organizationId, UUID membershipId) {
-    access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS);
+    var manager = access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS);
     var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
         .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
-    member.reactivate();
-    return memberResponse(member);
+    var scopes = staffingMutations.memberScopes(organizationId, membershipId);
+    return staffingMutations.mutateScopes(organizationId, scopes, manager, null, () -> {
+      entityManager.refresh(member);
+      if (member.getStatus() != MembershipStatus.SUSPENDED) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(memberResponse(member));
+      }
+      member.reactivate();
+      return StaffingPlanMutationCoordinator.Change.changed(memberResponse(member), membershipId);
+    }).value();
   }
 
   @Transactional(readOnly = true)

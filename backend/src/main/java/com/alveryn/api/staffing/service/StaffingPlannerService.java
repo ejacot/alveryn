@@ -12,6 +12,7 @@ import com.alveryn.api.staffing.repository.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,8 @@ public class StaffingPlannerService {
   private final StaffingChangeEventRepository changeEvents;
   private final StaffingAbsenceRequestRepository absenceRequests;
   private final OrganizationAccessService access;
+  private final StaffingPlanMutationCoordinator mutations;
+  private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
   public List<WorkTypeResponse> listWorkTypes(UUID organizationId) {
@@ -47,8 +50,16 @@ public class StaffingPlannerService {
     var existing=workTypes.findByOrganizationIdAndCodeIgnoreCase(organizationId,request.code().trim());
     if(existing.isPresent()){
       if(existing.get().isActive()) throw new ConflictException("A work type with this code already exists in this organization");
-      configure(existing.get(),organizationId,unit,request,true);
-      return workTypeResponse(existing.get());
+      var scopes=mutations.workTypeScopes(organizationId,existing.get().getId());
+      return mutations.mutateScopes(organizationId,scopes,manager,null,()->{
+        entityManager.refresh(existing.get());
+        String before=workTypeFingerprint(existing.get());
+        configure(existing.get(),organizationId,unit,request,true);
+        var response=workTypeResponse(existing.get());
+        return before.equals(workTypeFingerprint(existing.get()))
+            ? StaffingPlanMutationCoordinator.Change.unchanged(response)
+            : StaffingPlanMutationCoordinator.Change.changed(response,existing.get().getId());
+      }).value();
     }
     var value=new OrganizationWorkType(manager.getOrganization(), unit, request.code(),
         request.name(), request.color(), request.defaultStartTime(), request.defaultEndTime(),
@@ -57,8 +68,8 @@ public class StaffingPlannerService {
     return workTypeResponse(workTypes.save(value));
   }
   @Transactional(readOnly=true) public WorkTypeResponse getWorkType(UUID organizationId,UUID workTypeId){access.require(organizationId,OrganizationPermission.VIEW_SCHEDULE,OrganizationPermission.MANAGE_SCHEDULE);return workTypeResponse(workType(organizationId,workTypeId));}
-  @Transactional public WorkTypeResponse updateWorkType(UUID organizationId,UUID workTypeId,WorkTypeRequest request){var unit=request.unitId()==null?null:unit(organizationId,request.unitId());access.requireForUnit(organizationId,unit,OrganizationPermission.MANAGE_SCHEDULE);var value=workType(organizationId,workTypeId);workTypes.findByOrganizationIdAndCodeIgnoreCase(organizationId,request.code().trim()).filter(other->!other.getId().equals(workTypeId)).ifPresent(other->{throw new ConflictException("A work type with this code already exists in this organization");});configure(value,organizationId,unit,request,request.active()==null||request.active());return workTypeResponse(value);}
-  @Transactional public void deactivateWorkType(UUID organizationId,UUID workTypeId){var value=workType(organizationId,workTypeId);access.requireForUnit(organizationId,value.getUnit(),OrganizationPermission.MANAGE_SCHEDULE);setActive(value,false);if(value.isCompositeEnabled())workTypes.findAllByParentId(value.getId()).forEach(child->setActive(child,false));}
+  @Transactional public WorkTypeResponse updateWorkType(UUID organizationId,UUID workTypeId,WorkTypeRequest request){var unit=request.unitId()==null?null:unit(organizationId,request.unitId());var manager=access.requireForUnit(organizationId,unit,OrganizationPermission.MANAGE_SCHEDULE);var value=workType(organizationId,workTypeId);workTypes.findByOrganizationIdAndCodeIgnoreCase(organizationId,request.code().trim()).filter(other->!other.getId().equals(workTypeId)).ifPresent(other->{throw new ConflictException("A work type with this code already exists in this organization");});var scopes=mutations.workTypeScopes(organizationId,workTypeId);return mutations.mutateScopes(organizationId,scopes,manager,null,()->{entityManager.refresh(value);String before=workTypeFingerprint(value);configure(value,organizationId,unit,request,request.active()==null||request.active());var response=workTypeResponse(value);return before.equals(workTypeFingerprint(value))?StaffingPlanMutationCoordinator.Change.unchanged(response):StaffingPlanMutationCoordinator.Change.changed(response,value.getId());}).value();}
+  @Transactional public void deactivateWorkType(UUID organizationId,UUID workTypeId){var value=workType(organizationId,workTypeId);var manager=access.requireForUnit(organizationId,value.getUnit(),OrganizationPermission.MANAGE_SCHEDULE);var affected=new ArrayList<OrganizationWorkType>();affected.add(value);if(value.isCompositeEnabled())affected.addAll(workTypes.findAllByParentId(value.getId()));var scopes=affected.stream().flatMap(item->mutations.workTypeScopes(organizationId,item.getId()).stream()).distinct().toList();mutations.mutateScopes(organizationId,scopes,manager,null,()->{affected.forEach(entityManager::refresh);boolean changed=affected.stream().anyMatch(OrganizationWorkType::isActive);if(changed)affected.forEach(item->setActive(item,false));return changed?new StaffingPlanMutationCoordinator.Change<Void>(null,true,affected.stream().map(OrganizationWorkType::getId).collect(java.util.stream.Collectors.toSet())):StaffingPlanMutationCoordinator.Change.unchanged(null);});}
   private OrganizationWorkType workType(UUID organizationId,UUID id){return workTypes.findByIdAndOrganizationId(id,organizationId).orElseThrow(()->new NotFoundException("Organization work type",id));}
   private void configure(OrganizationWorkType value,UUID organizationId,OrganizationUnit unit,WorkTypeRequest request,boolean active){var parent=request.parentId()==null?null:workType(organizationId,request.parentId());if(parent!=null&&(!parent.isCompositeEnabled()||!parent.isActive()))throw new IllegalArgumentException("parent must be an active category");if(parent!=null&&Boolean.TRUE.equals(request.compositeEnabled()))throw new IllegalArgumentException("a category cannot belong to another category");var calculationMethod=parent==null?(request.calculationMethod()==null?com.alveryn.api.worktype.entity.CalculationMethod.TIME_BASED:request.calculationMethod()):parent.getCalculationMethod();if(value.getId()!=null&&value.isCompositeEnabled()&&value.getCalculationMethod()!=calculationMethod&&!workTypes.findAllByParentId(value.getId()).isEmpty())throw new IllegalArgumentException("category calculation cannot change while it contains work types");value.configure(unit,parent,request.code(),request.name(),request.color(),request.defaultStartTime(),request.defaultEndTime(),request.defaultBreakMinutes()==null?30:request.defaultBreakMinutes(),calculationMethod,calculationMethod==com.alveryn.api.worktype.entity.CalculationMethod.UNIT_BASED?com.alveryn.api.worktype.entity.CompensationMethod.PER_UNIT:com.alveryn.api.worktype.entity.CompensationMethod.HOURLY,request.unitLabel(),request.unitSymbol(),request.unitsPerHour(),request.ratePerUnit(),request.currency(),Boolean.TRUE.equals(request.teamworkEnabled()),Boolean.TRUE.equals(request.extraPayEnabled()),Boolean.TRUE.equals(request.compositeEnabled()),request.displayOrder()==null?0:request.displayOrder(),active);}
   private void setActive(OrganizationWorkType value,boolean active){value.configure(value.getUnit(),value.getParent(),value.getCode(),value.getName(),value.getColor(),value.getDefaultStartTime(),value.getDefaultEndTime(),value.getDefaultBreakMinutes(),value.getCalculationMethod(),value.getCompensationMethod(),value.getUnitLabel(),value.getUnitSymbol(),value.getUnitsPerHour(),value.getRatePerUnit(),value.getCurrency(),value.isTeamworkEnabled(),value.isExtraPayEnabled(),value.isCompositeEnabled(),value.getDisplayOrder(),active);}
@@ -81,10 +92,17 @@ public class StaffingPlannerService {
     requireSchedulable(workType);
     var start = request.startTime() == null ? workType.getDefaultStartTime() : request.startTime();
     var end = request.endTime() == null ? workType.getDefaultEndTime() : request.endTime();
-    var saved = requirements.save(new StaffingRequirement(manager.getOrganization(), unit, workType,
-        request.date(), start, end, request.requiredWorkers(), request.requiredQuantity(), request.notes(), manager));
-    audit(manager, "REQUIREMENT_CREATED", "REQUIREMENT", saved.getId(), saved.getDate(), saved.getWorkType().getCode());
-    return requirementResponse(saved);
+    return mutations.mutateDates(organizationId, unit.getId(), Set.of(request.date()), manager, null,
+        planDays -> {
+          var saved = new StaffingRequirement(manager.getOrganization(), unit, workType,
+              request.date(), start, end, request.requiredWorkers(), request.requiredQuantity(),
+              request.notes(), manager);
+          saved.attachToPlanDay(planDays.get(request.date()));
+          requirements.save(saved);
+          audit(manager, "REQUIREMENT_CREATED", "REQUIREMENT", saved.getId(), saved.getDate(),
+              saved.getWorkType().getCode());
+          return StaffingPlanMutationCoordinator.Change.changed(requirementResponse(saved), saved.getId());
+        }).value();
   }
   @Transactional
   public List<RequirementResponse> createRequirements(UUID organizationId, BulkRequirementRequest request) {
@@ -96,65 +114,107 @@ public class StaffingPlannerService {
     var start = request.startTime() == null ? workType.getDefaultStartTime() : request.startTime();
     var end = request.endTime() == null ? workType.getDefaultEndTime() : request.endTime();
     if (end != null && start == null) throw new IllegalArgumentException("staffing start time is required");
-    var created = request.dates().stream().sorted().map(date -> requirements.save(new StaffingRequirement(
-        manager.getOrganization(), unit, workType, date, start, end, request.requiredWorkers(),
-        request.requiredQuantity(), request.notes(), manager))).map(this::requirementResponse).toList();
-    audit(manager, "REQUIREMENTS_CREATED", "REQUIREMENT", null, request.dates().stream().min(LocalDate::compareTo).orElse(null), workType.getCode() + " × " + request.dates().size());
-    return created;
+    return mutations.mutateDates(organizationId, unit.getId(), request.dates(), manager, null,
+        planDays -> {
+          List<StaffingRequirement> values = request.dates().stream().sorted().map(date -> {
+            var value = new StaffingRequirement(manager.getOrganization(), unit, workType, date,
+                start, end, request.requiredWorkers(), request.requiredQuantity(), request.notes(), manager);
+            value.attachToPlanDay(planDays.get(date));
+            return requirements.save(value);
+          }).toList();
+          audit(manager, "REQUIREMENTS_CREATED", "REQUIREMENT", null,
+              request.dates().stream().min(LocalDate::compareTo).orElse(null),
+              workType.getCode() + " × " + request.dates().size());
+          return new StaffingPlanMutationCoordinator.Change<>(values.stream()
+              .map(this::requirementResponse).toList(), true,
+              values.stream().map(StaffingRequirement::getId).collect(java.util.stream.Collectors.toSet()));
+        }).value();
   }
   @Transactional
   public RequirementResponse assign(UUID organizationId, UUID requirementId, AssignmentRequest request) {
-    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
-        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
-    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
+    var scope = mutations.requirementScope(organizationId, requirementId, requirements);
+    var unit = unit(organizationId, scope.unitId());
+    var manager = access.requireForUnit(organizationId, unit, OrganizationPermission.MANAGE_SCHEDULE);
     var member = memberships.findByIdAndOrganizationId(request.membershipId(), organizationId)
         .orElseThrow(() -> new NotFoundException("Organization member", request.membershipId()));
     if (member.getStatus() == MembershipStatus.SUSPENDED) {
       throw new IllegalArgumentException("suspended member cannot receive new assignments");
     }
-    var saved = assignments.save(new StaffingAssignment(requirement, member, request.startTime(), request.endTime(), manager));
-    assignments.flush();
-    audit(manager, "MEMBER_ASSIGNED", "ASSIGNMENT", saved.getId(), requirement.getDate(), memberName(member) + " · " + requirement.getWorkType().getCode());
-    return requirementResponse(requirement);
+    return mutations.mutateScopes(organizationId, List.of(scope), manager, null, () -> {
+      var requirement = requirement(organizationId, requirementId);
+      var saved = assignments.save(new StaffingAssignment(requirement, member, request.startTime(),
+          request.endTime(), manager));
+      assignments.flush();
+      audit(manager, "MEMBER_ASSIGNED", "ASSIGNMENT", saved.getId(), requirement.getDate(),
+          memberName(member) + " · " + requirement.getWorkType().getCode());
+      return StaffingPlanMutationCoordinator.Change.changed(requirementResponse(requirement), saved.getId());
+    }).value();
   }
   @Transactional
   public RequirementResponse unassign(UUID organizationId, UUID requirementId, UUID assignmentId) {
-    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
-        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
-    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
-    var assignment = assignments.findByIdAndRequirementId(assignmentId, requirementId)
-        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
-    assignment.cancel();
-    audit(manager, "MEMBER_UNASSIGNED", "ASSIGNMENT", assignmentId, requirement.getDate(), memberName(assignment.getMembership()) + " · " + requirement.getWorkType().getCode());
-    return requirementResponse(requirement);
+    var scope = mutations.requirementScope(organizationId, requirementId, requirements);
+    var manager = access.requireForUnit(organizationId, unit(organizationId, scope.unitId()),
+        OrganizationPermission.MANAGE_SCHEDULE);
+    return mutations.mutateScopes(organizationId, List.of(scope), manager, null, () -> {
+      var requirement = requirement(organizationId, requirementId);
+      var assignment = assignment(requirementId, assignmentId);
+      if ("CANCELLED".equals(assignment.getStatus())) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(requirementResponse(requirement));
+      }
+      assignment.cancel();
+      audit(manager, "MEMBER_UNASSIGNED", "ASSIGNMENT", assignmentId, requirement.getDate(),
+          memberName(assignment.getMembership()) + " · " + requirement.getWorkType().getCode());
+      return StaffingPlanMutationCoordinator.Change.changed(requirementResponse(requirement), assignmentId);
+    }).value();
   }
   @Transactional
   public RequirementResponse updateRequirement(UUID organizationId, UUID requirementId, RequirementUpdateRequest request) {
-    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
-        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
-    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
-    requirement.update(request.startTime(), request.endTime(), request.requiredWorkers(), request.requiredQuantity(), request.notes());
-    audit(manager, "REQUIREMENT_UPDATED", "REQUIREMENT", requirementId, requirement.getDate(), requirement.getWorkType().getCode());
-    return requirementResponse(requirement);
+    var scope = mutations.requirementScope(organizationId, requirementId, requirements);
+    var manager = access.requireForUnit(organizationId, unit(organizationId, scope.unitId()),
+        OrganizationPermission.MANAGE_SCHEDULE);
+    return mutations.mutateScopes(organizationId, List.of(scope), manager, null, () -> {
+      var requirement = requirement(organizationId, requirementId);
+      rejectRequirementReparenting(requirement, request);
+      if (sameRequirement(requirement, request)) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(requirementResponse(requirement));
+      }
+      requirement.update(request.startTime(), request.endTime(), request.requiredWorkers(),
+          request.requiredQuantity(), request.notes());
+      audit(manager, "REQUIREMENT_UPDATED", "REQUIREMENT", requirementId, requirement.getDate(),
+          requirement.getWorkType().getCode());
+      return StaffingPlanMutationCoordinator.Change.changed(requirementResponse(requirement), requirementId);
+    }).value();
   }
   @Transactional
   public void deleteRequirement(UUID organizationId, UUID requirementId) {
-    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
-        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
-    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
-    audit(manager, "REQUIREMENT_DELETED", "REQUIREMENT", requirementId, requirement.getDate(), requirement.getWorkType().getCode());
-    requirements.delete(requirement);
+    var scope = mutations.requirementScope(organizationId, requirementId, requirements);
+    var manager = access.requireForUnit(organizationId, unit(organizationId, scope.unitId()),
+        OrganizationPermission.MANAGE_SCHEDULE);
+    mutations.mutateScopes(organizationId, List.of(scope), manager, null, () -> {
+      var requirement = requirement(organizationId, requirementId);
+      audit(manager, "REQUIREMENT_DELETED", "REQUIREMENT", requirementId, requirement.getDate(),
+          requirement.getWorkType().getCode());
+      requirements.delete(requirement);
+      return StaffingPlanMutationCoordinator.Change.changed(null, requirementId);
+    });
   }
   @Transactional
   public RequirementResponse updateAssignment(UUID organizationId, UUID requirementId, UUID assignmentId, AssignmentTimeRequest request) {
-    var requirement = requirements.findByIdAndOrganizationId(requirementId, organizationId)
-        .orElseThrow(() -> new NotFoundException("Staffing requirement", requirementId));
-    var manager = access.requireForUnit(organizationId, requirement.getUnit(), OrganizationPermission.MANAGE_SCHEDULE);
-    var assignment = assignments.findByIdAndRequirementId(assignmentId, requirementId)
-        .orElseThrow(() -> new NotFoundException("Staffing assignment", assignmentId));
-    assignment.updateTimes(request.startTime(), request.endTime());
-    audit(manager, "ASSIGNMENT_UPDATED", "ASSIGNMENT", assignmentId, requirement.getDate(), memberName(assignment.getMembership()));
-    return requirementResponse(requirement);
+    var scope = mutations.requirementScope(organizationId, requirementId, requirements);
+    var manager = access.requireForUnit(organizationId, unit(organizationId, scope.unitId()),
+        OrganizationPermission.MANAGE_SCHEDULE);
+    return mutations.mutateScopes(organizationId, List.of(scope), manager, null, () -> {
+      var requirement = requirement(organizationId, requirementId);
+      var assignment = assignment(requirementId, assignmentId);
+      if (Objects.equals(assignment.getStartTime(), request.startTime())
+          && Objects.equals(assignment.getEndTime(), request.endTime())) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(requirementResponse(requirement));
+      }
+      assignment.updateTimes(request.startTime(), request.endTime());
+      audit(manager, "ASSIGNMENT_UPDATED", "ASSIGNMENT", assignmentId, requirement.getDate(),
+          memberName(assignment.getMembership()));
+      return StaffingPlanMutationCoordinator.Change.changed(requirementResponse(requirement), assignmentId);
+    }).value();
   }
   @Transactional
   public PublishResponse publish(UUID organizationId, PublishRequest request) {
@@ -164,10 +224,30 @@ public class StaffingPlannerService {
         .filter(value -> request.requirementIds() == null || request.requirementIds().isEmpty() || request.requirementIds().contains(value.getId())).toList();
     selected.forEach(value -> access.requireForUnit(organizationId, value.getUnit(),
         OrganizationPermission.PUBLISH_SCHEDULE));
-    selected.forEach(StaffingRequirement::publish);
-    int publishedAssignments = selected.stream().mapToInt(value -> assignments.findAllByRequirementIdAndStatusOrderByCreatedAtAsc(value.getId(), "ASSIGNED").size()).sum();
-    audit(manager, "SCHEDULE_PUBLISHED", "SCHEDULE", null, request.from(), request.from() + " — " + request.to());
-    return new PublishResponse(selected.size(), publishedAssignments);
+    List<StaffingPlanMutationCoordinator.Scope> scopes = selected.stream()
+        .map(value -> mutations.requirementScope(organizationId, value.getId(), requirements))
+        .distinct().toList();
+    Set<UUID> ids = selected.stream().map(StaffingRequirement::getId)
+        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    return mutations.mutateScopes(organizationId, scopes, manager, null, () -> {
+      List<StaffingRequirement> current = requirements.findAllById(ids).stream()
+          .filter(value -> value.getOrganization().getId().equals(organizationId)).toList();
+      List<StaffingRequirement> changedRequirements = current.stream()
+          .filter(value -> !"PUBLISHED".equals(value.getPublicationStatus())).toList();
+      boolean changed = !changedRequirements.isEmpty();
+      changedRequirements.forEach(StaffingRequirement::publish);
+      int publishedAssignments = current.stream().mapToInt(value -> assignments
+          .findAllByRequirementIdAndStatusOrderByCreatedAtAsc(value.getId(), "ASSIGNED").size()).sum();
+      if (changed) audit(manager, "SCHEDULE_PUBLISHED", "SCHEDULE", null, request.from(),
+          request.from() + " — " + request.to());
+      var response = new PublishResponse(current.size(), publishedAssignments);
+      Set<UUID> changedPlanIds = changedRequirements.stream()
+          .map(value -> value.getPlanDay().getPlan().getId())
+          .collect(java.util.stream.Collectors.toSet());
+      return changed ? StaffingPlanMutationCoordinator.Change.changedInPlans(response,
+          changedRequirements.stream().map(StaffingRequirement::getId).toList(), changedPlanIds)
+          : StaffingPlanMutationCoordinator.Change.unchanged(response);
+    }).value();
   }
   @Transactional
   public List<PersonalScheduleResponse> personalSchedule(LocalDate from, LocalDate to) {
@@ -256,9 +336,14 @@ public class StaffingPlannerService {
     if (!Set.of("REST_DAY","VACATION","SICK").contains(request.type())) throw new IllegalArgumentException("invalid absence type");
     var member = memberships.findByOrganizationIdAndUserId(request.organizationId(), currentUser.requireUserId())
         .filter(value -> value.getStatus() == MembershipStatus.ACTIVE).orElseThrow(() -> new NotFoundException("Organization", request.organizationId()));
-    var saved = absenceRequests.save(new StaffingAbsenceRequest(member,request.type(),request.startDate(),request.endDate(),request.notes()));
-    audit(member,"ABSENCE_REQUESTED","ABSENCE_REQUEST",saved.getId(),request.startDate(),request.type());
-    return absenceResponse(saved);
+    var scopes = mutations.memberDateScopes(request.organizationId(), member.getId(),
+        request.startDate(), request.endDate());
+    return mutations.mutateScopes(request.organizationId(), scopes, member, null, () -> {
+      var saved = absenceRequests.save(new StaffingAbsenceRequest(member,request.type(),
+          request.startDate(),request.endDate(),request.notes()));
+      audit(member,"ABSENCE_REQUESTED","ABSENCE_REQUEST",saved.getId(),request.startDate(),request.type());
+      return StaffingPlanMutationCoordinator.Change.changed(absenceResponse(saved), saved.getId());
+    }).value();
   }
   @Transactional(readOnly=true)
   public List<AbsenceRequestResponse> myAbsenceRequests(){return absenceRequests.findAllByMembershipUserIdOrderByCreatedAtDesc(currentUser.requireUserId()).stream().map(this::absenceResponse).toList();}
@@ -266,10 +351,25 @@ public class StaffingPlannerService {
   public List<AbsenceRequestResponse> pendingAbsenceRequests(UUID organizationId){access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);return absenceRequests.findAllByOrganizationIdAndStatusOrderByCreatedAtAsc(organizationId,"PENDING").stream().map(this::absenceResponse).toList();}
   @Transactional
   public AbsenceRequestResponse decideAbsenceRequest(UUID organizationId,UUID requestId,AbsenceDecisionRequest request){
-    var manager=access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);var value=absenceRequests.findById(requestId).filter(item->item.getOrganization().getId().equals(organizationId)).orElseThrow(()->new NotFoundException("Absence request",requestId));
-    value.decide(request.approve(),manager);
-    if(request.approve()) value.getStartDate().datesUntil(value.getEndDate().plusDays(1)).forEach(date->{var entry=dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId,value.getMembership().getId(),date).map(item->{item.update(value.getType(),value.getNotes());return item;}).orElseGet(()->new StaffingMemberDayEntry(manager.getOrganization(),value.getMembership(),date,value.getType(),value.getNotes(),manager));dayEntries.save(entry);});
-    audit(manager,request.approve()?"ABSENCE_APPROVED":"ABSENCE_REJECTED","ABSENCE_REQUEST",value.getId(),value.getStartDate(),memberName(value.getMembership()));return absenceResponse(value);
+    var manager=access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);
+    var observed=absenceRequest(organizationId,requestId);
+    var scopes=mutations.memberDateScopes(organizationId, observed.getMembership().getId(),
+        observed.getStartDate(), observed.getEndDate());
+    return mutations.mutateScopes(organizationId,scopes,manager,null,()->{
+      var value=absenceRequest(organizationId,requestId);
+      entityManager.refresh(value);
+      value.decide(request.approve(),manager);
+      if(request.approve()) value.getStartDate().datesUntil(value.getEndDate().plusDays(1)).forEach(date->{
+        var entry=dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId,
+            value.getMembership().getId(),date).map(item->{item.update(value.getType(),value.getNotes());return item;})
+            .orElseGet(()->new StaffingMemberDayEntry(manager.getOrganization(),value.getMembership(),date,
+                value.getType(),value.getNotes(),manager));
+        dayEntries.save(entry);
+      });
+      audit(manager,request.approve()?"ABSENCE_APPROVED":"ABSENCE_REJECTED","ABSENCE_REQUEST",
+          value.getId(),value.getStartDate(),memberName(value.getMembership()));
+      return StaffingPlanMutationCoordinator.Change.changed(absenceResponse(value),value.getId());
+    }).value();
   }
   @Transactional(readOnly = true)
   public List<DayEntryResponse> dayEntries(UUID organizationId, LocalDate from, LocalDate to) {
@@ -284,18 +384,40 @@ public class StaffingPlannerService {
         OrganizationPermission.MANAGE_ABSENCES);
     var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
         .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
-    var entry = dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId, membershipId, date)
-        .map(value -> { value.update(request.type(), request.notes()); return value; })
-        .orElseGet(() -> new StaffingMemberDayEntry(manager.getOrganization(), member, date, request.type(), request.notes(), manager));
-    return dayEntryResponse(dayEntries.save(entry));
+    var scopes = mutations.memberDateScopes(organizationId, membershipId, date, date);
+    return mutations.mutateScopes(organizationId, scopes, manager, null, () -> {
+      var existing=dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId,membershipId,date);
+      if(existing.isPresent() && sameDayEntry(existing.get(),request)) {
+        return StaffingPlanMutationCoordinator.Change.unchanged(dayEntryResponse(existing.get()));
+      }
+      var entry=existing.map(value->{value.update(request.type(),request.notes());return value;})
+          .orElseGet(()->new StaffingMemberDayEntry(manager.getOrganization(),member,date,
+              request.type(),request.notes(),manager));
+      dayEntries.save(entry);
+      return StaffingPlanMutationCoordinator.Change.changed(dayEntryResponse(entry),entry.getId());
+    }).value();
   }
   @Transactional
   public void removeDayEntry(UUID organizationId, UUID membershipId, LocalDate date) {
-    access.require(organizationId, OrganizationPermission.MANAGE_SCHEDULE,
+    var manager=access.require(organizationId, OrganizationPermission.MANAGE_SCHEDULE,
         OrganizationPermission.MANAGE_ABSENCES);
-    dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId, membershipId, date).ifPresent(dayEntries::delete);
+    var scopes=mutations.memberDateScopes(organizationId,membershipId,date,date);
+    mutations.mutateScopes(organizationId,scopes,manager,null,()->{
+      var existing=dayEntries.findByOrganizationIdAndMembershipIdAndDate(organizationId,membershipId,date);
+      if(existing.isEmpty()) return StaffingPlanMutationCoordinator.Change.unchanged(null);
+      UUID id=existing.get().getId(); dayEntries.delete(existing.get());
+      return StaffingPlanMutationCoordinator.Change.changed(null,id);
+    });
   }
   private OrganizationUnit unit(UUID organizationId, UUID unitId) { return units.findByIdAndOrganizationId(unitId, organizationId).orElseThrow(() -> new NotFoundException("Organization unit", unitId)); }
+  private StaffingRequirement requirement(UUID organizationId,UUID id){return requirements.findByIdAndOrganizationId(id,organizationId).orElseThrow(()->new NotFoundException("Staffing requirement",id));}
+  private StaffingAssignment assignment(UUID requirementId,UUID id){return assignments.findByIdAndRequirementId(id,requirementId).orElseThrow(()->new NotFoundException("Staffing assignment",id));}
+  private StaffingAbsenceRequest absenceRequest(UUID organizationId,UUID id){return absenceRequests.findById(id).filter(value->value.getOrganization().getId().equals(organizationId)).orElseThrow(()->new NotFoundException("Absence request",id));}
+  private boolean sameRequirement(StaffingRequirement value,RequirementUpdateRequest request){return Objects.equals(value.getStartTime(),request.startTime())&&Objects.equals(value.getEndTime(),request.endTime())&&value.getRequiredWorkers()==request.requiredWorkers()&&Objects.equals(value.getRequiredQuantity(),request.requiredQuantity())&&Objects.equals(clean(value.getNotes()),clean(request.notes()));}
+  private void rejectRequirementReparenting(StaffingRequirement value,RequirementUpdateRequest request){if((request.unitId()!=null&&!request.unitId().equals(value.getUnit().getId()))||(request.workTypeId()!=null&&!request.workTypeId().equals(value.getWorkType().getId()))||(request.date()!=null&&!request.date().equals(value.getDate())))throw new IllegalArgumentException("requirement date, unit and work type cannot be changed; delete and recreate it");}
+  private boolean sameDayEntry(StaffingMemberDayEntry value,DayEntryRequest request){return Objects.equals(value.getType(),request.type())&&Objects.equals(clean(value.getNotes()),clean(request.notes()));}
+  private String clean(String value){return value==null||value.isBlank()?null:value.trim();}
+  private String workTypeFingerprint(OrganizationWorkType value){return String.join("\u001f",Objects.toString(value.getUnit()==null?null:value.getUnit().getId(),""),Objects.toString(value.getParent()==null?null:value.getParent().getId(),""),value.getCode(),value.getName(),Objects.toString(value.getColor(),""),Objects.toString(value.getDefaultStartTime(),""),Objects.toString(value.getDefaultEndTime(),""),Integer.toString(value.getDefaultBreakMinutes()),value.getCalculationMethod().name(),value.getCompensationMethod().name(),Objects.toString(value.getUnitLabel(),""),Objects.toString(value.getUnitSymbol(),""),Objects.toString(value.getUnitsPerHour(),""),Objects.toString(value.getRatePerUnit(),""),Objects.toString(value.getCurrency(),""),Boolean.toString(value.isTeamworkEnabled()),Boolean.toString(value.isExtraPayEnabled()),Boolean.toString(value.isCompositeEnabled()),Integer.toString(value.getDisplayOrder()),Boolean.toString(value.isActive()));}
   private void requireSchedulable(OrganizationWorkType value) { if (!value.isActive() || value.isCompositeEnabled()) throw new IllegalArgumentException("only active work types can be scheduled"); }
   private WorkTypeResponse workTypeResponse(OrganizationWorkType value) { return new WorkTypeResponse(value.getId(), value.getUnit() == null ? null : value.getUnit().getId(),value.getParent()==null?null:value.getParent().getId(), value.getCode(), value.getName(), value.getColor(), value.getDefaultStartTime(), value.getDefaultEndTime(), value.getDefaultBreakMinutes(),value.getCalculationMethod(),value.getCompensationMethod(),value.getUnitLabel(),value.getUnitSymbol(),value.getUnitsPerHour(),value.getRatePerUnit(),value.getCurrency(),value.isTeamworkEnabled(),value.isExtraPayEnabled(),value.isCompositeEnabled(),value.getDisplayOrder(),value.isActive()); }
   private RequirementResponse requirementResponse(StaffingRequirement value) {

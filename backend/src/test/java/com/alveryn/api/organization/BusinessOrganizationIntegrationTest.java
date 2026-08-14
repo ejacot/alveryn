@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -26,6 +27,7 @@ class BusinessOrganizationIntegrationTest {
   @Autowired UserAccountRepository users;
   @Autowired OrganizationRepository organizations;
   @Autowired AuthService authService;
+  @Autowired JdbcTemplate jdbc;
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -139,12 +141,43 @@ class BusinessOrganizationIntegrationTest {
             .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
             .content("{\"name\":\"Service\",\"timezone\":\"Europe/Berlin\"}"))
         .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
-    mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
+    String memberId = id(mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
             .content("{\"firstName\":\"Ion\",\"lastName\":\"Test\",\"email\":\"later@example.com\"}"))
-        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("INVITED"));
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("INVITED"))
+        .andReturn().getResponse().getContentAsString());
+    String unitId = id(mockMvc.perform(post("/api/organizations/{id}/units", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Housekeeping\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    String workTypeId = id(mockMvc.perform(post(
+            "/api/organizations/{id}/staffing/work-types", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"unitId\":\"" + unitId + "\",\"code\":\"ROOM\","
+                + "\"name\":\"Room cleaning\",\"defaultStartTime\":\"09:00\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    String requirementId = id(mockMvc.perform(post(
+            "/api/organizations/{id}/staffing/requirements", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"unitId\":\"" + unitId + "\",\"workTypeId\":\"" + workTypeId
+                + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(post(
+            "/api/organizations/{id}/staffing/requirements/{requirement}/assignments",
+            organizationId, requirementId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"membershipId\":\"" + memberId + "\"}"))
+        .andExpect(status().isCreated());
+    long revisionBeforeClaim = jdbc.queryForObject(
+        "select draft_revision from staffing_plans where organization_id=?::uuid and unit_id=?::uuid",
+        Long.class, organizationId, unitId);
 
     authService.issueVerifiedSession(employee);
+
+    long revisionAfterClaim = jdbc.queryForObject(
+        "select draft_revision from staffing_plans where organization_id=?::uuid and unit_id=?::uuid",
+        Long.class, organizationId, unitId);
+    org.junit.jupiter.api.Assertions.assertEquals(revisionBeforeClaim + 1, revisionAfterClaim);
 
     mockMvc.perform(get("/api/organizations").header(HttpHeaders.AUTHORIZATION, token(employee)))
         .andExpect(status().isOk())

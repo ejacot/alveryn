@@ -41,10 +41,10 @@ public class StaffingPlanDay extends BaseEntity {
     this.organization = plan.getOrganization();
     this.date = requirePlanDate(plan, date);
     this.source = Objects.requireNonNull(source, "source is required");
-    updateContext(roomsContext, notes);
+    initializeContext(roomsContext, notes);
   }
 
-  public void updateContext(Integer roomsContext, String notes) {
+  private void initializeContext(Integer roomsContext, String notes) {
     if (roomsContext != null && roomsContext < 0) {
       throw new IllegalArgumentException("rooms context cannot be negative");
     }

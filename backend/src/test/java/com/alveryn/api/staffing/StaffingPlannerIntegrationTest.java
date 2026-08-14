@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -20,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 class StaffingPlannerIntegrationTest {
   @Autowired WebApplicationContext context; @Autowired JwtService jwt;
   @Autowired UserAccountRepository users; @Autowired OrganizationRepository organizations;
+  @Autowired JdbcTemplate jdbc;
   MockMvc mvc; UserAccount owner;
   @BeforeEach void setup() {
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
@@ -92,6 +94,7 @@ class StaffingPlannerIntegrationTest {
         .andExpect(jsonPath("$.data[0].assignments[0].memberName").doesNotExist())
         .andExpect(jsonPath("$.data[0].assignments[0].requiredWorkers").doesNotExist())
         .andExpect(jsonPath("$.data[0].dayEntries.length()").value(0));
+    long revisionBeforeActuals = planRevision(orgId, team, "2026-08-10");
     String resultBody = mvc.perform(put("/api/my/business-schedule/assignments/{assignment}/result", ownAssignment)
         .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
         .content("{\"actualStartTime\":\"05:04\",\"actualEndTime\":\"13:42\",\"breakMinutes\":30,\"completedQuantity\":12,\"notes\":\"12 camere\",\"submit\":true}"))
@@ -105,12 +108,15 @@ class StaffingPlannerIntegrationTest {
         .content("{\"actualStartTime\":\"05:00\",\"actualEndTime\":\"13:30\",\"breakMinutes\":30,\"completedQuantity\":11,\"notes\":\"corectat de manager\"}"))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.approvalStatus").value("APPROVED"))
         .andExpect(jsonPath("$.data.completedQuantity").value(11));
+    org.junit.jupiter.api.Assertions.assertEquals(
+        revisionBeforeActuals, planRevision(orgId, team, "2026-08-10"));
     String checkAssignmentBody = mvc.perform(post("/api/organizations/{org}/staffing/requirements/{req}/assignments", orgId, overlapping)
             .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
             .content("{\"membershipId\":\"" + ownerMembership + "\"}"))
         .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
     java.util.List<String> checkAssignmentIds = com.jayway.jsonpath.JsonPath.read(checkAssignmentBody, "$.data.assignments[*].id");
     String checkAssignment = checkAssignmentIds.get(checkAssignmentIds.size() - 1);
+    long revisionBeforeCheckIn = planRevision(orgId, team, "2026-08-10");
     mvc.perform(post("/api/my/business-schedule/assignments/{assignment}/check-in", checkAssignment)
             .header(HttpHeaders.AUTHORIZATION, token()))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.timeCaptureSource").value("CHECK_IN"))
@@ -121,20 +127,162 @@ class StaffingPlannerIntegrationTest {
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.checkedOutAt").isNotEmpty())
         .andExpect(jsonPath("$.data.actualEndTime").isNotEmpty())
         .andExpect(jsonPath("$.data.approvalStatus").value("SUBMITTED"));
+    org.junit.jupiter.api.Assertions.assertEquals(
+        revisionBeforeCheckIn, planRevision(orgId, team, "2026-08-10"));
+    long revisionBeforeAbsence = planRevision(orgId, team, "2026-08-10");
+    String fingerprintBeforeAbsence = sourceFingerprint(orgId, team, "2026-08-10");
     String absenceBody = mvc.perform(post("/api/my/business-schedule/absence-requests")
         .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
         .content("{\"organizationId\":\"" + orgId + "\",\"type\":\"SICK\",\"startDate\":\"2026-08-14\",\"endDate\":\"2026-08-15\",\"notes\":\"medical\"}"))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"))
         .andReturn().getResponse().getContentAsString();
+    org.junit.jupiter.api.Assertions.assertEquals(
+        revisionBeforeAbsence + 1, planRevision(orgId, team, "2026-08-10"));
+    org.junit.jupiter.api.Assertions.assertNotEquals(
+        fingerprintBeforeAbsence, sourceFingerprint(orgId, team, "2026-08-10"));
     String absenceId = com.jayway.jsonpath.JsonPath.read(absenceBody, "$.data.id");
     mvc.perform(get("/api/organizations/{org}/staffing/absence-requests/pending", orgId).header(HttpHeaders.AUTHORIZATION, token()))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].id").value(absenceId));
     mvc.perform(put("/api/organizations/{org}/staffing/absence-requests/{id}/decision", orgId, absenceId)
         .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true}"))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("APPROVED"));
+    org.junit.jupiter.api.Assertions.assertEquals(
+        revisionBeforeAbsence + 2, planRevision(orgId, team, "2026-08-10"));
     mvc.perform(get("/api/organizations/{org}/staffing/day-entries", orgId).param("from", "2026-08-14").param("to", "2026-08-15").header(HttpHeaders.AUTHORIZATION, token()))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(2))
         .andExpect(jsonPath("$.data[*].type", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("SICK"))));
+  }
+
+  @Test void weeklyDraftRevisionTracksLogicalPlannerMutationsExactlyOnce() throws Exception {
+    String orgId = create("/api/organizations", "{\"name\":\"Revision Hotel\",\"timezone\":\"Europe/Berlin\"}");
+    String team = create("/api/organizations/" + orgId + "/units",
+        "{\"name\":\"Housekeeping\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}");
+    String member = create("/api/organizations/" + orgId + "/members",
+        "{\"firstName\":\"Ana\",\"lastName\":\"Revision\"}");
+    String type = create("/api/organizations/" + orgId + "/staffing/work-types",
+        "{\"unitId\":\"" + team + "\",\"code\":\"ROOM\",\"name\":\"Room cleaning\","
+            + "\"color\":\"#10B981\",\"defaultStartTime\":\"09:00\","
+            + "\"defaultEndTime\":\"16:30\",\"defaultBreakMinutes\":30}");
+
+    String requirement = create("/api/organizations/" + orgId + "/staffing/requirements",
+        "{\"unitId\":\"" + team + "\",\"workTypeId\":\"" + type
+            + "\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
+    assertPlanRevision(orgId, team, "2026-08-10", 1);
+    org.junit.jupiter.api.Assertions.assertEquals(1, jdbc.queryForObject(
+        "select count(*) from staffing_requirements where id=?::uuid and plan_day_id is not null",
+        Integer.class, requirement));
+
+    String sameWorkType = "{\"unitId\":\"" + team + "\",\"code\":\"ROOM\","
+        + "\"name\":\"Room cleaning\",\"color\":\"#10B981\","
+        + "\"defaultStartTime\":\"09:00\",\"defaultEndTime\":\"16:30\","
+        + "\"defaultBreakMinutes\":30}";
+    mvc.perform(put("/api/organizations/{org}/staffing/work-types/{type}", orgId, type)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content(sameWorkType))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 1);
+    mvc.perform(put("/api/organizations/{org}/staffing/work-types/{type}", orgId, type)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content(sameWorkType.replace("Room cleaning", "Room service")))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.name").value("Room service"));
+    assertPlanRevision(orgId, team, "2026-08-10", 2);
+
+    String unchanged = "{\"startTime\":\"09:00\",\"endTime\":\"16:30\","
+        + "\"requiredWorkers\":1}";
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}", orgId, requirement)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content(unchanged))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 2);
+
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}", orgId, requirement)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"startTime\":\"09:00\",\"endTime\":\"17:00\",\"requiredWorkers\":2}"))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 3);
+
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}", orgId, requirement)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"date\":\"2026-08-17\",\"requiredWorkers\":2}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.containsString(
+            "date, unit and work type cannot be changed")));
+    assertPlanRevision(orgId, team, "2026-08-10", 3);
+    org.junit.jupiter.api.Assertions.assertEquals("2026-08-10", jdbc.queryForObject(
+        "select work_date::text from staffing_requirements where id=?::uuid", String.class,
+        requirement));
+
+    mvc.perform(post("/api/organizations/{org}/staffing/requirements/bulk", orgId)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"unitId\":\"" + team + "\",\"workTypeId\":\"" + type
+                + "\",\"dates\":[\"2026-08-11\",\"2026-08-12\"],\"requiredWorkers\":1}"))
+        .andExpect(status().isCreated());
+    assertPlanRevision(orgId, team, "2026-08-10", 4);
+
+    mvc.perform(post("/api/organizations/{org}/staffing/requirements/bulk", orgId)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"unitId\":\"" + team + "\",\"workTypeId\":\"" + type
+                + "\",\"dates\":[\"2026-08-16\",\"2026-08-17\"],\"requiredWorkers\":1}"))
+        .andExpect(status().isCreated());
+    assertPlanRevision(orgId, team, "2026-08-10", 5);
+    assertPlanRevision(orgId, team, "2026-08-17", 1);
+
+    String assignmentBody = mvc.perform(post(
+            "/api/organizations/{org}/staffing/requirements/{req}/assignments", orgId, requirement)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"membershipId\":\"" + member + "\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+    java.util.List<String> assignmentIds = com.jayway.jsonpath.JsonPath.read(
+        assignmentBody, "$.data.assignments[*].id");
+    String assignment = assignmentIds.getFirst();
+    assertPlanRevision(orgId, team, "2026-08-10", 6);
+
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}/assignments/{assignment}",
+            orgId, requirement, assignment).header(HttpHeaders.AUTHORIZATION, token())
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 6);
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}/assignments/{assignment}",
+            orgId, requirement, assignment).header(HttpHeaders.AUTHORIZATION, token())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"startTime\":\"10:00\",\"endTime\":\"17:00\"}"))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 7);
+
+    mvc.perform(put("/api/organizations/{org}/staffing/members/{member}/days/{date}", orgId,
+            member, "2026-08-10").header(HttpHeaders.AUTHORIZATION, token())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"REST_DAY\"}"))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 8);
+    mvc.perform(put("/api/organizations/{org}/staffing/members/{member}/days/{date}", orgId,
+            member, "2026-08-10").header(HttpHeaders.AUTHORIZATION, token())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"REST_DAY\"}"))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 8);
+
+    mvc.perform(delete("/api/organizations/{org}/staffing/requirements/{req}/assignments/{assignment}",
+            orgId, requirement, assignment).header(HttpHeaders.AUTHORIZATION, token()))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 9);
+    mvc.perform(delete("/api/organizations/{org}/staffing/requirements/{req}/assignments/{assignment}",
+            orgId, requirement, assignment).header(HttpHeaders.AUTHORIZATION, token()))
+        .andExpect(status().isOk());
+    assertPlanRevision(orgId, team, "2026-08-10", 9);
+
+    mvc.perform(delete("/api/organizations/{org}/members/{member}", orgId, member)
+            .header(HttpHeaders.AUTHORIZATION, token()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("SUSPENDED"));
+    assertPlanRevision(orgId, team, "2026-08-10", 10);
+    mvc.perform(post("/api/organizations/{org}/members/{member}/reactivate", orgId, member)
+            .header(HttpHeaders.AUTHORIZATION, token()))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("INVITED"));
+    assertPlanRevision(orgId, team, "2026-08-10", 11);
+
+    mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}", orgId, requirement)
+            .header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"startTime\":\"09:00\",\"endTime\":\"17:00\",\"requiredWorkers\":0}"))
+        .andExpect(status().isBadRequest());
+    assertPlanRevision(orgId, team, "2026-08-10", 11);
   }
 
   @Test void employeeScheduleContainsOnlyTheCurrentMembersPublishedData() throws Exception {
@@ -334,6 +482,33 @@ class StaffingPlannerIntegrationTest {
   private String createBody(String path, String body) throws Exception { return mvc.perform(post(path).header(HttpHeaders.AUTHORIZATION, token()).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(); }
   private String token() { return "Bearer " + jwt.generateAccessToken(owner); }
   private String token(UserAccount user) { return "Bearer " + jwt.generateAccessToken(user); }
+  private void assertPlanRevision(String organizationId, String unitId, String weekStart,
+      long expected) {
+    org.junit.jupiter.api.Assertions.assertEquals(
+        expected, planRevision(organizationId, unitId, weekStart));
+  }
+  private long planRevision(String organizationId, String unitId, String weekStart) {
+    return jdbc.queryForObject(
+        "select draft_revision from staffing_plans where organization_id=?::uuid "
+            + "and unit_id=?::uuid and week_start=?::date",
+        Long.class, organizationId, unitId, weekStart);
+  }
+  private String sourceFingerprint(String organizationId, String unitId, String weekStart) {
+    java.util.UUID planId = jdbc.queryForObject(
+        "select id from staffing_plans where organization_id=?::uuid and unit_id=?::uuid "
+            + "and week_start=?::date",
+        java.util.UUID.class, organizationId, unitId, weekStart);
+    try {
+      Object writer = context.getBean("staffingPlanPublicationWriter");
+      var method = writer.getClass().getDeclaredMethod("sourceFingerprint",
+          java.util.UUID.class, java.util.UUID.class, java.util.UUID.class);
+      method.setAccessible(true);
+      return (String) method.invoke(writer, java.util.UUID.fromString(organizationId),
+          java.util.UUID.fromString(unitId), planId);
+    } catch (ReflectiveOperationException exception) {
+      throw new IllegalStateException("cannot inspect source fingerprint", exception);
+    }
+  }
   private UserAccount verifiedUser(String email) {
     UserAccount user = new UserAccount(email, "hash");
     user.verifyEmail();

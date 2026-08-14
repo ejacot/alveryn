@@ -67,15 +67,13 @@ class StaffingPlanPublicationWriter {
           '|assignments:', coalesce((select jsonb_agg(jsonb_build_array(a.id::text,
              a.requirement_id::text, a.membership_id::text, a.start_time::text, a.end_time::text,
              a.assignment_status, m.membership_status, m.first_name, m.last_name,
-             u.name, u.check_in_mode, wt.code, wt.name, wt.active,
-             res.checked_in_at::text, res.checked_out_at::text)
+             u.name, u.check_in_mode, wt.code, wt.name, wt.active)
              order by r.work_date, a.requirement_id, a.membership_id, a.id)::text
              from staffing_assignments a join staffing_requirements r on r.id = a.requirement_id
              join staffing_plan_days d on d.id = r.plan_day_id
              join organization_memberships m on m.id = a.membership_id
              join organization_units u on u.id = r.unit_id
              join organization_work_types wt on wt.id = r.work_type_id
-             left join staffing_assignment_results res on res.assignment_id = a.id
              where d.plan_id = p.id), '[]'),
           '|memberDays:', coalesce((select jsonb_agg(jsonb_build_array(e.id::text,
              e.membership_id::text, m.first_name, m.last_name, e.work_date::text,
@@ -281,13 +279,12 @@ class StaffingPlanPublicationWriter {
         coalesce(nullif(btrim(concat_ws(' ',m.first_name,m.last_name)),''),'Member '||left(m.id::text,8)),
         m.membership_status,r.work_date,r.unit_id,u.name,r.work_type_id,wt.code,wt.name,
         coalesce(a.start_time,r.start_time),coalesce(a.end_time,r.end_time),a.assignment_status,
-        u.check_in_mode,res.checked_in_at,res.checked_out_at,:createdAt
+        u.check_in_mode,null,null,:createdAt
       from staffing_assignments a join staffing_requirements r on r.id=a.requirement_id
       join staffing_plan_days d on d.id=r.plan_day_id
       join staffing_plan_version_requirements vr on vr.version_id=:version and vr.source_requirement_id=r.id
       join organization_memberships m on m.id=a.membership_id join organization_units u on u.id=r.unit_id
       join organization_work_types wt on wt.id=r.work_type_id
-      left join staffing_assignment_results res on res.assignment_id=a.id
       where d.plan_id=:plan order by r.work_date,a.id
       """, p);
   }

@@ -28,7 +28,8 @@ public final class StaffingDtos {
   public record AssignmentRequest(@NotNull UUID membershipId, LocalTime startTime, LocalTime endTime) {}
   public record AssignmentTimeRequest(LocalTime startTime, LocalTime endTime) {}
   public record RequirementUpdateRequest(LocalTime startTime, LocalTime endTime, @Positive int requiredWorkers,
-      @Positive BigDecimal requiredQuantity, @Size(max=500) String notes) {}
+      @Positive BigDecimal requiredQuantity, @Size(max=500) String notes,
+      UUID unitId, UUID workTypeId, LocalDate date) {}
   public record PublishRequest(@NotNull LocalDate from, @NotNull LocalDate to, Set<UUID> requirementIds) {}
   public record PublishResponse(int publishedRequirements, int publishedAssignments) {}
   public record ResultRequest(LocalTime actualStartTime, LocalTime actualEndTime,

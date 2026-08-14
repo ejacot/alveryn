@@ -21,9 +21,12 @@ import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.user.repository.UserPreferencesRepository;
 import com.alveryn.api.organization.entity.MembershipStatus;
 import com.alveryn.api.organization.repository.OrganizationMembershipRepository;
+import com.alveryn.api.staffing.service.StaffingPlanMutationCoordinator;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,6 +53,8 @@ public class AuthService {
   private final Clock clock;
   private final FounderProperties founderProperties;
   private final OrganizationMembershipRepository organizationMemberships;
+  private final StaffingPlanMutationCoordinator staffingPlanMutations;
+  private final EntityManager entityManager;
 
   @Transactional
   public AuthUserResponse register(RegisterRequest request) {
@@ -211,7 +216,18 @@ public class AuthService {
     organizationMemberships.findAllByInvitedEmailIgnoreCaseAndStatus(user.getEmail(), MembershipStatus.INVITED)
         .forEach(membership -> {
           if (organizationMemberships.findByOrganizationIdAndUserId(membership.getOrganization().getId(), user.getId()).isEmpty()) {
-            membership.claim(user);
+            UUID organizationId = membership.getOrganization().getId();
+            staffingPlanMutations.mutateScopes(
+                organizationId,
+                staffingPlanMutations.memberScopes(organizationId, membership.getId()),
+                membership,
+                null,
+                () -> {
+                  entityManager.refresh(membership);
+                  membership.claim(user);
+                  return StaffingPlanMutationCoordinator.Change.changed(
+                      membership, membership.getId());
+                });
           }
         });
   }

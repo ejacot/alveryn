@@ -15,6 +15,7 @@ import com.alveryn.api.staffing.service.StaffingPlanFoundationService;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationService;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationService.PublishCommand;
 import com.alveryn.api.staffing.service.StaffingPlanPublicationFaultProbe;
+import com.alveryn.api.staffing.service.StaffingPlanMutationCoordinator;
 import com.alveryn.api.user.entity.*;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.context.annotation.*;
+import org.springframework.context.ApplicationContext;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.security.access.AccessDeniedException;
 import com.alveryn.api.common.exception.NotFoundException;
@@ -46,8 +48,13 @@ class StaffingPlanPublicationIntegrationTest {
   @Autowired JdbcTemplate jdbc;
   @Autowired EntityManager entityManager;
   @Autowired TestFaultProbe faultProbe;
+  @Autowired StaffingPlanMutationCoordinator mutations;
+  @Autowired ApplicationContext applicationContext;
 
-  @AfterEach void clearSecurity() { SecurityContextHolder.clearContext(); }
+  @AfterEach void clearSecurity() {
+    SecurityContextHolder.clearContext();
+    faultProbe.reset();
+  }
 
   @Test void publishesReplaysAndKeepsEarlierVersionImmutable() {
     Fixture fixture = fixture("atomic");
@@ -65,10 +72,13 @@ class StaffingPlanPublicationIntegrationTest {
         fixture.planId())).isEqualTo(1);
 
     String checksum = first.checksum();
-    var plan = plans.findByIdAndOrganizationIdAndUnitId(fixture.planId(), fixture.organizationId(),
-        fixture.unitId()).orElseThrow();
-    plan.markDraftChanged(fixture.owner());
-    plans.saveAndFlush(plan);
+    mutations.mutateScopes(fixture.organizationId(), List.of(
+            new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId())),
+        fixture.owner(), revision,
+        () -> StaffingPlanMutationCoordinator.Change.changed("draft changed"));
+    assertThat(jdbc.queryForObject(
+        "select draft_revision > published_revision from staffing_plans where id=?",
+        Boolean.class, fixture.planId())).isTrue();
     var second = publication.publishPlan(command(fixture, revision + 1,
         Set.of("UNDERCOVERAGE:" + requirementId), "second", "key-2"));
     assertThat(second.versionNumber()).isEqualTo(2);
@@ -395,6 +405,223 @@ class StaffingPlanPublicationIntegrationTest {
         Integer.class, second.planId())).isEqualTo(1);
   }
 
+  @Test void mutationCoordinatorSerializesConcurrentDraftChangesAndRejectsStaleRevision()
+      throws Exception {
+    Fixture fixture = fixture("mutation-concurrency");
+    long initial = fixture.planRevision();
+    var scope = new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId());
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    CountDownLatch ready = new CountDownLatch(2);
+    CountDownLatch start = new CountDownLatch(1);
+    try {
+      List<Future<StaffingPlanMutationCoordinator.MutationResult<String>>> futures =
+          java.util.stream.IntStream.range(0, 2).mapToObj(index -> executor.submit(() -> {
+            var actor = memberships.findByIdAndOrganizationId(
+                fixture.owner().getId(), fixture.organizationId()).orElseThrow();
+            ready.countDown();
+            start.await(10, TimeUnit.SECONDS);
+            return mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, null,
+                () -> StaffingPlanMutationCoordinator.Change.changed("change-" + index));
+          })).toList();
+      assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+      start.countDown();
+      for (var future : futures) assertThat(future.get(20, TimeUnit.SECONDS).changed()).isTrue();
+    } finally {
+      executor.shutdownNow();
+    }
+    assertThat(jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
+        Long.class, fixture.planId())).isEqualTo(initial + 2);
+
+    var actor = memberships.findByIdAndOrganizationId(
+        fixture.owner().getId(), fixture.organizationId()).orElseThrow();
+    long current = initial + 2;
+    var changed = mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, current,
+        () -> StaffingPlanMutationCoordinator.Change.changed("guarded"));
+    assertThat(changed.currentRevisions()).containsEntry(fixture.planId(), current + 1);
+    assertThat(StaffingPlanMutationCoordinator.etag(fixture.planId(), current + 1))
+        .isEqualTo("\"plan-" + fixture.planId() + "-r" + (current + 1) + "\"");
+    assertThatThrownBy(() -> mutations.mutateScopes(
+        fixture.organizationId(), List.of(scope), actor, current,
+        () -> StaffingPlanMutationCoordinator.Change.changed("stale")))
+        .isInstanceOf(PreconditionFailedException.class);
+  }
+
+  @Test void mutationBeforePublishMakesTheOldRevisionStale() throws Exception {
+    Fixture fixture = fixture("mutation-wins");
+    UUID requirementId = requirement(fixture);
+    long expected = fixture.planRevision();
+    var scope = new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId());
+    CountDownLatch mutationHasLock = new CountDownLatch(1);
+    CountDownLatch releaseMutation = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    try {
+      Future<?> mutation = executor.submit(() -> {
+        var actor = memberships.findByIdAndOrganizationId(
+            fixture.owner().getId(), fixture.organizationId()).orElseThrow();
+        return mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, null, () -> {
+          mutationHasLock.countDown();
+          await(releaseMutation);
+          return StaffingPlanMutationCoordinator.Change.changed("manager edit");
+        });
+      });
+      assertThat(mutationHasLock.await(10, TimeUnit.SECONDS)).isTrue();
+      Future<Object> publish = executor.submit(() -> {
+        authenticate(fixture.user());
+        try {
+          return publication.publishPlan(command(fixture, expected,
+              Set.of("UNDERCOVERAGE:" + requirementId), null, "mutation-wins"));
+        } catch (RuntimeException exception) {
+          return exception;
+        } finally {
+          SecurityContextHolder.clearContext();
+        }
+      });
+      releaseMutation.countDown();
+      mutation.get(20, TimeUnit.SECONDS);
+      assertThat(publish.get(20, TimeUnit.SECONDS)).isInstanceOf(PreconditionFailedException.class);
+    } finally {
+      releaseMutation.countDown();
+      executor.shutdownNow();
+    }
+    assertThat(jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
+        Long.class, fixture.planId())).isEqualTo(expected + 1);
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_versions where plan_id=?",
+        Integer.class, fixture.planId())).isZero();
+  }
+
+  @Test void publishBeforeMutationKeepsSnapshotCoherentAndLeavesUnpublishedChanges()
+      throws Exception {
+    Fixture fixture = fixture("publish-wins");
+    UUID requirementId = requirement(fixture);
+    long expected = fixture.planRevision();
+    var scope = new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId());
+    faultProbe.pauseAt(StaffingPlanPublicationFaultProbe.Stage.AFTER_HEADER);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    try {
+      Future<StaffingPlanPublicationService.PublicationResult> publish = executor.submit(() -> {
+        authenticate(fixture.user());
+        try {
+          return publication.publishPlan(command(fixture, expected,
+              Set.of("UNDERCOVERAGE:" + requirementId), null, "publish-wins"));
+        } finally {
+          SecurityContextHolder.clearContext();
+        }
+      });
+      assertThat(faultProbe.awaitPause()).isTrue();
+      Future<?> mutation = executor.submit(() -> {
+        var actor = memberships.findByIdAndOrganizationId(
+            fixture.owner().getId(), fixture.organizationId()).orElseThrow();
+        return mutations.mutateScopes(fixture.organizationId(), List.of(scope), actor, null,
+            () -> StaffingPlanMutationCoordinator.Change.changed("post-publish edit"));
+      });
+      faultProbe.release();
+      var published = publish.get(20, TimeUnit.SECONDS);
+      mutation.get(20, TimeUnit.SECONDS);
+      assertThat(published.publishedRevision()).isEqualTo(expected);
+    } finally {
+      faultProbe.release();
+      executor.shutdownNow();
+    }
+    assertThat(jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
+        Long.class, fixture.planId())).isEqualTo(expected + 1);
+    assertThat(jdbc.queryForObject(
+        "select draft_revision > published_revision from staffing_plans where id=?",
+        Boolean.class, fixture.planId())).isTrue();
+    assertThat(jdbc.queryForObject(
+        "select count(*) from staffing_plan_version_requirements where version_id=(select latest_published_version_id from staffing_plans where id=?)",
+        Integer.class, fixture.planId())).isEqualTo(1);
+  }
+
+  @Test void multiPlanLocksUseOneOrderAndRollbackRestoresChildrenAndRevisions() throws Exception {
+    Fixture fixture = fixture("lock-order");
+    UUID requirementId = requirement(fixture);
+    var secondPlan = foundation.getOrCreate(fixture.organizationId(), fixture.unitId(),
+        WEEK.plusWeeks(1), fixture.owner().getId());
+    foundation.createDay(fixture.organizationId(), fixture.unitId(), secondPlan.getId(),
+        WEEK.plusWeeks(1), 20, null, StaffingPlanDaySource.MANUAL, fixture.owner().getId());
+    List<StaffingPlanMutationCoordinator.Scope> forward = List.of(
+        new StaffingPlanMutationCoordinator.Scope(fixture.planId(), fixture.unitId()),
+        new StaffingPlanMutationCoordinator.Scope(secondPlan.getId(), fixture.unitId()));
+    List<StaffingPlanMutationCoordinator.Scope> reverse = List.of(forward.get(1), forward.get(0));
+    Map<UUID, Long> before = Map.of(
+        fixture.planId(), revision(fixture.planId()),
+        secondPlan.getId(), revision(secondPlan.getId()));
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    CountDownLatch start = new CountDownLatch(1);
+    try {
+      var results = List.of(forward, reverse).stream().map(scopes -> executor.submit(() -> {
+        var actor = memberships.findByIdAndOrganizationId(
+            fixture.owner().getId(), fixture.organizationId()).orElseThrow();
+        await(start);
+        return mutations.mutateScopes(fixture.organizationId(), scopes, actor, null,
+            () -> StaffingPlanMutationCoordinator.Change.changed("two-plan edit"));
+      })).toList();
+      start.countDown();
+      for (Future<?> result : results) result.get(20, TimeUnit.SECONDS);
+    } finally {
+      start.countDown();
+      executor.shutdownNow();
+    }
+    assertThat(revision(fixture.planId())).isEqualTo(before.get(fixture.planId()) + 2);
+    assertThat(revision(secondPlan.getId())).isEqualTo(before.get(secondPlan.getId()) + 2);
+
+    long beforeRollback = revision(fixture.planId());
+    assertThatThrownBy(() -> mutations.mutateScopes(fixture.organizationId(),
+        List.of(forward.getFirst()), fixture.owner(), null, () -> {
+          jdbc.update("update staffing_requirements set notes='must rollback' where id=?", requirementId);
+          throw new InjectedPublicationFailure();
+        })).isInstanceOf(InjectedPublicationFailure.class);
+    assertThat(jdbc.queryForObject("select notes from staffing_requirements where id=?",
+        String.class, requirementId)).isNull();
+    assertThat(revision(fixture.planId())).isEqualTo(beforeRollback);
+  }
+
+  @Test void sourceFingerprintTracksPlanningDataAndExcludesOperationalActuals() {
+    Fixture fixture = fixture("source-guard");
+    UUID requirementId = requirement(fixture);
+    OrganizationMembership employee = activeEmployee(fixture, "source-employee");
+    UUID assignmentId = assignment(fixture, requirementId, employee);
+    String original = sourceFingerprint(fixture);
+
+    UUID resultId = UUID.randomUUID();
+    jdbc.update("""
+        insert into staffing_assignment_results(id,assignment_id,actual_start_time,actual_end_time,
+          break_minutes,completed_quantity,notes,approval_status,checked_in_at,checked_out_at,
+          time_capture_source,created_at,updated_at)
+        values(?,?,'09:05','16:35',30,12,'operational actual','APPROVED',current_timestamp,
+          current_timestamp,'CHECK_IN',current_timestamp,current_timestamp)
+        """, resultId, assignmentId);
+    assertThat(sourceFingerprint(fixture)).isEqualTo(original);
+
+    long revisionBeforeDay = revision(fixture.planId());
+    foundation.createDay(fixture.organizationId(), fixture.unitId(), fixture.planId(),
+        WEEK.plusDays(1), 24, "late hotel context", StaffingPlanDaySource.MANUAL,
+        fixture.owner().getId());
+    String withPlanDay = sourceFingerprint(fixture);
+    assertThat(withPlanDay).isNotEqualTo(original);
+    assertThat(revision(fixture.planId())).isEqualTo(revisionBeforeDay + 1);
+
+    jdbc.update("update staffing_requirements set notes='planning source changed' where id=?",
+        requirementId);
+    assertThat(sourceFingerprint(fixture)).isNotEqualTo(withPlanDay);
+  }
+
+  @Test void sourceSnapshotLabelsHaveNoUncoordinatedDomainRenamePath() {
+    assertThat(Arrays.stream(OrganizationUnit.class.getDeclaredMethods())
+        .filter(method -> java.lang.reflect.Modifier.isPublic(method.getModifiers()))
+        .map(java.lang.reflect.Method::getName))
+        .doesNotContain("rename", "updateName", "update");
+    assertThat(Arrays.stream(OrganizationMembership.class.getDeclaredMethods())
+        .filter(method -> java.lang.reflect.Modifier.isPublic(method.getModifiers()))
+        .map(java.lang.reflect.Method::getName))
+        .doesNotContain("rename", "updateName", "updateProfile", "update");
+    assertThat(Arrays.stream(com.alveryn.api.staffing.entity.StaffingPlanDay.class
+        .getDeclaredMethods())
+        .filter(method -> java.lang.reflect.Modifier.isPublic(method.getModifiers()))
+        .map(java.lang.reflect.Method::getName))
+        .doesNotContain("updateContext", "changeDate", "reparent");
+  }
+
   private Fixture fixture(String label) {
     var user = new UserAccount(label + "-" + UUID.randomUUID() + "@example.com", "hash");
     user.verifyEmail(); users.saveAndFlush(user);
@@ -460,6 +687,33 @@ class StaffingPlanPublicationIntegrationTest {
         note, key);
   }
 
+  private long revision(UUID planId) {
+    return jdbc.queryForObject("select draft_revision from staffing_plans where id=?",
+        Long.class, planId);
+  }
+
+  private String sourceFingerprint(Fixture fixture) {
+    try {
+      Object writer = applicationContext.getBean("staffingPlanPublicationWriter");
+      var method = writer.getClass().getDeclaredMethod("sourceFingerprint",
+          UUID.class, UUID.class, UUID.class);
+      method.setAccessible(true);
+      return (String) method.invoke(writer, fixture.organizationId(), fixture.unitId(),
+          fixture.planId());
+    } catch (ReflectiveOperationException exception) {
+      throw new IllegalStateException("cannot inspect publication source fingerprint", exception);
+    }
+  }
+
+  private static void await(CountDownLatch latch) {
+    try {
+      if (!latch.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("latch timed out");
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("interrupted while awaiting test latch", exception);
+    }
+  }
+
   private void authenticate(UserAccount user) {
     var principal = new AuthenticatedUser(user.getId(), user.getEmail(), true, UserStatus.ACTIVE, UserRole.USER);
     SecurityContextHolder.getContext().setAuthentication(
@@ -504,8 +758,29 @@ class StaffingPlanPublicationIntegrationTest {
 
   static class TestFaultProbe implements StaffingPlanPublicationFaultProbe {
     volatile Stage failAt;
+    volatile Stage pauseAt;
+    volatile CountDownLatch paused = new CountDownLatch(1);
+    volatile CountDownLatch resume = new CountDownLatch(1);
     @Override public void check(Stage stage) {
       if (stage == failAt) throw new InjectedPublicationFailure();
+      if (stage == pauseAt) {
+        paused.countDown();
+        await(resume);
+      }
+    }
+    void pauseAt(Stage stage) {
+      pauseAt = stage;
+      paused = new CountDownLatch(1);
+      resume = new CountDownLatch(1);
+    }
+    boolean awaitPause() throws InterruptedException {
+      return paused.await(10, TimeUnit.SECONDS);
+    }
+    void release() { resume.countDown(); }
+    void reset() {
+      release();
+      failAt = null;
+      pauseAt = null;
     }
   }
 

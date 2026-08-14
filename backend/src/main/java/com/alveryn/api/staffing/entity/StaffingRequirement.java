@@ -39,5 +39,17 @@ public class StaffingRequirement extends BaseEntity {
     this.startTime = start; this.endTime = end; this.requiredWorkers = workers; this.requiredQuantity = quantity;
     this.notes = notes == null || notes.isBlank() ? null : notes.trim(); this.publicationStatus = "DRAFT"; this.publishedAt = null;
   }
+  public void attachToPlanDay(StaffingPlanDay value) {
+    Objects.requireNonNull(value, "plan day is required");
+    if (!value.getOrganization().getId().equals(organization.getId())
+        || !value.getPlan().getUnit().getId().equals(unit.getId())
+        || !value.getDate().equals(date)) {
+      throw new IllegalArgumentException("plan day must match requirement tenant, unit and date");
+    }
+    if (planDay != null && !planDay.getId().equals(value.getId())) {
+      throw new IllegalStateException("requirement already belongs to another plan day");
+    }
+    planDay = value;
+  }
   public void publish() { this.publicationStatus = "PUBLISHED"; this.publishedAt = OffsetDateTime.now(); }
 }

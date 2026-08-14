@@ -35,13 +35,13 @@ public class StaffingPlanPublicationService {
   private final StaffingPlanPublicationFaultProbe faultProbe;
 
   /**
-   * Publishes one complete weekly plan. A row lock plus two source fingerprints is the temporary
-   * guard while legacy planner mutations do not yet increment draft_revision.
+   * Publishes one complete weekly plan. A row lock, the aggregate draft revision and two source
+   * fingerprints protect the immutable snapshot. The fingerprints remain a defence-in-depth guard
+   * for database changes outside the application mutation boundary.
    *
    * <p><strong>Do not expose this service through a production endpoint or legacy flow</strong>
-   * until every Demand/Schedule mutation increments {@code draft_revision} and participates in
-   * plan concurrency control. The current guard is intentionally sufficient only for this
-   * internal, non-routable C3b foundation.
+   * until aggregate-native Demand/Schedule routes expose ETags and enforce {@code If-Match}. Legacy
+   * routes now participate in plan locking and revisioning, but remain temporarily unconditional.
    */
   @Transactional
   public PublicationResult publishPlan(PublishCommand command) {
