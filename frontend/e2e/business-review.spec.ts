@@ -60,6 +60,31 @@ test.describe("authenticated Business Review and Publish", () => {
     await capture(page, "review-desktop-version-v3-light.png");
     await recordingBeat(page);
 
+    const requestsBeforePrint = state.requests.length;
+    await dialog.getByRole("button", { name: "Review and print this version" }).click();
+    const printPreview = page.getByRole("dialog", { name: "Print the published plan" });
+    await expect(printPreview).toBeVisible();
+    await expect(printPreview.getByRole("article", { name: "Published weekly plan version 3" })).toBeVisible();
+    await expect(printPreview.getByText("Hotel München")).toBeVisible();
+    await expect(printPreview.getByText("VERSION 3")).toBeVisible();
+    expect(state.requests).toHaveLength(requestsBeforePrint);
+    await capture(page, "review-desktop-print-v3-light.png");
+    await recordingBeat(page);
+
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator(".business-published-print-root")).toBeVisible();
+    await expect(page.locator(".immutable-plan-print__toolbar")).toBeHidden();
+    if (process.env.ALVERYN_D3_ARTIFACT_DIR) {
+      await page.pdf({
+        path: `${process.env.ALVERYN_D3_ARTIFACT_DIR}/published-plan-v3.pdf`,
+        format: "A4",
+        landscape: true,
+        printBackground: true,
+      });
+    }
+    await page.emulateMedia({ media: "screen" });
+    await printPreview.getByRole("button", { name: "Close preview" }).click();
+
     await page.getByRole("button", { name: "Close version detail" }).click();
     state.revision += 1;
     await page.reload();
@@ -115,6 +140,29 @@ test.describe("authenticated Business Review and Publish", () => {
       await capture(page, `review-${viewport.width}-${viewport.theme}-version.png`);
       await recordingBeat(page);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    });
+  }
+
+  for (const viewport of [
+    { width: 320, height: 568, theme: "light" as const },
+    { width: 375, height: 812, theme: "dark" as const },
+  ]) {
+    test(`keeps the immutable print preview usable at ${viewport.width}px in ${viewport.theme} mode`, async ({ page }) => {
+      const state = await installReviewMocks(page, { theme: viewport.theme === "dark" ? "DARK" : "LIGHT" });
+      state.published = true;
+      await openReview(page, viewport.width, viewport.height, viewport.theme);
+
+      await page.getByRole("button", { name: "Open version v3" }).click();
+      const versionDialog = page.getByRole("dialog", { name: "Immutable version v3" });
+      await versionDialog.getByRole("button", { name: "Review and print this version" }).click();
+
+      const printPreview = page.getByRole("dialog", { name: "Print the published plan" });
+      await expect(printPreview).toBeVisible();
+      await expect(printPreview.getByRole("button", { name: "Print / Save PDF" })).toBeVisible();
+      await expect(printPreview.getByRole("button", { name: "Close preview" })).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", viewport.theme);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+      await captureViewport(page, `review-${viewport.width}-${viewport.theme}-print.png`);
     });
   }
 
@@ -364,22 +412,67 @@ function versionDetail(versionNumber: number) {
   return {
     ...versionSummary(versionNumber, latest), planId, organizationId, unitId,
     timezone: "Europe/Berlin", weekStart,
-    days: [{ sourcePlanDayId: "day-sun", date: "2026-08-16", roomsContext: 10, source: "MANUAL" }],
-    requirements: [{
-      sourceRequirementId: "requirement-spa-sun", sourcePlanDayId: "day-sun", date: "2026-08-16",
-      unitId, unitName: "Hotel München", workTypeId: "spa-s", workTypeCode: "SPA S", workTypeName: "Spa Spät",
-      startTime: "12:00:00", endTime: "20:30:00", breakMinutes: 30,
-      requiredWorkers: latest ? 2 : 1, requiredQuantity: null, legacyPublicationStatus: "PUBLISHED",
-    }],
-    assignments: [{
-      sourceAssignmentId: "assignment-ana", sourceRequirementId: "requirement-spa-sun",
-      membershipId: "member-ana", memberDisplayName: "Ana Dumitru", membershipStatus: "ACTIVE",
-      date: "2026-08-16", unitId, unitName: "Hotel München", workTypeId: "spa-s",
-      workTypeCode: "SPA S", workTypeName: "Spa Spät", startTime: "12:00:00", endTime: "20:30:00",
-      status: "ASSIGNED", checkInMode: null, checkedInAt: null, checkedOutAt: null,
-    }],
-    memberDays: [], acknowledgements: latest ? [{ issueKey: warningIssue().issueKey, severity: "WARNING", acknowledgedAt: "2026-08-14T13:00:00Z" }] : [],
+    days: [50, 40, 40, 30, 30, 50, 10].map((rooms, index) => ({ sourcePlanDayId: `day-${index}`, date: isoDay(index), roomsContext: rooms, source: "MANUAL" })),
+    requirements: printRequirements(latest),
+    assignments: printAssignments(latest),
+    memberDays: [
+      { sourceDayEntryId: "member-day-elena", membershipId: "member-elena", memberDisplayName: "Elena Pop", date: "2026-08-12", status: "VACATION", source: "MANUAL" },
+      { sourceDayEntryId: "member-day-ioana", membershipId: "member-ioana", memberDisplayName: "Ioana Pavel", date: "2026-08-15", status: "REST_DAY", source: "MANUAL" },
+      { sourceDayEntryId: "member-day-mihai", membershipId: "member-mihai", memberDisplayName: "Mihai Ionescu", date: "2026-08-13", status: "SICK", source: "MANUAL" },
+    ], acknowledgements: latest ? [{ issueKey: warningIssue().issueKey, severity: "WARNING", acknowledgedAt: "2026-08-14T13:00:00Z" }] : [],
   };
+}
+
+function printRequirements(latest: boolean) {
+  const rooms = [4, 4, 4, 2, 2, 4, 2].map((requiredWorkers, index) => ({
+    sourceRequirementId: `requirement-room-${index}`, sourcePlanDayId: `day-${index}`, date: isoDay(index),
+    unitId, unitName: "Hotel München", workTypeId: "room", workTypeCode: "ROOM", workTypeName: "Room cleaning",
+    startTime: index >= 5 ? "10:00:00" : "09:00:00", endTime: "16:30:00", breakMinutes: 30,
+    requiredWorkers, requiredQuantity: [50, 40, 40, 30, 30, 50, 10][index], legacyPublicationStatus: "PUBLISHED",
+  }));
+  return [...rooms, {
+    sourceRequirementId: "requirement-spa-sun", sourcePlanDayId: "day-6", date: "2026-08-16",
+    unitId, unitName: "Hotel München", workTypeId: "spa-s", workTypeCode: "SPA S", workTypeName: "Spa Spät",
+    startTime: "12:00:00", endTime: "20:30:00", breakMinutes: 30,
+    requiredWorkers: latest ? 2 : 1, requiredQuantity: null, legacyPublicationStatus: "PUBLISHED",
+  }, {
+    sourceRequirementId: "requirement-pf-mon", sourcePlanDayId: "day-0", date: "2026-08-10",
+    unitId, unitName: "Hotel München", workTypeId: "pf", workTypeCode: "PF", workTypeName: "Public Früh",
+    startTime: "05:00:00", endTime: "13:30:00", breakMinutes: 30,
+    requiredWorkers: 1, requiredQuantity: null, legacyPublicationStatus: "PUBLISHED",
+  }];
+}
+
+function printAssignments(latest: boolean) {
+  const people = [
+    ["Daniela Marin", "member-daniela", 0, "ROOM", "09:00:00", "16:30:00"],
+    ["Sebastian Luca", "member-sebastian", 0, "PF", "05:00:00", "13:30:00"],
+    ["Mara Stan", "member-mara", 1, "ROOM", "09:00:00", "16:30:00"],
+    ["Victor Radu", "member-victor", 2, "ROOM", "09:00:00", "16:30:00"],
+    ["Cristina Matei", "member-cristina", 3, "ROOM", "09:00:00", "16:30:00"],
+    ["Nicoleta Ene", "member-nicoleta", 4, "ROOM", "09:00:00", "16:30:00"],
+    ["Radu Pavel", "member-radu", 5, "ROOM", "10:00:00", "16:30:00"],
+    ["Alina Stoica", "member-alina", 5, "ROOM", "10:00:00", "16:30:00"],
+    ["Tudor Neagu", "member-tudor", 6, "ROOM", "10:00:00", "16:30:00"],
+  ] as const;
+  const assignments = people.map(([name, membershipId, day, code, startTime, endTime], index) => ({
+    sourceAssignmentId: `assignment-print-${index}`, sourceRequirementId: code === "PF" ? "requirement-pf-mon" : `requirement-room-${day}`,
+    membershipId, memberDisplayName: name, membershipStatus: "ACTIVE", date: isoDay(day), unitId, unitName: "Hotel München",
+    workTypeId: code.toLowerCase(), workTypeCode: code, workTypeName: code === "PF" ? "Public Früh" : "Room cleaning",
+    startTime, endTime, status: "ASSIGNED", checkInMode: null, checkedInAt: null, checkedOutAt: null,
+  }));
+  if (latest) assignments.push({
+    sourceAssignmentId: "assignment-ana", sourceRequirementId: "requirement-spa-sun",
+    membershipId: "member-ana", memberDisplayName: "Ana Dumitru", membershipStatus: "ACTIVE",
+    date: "2026-08-16", unitId, unitName: "Hotel München", workTypeId: "spa-s",
+    workTypeCode: "SPA S", workTypeName: "Spa Spät", startTime: "12:00:00", endTime: "20:30:00",
+    status: "ASSIGNED", checkInMode: null, checkedInAt: null, checkedOutAt: null,
+  });
+  return assignments;
+}
+
+function isoDay(index: number) {
+  return `2026-08-${String(10 + index).padStart(2, "0")}`;
 }
 
 function publishResult() {
@@ -421,4 +514,9 @@ function apiError(route: Route, status: number, code: string, message: string) {
 async function capture(page: Page, name: string) {
   const directory = process.env.ALVERYN_D3_ARTIFACT_DIR;
   if (directory) await page.screenshot({ path: `${directory}/${name}`, fullPage: true });
+}
+
+async function captureViewport(page: Page, name: string) {
+  const directory = process.env.ALVERYN_D3_ARTIFACT_DIR;
+  if (directory) await page.screenshot({ path: `${directory}/${name}` });
 }

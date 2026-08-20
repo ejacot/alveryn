@@ -438,7 +438,15 @@ describe("BusinessReviewPage", () => {
     expect(mocks.getVersion).toHaveBeenCalledWith("org-1", "plan-1", 2, undefined);
     expect(mocks.getVersion).toHaveBeenCalledWith("org-1", "plan-1", 1, undefined);
 
-    await user.click(within(dialog).getByRole("button", { name: "Close version detail" }));
+    await user.click(within(dialog).getByRole("button", { name: "Review and print this version" }));
+    const printPreview = await screen.findByRole("dialog", { name: "Print the published plan" });
+    expect(within(printPreview).getByRole("article", { name: "Published weekly plan version 2" })).toBeInTheDocument();
+    expect(within(printPreview).getByText("Hotel München")).toBeInTheDocument();
+    expect(mocks.getVersion).toHaveBeenCalledTimes(2);
+    await user.click(within(printPreview).getByRole("button", { name: "Close preview" }));
+
+    const reopenedDialog = await screen.findByRole("dialog", { name: "Immutable version v2" });
+    await user.click(within(reopenedDialog).getByRole("button", { name: "Close version detail" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

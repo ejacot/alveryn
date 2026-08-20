@@ -10,6 +10,7 @@ import {
   Info,
   LoaderCircle,
   LockKeyhole,
+  Printer,
   RefreshCw,
   ShieldAlert,
   X,
@@ -28,6 +29,7 @@ import {
 import { getApiError } from "../api/api-errors";
 import { listOrganizations, listOrganizationUnits } from "../api/endpoints";
 import { BusinessPlanningShell } from "../components/business-planning/business-planning-shell";
+import { ImmutablePlanPrintPreview } from "../components/business-planning/immutable-plan-print";
 import type {
   ApiEntityResult,
   StaffingIssue,
@@ -82,6 +84,7 @@ export function BusinessReviewPage() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [published, setPublished] = useState<StaffingPublishResult | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [printDetail, setPrintDetail] = useState<StaffingVersionDetail | null>(null);
   const [olderPages, setOlderPages] = useState<VersionPage[]>([]);
   const [olderLoading, setOlderLoading] = useState(false);
   const contextRef = useRef("");
@@ -129,6 +132,7 @@ export function BusinessReviewPage() {
     setPublicationNote("");
     setPublished(null);
     setSelectedVersion(null);
+    setPrintDetail(null);
     setOlderPages([]);
     versionPageCache.current.clear();
     versionDetailCache.current.clear();
@@ -392,14 +396,16 @@ export function BusinessReviewPage() {
       ) : null}
 
       <VersionDetailDialog
-        open={selectedVersion != null}
+        open={selectedVersion != null && printDetail == null}
         versionNumber={selectedVersion}
         detail={selectedDetailQuery.data?.data ?? null}
         previous={previousDetailQuery.data?.data ?? null}
         loading={selectedDetailQuery.isLoading}
         error={selectedDetailQuery.isError ? getApiError(selectedDetailQuery.error).message : null}
         onClose={() => setSelectedVersion(null)}
+        onPrint={setPrintDetail}
       />
+      {printDetail ? <ImmutablePlanPrintPreview detail={printDetail} onClose={() => setPrintDetail(null)} /> : null}
     </BusinessPlanningShell>
   );
 }
@@ -585,7 +591,7 @@ function VersionHistory({ versions, loading, canLoadOlder, loadingOlder, onLoadO
   );
 }
 
-function VersionDetailDialog({ open, versionNumber, detail, previous, loading, error, onClose }: { open: boolean; versionNumber: number | null; detail: StaffingVersionDetail | null; previous: StaffingVersionDetail | null; loading: boolean; error: string | null; onClose: () => void }) {
+function VersionDetailDialog({ open, versionNumber, detail, previous, loading, error, onClose, onPrint }: { open: boolean; versionNumber: number | null; detail: StaffingVersionDetail | null; previous: StaffingVersionDetail | null; loading: boolean; error: string | null; onClose: () => void; onPrint: (detail: StaffingVersionDetail) => void }) {
   const { t, i18n } = useTranslation("business");
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -617,6 +623,7 @@ function VersionDetailDialog({ open, versionNumber, detail, previous, loading, e
         {detail ? (
           <div className="business-version-dialog__body">
             <section className="business-version-dialog__summary"><div><span>{t("planning.coverage.covered")}</span><strong>{detail.percentage == null ? "—" : `${formatPercent(detail.percentage)}%`}</strong><small>{detail.covered ?? "—"}/{detail.required ?? "—"}</small></div><div><span>{t("planning.review.groups.WARNING")}</span><strong>{detail.warningCount}</strong><small>{detail.coverageBasis}</small></div><div><span>CHECKSUM</span><strong>{detail.checksum.slice(0, 12)}</strong><small>{detail.publicationKind}</small></div></section>
+            <button type="button" className="business-version-dialog__print" aria-label={t("planning.print.openPreview")} onClick={() => onPrint(detail)}><Printer aria-hidden="true" /><span><strong>{t("planning.print.openPreview")}</strong><small>{t("planning.print.openPreviewHint")}</small></span><ArrowRight aria-hidden="true" /></button>
             {detail.percentage == null ? <p className="business-version-dialog__legacy-note">{t("planning.review.coverageUnavailable")}</p> : null}
             <SnapshotDiffView current={detail} previous={previous} diff={diff} />
             <section className="business-version-dialog__snapshot"><h3>{t("planning.review.demandSnapshot")}</h3><div className="business-version-dialog__requirements">{detail.requirements.map((item, index) => <article key={item.sourceRequirementId ?? `${item.date}:${item.workTypeCode}:${index}`}><span>{formatDate(item.date, i18n.resolvedLanguage ?? i18n.language)}</span><strong>{item.workTypeCode} · {item.workTypeName}</strong><small>{interval(item.startTime, item.endTime)} · {item.requiredWorkers}</small></article>)}</div></section>
