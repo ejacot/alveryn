@@ -15,7 +15,13 @@ vi.mock("../api/endpoints", () => ({
 }));
 
 describe("SchedulePage", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders the privacy-minimised self schedule contract", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-10T12:00:00"));
     vi.mocked(listMyBusinessAbsenceRequests).mockResolvedValue([]);
     vi.mocked(getPersonalBusinessSchedule).mockResolvedValue([
       {
