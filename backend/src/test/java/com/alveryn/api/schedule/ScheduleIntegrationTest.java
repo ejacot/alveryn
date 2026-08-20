@@ -10,6 +10,7 @@ import com.alveryn.api.employment.repository.EmploymentTermRepository;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import com.alveryn.api.schedule.repository.ShiftAssignmentRepository;
+import com.alveryn.api.testsupport.IntegrationTestDatabaseCleaner;
 import com.alveryn.api.worktype.entity.CalculationMethod;
 import com.alveryn.api.worktype.entity.WorkType;
 import com.alveryn.api.worktype.repository.WorkTypeRepository;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -32,14 +34,13 @@ class ScheduleIntegrationTest {
   @Autowired EmploymentTermRepository terms;
   @Autowired ShiftAssignmentRepository assignments;
   @Autowired WorkTypeRepository workTypes;
+  @Autowired JdbcTemplate jdbc;
   private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-    workTypes.deleteAll();
-    employments.deleteAll();
-    users.deleteAll();
+    IntegrationTestDatabaseCleaner.cleanWorkspaceData(jdbc);
   }
 
   @Test

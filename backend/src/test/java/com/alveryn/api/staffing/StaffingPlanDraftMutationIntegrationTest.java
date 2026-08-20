@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.organization.repository.OrganizationRepository;
+import com.alveryn.api.testsupport.IntegrationTestDatabaseCleaner;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import java.util.UUID;
@@ -49,8 +50,7 @@ class StaffingPlanDraftMutationIntegrationTest {
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     jdbc.update("delete from staffing_plan_draft_mutation_operations");
     jdbc.update("delete from staffing_plan_publication_operations");
-    organizations.deleteAll();
-    users.deleteAll();
+    IntegrationTestDatabaseCleaner.cleanWorkspaceData(jdbc);
     owner = verified("mutation-owner-" + UUID.randomUUID() + "@example.com");
   }
 

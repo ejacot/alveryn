@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.organization.repository.OrganizationRepository;
+import com.alveryn.api.testsupport.IntegrationTestDatabaseCleaner;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +28,7 @@ class StaffingPlannerIntegrationTest {
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     context.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
         .update("delete from staffing_plan_publication_operations");
-    organizations.deleteAll();
-    users.deleteAll();
+    IntegrationTestDatabaseCleaner.cleanWorkspaceData(jdbc);
     owner = new UserAccount("planner@example.com", "hash");
     owner.verifyEmail();
     owner = users.saveAndFlush(owner);

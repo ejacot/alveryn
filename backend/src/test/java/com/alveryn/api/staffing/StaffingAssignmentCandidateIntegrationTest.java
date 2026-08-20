@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.alveryn.api.auth.security.JwtService;
 import com.alveryn.api.organization.repository.OrganizationRepository;
+import com.alveryn.api.testsupport.IntegrationTestDatabaseCleaner;
 import com.alveryn.api.user.entity.UserAccount;
 import com.alveryn.api.user.repository.UserAccountRepository;
 import jakarta.persistence.EntityManagerFactory;
@@ -47,8 +48,7 @@ class StaffingAssignmentCandidateIntegrationTest {
   void setup() {
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     jdbc.update("delete from staffing_plan_publication_operations");
-    organizations.deleteAll();
-    users.deleteAll();
+    IntegrationTestDatabaseCleaner.cleanWorkspaceData(jdbc);
     entityManagerFactory.unwrap(SessionFactory.class).getStatistics().setStatisticsEnabled(true);
     owner = verified("candidate-owner-" + UUID.randomUUID() + "@example.com");
   }
