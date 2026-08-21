@@ -182,6 +182,9 @@ class BusinessOrganizationIntegrationTest {
     mockMvc.perform(get("/api/organizations").header(HttpHeaders.AUTHORIZATION, token(employee)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data[?(@.id == '" + organizationId + "')].role").value("EMPLOYEE"));
+    mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.hasBusinessWorkspace").value(true));
   }
 
   @Test

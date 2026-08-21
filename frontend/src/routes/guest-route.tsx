@@ -11,11 +11,13 @@ export function GuestRoute() {
   }
 
   if (isAuthenticated) {
+    const destination = user?.hasBusinessWorkspace && !user.preferences?.onboardingCompleted
+      ? "/business"
+      : user?.preferences?.onboardingCompleted
+        ? APP_HOME_PATH
+        : "/onboarding";
     return (
-      <Navigate
-        to={user?.preferences?.onboardingCompleted ? APP_HOME_PATH : "/onboarding"}
-        replace
-      />
+      <Navigate to={destination} replace />
     );
   }
 

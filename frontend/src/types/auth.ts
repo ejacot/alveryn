@@ -13,6 +13,7 @@ export type CurrentUser = {
   profile: UserProfile | null;
   preferences: UserPreferences | null;
   founder?: boolean;
+  hasBusinessWorkspace?: boolean;
 };
 
 export type AuthTokens = {
