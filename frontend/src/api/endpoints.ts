@@ -1053,6 +1053,10 @@ export async function createOrganizationMember(organizationId: string, payload: 
   return response.data.data;
 }
 export async function resendBusinessInvitation(organizationId:string,membershipId:string,language:string){await http.post(`/api/organizations/${organizationId}/members/${membershipId}/resend-invitation`,{language});}
+export type BusinessInvitation={organizationName:string;invitedEmail:string|null;expiresAt:string|null;status:"PENDING"|"ACTIVE"|"SUSPENDED"|"EXPIRED"};
+export async function getBusinessInvitation(token:string){const response=await http.get<ApiResponse<BusinessInvitation>>(`/api/business-invitations/${token}`);return response.data.data;}
+export async function acceptBusinessInvitation(token:string){const response=await http.post<ApiResponse<BusinessInvitation>>(`/api/business-invitations/${token}/accept`);return response.data.data;}
+export async function declineBusinessInvitation(token:string){const response=await http.post<ApiResponse<BusinessInvitation>>(`/api/business-invitations/${token}/decline`);return response.data.data;}
 export async function suspendOrganizationMember(organizationId:string,membershipId:string){const response=await http.delete<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}`);return response.data.data;}
 export async function reactivateOrganizationMember(organizationId:string,membershipId:string){const response=await http.post<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}/reactivate`);return response.data.data;}
 export async function listOrganizationRoles(organizationId:string){const response=await http.get<ApiResponse<import("../types/business").OrganizationRole[]>>(`/api/organizations/${organizationId}/roles`);return response.data.data;}

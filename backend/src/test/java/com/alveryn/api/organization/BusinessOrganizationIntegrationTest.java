@@ -134,7 +134,7 @@ class BusinessOrganizationIntegrationTest {
   }
 
   @Test
-  void invitedMemberIsClaimedWhenPersonalAccountBecomesVerified() throws Exception {
+  void invitedMemberExplicitlyAcceptsSecureInvitation() throws Exception {
     UserAccount owner = user("claim-owner@example.com");
     UserAccount employee = users.saveAndFlush(new UserAccount("later@example.com", "hash"));
     String organizationId = id(mockMvc.perform(post("/api/organizations")
@@ -173,6 +173,16 @@ class BusinessOrganizationIntegrationTest {
         Long.class, organizationId, unitId);
 
     authService.issueVerifiedSession(employee);
+    mockMvc.perform(get("/api/organizations").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(0));
+    String invitationToken = "explicit-secure-invitation-token";
+    jdbc.update("update organization_memberships set invitation_token_hash=?, invitation_expires_at=now()+interval '7 days' where id=?::uuid",
+        com.alveryn.api.organization.service.BusinessInvitationService.hash(invitationToken), memberId);
+    mockMvc.perform(get("/api/business-invitations/{token}", invitationToken))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("PENDING"));
+    mockMvc.perform(post("/api/business-invitations/{token}/accept", invitationToken)
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"));
 
     long revisionAfterClaim = jdbc.queryForObject(
         "select draft_revision from staffing_plans where organization_id=?::uuid and unit_id=?::uuid",

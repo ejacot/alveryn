@@ -218,8 +218,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(6);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("96");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(7);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("97");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -657,13 +657,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(6);
+          .isEqualTo(7);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(6);
+          .isEqualTo(7);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

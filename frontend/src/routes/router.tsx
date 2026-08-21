@@ -177,6 +177,7 @@ const TrackingSetupPage = lazy(() =>
 const BusinessPage = lazy(() =>
   import("../pages/business-page").then((module) => ({ default: module.BusinessPage }))
 );
+const BusinessInvitationPage = lazy(() => import("../pages/business-invitation-page").then((module) => ({ default: module.BusinessInvitationPage })));
 const BusinessDemandPage = lazy(() =>
   import("../pages/business-demand-page").then((module) => ({ default: module.BusinessDemandPage }))
 );
@@ -205,6 +206,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       element: withSuspense(<WelcomePage />),
       errorElement: <RouteErrorPage />
     },
+    { path: "/business-invitation/:token", element: withSuspense(<BusinessInvitationPage />), errorElement: <RouteErrorPage /> },
     ...(["dashboard", "calendar", "statistics"] as const).map((product) => ({
       path: `/welcome/${product}`,
       element: withSuspense(<WelcomeProductPage product={product} />),
