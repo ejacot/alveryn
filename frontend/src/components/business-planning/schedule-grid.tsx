@@ -175,6 +175,7 @@ function assignmentIndex(schedule: StaffingSchedule) {
   for (const day of schedule.days) {
     for (const requirement of day.requirements) {
       for (const assignment of requirement.assignments) {
+        if (assignment.status !== "ASSIGNED") continue;
         result.set(assignment.assignmentId, { assignment, requirement });
       }
     }

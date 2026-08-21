@@ -475,7 +475,8 @@ function findAssignment(schedule: StaffingSchedule | null, assignmentId: string 
   if (!schedule || !assignmentId) return null;
   for (const day of schedule.days) {
     for (const requirement of day.requirements) {
-      const assignment = requirement.assignments.find((item) => item.assignmentId === assignmentId);
+      const assignment = requirement.assignments.find((item) =>
+        item.assignmentId === assignmentId && item.status === "ASSIGNED");
       if (assignment) return { assignment, requirement };
     }
   }
@@ -483,7 +484,8 @@ function findAssignment(schedule: StaffingSchedule | null, assignmentId: string 
 }
 
 function findAssignmentByMember(schedule: StaffingSchedule | null, requirementId: string, membershipId: string) {
-  return findRequirement(schedule, requirementId)?.assignments.find((item) => item.membershipId === membershipId) ?? null;
+  return findRequirement(schedule, requirementId)?.assignments.find((item) =>
+    item.membershipId === membershipId && item.status === "ASSIGNED") ?? null;
 }
 
 function stableOperationKey(store: Map<string, string>, semanticKey: string) {

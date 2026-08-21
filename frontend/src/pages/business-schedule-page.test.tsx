@@ -177,4 +177,23 @@ describe("BusinessSchedulePage", () => {
     expect(mocks.createAssignment).toHaveBeenCalledTimes(1);
     expect(mocks.getSchedule.mock.calls.length).toBeGreaterThan(1);
   });
+
+  it("keeps cancelled assignments out of the editable weekly grid", async () => {
+    const cancelled = schedule();
+    cancelled.days[6].requirements[0].assignments[0] = {
+      ...cancelled.days[6].requirements[0].assignments[0],
+      status: "CANCELLED",
+      effective: false,
+    };
+    cancelled.days[6].requirements[0].coverage = totals(2, 0);
+    cancelled.days[6].coverage = totals(2, 0);
+    cancelled.coverage = totals(2, 0);
+    mocks.getSchedule.mockResolvedValue(entity(cancelled));
+
+    renderPage();
+
+    expect(await screen.findByText("Mara Ionescu")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Edit Mara Ionescu/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Mara Ionescu" })).not.toBeInTheDocument();
+  });
 });
