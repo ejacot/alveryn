@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { listOrganizations, listOrganizationUnits } from "../../api/endpoints";
 import { BusinessPlanningShell } from "./business-planning-shell";
 
 export function BusinessManagementShell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("business");
   const { organizationId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,7 +40,7 @@ export function BusinessManagementShell({ children }: { children: ReactNode }) {
       onNextWeek={() => undefined}
       onCurrentWeek={() => undefined}
       showWeekControls={false}
-      sectionLabel="Business management"
+      sectionLabel={t("management.section")}
     >
       {children}
     </BusinessPlanningShell>

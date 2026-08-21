@@ -146,7 +146,7 @@ export function BusinessPlanningShell({
           <button
             type="button"
             className="business-planning__tool business-planning__mobile-menu-trigger"
-            aria-label="Open Business management"
+            aria-label={t("management.mobileOpen")}
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(true)}
           >
@@ -173,7 +173,7 @@ export function BusinessPlanningShell({
         <div className="business-planning__rail-secondary">
           <NavLink to={`/business/${organizationId}/overview`}>
             <Building2 aria-hidden="true" />
-            <span>Overview</span>
+            <span>{t("management.overview")}</span>
           </NavLink>
           {permissions.includes("MANAGE_MEMBERS") ? <NavLink to={`/business/${organizationId}/people`}>
             <UsersRound aria-hidden="true" />
@@ -196,10 +196,10 @@ export function BusinessPlanningShell({
 
       {mobileMenuOpen ? <div className="business-planning__mobile-menu">
         <button type="button" className="business-planning__mobile-menu-backdrop" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)} />
-        <aside role="dialog" aria-modal="true" aria-label="Business management">
-          <header><span>Business management</span><button type="button" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)}><X aria-hidden="true" /></button></header>
+        <aside role="dialog" aria-modal="true" aria-label={t("management.section")}>
+          <header><span>{t("management.section")}</span><button type="button" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)}><X aria-hidden="true" /></button></header>
           <nav>
-            <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>Overview</span></NavLink>
+            <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>{t("management.overview")}</span></NavLink>
             {permissions.includes("MANAGE_MEMBERS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/people`}><UsersRound aria-hidden="true" /><span>{t("planning.navigation.team")}</span></NavLink> : null}
             {permissions.includes("MANAGE_ROLES") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/roles`}><ShieldCheck aria-hidden="true" /><span>{t("tabs.roles")}</span></NavLink> : null}
             {permissions.includes("MANAGE_TEAMS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/locations`}><MapPinned aria-hidden="true" /><span>{t("tabs.teams")}</span></NavLink> : null}
