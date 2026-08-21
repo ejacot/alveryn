@@ -12,7 +12,6 @@ export function AppLayout() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const location = useLocation();
   const settingsSplitView = location.pathname.startsWith("/settings/");
-  const businessPlanningView = /^\/business\/[^/]+\/plan\//.test(location.pathname);
   const businessProductView = /^\/business\/[^/]+\//.test(location.pathname);
   const businessWorkspaceView = location.pathname === "/business" || businessProductView;
   const desktopWorkspaceView = [

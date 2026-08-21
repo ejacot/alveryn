@@ -198,12 +198,12 @@ export function BusinessPlanningShell({
         <button type="button" className="business-planning__mobile-menu-backdrop" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)} />
         <aside role="dialog" aria-modal="true" aria-label="Business management">
           <header><span>Business management</span><button type="button" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)}><X aria-hidden="true" /></button></header>
-          <nav onClick={() => setMobileMenuOpen(false)}>
-            <NavLink to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>Overview</span></NavLink>
-            {permissions.includes("MANAGE_MEMBERS") ? <NavLink to={`/business/${organizationId}/people`}><UsersRound aria-hidden="true" /><span>{t("planning.navigation.team")}</span></NavLink> : null}
-            {permissions.includes("MANAGE_ROLES") ? <NavLink to={`/business/${organizationId}/roles`}><ShieldCheck aria-hidden="true" /><span>{t("tabs.roles")}</span></NavLink> : null}
-            {permissions.includes("MANAGE_TEAMS") ? <NavLink to={`/business/${organizationId}/locations`}><MapPinned aria-hidden="true" /><span>{t("tabs.teams")}</span></NavLink> : null}
-            {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink to={`/business/${organizationId}/work-types`}><Settings2 aria-hidden="true" /><span>{t("planning.navigation.workTypes")}</span></NavLink> : null}
+          <nav>
+            <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>Overview</span></NavLink>
+            {permissions.includes("MANAGE_MEMBERS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/people`}><UsersRound aria-hidden="true" /><span>{t("planning.navigation.team")}</span></NavLink> : null}
+            {permissions.includes("MANAGE_ROLES") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/roles`}><ShieldCheck aria-hidden="true" /><span>{t("tabs.roles")}</span></NavLink> : null}
+            {permissions.includes("MANAGE_TEAMS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/locations`}><MapPinned aria-hidden="true" /><span>{t("tabs.teams")}</span></NavLink> : null}
+            {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/work-types`}><Settings2 aria-hidden="true" /><span>{t("planning.navigation.workTypes")}</span></NavLink> : null}
           </nav>
         </aside>
       </div> : null}
