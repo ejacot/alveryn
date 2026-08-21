@@ -13,7 +13,8 @@ export function AppLayout() {
   const location = useLocation();
   const settingsSplitView = location.pathname.startsWith("/settings/");
   const businessPlanningView = /^\/business\/[^/]+\/plan\//.test(location.pathname);
-  const businessWorkspaceView = location.pathname === "/business" || businessPlanningView;
+  const businessProductView = /^\/business\/[^/]+\//.test(location.pathname);
+  const businessWorkspaceView = location.pathname === "/business" || businessProductView;
   const desktopWorkspaceView = [
     APP_HOME_PATH,
     "/calendar",
@@ -24,7 +25,7 @@ export function AppLayout() {
   const showBottomNavigation =
     !settingsSplitView &&
     !location.pathname.startsWith("/records/") &&
-    !businessPlanningView;
+    !businessProductView;
   const ambientView =
     location.pathname === APP_HOME_PATH ||
     location.pathname === "/preview/dashboard" ||
@@ -61,10 +62,10 @@ export function AppLayout() {
             "screen-shell space-y-4",
             desktopWorkspaceView && "desktop-workspace-shell",
             businessWorkspaceView && "business-workspace-shell",
-            businessPlanningView && "business-planning-route-shell",
+            businessProductView && "business-planning-route-shell",
           )}
         >
-          {!settingsSplitView ? <WorkspaceSwitcher /> : null}
+          {!settingsSplitView && !businessProductView ? <WorkspaceSwitcher /> : null}
           <Outlet context={{ selectedDate, setSelectedDate }} />
         </main>
         {showBottomNavigation ? <BottomNav /> : null}
