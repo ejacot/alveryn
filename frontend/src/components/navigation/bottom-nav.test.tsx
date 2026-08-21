@@ -3,11 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import { BottomNav } from "./bottom-nav";
-import { getOrganizationAccess, listOrganizations } from "../../api/endpoints";
+import { listOrganizations } from "../../api/endpoints";
+import { WorkspaceProvider } from "../../contexts/workspace-context";
 
 vi.mock("../../api/endpoints", () => ({
   listOrganizations: vi.fn(),
-  getOrganizationAccess: vi.fn(),
 }));
 
 function renderNavigation() {
@@ -17,7 +17,9 @@ function renderNavigation() {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <BottomNav />
+        <WorkspaceProvider>
+          <BottomNav />
+        </WorkspaceProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -40,7 +42,7 @@ describe("BottomNav", () => {
     expect(nav).toHaveClass("ios-glass-nav");
   });
 
-  it("shows Schedule for membership and Business when permissions are granted", async () => {
+  it("shows workspace-scoped navigation for an active Business", async () => {
     vi.mocked(listOrganizations).mockResolvedValue([
       {
         id: "org-1",
@@ -50,13 +52,12 @@ describe("BottomNav", () => {
         role: "EMPLOYEE",
       },
     ]);
-    vi.mocked(getOrganizationAccess).mockResolvedValue({
-      permissions: ["VIEW_SCHEDULE"],
-    });
     renderNavigation();
 
     expect(await screen.findByLabelText("Schedule")).toBeInTheDocument();
     expect(await screen.findByLabelText("Business")).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(6);
+    expect(screen.queryByLabelText("Today")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Calendar")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(3);
   });
 });

@@ -41,6 +41,11 @@
     "business": "Business", "schedule": "Program",
     "primaryNavigation": "Navigare principală"
   },
+  "workspace": {
+    "label": "Spațiu de lucru activ",
+    "personal": "Personal",
+    "business": "Business"
+  },
   "statistics": {
     "eyebrow": "Statistici",
     "title": "Statistici",

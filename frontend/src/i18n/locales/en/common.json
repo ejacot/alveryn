@@ -41,6 +41,11 @@
     "business": "Business", "schedule": "Schedule",
     "primaryNavigation": "Primary navigation"
   },
+  "workspace": {
+    "label": "Active workspace",
+    "personal": "Personal",
+    "business": "Business"
+  },
   "statistics": {
     "eyebrow": "Statistics",
     "title": "Statistics",

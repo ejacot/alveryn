@@ -36,6 +36,7 @@ import type {
   OrganizationUnit,
 } from "../types/business";
 import { BusinessPlanner } from "../components/business/business-planner";
+import { useWorkspace } from "../contexts/workspace-context";
 
 type View = "planner" | "teams" | "members" | "roles";
 const permissions: OrganizationPermission[] = [
@@ -54,6 +55,7 @@ const permissions: OrganizationPermission[] = [
 export function BusinessPage() {
   const { t, i18n } = useTranslation("business");
   const queryClient = useQueryClient();
+  const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspace();
   const organizationsQuery = useQuery({
     queryKey: ["organizations"],
     queryFn: listOrganizations,
@@ -65,8 +67,11 @@ export function BusinessPage() {
       ),
     [organizationsQuery.data],
   );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const activeId = selectedId ?? businessOrganizations[0]?.id ?? null;
+  const activeId = businessOrganizations.some(
+    (organization) => organization.id === activeWorkspaceId,
+  )
+    ? activeWorkspaceId
+    : businessOrganizations[0]?.id ?? null;
   const [view, setView] = useState<View>("planner");
   const [organizationName, setOrganizationName] = useState("");
   const [unitName, setUnitName] = useState("");
@@ -148,9 +153,9 @@ export function BusinessPage() {
       }),
     onSuccess: async (organization) => {
       setOrganizationName("");
-      setSelectedId(organization.id);
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      setActiveWorkspaceId(organization.id);
     },
     onError: (cause) => setError(getApiError(cause).message),
   });
@@ -269,7 +274,7 @@ export function BusinessPage() {
             <Select
               label={t("organization")}
               value={activeId ?? ""}
-              onChange={(event) => setSelectedId(event.target.value)}
+              onChange={(event) => setActiveWorkspaceId(event.target.value)}
               className="min-w-56"
             >
               {businessOrganizations.map((organization) => (

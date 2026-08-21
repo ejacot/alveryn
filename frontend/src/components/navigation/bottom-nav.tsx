@@ -6,13 +6,12 @@ import {
   House,
   Settings,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { APP_HOME_PATH } from "../../routes/app-paths";
 import { cn } from "../../utils/cn";
 import { AppLogo } from "../branding/app-logo";
-import { getOrganizationAccess, listOrganizations } from "../../api/endpoints";
+import { useWorkspace } from "../../contexts/workspace-context";
 
 type NavItem = {
   to: string;
@@ -22,47 +21,24 @@ type NavItem = {
 
 export function BottomNav() {
   const { t } = useTranslation("common");
-  const organizations = useQuery({
-    queryKey: ["organizations"],
-    queryFn: listOrganizations,
-  });
-  const businessOrganizations = (organizations.data ?? []).filter(
-    (organization) => organization.type === "BUSINESS",
-  );
-  const businessAccess = useQuery({
-    queryKey: [
-      "organizations",
-      "navigation-access",
-      businessOrganizations.map((item) => item.id),
-    ],
-    queryFn: () =>
-      Promise.all(
-        businessOrganizations.map((organization) =>
-          getOrganizationAccess(organization.id),
-        ),
-      ),
-    enabled: businessOrganizations.length > 0,
-  });
-  const belongsToBusinessWorkspace = businessOrganizations.length > 0;
-  const canOpenBusiness = (businessAccess.data ?? []).some(
-    (access) => access.permissions.length > 0,
-  );
-  const items: NavItem[] = [
-    { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
-    { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
-    ...(belongsToBusinessWorkspace
-      ? [{ to: "/schedule", icon: CalendarClock, label: t("nav.schedule") }]
-      : []),
-    ...(canOpenBusiness
-      ? [{ to: "/business", icon: BriefcaseBusiness, label: t("nav.business") }]
-      : []),
-    {
-      to: "/statistics",
-      icon: ChartColumnIncreasing,
-      label: t("nav.statistics"),
-    },
-    { to: "/profile", icon: Settings, label: t("nav.settings") },
-  ];
+  const { activeWorkspace } = useWorkspace();
+  const businessWorkspace = activeWorkspace?.type === "BUSINESS";
+  const items: NavItem[] = businessWorkspace
+    ? [
+        { to: "/business", icon: BriefcaseBusiness, label: t("nav.business") },
+        { to: "/schedule", icon: CalendarClock, label: t("nav.schedule") },
+        { to: "/profile", icon: Settings, label: t("nav.settings") },
+      ]
+    : [
+        { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
+        { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
+        {
+          to: "/statistics",
+          icon: ChartColumnIncreasing,
+          label: t("nav.statistics"),
+        },
+        { to: "/profile", icon: Settings, label: t("nav.settings") },
+      ];
 
   return (
     <nav

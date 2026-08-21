@@ -41,6 +41,11 @@
     "business": "Business", "schedule": "Dienstplan",
     "primaryNavigation": "Primäre Navigation"
   },
+  "workspace": {
+    "label": "Aktiver Arbeitsbereich",
+    "personal": "Persönlich",
+    "business": "Business"
+  },
   "statistics": {
     "eyebrow": "Statistik",
     "title": "Statistik",

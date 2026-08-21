@@ -21,6 +21,10 @@ vi.mock("../pages/profile-page", () => ({
   ProfilePage: () => <div data-testid="settings-master-pane-content" />
 }));
 
+vi.mock("../api/endpoints", () => ({
+  listOrganizations: vi.fn().mockResolvedValue([]),
+}));
+
 describe("AppLayout", () => {
   it("renders normal routed content without the persistent swipe workspace", () => {
     const queryClient = new QueryClient({

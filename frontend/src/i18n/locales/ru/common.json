@@ -40,5 +40,10 @@
     "settings": "Настройки",
     "business": "Бизнес", "schedule": "Расписание",
     "primaryNavigation": "Основная навигация"
+  },
+  "workspace": {
+    "label": "Активное пространство",
+    "personal": "Личное",
+    "business": "Бизнес"
   }
 }

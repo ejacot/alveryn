@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { BottomNav } from "../components/navigation/bottom-nav";
 import { RouteScrollReset } from "../components/navigation/route-scroll-reset";
+import { WorkspaceSwitcher } from "../components/navigation/workspace-switcher";
+import { WorkspaceProvider } from "../contexts/workspace-context";
 import { ProfilePage } from "../pages/profile-page";
 import { APP_HOME_PATH } from "../routes/app-paths";
 import { cn } from "../utils/cn";
@@ -35,35 +37,38 @@ export function AppLayout() {
     location.pathname.startsWith("/settings");
 
   return (
-    <div className={settingsSplitView ? "settings-split-view" : undefined}>
-      <RouteScrollReset />
-      <div
-        className={cn(
-          "app-background",
-          ambientView && "app-background--dashboard",
-        )}
-        aria-hidden="true"
-      />
-      {settingsSplitView ? (
-        <aside
-          className="settings-master-pane"
-          aria-label="Settings navigation"
+    <WorkspaceProvider>
+      <div className={settingsSplitView ? "settings-split-view" : undefined}>
+        <RouteScrollReset />
+        <div
+          className={cn(
+            "app-background",
+            ambientView && "app-background--dashboard",
+          )}
+          aria-hidden="true"
+        />
+        {settingsSplitView ? (
+          <aside
+            className="settings-master-pane"
+            aria-label="Settings navigation"
+          >
+            <ProfilePage embedded />
+          </aside>
+        ) : null}
+        <main
+          key={location.pathname}
+          className={cn(
+            "screen-shell space-y-4",
+            desktopWorkspaceView && "desktop-workspace-shell",
+            businessWorkspaceView && "business-workspace-shell",
+            businessPlanningView && "business-planning-route-shell",
+          )}
         >
-          <ProfilePage embedded />
-        </aside>
-      ) : null}
-      <main
-        key={location.pathname}
-        className={cn(
-          "screen-shell space-y-4",
-          desktopWorkspaceView && "desktop-workspace-shell",
-          businessWorkspaceView && "business-workspace-shell",
-          businessPlanningView && "business-planning-route-shell",
-        )}
-      >
-        <Outlet context={{ selectedDate, setSelectedDate }} />
-      </main>
-      {showBottomNavigation ? <BottomNav /> : null}
-    </div>
+          {!settingsSplitView ? <WorkspaceSwitcher /> : null}
+          <Outlet context={{ selectedDate, setSelectedDate }} />
+        </main>
+        {showBottomNavigation ? <BottomNav /> : null}
+      </div>
+    </WorkspaceProvider>
   );
 }
