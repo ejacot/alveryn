@@ -196,6 +196,9 @@ html[data-theme="dark"] .business-route-skeleton {
   padding-right: 18px;
 }
 
+.business-planning__mobile-menu-trigger,
+.business-planning__mobile-menu { display: none; }
+
 .business-planning__tool {
   position: relative;
   border-color: var(--bp-line);
@@ -744,6 +747,69 @@ html[data-theme="dark"] .business-route-skeleton {
   .business-planning__week-switcher { grid-column: 1 / -1; grid-row: 3; width: 100%; max-width: none; border-top: 1px solid var(--bp-line); }
   .business-planning__week-label { min-height: 52px !important; }
   .business-planning__tools { grid-column: 2; grid-row: 1; padding-right: 12px; }
+  .business-planning__mobile-menu-trigger { display: inline-flex; }
+  .business-planning__mobile-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: block;
+  }
+  .business-planning__mobile-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.42);
+  }
+  .business-planning__mobile-menu > aside {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(86vw, 360px);
+    overflow-y: auto;
+    border-left: 1px solid var(--bp-line-strong);
+    background: var(--bp-surface-strong);
+    padding: max(18px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+    box-shadow: -24px 0 60px rgba(0, 0, 0, 0.18);
+  }
+  .business-planning__mobile-menu header {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--bp-line);
+    color: var(--bp-green);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .business-planning__mobile-menu header button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    color: var(--bp-ink);
+  }
+  .business-planning__mobile-menu header svg { width: 20px; }
+  .business-planning__mobile-menu nav { display: grid; gap: 6px; padding-top: 16px; }
+  .business-planning__mobile-menu nav a {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    min-height: 54px;
+    align-items: center;
+    gap: 12px;
+    border-left: 2px solid transparent;
+    padding: 0 14px;
+    color: var(--bp-muted);
+    font-size: 0.86rem;
+    font-weight: 750;
+  }
+  .business-planning__mobile-menu nav a.active {
+    border-left-color: var(--bp-green);
+    background: var(--bp-green-soft);
+    color: var(--bp-green);
+  }
+  .business-planning__mobile-menu nav svg { width: 19px; }
   .business-planning__rail {
     inset: auto 0 0;
     width: auto;
