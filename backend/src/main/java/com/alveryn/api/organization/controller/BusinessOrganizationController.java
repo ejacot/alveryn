@@ -42,6 +42,21 @@ public class BusinessOrganizationController {
       @Valid @RequestBody CreateOrganizationUnitRequest request) {
     return ApiResponse.of(service.createUnit(organizationId, request));
   }
+  @PutMapping("/{organizationId}/units/{unitId}")
+  public ApiResponse<OrganizationUnitResponse> updateUnit(@PathVariable UUID organizationId,
+      @PathVariable UUID unitId, @Valid @RequestBody CreateOrganizationUnitRequest request) {
+    return ApiResponse.of(service.updateUnit(organizationId, unitId, request));
+  }
+  @DeleteMapping("/{organizationId}/units/{unitId}")
+  public ApiResponse<OrganizationUnitResponse> deactivateUnit(@PathVariable UUID organizationId,
+      @PathVariable UUID unitId) {
+    return ApiResponse.of(service.deactivateUnit(organizationId, unitId));
+  }
+  @PostMapping("/{organizationId}/units/{unitId}/reactivate")
+  public ApiResponse<OrganizationUnitResponse> reactivateUnit(@PathVariable UUID organizationId,
+      @PathVariable UUID unitId) {
+    return ApiResponse.of(service.reactivateUnit(organizationId, unitId));
+  }
 
   @GetMapping("/{organizationId}/members")
   public ApiResponse<List<OrganizationMemberResponse>> listMembers(@PathVariable UUID organizationId) {
@@ -53,6 +68,12 @@ public class BusinessOrganizationController {
   public ApiResponse<OrganizationMemberResponse> createMember(@PathVariable UUID organizationId,
       @Valid @RequestBody CreateOrganizationMemberRequest request) {
     return ApiResponse.of(service.createMember(organizationId, request));
+  }
+  @PutMapping("/{organizationId}/members/{membershipId}")
+  public ApiResponse<OrganizationMemberResponse> updateMember(@PathVariable UUID organizationId,
+      @PathVariable UUID membershipId,
+      @Valid @RequestBody UpdateOrganizationMemberRequest request) {
+    return ApiResponse.of(service.updateMember(organizationId, membershipId, request));
   }
   @PostMapping("/{organizationId}/members/{membershipId}/resend-invitation") @ResponseStatus(HttpStatus.NO_CONTENT)
   public void resendInvitation(@PathVariable UUID organizationId,@PathVariable UUID membershipId,@Valid @RequestBody ResendBusinessInvitationRequest request){service.resendInvitation(organizationId,membershipId,request.language());}
@@ -74,6 +95,16 @@ public class BusinessOrganizationController {
       @Valid @RequestBody CreateOrganizationRoleRequest request) {
     return ApiResponse.of(service.createRole(organizationId, request));
   }
+  @PutMapping("/{organizationId}/roles/{roleId}")
+  public ApiResponse<OrganizationRoleResponse> updateRole(@PathVariable UUID organizationId,
+      @PathVariable UUID roleId, @Valid @RequestBody CreateOrganizationRoleRequest request) {
+    return ApiResponse.of(service.updateRole(organizationId, roleId, request));
+  }
+  @DeleteMapping("/{organizationId}/roles/{roleId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteRole(@PathVariable UUID organizationId, @PathVariable UUID roleId) {
+    service.deleteRole(organizationId, roleId);
+  }
 
   @GetMapping("/{organizationId}/role-assignments")
   public ApiResponse<List<OrganizationRoleAssignmentResponse>> listRoleAssignments(
@@ -86,5 +117,11 @@ public class BusinessOrganizationController {
   public ApiResponse<OrganizationRoleAssignmentResponse> assignRole(@PathVariable UUID organizationId,
       @Valid @RequestBody AssignOrganizationRoleRequest request) {
     return ApiResponse.of(service.assignRole(organizationId, request));
+  }
+  @DeleteMapping("/{organizationId}/role-assignments/{assignmentId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void removeRoleAssignment(@PathVariable UUID organizationId,
+      @PathVariable UUID assignmentId) {
+    service.removeRoleAssignment(organizationId, assignmentId);
   }
 }

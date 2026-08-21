@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
@@ -13,9 +14,11 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { applyAppLanguage, i18n } from "../../i18n";
+import { getOrganizationAccess } from "../../api/endpoints";
 import {
   getNativeLanguageName,
   normalizeLanguage,
@@ -41,6 +44,8 @@ type Props = {
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onCurrentWeek: () => void;
+  showWeekControls?: boolean;
+  sectionLabel?: string;
 };
 
 export function BusinessPlanningShell({
@@ -56,12 +61,19 @@ export function BusinessPlanningShell({
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
+  showWeekControls = true,
+  sectionLabel,
 }: Props) {
   const { t } = useTranslation("business");
   const navigate = useNavigate();
   const locale = normalizeLanguage(i18n.resolvedLanguage);
   const weekLabel = formatWeek(weekStart, weekEnd, locale);
   const planningSearch = `?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`;
+  const access = useQuery({
+    queryKey: ["organizations", organizationId, "access"],
+    queryFn: () => getOrganizationAccess(organizationId),
+  });
+  const permissions = access.data?.permissions ?? [];
 
   return (
     <div className="business-planning">
@@ -103,7 +115,7 @@ export function BusinessPlanningShell({
           </select>
         </label>
 
-        <div className="business-planning__week-switcher" aria-label={t("planning.week.label")}>
+        {showWeekControls ? <div className="business-planning__week-switcher" aria-label={t("planning.week.label")}>
           <button type="button" onClick={onPreviousWeek} aria-label={t("planning.week.previous")}>
             <ChevronLeft aria-hidden="true" />
           </button>
@@ -114,7 +126,7 @@ export function BusinessPlanningShell({
           <button type="button" onClick={onNextWeek} aria-label={t("planning.week.next")}>
             <ChevronRight aria-hidden="true" />
           </button>
-        </div>
+        </div> : <div className="business-planning__section-label">{sectionLabel}</div>}
 
         <div className="business-planning__tools">
           <BusinessLanguageSelector />
@@ -138,22 +150,26 @@ export function BusinessPlanningShell({
           </NavLink>
         </nav>
         <div className="business-planning__rail-secondary">
-          <NavLink to={`/business/${organizationId}/people`}>
+          <NavLink to={`/business/${organizationId}/overview`}>
+            <Building2 aria-hidden="true" />
+            <span>Overview</span>
+          </NavLink>
+          {permissions.includes("MANAGE_MEMBERS") ? <NavLink to={`/business/${organizationId}/people`}>
             <UsersRound aria-hidden="true" />
             <span>{t("planning.navigation.team")}</span>
-          </NavLink>
-          <NavLink to={`/business/${organizationId}/roles`}>
+          </NavLink> : null}
+          {permissions.includes("MANAGE_ROLES") ? <NavLink to={`/business/${organizationId}/roles`}>
             <ShieldCheck aria-hidden="true" />
             <span>{t("tabs.roles")}</span>
-          </NavLink>
-          <NavLink to={`/business/${organizationId}/locations`}>
+          </NavLink> : null}
+          {permissions.includes("MANAGE_TEAMS") ? <NavLink to={`/business/${organizationId}/locations`}>
             <MapPinned aria-hidden="true" />
             <span>{t("tabs.teams")}</span>
-          </NavLink>
-          <NavLink to={`/business/${organizationId}/work-types`}>
+          </NavLink> : null}
+          {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink to={`/business/${organizationId}/work-types`}>
             <Settings2 aria-hidden="true" />
             <span>{t("planning.navigation.workTypes")}</span>
-          </NavLink>
+          </NavLink> : null}
         </div>
       </aside>
 

@@ -37,6 +37,8 @@ export function BusinessManagementShell({ children }: { children: ReactNode }) {
       onPreviousWeek={() => undefined}
       onNextWeek={() => undefined}
       onCurrentWeek={() => undefined}
+      showWeekControls={false}
+      sectionLabel="Business management"
     >
       {children}
     </BusinessPlanningShell>

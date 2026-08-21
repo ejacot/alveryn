@@ -50,6 +50,22 @@ public class OrganizationUnit extends BaseEntity {
     }
   }
 
+  public void changeDetails(OrganizationUnit parent, String name, OrganizationUnitType type,
+      CheckInMode checkInMode, int displayOrder) {
+    if (parent == this) throw new IllegalArgumentException("unit cannot be its own parent");
+    if (parent != null && parent.getOrganization() != organization) {
+      throw new IllegalArgumentException("parent must belong to the same organization");
+    }
+    this.parent = parent;
+    this.name = required(name);
+    this.type = Objects.requireNonNull(type, "type is required");
+    this.checkInMode = Objects.requireNonNull(checkInMode, "check-in mode is required");
+    this.displayOrder = displayOrder;
+  }
+
+  public void deactivate() { active = false; }
+  public void reactivate() { active = true; }
+
   private static String required(String value) {
     if (value == null || value.isBlank()) throw new IllegalArgumentException("name is required");
     return value.trim();

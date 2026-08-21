@@ -242,6 +242,61 @@ class BusinessOrganizationIntegrationTest {
   }
 
   @Test
+  void ownerMaintainsBusinessPeopleUnitsRolesAndAssignments() throws Exception {
+    UserAccount owner = user("crud-owner@example.com");
+    String organizationId = id(mockMvc.perform(post("/api/organizations")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"CRUD Hotel\",\"timezone\":\"Europe/Berlin\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    String unitId = id(mockMvc.perform(post("/api/organizations/{id}/units", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Lobby\",\"type\":\"TEAM\",\"checkInMode\":\"OPTIONAL\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(put("/api/organizations/{id}/units/{unitId}", organizationId, unitId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Front Office\",\"type\":\"DEPARTMENT\",\"checkInMode\":\"REQUIRED\"}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.name").value("Front Office"))
+        .andExpect(jsonPath("$.data.checkInMode").value("REQUIRED"));
+    mockMvc.perform(delete("/api/organizations/{id}/units/{unitId}", organizationId, unitId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.active").value(false));
+    mockMvc.perform(post("/api/organizations/{id}/units/{unitId}/reactivate", organizationId, unitId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.active").value(true));
+
+    String memberId = id(mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"firstName\":\"Ana\",\"lastName\":\"Old\",\"email\":null}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(put("/api/organizations/{id}/members/{memberId}", organizationId, memberId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"firstName\":\"Ana\",\"lastName\":\"Updated\",\"email\":\"ana@example.com\"}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.lastName").value("Updated"))
+        .andExpect(jsonPath("$.data.email").value("ana@example.com"));
+
+    String roleId = id(mockMvc.perform(post("/api/organizations/{id}/roles", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Viewer\",\"permissions\":[\"VIEW_SCHEDULE\"]}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(put("/api/organizations/{id}/roles/{roleId}", organizationId, roleId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Planner\",\"permissions\":[\"VIEW_SCHEDULE\",\"MANAGE_SCHEDULE\"]}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.name").value("Planner"))
+        .andExpect(jsonPath("$.data.permissions.length()").value(2));
+    String assignmentId = id(mockMvc.perform(post("/api/organizations/{id}/role-assignments", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"membershipId\":\"%s\",\"roleId\":\"%s\",\"unitId\":\"%s\",\"includeDescendants\":true}"
+                .formatted(memberId, roleId, unitId)))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(delete("/api/organizations/{id}/role-assignments/{assignmentId}",
+            organizationId, assignmentId).header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isNoContent());
+    mockMvc.perform(delete("/api/organizations/{id}/roles/{roleId}", organizationId, roleId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
   void customPermissionsGrantOnlyTheConfiguredBusinessCapabilities() throws Exception {
     UserAccount owner = user("access-owner@example.com");
     UserAccount planner = user("access-planner@example.com");

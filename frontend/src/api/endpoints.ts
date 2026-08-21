@@ -1033,6 +1033,9 @@ export async function createOrganizationUnit(organizationId: string, payload: {
   );
   return response.data.data;
 }
+export async function updateOrganizationUnit(organizationId:string,unitId:string,payload:{parentId:string|null;name:string;type:OrganizationUnit["type"];checkInMode:OrganizationUnit["checkInMode"];displayOrder?:number}){const response=await http.put<ApiResponse<OrganizationUnit>>(`/api/organizations/${organizationId}/units/${unitId}`,payload);return response.data.data;}
+export async function deactivateOrganizationUnit(organizationId:string,unitId:string){const response=await http.delete<ApiResponse<OrganizationUnit>>(`/api/organizations/${organizationId}/units/${unitId}`);return response.data.data;}
+export async function reactivateOrganizationUnit(organizationId:string,unitId:string){const response=await http.post<ApiResponse<OrganizationUnit>>(`/api/organizations/${organizationId}/units/${unitId}/reactivate`);return response.data.data;}
 
 export async function listOrganizationMembers(organizationId: string) {
   const response = await http.get<ApiResponse<OrganizationMember[]>>(
@@ -1052,6 +1055,7 @@ export async function createOrganizationMember(organizationId: string, payload: 
   );
   return response.data.data;
 }
+export async function updateOrganizationMember(organizationId:string,membershipId:string,payload:{firstName:string;lastName:string;email:string|null}){const response=await http.put<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}`,payload);return response.data.data;}
 export async function resendBusinessInvitation(organizationId:string,membershipId:string,language:string){await http.post(`/api/organizations/${organizationId}/members/${membershipId}/resend-invitation`,{language});}
 export type BusinessInvitation={organizationName:string;invitedEmail:string|null;expiresAt:string|null;status:"PENDING"|"ACTIVE"|"SUSPENDED"|"EXPIRED"};
 export async function getBusinessInvitation(token:string){const response=await http.get<ApiResponse<BusinessInvitation>>(`/api/business-invitations/${token}`);return response.data.data;}
@@ -1061,8 +1065,11 @@ export async function suspendOrganizationMember(organizationId:string,membership
 export async function reactivateOrganizationMember(organizationId:string,membershipId:string){const response=await http.post<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}/reactivate`);return response.data.data;}
 export async function listOrganizationRoles(organizationId:string){const response=await http.get<ApiResponse<import("../types/business").OrganizationRole[]>>(`/api/organizations/${organizationId}/roles`);return response.data.data;}
 export async function createOrganizationRole(organizationId:string,payload:{name:string;permissions:import("../types/business").OrganizationPermission[]}){const response=await http.post<ApiResponse<import("../types/business").OrganizationRole>>(`/api/organizations/${organizationId}/roles`,payload);return response.data.data;}
+export async function updateOrganizationRole(organizationId:string,roleId:string,payload:{name:string;permissions:import("../types/business").OrganizationPermission[]}){const response=await http.put<ApiResponse<import("../types/business").OrganizationRole>>(`/api/organizations/${organizationId}/roles/${roleId}`,payload);return response.data.data;}
+export async function deleteOrganizationRole(organizationId:string,roleId:string){await http.delete(`/api/organizations/${organizationId}/roles/${roleId}`);}
 export async function listOrganizationRoleAssignments(organizationId:string){const response=await http.get<ApiResponse<import("../types/business").OrganizationRoleAssignment[]>>(`/api/organizations/${organizationId}/role-assignments`);return response.data.data;}
 export async function assignOrganizationRole(organizationId:string,payload:{membershipId:string;roleId:string;unitId:string|null;includeDescendants:boolean}){const response=await http.post<ApiResponse<import("../types/business").OrganizationRoleAssignment>>(`/api/organizations/${organizationId}/role-assignments`,payload);return response.data.data;}
+export async function removeOrganizationRoleAssignment(organizationId:string,assignmentId:string){await http.delete(`/api/organizations/${organizationId}/role-assignments/${assignmentId}`);}
 
 export async function listBusinessWorkTypes(organizationId: string) { const response = await http.get<ApiResponse<BusinessWorkType[]>>(`/api/organizations/${organizationId}/staffing/work-types`); return response.data.data; }
 export type BusinessWorkTypePayload=Omit<BusinessWorkType,"id">;

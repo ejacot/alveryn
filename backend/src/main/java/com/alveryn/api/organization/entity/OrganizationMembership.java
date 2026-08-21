@@ -118,6 +118,17 @@ public class OrganizationMembership extends BaseEntity {
     this.endedAt = null;
   }
 
+  public void updateDetails(String firstName, String lastName, String email) {
+    String nextFirstName = clean(firstName);
+    String nextLastName = clean(lastName);
+    if (nextFirstName == null && nextLastName == null) {
+      throw new IllegalArgumentException("first name or last name is required");
+    }
+    this.firstName = nextFirstName;
+    this.lastName = nextLastName;
+    if (user == null) this.invitedEmail = clean(email);
+  }
+
   private static String clean(String value) {
     return value == null || value.isBlank() ? null : value.trim();
   }

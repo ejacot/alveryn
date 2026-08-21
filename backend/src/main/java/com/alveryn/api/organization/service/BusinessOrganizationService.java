@@ -79,6 +79,38 @@ public class BusinessOrganizationService {
     return response(units.save(unit));
   }
 
+  @Transactional
+  public OrganizationUnitResponse updateUnit(UUID organizationId, UUID unitId,
+      CreateOrganizationUnitRequest request) {
+    access.require(organizationId, OrganizationPermission.MANAGE_TEAMS);
+    var unit = units.findByIdAndOrganizationId(unitId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization unit", unitId));
+    var parent = request.parentId() == null ? null
+        : units.findByIdAndOrganizationId(request.parentId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Organization unit", request.parentId()));
+    unit.changeDetails(parent, request.name(), request.type(), request.checkInMode(),
+        request.displayOrder() == null ? unit.getDisplayOrder() : request.displayOrder());
+    return response(unit);
+  }
+
+  @Transactional
+  public OrganizationUnitResponse deactivateUnit(UUID organizationId, UUID unitId) {
+    access.require(organizationId, OrganizationPermission.MANAGE_TEAMS);
+    var unit = units.findByIdAndOrganizationId(unitId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization unit", unitId));
+    unit.deactivate();
+    return response(unit);
+  }
+
+  @Transactional
+  public OrganizationUnitResponse reactivateUnit(UUID organizationId, UUID unitId) {
+    access.require(organizationId, OrganizationPermission.MANAGE_TEAMS);
+    var unit = units.findByIdAndOrganizationId(unitId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization unit", unitId));
+    unit.reactivate();
+    return response(unit);
+  }
+
   @Transactional(readOnly = true)
   public List<OrganizationMemberResponse> listMembers(UUID organizationId) {
     access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS,
@@ -113,6 +145,25 @@ public class BusinessOrganizationService {
     var saved=memberships.save(member);
     if(saved.getStatus()==MembershipStatus.INVITED && request.email()!=null&&!request.email().isBlank()) issueInvitation(saved, request.language());
     return memberResponse(saved);
+  }
+
+  @Transactional
+  public OrganizationMemberResponse updateMember(UUID organizationId, UUID membershipId,
+      UpdateOrganizationMemberRequest request) {
+    access.require(organizationId, OrganizationPermission.MANAGE_MEMBERS);
+    var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
+    if (member.getUser() == null && request.email() != null && !request.email().isBlank()) {
+      users.findByEmailIgnoreCase(request.email().trim()).ifPresent(user -> {
+        var existing = memberships.findByOrganizationIdAndUserId(organizationId, user.getId());
+        if (existing.isPresent() && !existing.get().getId().equals(membershipId)) {
+          throw new com.alveryn.api.common.exception.ConflictException(
+              "This user is already a member of the organization");
+        }
+      });
+    }
+    member.updateDetails(request.firstName(), request.lastName(), request.email());
+    return memberResponse(member);
   }
 
   @Transactional
@@ -171,6 +222,26 @@ public class BusinessOrganizationService {
     return roleResponse(roles.save(role));
   }
 
+  @Transactional
+  public OrganizationRoleResponse updateRole(UUID organizationId, UUID roleId,
+      CreateOrganizationRoleRequest request) {
+    access.require(organizationId, OrganizationPermission.MANAGE_ROLES);
+    var role = roles.findByIdAndOrganizationId(roleId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization role", roleId));
+    role.update(request.name(), request.permissions());
+    return roleResponse(role);
+  }
+
+  @Transactional
+  public void deleteRole(UUID organizationId, UUID roleId) {
+    access.require(organizationId, OrganizationPermission.MANAGE_ROLES);
+    var role = roles.findByIdAndOrganizationId(roleId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization role", roleId));
+    if (role.isSystemRole()) throw new IllegalArgumentException("system roles cannot be deleted");
+    roleAssignments.deleteAll(roleAssignments.findAllByRoleId(roleId));
+    roles.delete(role);
+  }
+
   @Transactional(readOnly = true)
   public List<OrganizationRoleAssignmentResponse> listRoleAssignments(UUID organizationId) {
     access.require(organizationId, OrganizationPermission.MANAGE_ROLES);
@@ -191,6 +262,14 @@ public class BusinessOrganizationService {
             .orElseThrow(() -> new NotFoundException("Organization unit", request.unitId()));
     return roleAssignmentResponse(roleAssignments.save(new OrganizationRoleAssignment(
         member, role, unit, request.includeDescendants() == null || request.includeDescendants())));
+  }
+
+  @Transactional
+  public void removeRoleAssignment(UUID organizationId, UUID assignmentId) {
+    access.require(organizationId, OrganizationPermission.MANAGE_ROLES);
+    var assignment = roleAssignments.findByIdAndMembershipOrganizationId(assignmentId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization role assignment", assignmentId));
+    roleAssignments.delete(assignment);
   }
 
   private OrganizationResponse response(OrganizationMembership membership) {
