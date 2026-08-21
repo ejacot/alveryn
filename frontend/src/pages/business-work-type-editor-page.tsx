@@ -26,6 +26,7 @@ import type {
   BusinessCalculationMethod,
   BusinessWorkType,
 } from "../types/business";
+import { BusinessManagementShell } from "../components/business-planning/business-management-shell";
 type Mode = { key: string; method: BusinessCalculationMethod; icon: ReactNode };
 const modes: Mode[] = [
   {
@@ -50,6 +51,10 @@ const modes: Mode[] = [
   },
 ];
 export function BusinessWorkTypeEditorPage() {
+  return <BusinessManagementShell><BusinessWorkTypeEditorContent /></BusinessManagementShell>;
+}
+
+function BusinessWorkTypeEditorContent() {
   const { organizationId = "", workTypeId } = useParams();
   const [search] = useSearchParams();
   const navigate = useNavigate();

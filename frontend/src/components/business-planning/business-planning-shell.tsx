@@ -8,6 +8,8 @@ import {
   Moon,
   Settings2,
   Sun,
+  MapPinned,
+  ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
@@ -136,14 +138,22 @@ export function BusinessPlanningShell({
           </NavLink>
         </nav>
         <div className="business-planning__rail-secondary">
-          <Link to="/business">
+          <NavLink to={`/business/${organizationId}/people`}>
             <UsersRound aria-hidden="true" />
             <span>{t("planning.navigation.team")}</span>
-          </Link>
-          <Link to={`/business/${organizationId}/work-types`}>
+          </NavLink>
+          <NavLink to={`/business/${organizationId}/roles`}>
+            <ShieldCheck aria-hidden="true" />
+            <span>{t("tabs.roles")}</span>
+          </NavLink>
+          <NavLink to={`/business/${organizationId}/locations`}>
+            <MapPinned aria-hidden="true" />
+            <span>{t("tabs.teams")}</span>
+          </NavLink>
+          <NavLink to={`/business/${organizationId}/work-types`}>
             <Settings2 aria-hidden="true" />
             <span>{t("planning.navigation.workTypes")}</span>
-          </Link>
+          </NavLink>
         </div>
       </aside>
 

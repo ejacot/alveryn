@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   createBusinessOrganization,
   createOrganizationMember,
@@ -254,6 +254,8 @@ export function BusinessPage() {
 
   if (organizationsQuery.isLoading)
     return <p className="py-16 text-center text-white/55">{t("loading")}</p>;
+
+  if (activeId) return <Navigate to={`/business/${activeId}/people`} replace />;
 
   return (
     <div className="business-workspace-page mx-auto w-full max-w-[1500px] space-y-5 pb-28 pt-4">

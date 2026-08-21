@@ -250,6 +250,62 @@ html[data-theme="dark"] .business-route-skeleton {
   padding: clamp(28px, 3vw, 48px);
 }
 
+.business-admin { display: grid; gap: 24px; color: var(--bp-ink); }
+.business-admin__header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.business-admin__header p, .business-admin__form p, .business-admin__assignment > div:first-child p { margin: 0 0 7px; color: var(--bp-accent); font-size: .7rem; font-weight: 850; letter-spacing: .14em; }
+.business-admin__header h1 { margin: 0; font-size: clamp(1.8rem,3vw,2.8rem); letter-spacing: -.055em; }
+.business-admin__header span { display: block; max-width: 650px; margin-top: 8px; color: var(--bp-muted); }
+.business-admin__header > button, .business-admin__primary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 13px; background: var(--bp-accent); padding: 0 18px; color: #052e25; font-weight: 800; cursor: pointer; }
+.business-admin__header > button svg { width: 17px; }
+.business-admin__primary:disabled { cursor: not-allowed; opacity: .45; }
+.business-admin__layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(300px,360px); gap: 18px; align-items: start; }
+.business-admin__roles { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(320px,.9fr); gap: 18px; align-items: start; }
+.business-admin__panel { border: 1px solid var(--bp-line); border-radius: 18px; background: color-mix(in srgb,var(--bp-surface) 90%,transparent); box-shadow: var(--bp-shadow); overflow: hidden; }
+.business-admin__panel-title { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--bp-line); padding: 18px 20px; }
+.business-admin__panel-title > svg { width: 22px; color: var(--bp-accent); }
+.business-admin__panel h2 { margin: 0; font-size: 1.05rem; }
+.business-admin__panel-title p { margin: 3px 0 0; color: var(--bp-muted); font-size: .75rem; }
+.business-admin__list { display: grid; }
+.business-admin__row { display: grid; grid-template-columns: 42px minmax(0,1fr) auto auto; align-items: center; gap: 12px; min-height: 72px; border-bottom: 1px solid var(--bp-line); padding: 12px 18px; }
+.business-admin__row:last-child { border-bottom: 0; }
+.business-admin__row strong, .business-admin__row small { display: block; }
+.business-admin__row small { margin-top: 3px; color: var(--bp-muted); }
+.business-admin__avatar { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--bp-line); border-radius: 13px; background: var(--bp-surface-strong); color: var(--bp-accent); font-size: .72rem; font-weight: 850; }
+.business-admin__avatar svg { width: 18px; }
+.business-admin__status { border-radius: 999px; padding: 5px 9px; background: var(--bp-surface-strong); color: var(--bp-muted); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.business-admin__status.is-active { color: var(--bp-accent); }
+.business-admin__status.is-invited { color: #d9a441; }
+.business-admin__status.is-suspended { color: #de7373; }
+.business-admin__actions { display: flex; gap: 6px; }
+.business-admin__actions button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--bp-line); border-radius: 10px; background: transparent; color: var(--bp-muted); cursor: pointer; }
+.business-admin__actions svg { width: 16px; }
+.business-admin__form, .business-admin__assignment { display: grid; gap: 14px; padding: 20px; }
+.business-admin__form > div:first-child h2, .business-admin__assignment > div:first-child h2 { margin: 0; font-size: 1.25rem; }
+.business-admin__permissions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.business-admin__permissions label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--bp-line); border-radius: 11px; padding: 9px; color: var(--bp-muted); font-size: .72rem; }
+.business-admin__role { border-bottom: 1px solid var(--bp-line); padding: 17px 20px; }
+.business-admin__role > div { display: flex; align-items: center; gap: 8px; }
+.business-admin__role span { border-radius: 999px; background: var(--bp-surface-strong); padding: 3px 7px; color: var(--bp-muted); font-size: .62rem; text-transform: uppercase; }
+.business-admin__role p { margin: 7px 0 0; color: var(--bp-muted); font-size: .72rem; line-height: 1.5; }
+.business-admin__assignment { grid-column: 1 / -1; }
+.business-admin__assign-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.business-admin__check { display: flex; align-items: center; gap: 8px; color: var(--bp-muted); font-size: .82rem; }
+.business-admin__chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.business-admin__chips span { border: 1px solid var(--bp-line); border-radius: 999px; padding: 7px 10px; color: var(--bp-muted); font-size: .72rem; }
+.business-admin__error { border: 1px solid #ef444455; border-radius: 12px; background: #ef444414; padding: 12px 14px; color: #ef9a9a; }
+
+@media (max-width: 900px) {
+  .business-admin__layout, .business-admin__roles { grid-template-columns: 1fr; }
+  .business-admin__assignment { grid-column: auto; }
+  .business-admin__assign-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .business-admin__header { align-items: stretch; flex-direction: column; }
+  .business-admin__row { grid-template-columns: 38px minmax(0,1fr) auto; }
+  .business-admin__status { display: none; }
+  .business-admin__permissions { grid-template-columns: 1fr; }
+}
+
 .business-demand__intro {
   display: flex;
   align-items: flex-end;

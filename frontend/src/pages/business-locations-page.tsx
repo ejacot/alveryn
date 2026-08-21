@@ -1,0 +1,19 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MapPinned, Plus } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
+import { createOrganizationUnit, listOrganizationUnits } from "../api/endpoints";
+import { getApiError } from "../api/api-errors";
+import { BusinessManagementShell } from "../components/business-planning/business-management-shell";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
+import type { OrganizationUnit } from "../types/business";
+
+export function BusinessLocationsPage() {
+  const { organizationId = "" } = useParams(); const { t } = useTranslation("business"); const qc=useQueryClient();
+  const [name,setName]=useState(""),[parentId,setParentId]=useState(""),[type,setType]=useState<OrganizationUnit["type"]>("LOCATION"),[checkInMode,setCheckInMode]=useState<OrganizationUnit["checkInMode"]>("OPTIONAL"),[error,setError]=useState("");
+  const units=useQuery({queryKey:["organizations",organizationId,"units"],queryFn:()=>listOrganizationUnits(organizationId)});
+  const create=useMutation({mutationFn:()=>createOrganizationUnit(organizationId,{parentId:parentId||null,name:name.trim(),type,checkInMode}),onSuccess:async()=>{setName("");setParentId("");setError("");await qc.invalidateQueries({queryKey:["organizations",organizationId,"units"]});},onError:cause=>setError(getApiError(cause).message)});
+  return <BusinessManagementShell><div className="business-admin"><header className="business-admin__header"><div><p>LOCATIONS & TEAMS</p><h1>{t("teams.title")}</h1><span>Build the operating structure used by staffing and access roles.</span></div><button onClick={()=>document.getElementById("new-business-location")?.focus()}><Plus/>{t("teams.add")}</button></header><div className="business-admin__layout"><section className="business-admin__panel"><div className="business-admin__panel-title"><MapPinned/><div><h2>{t("teams.title")}</h2><p>{(units.data??[]).length} units</p></div></div><div className="business-admin__list">{(units.data??[]).map(unit=><article key={unit.id} className="business-admin__row" style={{marginLeft:unit.parentId?24:0}}><span className="business-admin__avatar"><MapPinned/></span><div><strong>{unit.name}</strong><small>{t(`unitTypes.${unit.type}`)} · {t(`checkIn.${unit.checkInMode}`)}</small></div><span className={`business-admin__status ${unit.active?"is-active":"is-suspended"}`}>{unit.active?"Active":"Inactive"}</span></article>)}</div></section><aside className="business-admin__panel business-admin__form"><div><p>NEW UNIT</p><h2>{t("teams.add")}</h2></div><Input id="new-business-location" label={t("teams.name")} value={name} onChange={e=>setName(e.target.value)}/><Select label={t("teams.parent")} value={parentId} onChange={e=>setParentId(e.target.value)}><option value="">{t("teams.noParent")}</option>{(units.data??[]).map(unit=><option key={unit.id} value={unit.id}>{unit.name}</option>)}</Select><Select label={t("teams.type")} value={type} onChange={e=>setType(e.target.value as OrganizationUnit["type"])}>{(["LOCATION","DEPARTMENT","TEAM","OTHER"] as const).map(value=><option key={value} value={value}>{t(`unitTypes.${value}`)}</option>)}</Select><Select label={t("teams.checkIn")} value={checkInMode} onChange={e=>setCheckInMode(e.target.value as OrganizationUnit["checkInMode"])}>{(["DISABLED","OPTIONAL","REQUIRED"] as const).map(value=><option key={value} value={value}>{t(`checkIn.${value}`)}</option>)}</Select><button className="business-admin__primary" disabled={!name.trim()||create.isPending} onClick={()=>create.mutate()}>{t("teams.action")}</button></aside></div>{error?<p className="business-admin__error">{error}</p>:null}</div></BusinessManagementShell>;
+}

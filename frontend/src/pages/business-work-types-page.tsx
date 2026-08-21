@@ -13,13 +13,13 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { listBusinessWorkTypes } from "../api/endpoints";
 import { SettingsEmptyState } from "../components/settings/settings-empty-state";
-import { SettingsNavigationHeader } from "../components/settings/settings-navigation-header";
 import { SettingsPageSkeleton } from "../components/settings/settings-page-skeleton";
 import { Card } from "../components/ui/card";
 import { LockedModalViewport } from "../components/ui/locked-modal-viewport";
 import { ModalPanel } from "../components/ui/modal-panel";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { getApiError } from "../api/api-errors";
+import { BusinessManagementShell } from "../components/business-planning/business-management-shell";
 import type {
   BusinessCalculationMethod,
   BusinessWorkType,
@@ -32,6 +32,10 @@ type Option = {
   icon: ReactNode;
 };
 export function BusinessWorkTypesPage() {
+  return <BusinessManagementShell><BusinessWorkTypesContent /></BusinessManagementShell>;
+}
+
+function BusinessWorkTypesContent() {
   const { organizationId = "" } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation("business");
@@ -88,12 +92,10 @@ export function BusinessWorkTypesPage() {
   const open = (option: Option) =>
     navigate(`/business/${organizationId}/work-types/new?mode=${option.mode}`);
   return (
-    <div className="mx-auto w-full max-w-[560px] space-y-6 pb-10 pt-8">
-      <SettingsNavigationHeader
-        title={t("workTypes.title")}
-        backLabel={t("back")}
-        onBack={() => navigate("/business")}
-      />
+    <div className="business-admin mx-auto w-full max-w-[860px] space-y-6 pb-10">
+      <header className="business-admin__header">
+        <div><p>WORK TYPES</p><h1>{t("workTypes.title")}</h1><span>{t("workTypes.manageHint")}</span></div>
+      </header>
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => setDialog(true)}
