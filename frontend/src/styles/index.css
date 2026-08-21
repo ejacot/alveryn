@@ -73,6 +73,26 @@ body {
   -ms-overflow-style: none;
 }
 
+.business-print-root { display: none; }
+
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  body * { visibility: hidden !important; }
+  .business-print-root, .business-print-root * { visibility: visible !important; }
+  .business-print-root { display: block !important; position: absolute; inset: 0; width: 100%; color: #111; background: #fff; font-family: Arial, sans-serif; font-size: 8pt; }
+  .business-print-root header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 5mm; border-bottom: 1px solid #bbb; padding-bottom: 3mm; }
+  .business-print-root h1 { margin: 0; font-size: 16pt; }
+  .business-print-root p { margin: 1mm 0 0; color: #555; }
+  .business-print-root table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .business-print-root th, .business-print-root td { border: 1px solid #aaa; padding: 2mm; vertical-align: top; overflow-wrap: anywhere; }
+  .business-print-root thead th { background: #ececec !important; font-size: 7.5pt; }
+  .business-print-root tbody th { width: 32mm; text-align: left; background: #f6f6f6 !important; }
+  .business-print-shift { margin-bottom: 1.5mm; border-left: 2mm solid #555; padding-left: 1.5mm; line-height: 1.25; break-inside: avoid; }
+  .business-print-shift small { display: block; margin-top: .5mm; color: #555; }
+  .business-print-day-type { display: block; margin-bottom: 1.5mm; border: 1px solid #999; background: #eee !important; padding: 1mm; text-align: center; font-weight: 700; }
+  .business-print-root footer { margin-top: 3mm; text-align: right; color: #777; font-size: 7pt; }
+}
+
 html[data-theme="light"] body {
   background:
     radial-gradient(
@@ -649,10 +669,72 @@ html[data-theme="light"] .app-logo-wordmark {
       max-width: 760px !important;
     }
 
+    .screen-shell.business-workspace-shell {
+      width: calc(100% - 220px) !important;
+      max-width: none !important;
+      height: 100dvh;
+      min-height: 0;
+      margin-left: 220px !important;
+      margin-right: 0 !important;
+      padding-inline: clamp(2rem, 3vw, 3.5rem);
+      overflow-x: clip;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+
+    .screen-shell.business-workspace-shell::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .screen-shell.business-workspace-shell::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .screen-shell.desktop-workspace-shell {
+      width: calc(100% - 220px) !important;
+      max-width: none !important;
+      height: 100dvh;
+      min-height: 0;
+      margin-left: 220px !important;
+      margin-right: 0 !important;
+      padding-inline: clamp(2rem, 3vw, 3.5rem);
+      overflow-x: clip;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+
+    .screen-shell.desktop-workspace-shell::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .screen-shell.desktop-workspace-shell::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .desktop-workspace-shell > .dashboard-glass-preview {
+      max-width: 1180px !important;
+    }
+
+    .business-workspace-page {
+      margin-inline: auto;
+    }
+
     .settings-sticky-header {
       left: 220px !important;
       right: 0 !important;
       max-width: 760px !important;
+    }
+
+    .desktop-workspace-shell .calendar-sticky-header {
+      left: 220px !important;
+      right: 0 !important;
+      max-width: 1180px !important;
     }
 
     .floating-nav {

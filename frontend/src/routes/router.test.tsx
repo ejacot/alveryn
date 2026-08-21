@@ -28,6 +28,14 @@ describe("preview routes", () => {
     expect(hasRoutePath("/tracking-setup", routes)).toBe(true);
   });
 
+  it("includes the aggregate-native Business planning routes", () => {
+    const routes = buildRoutes(false);
+
+    expect(hasRoutePath("/business/:organizationId/plan/demand", routes)).toBe(true);
+    expect(hasRoutePath("/business/:organizationId/plan/schedule", routes)).toBe(true);
+    expect(hasRoutePath("/business/:organizationId/plan/review", routes)).toBe(true);
+  });
+
   it("includes the public OAuth callback route", () => {
     const routes = buildRoutes(false);
 
@@ -38,12 +46,14 @@ describe("preview routes", () => {
     const routes = buildRoutes(false);
 
     expect(routes.some((route) => route.path === "/preview/dashboard")).toBe(false);
+    expect(routes.some((route) => route.path === "/preview/business-planning")).toBe(false);
   });
 
   it("includes preview routes when enabled", () => {
     const routes = buildRoutes(true);
 
     expect(routes.some((route) => route.path === "/preview/dashboard")).toBe(true);
+    expect(routes.some((route) => route.path === "/preview/business-planning")).toBe(true);
   });
 
   it("includes the settings route tree", () => {

@@ -38,6 +38,12 @@
     "addEntry": "Добавить запись",
     "statistics": "Аналитика",
     "settings": "Настройки",
+    "business": "Бизнес", "schedule": "Расписание",
     "primaryNavigation": "Основная навигация"
+  },
+  "workspace": {
+    "label": "Активный контекст аккаунта",
+    "personal": "Личное",
+    "business": "Бизнес"
   }
 }

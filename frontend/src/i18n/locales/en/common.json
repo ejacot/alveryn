@@ -38,7 +38,13 @@
     "addEntry": "Add entry",
     "statistics": "Insights",
     "settings": "Settings",
+    "business": "Business", "schedule": "Schedule",
     "primaryNavigation": "Primary navigation"
+  },
+  "workspace": {
+    "label": "Active account context",
+    "personal": "Personal",
+    "business": "Business"
   },
   "statistics": {
     "eyebrow": "Statistics",

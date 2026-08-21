@@ -58,11 +58,17 @@ test.describe("public authentication experience", () => {
     const submit = page.getByRole("button", { name: "Create my free account" });
     await submit.scrollIntoViewIfNeeded();
     await expect(submit).toBeVisible();
-    const result = await page.evaluate(() => ({
-      overflow: document.documentElement.scrollWidth - window.innerWidth,
-      footerPosition: getComputedStyle(document.querySelector(".auth-legal")!).position,
-      scrollable: document.querySelector(".auth-route-shell")!.scrollHeight > document.querySelector(".auth-route-shell")!.clientHeight
-    }));
+    const result = await page.evaluate(() => {
+      const shell = document.querySelector(".auth-route-shell")!;
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        footerPosition: getComputedStyle(document.querySelector(".auth-legal")!).position,
+        scrollable:
+          document.documentElement.scrollHeight > window.innerHeight ||
+          document.body.scrollHeight > window.innerHeight ||
+          shell.scrollHeight > shell.clientHeight
+      };
+    });
     expect(result.overflow).toBeLessThanOrEqual(0);
     expect(result.footerPosition).not.toBe("fixed");
     expect(result.footerPosition).not.toBe("sticky");

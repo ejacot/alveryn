@@ -33,6 +33,18 @@ export function SelectedDayActivityCard({
         {...(interactive ? { type: "button", onClick: () => onSelect?.(activity.id) } : {})}
         className="dashboard-primary-card dashboard-activity-card w-full px-5 py-5 text-left transition-colors hover:border-[#10b981]/20 focus:outline-none focus:ring-2 focus:ring-[#10b981]/25"
       >
+        {activity.kind === "PLANNED_BUSINESS" ? (
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <CardModuleTitle className={`text-left ${activity.businessResultStatus === "APPROVED" ? "text-emerald-300/80" : activity.businessResultStatus === "SUBMITTED" ? "text-amber-200/80" : "text-sky-300/75"}`}>
+              {t(activity.businessResultStatus === "APPROVED" ? "businessResult.done" : "selectedDay.planned")}
+            </CardModuleTitle>
+            <span className="rounded-full border border-sky-300/15 bg-sky-300/[0.07] px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-sky-200/70">
+              {activity.businessResultStatus
+                ? t(`businessResult.${activity.businessResultStatus.toLowerCase()}`)
+                : t("selectedDay.businessSchedule")}
+            </span>
+          </div>
+        ) : null}
         {sectionLabel ? (
           <CardModuleTitle className="mb-4 text-left text-[#10b981]/60">{sectionLabel}</CardModuleTitle>
         ) : null}
@@ -188,6 +200,8 @@ export function SelectedDayActivityCard({
               ) : null}
             </div>
           ) : null
+        ) : activity.kind === "PLANNED_BUSINESS" ? (
+          activity.approvedMinutes ? <div className="mt-3 border-t border-white/[0.07] pt-3"><p className="hairline-text mb-1">{t("businessResult.approvedTime")}</p><span className="text-sm font-semibold text-emerald-200">{activity.duration}</span></div> : null
         ) : (
           <div className="mt-3 grid grid-cols-3 items-end gap-3 border-t border-white/[0.07] pt-3">
             {activity.duration ? (

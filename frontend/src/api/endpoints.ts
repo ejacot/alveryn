@@ -21,6 +21,7 @@ import type {
   WeeklySchedulePayload
 } from "../types/schedule";
 import type { EmploymentRestDay } from "../types/rest-day";
+import type { BusinessAbsenceRequest, BusinessWorkType, Organization, OrganizationMember, OrganizationUnit, PersonalBusinessSchedule, StaffingAssignmentResult, StaffingChangeEvent, StaffingDayEntry, StaffingRequirement } from "../types/business";
 import type { WorkProject, WorkProjectPayload } from "../types/work-project";
 import type {
   DataImportAnalysisResponse,
@@ -1001,3 +1002,90 @@ export async function getPayrollReconciliationDocument(reconciliationId: string)
   );
   return response.data;
 }
+
+export async function listOrganizations() {
+  const response = await http.get<ApiResponse<Organization[]>>("/api/organizations");
+  return response.data.data;
+}
+
+export async function createBusinessOrganization(payload: { name: string; timezone: string }) {
+  const response = await http.post<ApiResponse<Organization>>("/api/organizations", payload);
+  return response.data.data;
+}
+
+export async function listOrganizationUnits(organizationId: string) {
+  const response = await http.get<ApiResponse<OrganizationUnit[]>>(
+    `/api/organizations/${organizationId}/units`
+  );
+  return response.data.data;
+}
+export async function getOrganizationAccess(organizationId:string){const response=await http.get<ApiResponse<{permissions:import("../types/business").OrganizationPermission[]}>>(`/api/organizations/${organizationId}/access`);return response.data.data;}
+
+export async function createOrganizationUnit(organizationId: string, payload: {
+  parentId: string | null;
+  name: string;
+  type: OrganizationUnit["type"];
+  checkInMode: OrganizationUnit["checkInMode"];
+  displayOrder?: number;
+}) {
+  const response = await http.post<ApiResponse<OrganizationUnit>>(
+    `/api/organizations/${organizationId}/units`, payload
+  );
+  return response.data.data;
+}
+
+export async function listOrganizationMembers(organizationId: string) {
+  const response = await http.get<ApiResponse<OrganizationMember[]>>(
+    `/api/organizations/${organizationId}/members`
+  );
+  return response.data.data;
+}
+
+export async function createOrganizationMember(organizationId: string, payload: {
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  language?: string;
+}) {
+  const response = await http.post<ApiResponse<OrganizationMember>>(
+    `/api/organizations/${organizationId}/members`, payload
+  );
+  return response.data.data;
+}
+export async function resendBusinessInvitation(organizationId:string,membershipId:string,language:string){await http.post(`/api/organizations/${organizationId}/members/${membershipId}/resend-invitation`,{language});}
+export async function suspendOrganizationMember(organizationId:string,membershipId:string){const response=await http.delete<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}`);return response.data.data;}
+export async function reactivateOrganizationMember(organizationId:string,membershipId:string){const response=await http.post<ApiResponse<OrganizationMember>>(`/api/organizations/${organizationId}/members/${membershipId}/reactivate`);return response.data.data;}
+export async function listOrganizationRoles(organizationId:string){const response=await http.get<ApiResponse<import("../types/business").OrganizationRole[]>>(`/api/organizations/${organizationId}/roles`);return response.data.data;}
+export async function createOrganizationRole(organizationId:string,payload:{name:string;permissions:import("../types/business").OrganizationPermission[]}){const response=await http.post<ApiResponse<import("../types/business").OrganizationRole>>(`/api/organizations/${organizationId}/roles`,payload);return response.data.data;}
+export async function listOrganizationRoleAssignments(organizationId:string){const response=await http.get<ApiResponse<import("../types/business").OrganizationRoleAssignment[]>>(`/api/organizations/${organizationId}/role-assignments`);return response.data.data;}
+export async function assignOrganizationRole(organizationId:string,payload:{membershipId:string;roleId:string;unitId:string|null;includeDescendants:boolean}){const response=await http.post<ApiResponse<import("../types/business").OrganizationRoleAssignment>>(`/api/organizations/${organizationId}/role-assignments`,payload);return response.data.data;}
+
+export async function listBusinessWorkTypes(organizationId: string) { const response = await http.get<ApiResponse<BusinessWorkType[]>>(`/api/organizations/${organizationId}/staffing/work-types`); return response.data.data; }
+export type BusinessWorkTypePayload=Omit<BusinessWorkType,"id">;
+export async function createBusinessWorkType(organizationId:string,payload:BusinessWorkTypePayload){const response=await http.post<ApiResponse<BusinessWorkType>>(`/api/organizations/${organizationId}/staffing/work-types`,payload);return response.data.data;}
+export async function getBusinessWorkType(organizationId:string,workTypeId:string){const response=await http.get<ApiResponse<BusinessWorkType>>(`/api/organizations/${organizationId}/staffing/work-types/${workTypeId}`);return response.data.data;}
+export async function updateBusinessWorkType(organizationId:string,workTypeId:string,payload:BusinessWorkTypePayload){const response=await http.put<ApiResponse<BusinessWorkType>>(`/api/organizations/${organizationId}/staffing/work-types/${workTypeId}`,payload);return response.data.data;}
+export async function deactivateBusinessWorkType(organizationId:string,workTypeId:string){await http.delete(`/api/organizations/${organizationId}/staffing/work-types/${workTypeId}`);}
+export async function listStaffingRequirements(organizationId: string, from: string, to: string) { const response = await http.get<ApiResponse<StaffingRequirement[]>>(`/api/organizations/${organizationId}/staffing/requirements`, { params: { from, to } }); return response.data.data; }
+export async function createStaffingRequirement(organizationId: string, payload: { unitId: string; workTypeId: string; date: string; startTime: string | null; endTime: string | null; requiredWorkers: number }) { const response = await http.post<ApiResponse<StaffingRequirement>>(`/api/organizations/${organizationId}/staffing/requirements`, payload); return response.data.data; }
+export async function createStaffingRequirements(organizationId: string, payload: { unitId: string; workTypeId: string; dates: string[]; startTime: string | null; endTime: string | null; requiredWorkers: number }) { const response = await http.post<ApiResponse<StaffingRequirement[]>>(`/api/organizations/${organizationId}/staffing/requirements/bulk`, payload); return response.data.data; }
+export async function assignStaffingMember(organizationId: string, requirementId: string, membershipId: string) { const response = await http.post<ApiResponse<StaffingRequirement>>(`/api/organizations/${organizationId}/staffing/requirements/${requirementId}/assignments`, { membershipId }); return response.data.data; }
+export async function unassignStaffingMember(organizationId: string, requirementId: string, assignmentId: string) { const response = await http.delete<ApiResponse<StaffingRequirement>>(`/api/organizations/${organizationId}/staffing/requirements/${requirementId}/assignments/${assignmentId}`); return response.data.data; }
+export async function listStaffingDayEntries(organizationId: string, from: string, to: string) { const response = await http.get<ApiResponse<StaffingDayEntry[]>>(`/api/organizations/${organizationId}/staffing/day-entries`, { params: { from, to } }); return response.data.data; }
+export async function setStaffingDayEntry(organizationId: string, membershipId: string, date: string, type: StaffingDayEntry["type"]) { const response = await http.put<ApiResponse<StaffingDayEntry>>(`/api/organizations/${organizationId}/staffing/members/${membershipId}/days/${date}`, { type }); return response.data.data; }
+export async function removeStaffingDayEntry(organizationId: string, membershipId: string, date: string) { await http.delete(`/api/organizations/${organizationId}/staffing/members/${membershipId}/days/${date}`); }
+export async function updateStaffingRequirement(organizationId: string, requirementId: string, payload: { startTime: string | null; endTime: string | null; requiredWorkers: number }) { const response = await http.put<ApiResponse<StaffingRequirement>>(`/api/organizations/${organizationId}/staffing/requirements/${requirementId}`, payload); return response.data.data; }
+export async function deleteStaffingRequirement(organizationId: string, requirementId: string) { await http.delete(`/api/organizations/${organizationId}/staffing/requirements/${requirementId}`); }
+export async function updateStaffingAssignment(organizationId: string, requirementId: string, assignmentId: string, payload: { startTime: string | null; endTime: string | null }) { const response = await http.put<ApiResponse<StaffingRequirement>>(`/api/organizations/${organizationId}/staffing/requirements/${requirementId}/assignments/${assignmentId}`, payload); return response.data.data; }
+export async function publishStaffingSchedule(organizationId: string, from: string, to: string, requirementIds?: string[]) { const response = await http.post<ApiResponse<{ publishedRequirements: number; publishedAssignments: number }>>(`/api/organizations/${organizationId}/staffing/publish`, { from, to, requirementIds }); return response.data.data; }
+export async function getPersonalBusinessSchedule(from: string, to: string) { const response = await http.get<ApiResponse<PersonalBusinessSchedule[]>>("/api/my/business-schedule", { params: { from, to } }); return response.data.data; }
+export async function listStaffingHistory(organizationId: string, limit = 30) { const response = await http.get<ApiResponse<StaffingChangeEvent[]>>(`/api/organizations/${organizationId}/staffing/history`, { params: { limit } }); return response.data.data; }
+export async function saveMyStaffingResult(assignmentId: string, payload: { actualStartTime: string | null; actualEndTime: string | null; breakMinutes: number; completedQuantity: number | null; notes: string | null; submit: boolean }) { const response = await http.put<ApiResponse<StaffingAssignmentResult>>(`/api/my/business-schedule/assignments/${assignmentId}/result`, payload); return response.data.data; }
+export async function checkInBusinessAssignment(assignmentId:string){const response=await http.post<ApiResponse<StaffingAssignmentResult>>(`/api/my/business-schedule/assignments/${assignmentId}/check-in`);return response.data.data;}
+export async function checkOutBusinessAssignment(assignmentId:string){const response=await http.post<ApiResponse<StaffingAssignmentResult>>(`/api/my/business-schedule/assignments/${assignmentId}/check-out`);return response.data.data;}
+export async function listPendingStaffingResults(organizationId: string) { const response = await http.get<ApiResponse<StaffingAssignmentResult[]>>(`/api/organizations/${organizationId}/staffing/results/pending`); return response.data.data; }
+export async function approveStaffingResult(organizationId: string, resultId: string, payload: { actualStartTime: string | null; actualEndTime: string | null; breakMinutes: number; completedQuantity: number | null; notes: string | null }) { const response = await http.put<ApiResponse<StaffingAssignmentResult>>(`/api/organizations/${organizationId}/staffing/results/${resultId}/approve`, payload); return response.data.data; }
+export async function listMyBusinessAbsenceRequests(){const response=await http.get<ApiResponse<BusinessAbsenceRequest[]>>("/api/my/business-schedule/absence-requests");return response.data.data;}
+export async function createMyBusinessAbsenceRequest(payload:{organizationId:string;type:BusinessAbsenceRequest["type"];startDate:string;endDate:string;notes:string|null}){const response=await http.post<ApiResponse<BusinessAbsenceRequest>>("/api/my/business-schedule/absence-requests",payload);return response.data.data;}
+export async function listPendingBusinessAbsenceRequests(organizationId:string){const response=await http.get<ApiResponse<BusinessAbsenceRequest[]>>(`/api/organizations/${organizationId}/staffing/absence-requests/pending`);return response.data.data;}
+export async function decideBusinessAbsenceRequest(organizationId:string,requestId:string,approve:boolean){const response=await http.put<ApiResponse<BusinessAbsenceRequest>>(`/api/organizations/${organizationId}/staffing/absence-requests/${requestId}/decision`,{approve});return response.data.data;}

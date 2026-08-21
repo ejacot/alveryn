@@ -159,6 +159,11 @@ const PreviewDashboardPage = lazy(() =>
     default: module.PreviewDashboardPage
   }))
 );
+const BusinessPlanningPrototypePage = lazy(() =>
+  import("../pages/business-planning-prototype-page").then((module) => ({
+    default: module.BusinessPlanningPrototypePage
+  }))
+);
 const OnboardingPage = lazy(() =>
   import("../pages/onboarding-page").then((module) => ({
     default: module.OnboardingPage
@@ -169,6 +174,21 @@ const TrackingSetupPage = lazy(() =>
     default: module.TrackingSetupPage
   }))
 );
+const BusinessPage = lazy(() =>
+  import("../pages/business-page").then((module) => ({ default: module.BusinessPage }))
+);
+const BusinessDemandPage = lazy(() =>
+  import("../pages/business-demand-page").then((module) => ({ default: module.BusinessDemandPage }))
+);
+const BusinessSchedulePage = lazy(() =>
+  import("../pages/business-schedule-page").then((module) => ({ default: module.BusinessSchedulePage }))
+);
+const BusinessReviewPage = lazy(() =>
+  import("../pages/business-review-page").then((module) => ({ default: module.BusinessReviewPage }))
+);
+const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
+const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
+const SchedulePage = lazy(() => import("../pages/schedule-page").then((module) => ({ default: module.SchedulePage })));
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
 }
@@ -228,6 +248,14 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/records/new", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/records/:recordId", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
+            { path: "/business", element: withSuspense(<BusinessPage />) },
+            { path: "/business/:organizationId/plan/demand", element: withSuspense(<BusinessDemandPage />) },
+            { path: "/business/:organizationId/plan/schedule", element: withSuspense(<BusinessSchedulePage />) },
+            { path: "/business/:organizationId/plan/review", element: withSuspense(<BusinessReviewPage />) },
+            { path: "/business/:organizationId/work-types", element: withSuspense(<BusinessWorkTypesPage />) },
+            { path: "/business/:organizationId/work-types/new", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/business/:organizationId/work-types/:workTypeId", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/schedule", element: withSuspense(<SchedulePage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
@@ -262,12 +290,21 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
   ];
 
   if (enablePreviewRoutes) {
-    routes.splice(1, 0, {
-      path: "/preview/dashboard",
-      element: <AppLayout />,
-      errorElement: <RouteErrorPage />,
-      children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
-    });
+    routes.splice(
+      1,
+      0,
+      {
+        path: "/preview/dashboard",
+        element: <AppLayout />,
+        errorElement: <RouteErrorPage />,
+        children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
+      },
+      {
+        path: "/preview/business-planning",
+        element: withSuspense(<BusinessPlanningPrototypePage />),
+        errorElement: <RouteErrorPage />
+      }
+    );
   }
 
   routes.push({

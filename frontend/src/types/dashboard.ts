@@ -40,7 +40,7 @@ export type RecentEntry = {
 export type SelectedDayActivity = {
   id: string;
   title: string;
-  kind: "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" | "ABSENCE";
+  kind: "TIME_BASED" | "UNIT_BASED" | "UNITS_PER_HOUR_BASED" | "FIXED_PRICE_BASED" | "ABSENCE" | "PLANNED_BUSINESS";
   subtitle: string;
   projectTitle?: string | null;
   projectNotes?: string | null;
@@ -72,6 +72,8 @@ export type SelectedDayActivity = {
     displayOrder?: number | null;
   }>;
   marker?: "free" | "sick" | "vacation";
+  businessResultStatus?: "DRAFT" | "SUBMITTED" | "APPROVED" | null;
+  approvedMinutes?: number;
 };
 
 export type SelectedDayOverview = {

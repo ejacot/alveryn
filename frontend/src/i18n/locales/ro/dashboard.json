@@ -70,7 +70,11 @@
     "jobDays_other": "{{count}} de zile",
     "jobMixed": "{{duration}} plus plată directă per unitate",
     "jobDirectOnly": "Job plătit direct per unitate",
-    "unitLine": "{{name}}: {{quantity}}"
+    "unitLine": "{{name}}: {{quantity}}",
+    "planned": "Planificat",
+    "businessSchedule": "Program Business",
+    "startsAt": "Începe la {{time}}",
+    "timeNotSet": "Ora nu este stabilită"
   },
   "summary": {
     "todayHours": "Ore astăzi",
@@ -130,6 +134,12 @@
     "cta": "Zi liberă",
     "remove": "Elimină",
     "selectEmployment": "Selectează un loc de muncă înainte de a marca o zi liberă."
+  },
+  "businessResult": {
+    "actualStart": "Început real", "actualEnd": "Sfârșit real", "breakMinutes": "Pauză (minute)",
+    "quantity": "Cantitate realizată", "notes": "Notițe", "saveDraft": "Salvează ciornă",
+    "submit": "Trimite managerului", "draft": "Ciornă", "submitted": "Trimis spre aprobare", "approved": "Aprobat",
+    "done": "Finalizat", "approvedTime": "Timp aprobat"
   },
   "timeTracking": {
     "title": "Pontaj",

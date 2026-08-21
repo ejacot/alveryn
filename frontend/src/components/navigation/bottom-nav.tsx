@@ -1,14 +1,17 @@
 import {
+  BriefcaseBusiness,
   CalendarDays,
+  CalendarClock,
   ChartColumnIncreasing,
   House,
-  Settings
+  Settings,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { APP_HOME_PATH } from "../../routes/app-paths";
 import { cn } from "../../utils/cn";
 import { AppLogo } from "../branding/app-logo";
+import { useWorkspace } from "../../contexts/workspace-context";
 
 type NavItem = {
   to: string;
@@ -18,12 +21,24 @@ type NavItem = {
 
 export function BottomNav() {
   const { t } = useTranslation("common");
-  const items: NavItem[] = [
-    { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
-    { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
-    { to: "/statistics", icon: ChartColumnIncreasing, label: t("nav.statistics") },
-    { to: "/profile", icon: Settings, label: t("nav.settings") }
-  ];
+  const { activeWorkspace } = useWorkspace();
+  const businessWorkspace = activeWorkspace?.type === "BUSINESS";
+  const items: NavItem[] = businessWorkspace
+    ? [
+        { to: "/business", icon: BriefcaseBusiness, label: t("nav.business") },
+        { to: "/schedule", icon: CalendarClock, label: t("nav.schedule") },
+        { to: "/profile", icon: Settings, label: t("nav.settings") },
+      ]
+    : [
+        { to: APP_HOME_PATH, icon: House, label: t("nav.home") },
+        { to: "/calendar", icon: CalendarDays, label: t("nav.calendar") },
+        {
+          to: "/statistics",
+          icon: ChartColumnIncreasing,
+          label: t("nav.statistics"),
+        },
+        { to: "/profile", icon: Settings, label: t("nav.settings") },
+      ];
 
   return (
     <nav
@@ -46,7 +61,7 @@ export function BottomNav() {
                 "desktop-nav-item flex h-[54px] w-full flex-col items-center justify-center gap-1 rounded-[22px] transition-[background,color,transform] duration-200",
                 isActive
                   ? "bg-[rgba(16,185,129,0.12)] text-[#34d399]"
-                  : "text-white/42 active:scale-[0.96]"
+                  : "text-white/42 active:scale-[0.96]",
               )}
               title={label}
               aria-current={isActive ? "page" : undefined}
