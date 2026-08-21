@@ -109,7 +109,10 @@ export function BusinessDemandPage() {
     enabled: Boolean(organization && unitId),
     retry: false,
   });
-  const plan = lookupQuery.data?.data.plan ?? null;
+  const lookedUpPlan = lookupQuery.data?.data.plan ?? null;
+  const plan = lookedUpPlan?.unitId === unitId && lookedUpPlan.weekStart === weekStart
+    ? lookedUpPlan
+    : null;
   const demandQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, plan?.planId, "demand"],
     queryFn: () => getStaffingDemand(organizationId, plan!.planId),

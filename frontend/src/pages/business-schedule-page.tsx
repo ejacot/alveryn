@@ -100,7 +100,10 @@ export function BusinessSchedulePage() {
     enabled: Boolean(organization && unitId),
     retry: false,
   });
-  const plan = lookupQuery.data?.data.plan ?? null;
+  const lookedUpPlan = lookupQuery.data?.data.plan ?? null;
+  const plan = lookedUpPlan?.unitId === unitId && lookedUpPlan.weekStart === weekStart
+    ? lookedUpPlan
+    : null;
   const scheduleQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, plan?.planId, "schedule"],
     queryFn: () => getStaffingSchedule(organizationId, plan!.planId),

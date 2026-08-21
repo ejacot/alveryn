@@ -144,7 +144,10 @@ export function BusinessReviewPage() {
     enabled: Boolean(organization && unitId),
     retry: false,
   });
-  const plan = lookupQuery.data?.data.plan ?? null;
+  const lookedUpPlan = lookupQuery.data?.data.plan ?? null;
+  const plan = lookedUpPlan?.unitId === unitId && lookedUpPlan.weekStart === weekStart
+    ? lookedUpPlan
+    : null;
   const coverageQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, plan?.planId, "coverage"],
     queryFn: () => getStaffingCoverage(organizationId, plan!.planId),

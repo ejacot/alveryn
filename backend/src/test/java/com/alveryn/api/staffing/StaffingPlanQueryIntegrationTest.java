@@ -215,6 +215,27 @@ class StaffingPlanQueryIntegrationTest {
   }
 
   @Test
+  void planLookupIsIsolatedByUnitWithinTheSameOrganizationAndWeek() throws Exception {
+    Fixture fixture = fixture(1, true);
+    String otherUnitId = create("/api/organizations/" + fixture.organizationId + "/units",
+        "{\"name\":\"Other location\",\"type\":\"LOCATION\",\"checkInMode\":\"OPTIONAL\"}");
+
+    mvc.perform(get("/api/organizations/{org}/staffing/plans", fixture.organizationId)
+            .param("unitId", fixture.unitId).param("weekStart", "2026-08-10")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.found").value(true))
+        .andExpect(jsonPath("$.data.plan.planId").value(fixture.planId));
+
+    mvc.perform(get("/api/organizations/{org}/staffing/plans", fixture.organizationId)
+            .param("unitId", otherUnitId).param("weekStart", "2026-08-10")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.found").value(false))
+        .andExpect(jsonPath("$.data.plan").doesNotExist());
+  }
+
+  @Test
   void versionsAreImmutableSnapshotReadsWithStableConditionalEtag() throws Exception {
     Fixture fixture = fixture(1, true);
     UUID versionId = UUID.randomUUID();

@@ -64,7 +64,8 @@ public class StaffingPlanQueryService {
       LocalDate weekStart, String ifNoneMatch) {
     requireMonday(weekStart);
     UnitAuthorization authorization = authorizeUnit(organizationId, unitId);
-    List<PlanRow> plans = jdbc.query(PLAN_HEADER_SQL + " and plan.week_start=:weekStart",
+    List<PlanRow> plans = jdbc.query(PLAN_HEADER_SQL
+            + " and plan.unit_id=:unit and plan.week_start=:weekStart",
         params("organization", organizationId, "unit", unitId, "weekStart", weekStart),
         (rs, row) -> planRow(rs));
     if (plans.isEmpty()) {
