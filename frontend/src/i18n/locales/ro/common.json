@@ -42,7 +42,7 @@
     "primaryNavigation": "Navigare principală"
   },
   "workspace": {
-    "label": "Spațiu de lucru activ",
+    "label": "Context activ al contului",
     "personal": "Personal",
     "business": "Business"
   },

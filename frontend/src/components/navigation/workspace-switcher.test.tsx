@@ -54,7 +54,7 @@ describe("WorkspaceSwitcher", () => {
   it("defaults to Personal and persists a Business selection", async () => {
     renderSwitcher();
 
-    const selector = await screen.findByLabelText("Active workspace");
+    const selector = await screen.findByLabelText("Active account context");
     expect(selector).toHaveValue("personal-1");
 
     fireEvent.change(selector, { target: { value: "business-1" } });
@@ -71,7 +71,7 @@ describe("WorkspaceSwitcher", () => {
     window.localStorage.setItem("alveryn.active-workspace", "personal-1");
     renderSwitcher("/business/business-1/plan/schedule");
 
-    expect(await screen.findByLabelText("Active workspace")).toHaveValue(
+    expect(await screen.findByLabelText("Active account context")).toHaveValue(
       "business-1",
     );
   });
@@ -80,7 +80,7 @@ describe("WorkspaceSwitcher", () => {
     window.localStorage.setItem("alveryn.active-workspace", "personal-1");
     renderSwitcher("/business");
 
-    expect(await screen.findByLabelText("Active workspace")).toHaveValue(
+    expect(await screen.findByLabelText("Active account context")).toHaveValue(
       "business-1",
     );
   });

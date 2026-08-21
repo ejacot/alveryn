@@ -42,7 +42,7 @@
     "primaryNavigation": "Primary navigation"
   },
   "workspace": {
-    "label": "Active workspace",
+    "label": "Active account context",
     "personal": "Personal",
     "business": "Business"
   },
