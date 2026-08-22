@@ -2,6 +2,11 @@ package com.alveryn.api.staffing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.alveryn.api.auth.security.AuthenticatedUser;
 import com.alveryn.api.common.exception.ConflictException;
@@ -34,6 +39,9 @@ import org.springframework.context.annotation.*;
 import org.springframework.context.ApplicationContext;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.alveryn.api.common.exception.NotFoundException;
 import java.util.concurrent.*;
 import jakarta.persistence.EntityManager;
@@ -55,13 +63,16 @@ class StaffingPlanPublicationIntegrationTest {
   @Autowired TestMutationFaultProbe mutationFaultProbe;
   @Autowired StaffingPlanMutationCoordinator mutations;
   @Autowired StaffingPlanDraftMutationService draftMutations;
-  @Autowired StaffingPlanCoverageService coverage;
+  @MockitoSpyBean StaffingPlanCoverageService coverage;
   @Autowired ApplicationContext applicationContext;
+  @Autowired PlatformTransactionManager transactionManager;
 
   @AfterEach void clearSecurity() {
     SecurityContextHolder.clearContext();
     faultProbe.reset();
     mutationFaultProbe.reset();
+    reset(coverage);
+    jdbc.execute("TRUNCATE TABLE organizations, user_accounts CASCADE");
   }
 
   @Test void publishesReplaysAndKeepsEarlierVersionImmutable() {
@@ -78,6 +89,14 @@ class StaffingPlanPublicationIntegrationTest {
     assertThat(replay.idempotentReplay()).isTrue();
     assertThat(jdbc.queryForObject("select count(*) from staffing_plan_versions where plan_id=?", Integer.class,
         fixture.planId())).isEqualTo(1);
+    assertThat(jdbc.queryForObject("select checksum_format_version from staffing_plan_versions where id=?",
+        Integer.class, first.versionId())).isEqualTo(2);
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_version_requirement_coverage where version_id=?",
+        Integer.class, first.versionId())).isEqualTo(1);
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_version_day_coverage where version_id=?",
+        Integer.class, first.versionId())).isEqualTo(7);
+    assertThat(jdbc.queryForObject("select count(*) from staffing_plan_version_day_coverage where version_id=? and required=0 and raw_assigned=0 and effective_assigned=0 and covered=0 and missing=0 and overstaffed=0 and percentage=0 and open_positions=0",
+        Integer.class, first.versionId())).isEqualTo(6);
     assertThat(jdbc.queryForObject("select count(*) from staffing_change_events "
         + "where organization_id=? and entity_id=? and event_type='WEEKLY_PLAN_PUBLISHED'",
         Integer.class, fixture.organizationId(), fixture.planId())).isEqualTo(1);
@@ -98,6 +117,98 @@ class StaffingPlanPublicationIntegrationTest {
     assertThatThrownBy(() -> publication.publishPlan(command(fixture, revision,
         Set.of("UNDERCOVERAGE:" + requirementId), "stale", "key-3")))
         .isInstanceOf(PreconditionFailedException.class);
+  }
+
+  @Test void publishCalculatesCanonicalCoverageExactlyOnce() {
+    Fixture fixture = fixture("single-coverage-result");
+    UUID requirementId = requirement(fixture);
+    clearInvocations(coverage);
+
+    publication.publishPlan(command(fixture, fixture.planRevision(),
+        Set.of("UNDERCOVERAGE:" + requirementId), null, "single-coverage-result"));
+
+    verify(coverage, times(1)).calculate(
+        fixture.organizationId(), fixture.unitId(), fixture.planId());
+  }
+
+  @Test void formatTwoPublicationRejectsMissingOrUnknownRequirementCoverageAtomically() {
+    Fixture fixture = fixture("coverage-identity");
+    UUID requirementId = requirement(fixture);
+    var canonical = coverage.calculate(
+        fixture.organizationId(), fixture.unitId(), fixture.planId());
+    Set<String> acknowledgements = Set.of("UNDERCOVERAGE:" + requirementId);
+
+    doReturn(withRequirementCoverage(canonical, List.of())).when(coverage).calculate(
+        fixture.organizationId(), fixture.unitId(), fixture.planId());
+    assertThatThrownBy(() -> publication.publishPlan(command(fixture, fixture.planRevision(),
+        acknowledgements, null, "missing-requirement-coverage")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("does not match the requirement snapshot");
+    assertNoPartialPublication(fixture);
+
+    reset(coverage);
+    var unknown = withRequirementId(canonical.requirementCoverage().getFirst(), UUID.randomUUID());
+    doReturn(withRequirementCoverage(canonical, List.of(unknown))).when(coverage).calculate(
+        fixture.organizationId(), fixture.unitId(), fixture.planId());
+    assertThatThrownBy(() -> publication.publishPlan(command(fixture, fixture.planRevision(),
+        acknowledgements, null, "unknown-requirement-coverage")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("does not match the requirement snapshot");
+    assertNoPartialPublication(fixture);
+  }
+
+  @Test void formatTwoChecksumIgnoresPhysicalInsertionOrderAndDatabaseOrJvmTimezone() {
+    Fixture fixture = fixture("checksum-format-two");
+    UUID first = requirement(fixture);
+    var secondDay = foundation.createDay(fixture.organizationId(), fixture.unitId(), fixture.planId(),
+        WEEK.plusDays(1), null, null, StaffingPlanDaySource.MANUAL, fixture.owner().getId());
+    UUID second = additionalRequirement(fixture, first, secondDay.getId(), WEEK.plusDays(1));
+    long revision = revision(fixture.planId());
+    var published = publication.publishPlan(command(fixture, revision,
+        Set.of("UNDERCOVERAGE:" + first, "UNDERCOVERAGE:" + second), null,
+        "checksum-format-two"));
+    String original = published.checksum();
+
+    jdbc.update("""
+        with removed as (
+          delete from staffing_plan_version_requirement_coverage where version_id=?
+          returning organization_id,unit_id,version_id,week_start,version_requirement_id,
+            source_requirement_id,work_date,required,raw_assigned,effective_assigned,covered,
+            missing,overstaffed,percentage,open_positions,created_at)
+        insert into staffing_plan_version_requirement_coverage(
+          id,organization_id,unit_id,version_id,week_start,version_requirement_id,
+          source_requirement_id,work_date,required,raw_assigned,effective_assigned,covered,
+          missing,overstaffed,percentage,open_positions,created_at)
+        select gen_random_uuid(),organization_id,unit_id,version_id,week_start,
+          version_requirement_id,source_requirement_id,work_date,required,raw_assigned,
+          effective_assigned,covered,missing,overstaffed,percentage,open_positions,created_at
+        from removed order by work_date desc,source_requirement_id desc
+        """, published.versionId());
+    jdbc.update("""
+        with removed as (
+          delete from staffing_plan_version_day_coverage where version_id=?
+          returning organization_id,unit_id,version_id,week_start,work_date,required,
+            raw_assigned,effective_assigned,covered,missing,overstaffed,percentage,
+            open_positions,created_at)
+        insert into staffing_plan_version_day_coverage(
+          id,organization_id,unit_id,version_id,week_start,work_date,required,raw_assigned,
+          effective_assigned,covered,missing,overstaffed,percentage,open_positions,created_at)
+        select gen_random_uuid(),organization_id,unit_id,version_id,week_start,work_date,
+          required,raw_assigned,effective_assigned,covered,missing,overstaffed,percentage,
+          open_positions,created_at from removed order by work_date desc
+        """, published.versionId());
+
+    TimeZone originalJvmTimezone = TimeZone.getDefault();
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+      String losAngeles = checksumInDatabaseTimezone(published.versionId(), "Pacific/Auckland");
+      TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+      String tokyo = checksumInDatabaseTimezone(published.versionId(), "America/New_York");
+      assertThat(losAngeles).isEqualTo(original);
+      assertThat(tokyo).isEqualTo(original);
+    } finally {
+      TimeZone.setDefault(originalJvmTimezone);
+    }
   }
 
   @Test void firstAtomicPublicationAfterLegacyPartialBecomesVersionTwo() {
@@ -207,6 +318,24 @@ class StaffingPlanPublicationIntegrationTest {
             "coverage_covered", 1,
             "coverage_missing", 0,
             "coverage_overstaffed", 1));
+    assertThat(jdbc.queryForMap("""
+        select sum(required)::int required,sum(raw_assigned)::int raw_assigned,
+          sum(effective_assigned)::int effective_assigned,sum(covered)::int covered,
+          sum(missing)::int missing,sum(overstaffed)::int overstaffed,
+          sum(open_positions)::int open_positions
+        from staffing_plan_version_requirement_coverage where version_id=?
+        """, result.versionId())).containsAllEntriesOf(Map.of(
+            "required", 1, "raw_assigned", 3, "effective_assigned", 2,
+            "covered", 1, "missing", 0, "overstaffed", 1, "open_positions", 0));
+    assertThat(jdbc.queryForMap("""
+        select count(*)::int days,sum(required)::int required,
+          sum(raw_assigned)::int raw_assigned,sum(effective_assigned)::int effective_assigned,
+          sum(covered)::int covered,sum(missing)::int missing,
+          sum(overstaffed)::int overstaffed,sum(open_positions)::int open_positions
+        from staffing_plan_version_day_coverage where version_id=?
+        """, result.versionId())).containsAllEntriesOf(Map.of(
+            "days", 7, "required", 1, "raw_assigned", 3, "effective_assigned", 2,
+            "covered", 1, "missing", 0, "overstaffed", 1, "open_positions", 0));
   }
 
   @Test void warningsRequireAcknowledgementAndFailuresRollbackOperation() {
@@ -329,6 +458,10 @@ class StaffingPlanPublicationIntegrationTest {
           Integer.class, fixture.planId())).isZero();
       assertThat(jdbc.queryForObject("select count(*) from staffing_plan_publication_operations where plan_id=?",
           Integer.class, fixture.planId())).isZero();
+      assertThat(jdbc.queryForObject("select count(*) from staffing_plan_version_requirement_coverage c join staffing_plan_versions v on v.id=c.version_id where v.plan_id=?",
+          Integer.class, fixture.planId())).isZero();
+      assertThat(jdbc.queryForObject("select count(*) from staffing_plan_version_day_coverage c join staffing_plan_versions v on v.id=c.version_id where v.plan_id=?",
+          Integer.class, fixture.planId())).isZero();
       assertThat(jdbc.queryForObject("select latest_published_version_id is null from staffing_plans where id=?",
           Boolean.class, fixture.planId())).isTrue();
     }
@@ -429,7 +562,7 @@ class StaffingPlanPublicationIntegrationTest {
         from staffing_plan_versions where id=?
         """, result.versionId());
     assertThat(header.get("publication_kind")).isEqualTo("ATOMIC_WEEKLY");
-    assertThat(header.get("coverage_basis")).isEqualTo("LEGACY_V90");
+    assertThat(header.get("coverage_basis")).isEqualTo("CANONICAL_REQUIREMENT_V1");
     assertThat(header.get("source_draft_complete")).isEqualTo(true);
     assertThat(header.get("published_by_membership_id")).isEqualTo(fixture.owner().getId());
     assertThat(header.get("publication_note")).isEqualTo("Complete snapshot");
@@ -791,6 +924,39 @@ class StaffingPlanPublicationIntegrationTest {
         Long.class, planId);
   }
 
+  private void assertNoPartialPublication(Fixture fixture) {
+    assertThat(jdbc.queryForObject(
+        "select count(*) from staffing_plan_versions where plan_id=?", Integer.class,
+        fixture.planId())).isZero();
+    assertThat(jdbc.queryForObject(
+        "select count(*) from staffing_plan_publication_operations where plan_id=?", Integer.class,
+        fixture.planId())).isZero();
+    assertThat(jdbc.queryForObject(
+        "select latest_published_version_id is null from staffing_plans where id=?", Boolean.class,
+        fixture.planId())).isTrue();
+  }
+
+  private static StaffingPlanCoverageService.CoverageResult withRequirementCoverage(
+      StaffingPlanCoverageService.CoverageResult source,
+      List<StaffingPlanCoverageService.RequirementCoverage> requirements) {
+    return new StaffingPlanCoverageService.CoverageResult(source.planId(), source.organizationId(),
+        source.unitId(), source.weekStart(), source.draftRevision(), source.required(),
+        source.assigned(), source.effectiveAssigned(), source.covered(), source.missing(),
+        source.overstaffed(), source.percentage(), source.openPositions(), requirements,
+        source.dayCoverage(), source.issues(), source.blockingIssueCount(), source.warningCount(),
+        source.informationCount(), source.publishable());
+  }
+
+  private static StaffingPlanCoverageService.RequirementCoverage withRequirementId(
+      StaffingPlanCoverageService.RequirementCoverage source, UUID requirementId) {
+    return new StaffingPlanCoverageService.RequirementCoverage(requirementId, source.planDayId(),
+        source.date(), source.unitId(), source.unitName(), source.workTypeId(),
+        source.workTypeCode(), source.workTypeName(), source.startTime(), source.endTime(),
+        source.required(), source.assigned(), source.effectiveAssigned(), source.covered(),
+        source.missing(), source.overstaffed(), source.percentage(), source.assignmentIds(),
+        source.effectiveAssignmentIds(), source.issueKeys());
+  }
+
   private String sourceFingerprint(Fixture fixture) {
     try {
       Object writer = applicationContext.getBean("staffingPlanPublicationWriter");
@@ -802,6 +968,20 @@ class StaffingPlanPublicationIntegrationTest {
     } catch (ReflectiveOperationException exception) {
       throw new IllegalStateException("cannot inspect publication source fingerprint", exception);
     }
+  }
+
+  private String checksumInDatabaseTimezone(UUID versionId, String timezone) {
+    return new TransactionTemplate(transactionManager).execute(status -> {
+      jdbc.execute("set local time zone '" + timezone.replace("'", "''") + "'");
+      try {
+        Object writer = applicationContext.getBean("staffingPlanPublicationWriter");
+        var method = writer.getClass().getDeclaredMethod("calculateAndStoreChecksum", UUID.class);
+        method.setAccessible(true);
+        return (String) method.invoke(writer, versionId);
+      } catch (ReflectiveOperationException exception) {
+        throw new IllegalStateException("cannot recalculate publication checksum", exception);
+      }
+    });
   }
 
   private static void await(CountDownLatch latch) {

@@ -113,10 +113,11 @@ class StaffingPlanPublicationWriter {
           published_at,timezone,week_start,coverage_required,coverage_assigned,
           coverage_raw_assigned,coverage_effective_assigned,coverage_covered,coverage_missing,
           coverage_overstaffed,coverage_percentage,
-          coverage_basis,warning_count,checksum,publication_kind,source_draft_complete,publication_note,created_at)
+          coverage_basis,warning_count,checksum,checksum_format_version,publication_kind,
+          source_draft_complete,publication_note,created_at)
         values (:id,:org,:unit,:plan,:number,:revision,:previous,:publisher,:publisherName,:publishedAt,
           :timezone,:weekStart,:required,:effectiveAssigned,:rawAssigned,:effectiveAssigned,:covered,
-          :missing,:overstaffed,:percentage,'LEGACY_V90',:warningCount,:checksum,
+          :missing,:overstaffed,:percentage,'CANONICAL_REQUIREMENT_V1',:warningCount,:checksum,2,
           'ATOMIC_WEEKLY',true,:note,:publishedAt)
         """, params("id",versionId,"org",organizationId,"unit",unitId,"plan",planId,
         "number",versionNumber,"revision",revision,"previous",previousVersionId,"publisher",publisherId,
@@ -190,6 +191,75 @@ class StaffingPlanPublicationWriter {
       """, p);
   }
 
+  void snapshotRequirementCoverage(UUID versionId, UUID organizationId, UUID unitId,
+      java.time.LocalDate weekStart, StaffingPlanCoverageService.CoverageResult coverage,
+      OffsetDateTime createdAt) {
+    Map<UUID, UUID> versionRequirementIds = new HashMap<>();
+    jdbc.query("""
+        select id, source_requirement_id
+        from staffing_plan_version_requirements
+        where version_id=:version
+        """, params("version", versionId), (org.springframework.jdbc.core.RowCallbackHandler) rs ->
+        versionRequirementIds.put(rs.getObject("source_requirement_id", UUID.class),
+            rs.getObject("id", UUID.class)));
+    Set<UUID> snapshotRequirementIds = Set.copyOf(versionRequirementIds.keySet());
+    Set<UUID> coverageRequirementIds = coverage.requirementCoverage().stream()
+        .map(StaffingPlanCoverageService.RequirementCoverage::requirementId)
+        .collect(java.util.stream.Collectors.toSet());
+    if (coverageRequirementIds.size() != coverage.requirementCoverage().size()
+        || !snapshotRequirementIds.equals(coverageRequirementIds)) {
+      throw new IllegalStateException("Coverage does not match the requirement snapshot");
+    }
+    for (StaffingPlanCoverageService.RequirementCoverage value : coverage.requirementCoverage()) {
+      UUID versionRequirementId = versionRequirementIds.get(value.requirementId());
+      if (versionRequirementId == null) {
+        throw new IllegalStateException("Coverage references an unknown requirement snapshot");
+      }
+      jdbc.update("""
+          insert into staffing_plan_version_requirement_coverage (
+            id,organization_id,unit_id,version_id,week_start,version_requirement_id,
+            source_requirement_id,work_date,required,raw_assigned,effective_assigned,
+            covered,missing,overstaffed,percentage,open_positions,created_at)
+          values (:id,:organization,:unit,:version,:weekStart,:versionRequirement,
+            :sourceRequirement,:date,:required,:rawAssigned,:effectiveAssigned,
+            :covered,:missing,:overstaffed,:percentage,:openPositions,:createdAt)
+          """, params("id", UUID.randomUUID(), "organization", organizationId, "unit", unitId,
+          "version", versionId, "weekStart", weekStart,
+          "versionRequirement", versionRequirementId,
+          "sourceRequirement", value.requirementId(), "date", value.date(),
+          "required", value.required(), "rawAssigned", value.assigned(),
+          "effectiveAssigned", value.effectiveAssigned(), "covered", value.covered(),
+          "missing", value.missing(), "overstaffed", value.overstaffed(),
+          "percentage", value.percentage(), "openPositions", value.missing(),
+          "createdAt", createdAt));
+    }
+  }
+
+  void snapshotDayCoverage(UUID versionId, UUID organizationId, UUID unitId,
+      java.time.LocalDate weekStart, StaffingPlanCoverageService.CoverageResult coverage,
+      OffsetDateTime createdAt) {
+    if (coverage.dayCoverage().size() != 7) {
+      throw new IllegalStateException("Atomic weekly coverage must contain exactly seven days");
+    }
+    for (StaffingPlanCoverageService.DayCoverage value : coverage.dayCoverage()) {
+      jdbc.update("""
+          insert into staffing_plan_version_day_coverage (
+            id,organization_id,unit_id,version_id,week_start,work_date,required,
+            raw_assigned,effective_assigned,covered,missing,overstaffed,percentage,
+            open_positions,created_at)
+          values (:id,:organization,:unit,:version,:weekStart,:date,:required,
+            :rawAssigned,:effectiveAssigned,:covered,:missing,:overstaffed,:percentage,
+            :openPositions,:createdAt)
+          """, params("id", UUID.randomUUID(), "organization", organizationId, "unit", unitId,
+          "version", versionId, "weekStart", weekStart, "date", value.date(),
+          "required", value.required(), "rawAssigned", value.assigned(),
+          "effectiveAssigned", value.effectiveAssigned(), "covered", value.covered(),
+          "missing", value.missing(), "overstaffed", value.overstaffed(),
+          "percentage", value.percentage(), "openPositions", value.openPositions(),
+          "createdAt", createdAt));
+    }
+  }
+
   void acknowledgements(UUID versionId,
       Collection<StaffingPlanCoverageService.PlanningIssue> acknowledged, UUID publisherId,
       String publisherName, OffsetDateTime now) {
@@ -209,7 +279,8 @@ class StaffingPlanPublicationWriter {
           v.coverage_required::text,v.coverage_assigned::text,v.coverage_raw_assigned::text,
           v.coverage_effective_assigned::text,v.coverage_covered::text,
           v.coverage_missing::text,v.coverage_overstaffed::text,v.coverage_percentage::text,
-          v.coverage_basis,v.warning_count::text,v.publication_kind,v.source_draft_complete,v.publication_note)::text,
+          v.coverage_basis,v.warning_count::text,v.checksum_format_version::text,
+          v.publication_kind,v.source_draft_complete,v.publication_note)::text,
         '|days:',coalesce((select jsonb_agg(jsonb_build_array(to_char(d.work_date,'YYYY-MM-DD'),
           d.rooms_context::text,d.notes,d.source) order by d.work_date)::text from staffing_plan_version_days d where d.version_id=v.id),'[]'),
         '|requirements:',coalesce((select jsonb_agg(jsonb_build_array(r.source_requirement_id::text,
@@ -235,7 +306,18 @@ class StaffingPlanPublicationWriter {
         '|acknowledgements:',coalesce((select jsonb_agg(jsonb_build_array(a.issue_key,a.severity,
           a.acknowledged_by_membership_id::text,a.acknowledged_by_display_name,
           to_char(a.acknowledged_at at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"'),a.note)
-          order by a.issue_key)::text from staffing_plan_version_acknowledgements a where a.version_id=v.id),'[]')
+          order by a.issue_key)::text from staffing_plan_version_acknowledgements a where a.version_id=v.id),'[]'),
+        '|requirementCoverage:',coalesce((select jsonb_agg(jsonb_build_array(
+          c.source_requirement_id::text,to_char(c.work_date,'YYYY-MM-DD'),c.required::text,
+          c.raw_assigned::text,c.effective_assigned::text,c.covered::text,c.missing::text,
+          c.overstaffed::text,c.percentage::text,c.open_positions::text)
+          order by c.work_date,c.source_requirement_id)::text
+          from staffing_plan_version_requirement_coverage c where c.version_id=v.id),'[]'),
+        '|dayCoverage:',coalesce((select jsonb_agg(jsonb_build_array(
+          to_char(c.work_date,'YYYY-MM-DD'),c.required::text,c.raw_assigned::text,
+          c.effective_assigned::text,c.covered::text,c.missing::text,c.overstaffed::text,
+          c.percentage::text,c.open_positions::text) order by c.work_date)::text
+          from staffing_plan_version_day_coverage c where c.version_id=v.id),'[]')
       ),'UTF8')),'hex') where v.id=:version
       """, params("version",versionId));
     return jdbc.queryForObject("select checksum from staffing_plan_versions where id=:version",

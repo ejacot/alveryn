@@ -423,6 +423,9 @@ public class StaffingPlanCoverageService {
         .thenComparing(RequirementCoverage::requirementId));
 
     TreeMap<LocalDate, List<RequirementCoverage>> grouped = new TreeMap<>();
+    for (int day = 0; day < 7; day++) {
+      grouped.put(plan.weekStart.plusDays(day), new ArrayList<>());
+    }
     requirementResults.forEach(value -> grouped.computeIfAbsent(value.date(), ignored -> new ArrayList<>())
         .add(value));
     List<DayCoverage> days = grouped.entrySet().stream().map(entry -> {

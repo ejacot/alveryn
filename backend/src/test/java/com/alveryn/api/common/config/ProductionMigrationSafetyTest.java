@@ -197,6 +197,82 @@ class ProductionMigrationSafetyTest {
   }
 
   @Test
+  void existingV97SchemaMigratesOnceToV98WithoutBackfillingGranularCoverage() throws Exception {
+    String schema = "flyway_v97_granular_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "97").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v98 = flyway(url, username, password, schema, "98");
+      assertThat(v98.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(v98.info().current().getVersion().getVersion()).isEqualTo("98");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plan_version_requirement_coverage", 0);
+        assertCount(statement, "staffing_plan_version_day_coverage", 0);
+        assertQueryCount(statement,
+            "select count(*) from information_schema.columns where table_schema='" + schema
+                + "' and table_name='staffing_plan_versions' and column_name='checksum_format_version'",
+            1);
+        assertQueryCount(statement,
+            "select count(*) from pg_constraint where conname='ck_staffing_plan_versions_basis' "
+                + "and connamespace=current_schema()::regnamespace "
+                + "and pg_get_constraintdef(oid) like '%LEGACY_V90%' "
+                + "and pg_get_constraintdef(oid) like '%CANONICAL_REQUIREMENT_V1%'",
+            1);
+        for (String constraint : List.of(
+            "ck_version_requirement_coverage_values",
+            "ck_version_requirement_coverage_week",
+            "ux_version_requirement_coverage_snapshot",
+            "ck_version_day_coverage_values",
+            "ck_version_day_coverage_week",
+            "ux_version_day_coverage_date")) {
+          assertQueryCount(statement,
+              "select count(*) from pg_constraint where conname='" + constraint
+                  + "' and connamespace=current_schema()::regnamespace", 1);
+        }
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
+  void existingV96SchemaMigratesThroughInvitationsAndGranularCoverageToV98() throws Exception {
+    String schema = "flyway_v96_to_v98_" + UUID.randomUUID().toString().replace("-", "");
+    String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/alveryn");
+    String username = System.getenv().getOrDefault("DB_USERNAME", "alveryn");
+    String password = System.getenv().getOrDefault("DB_PASSWORD", "change-me");
+    try {
+      assertThat(flyway(url, username, password, schema, "96").migrate().migrationsExecuted)
+          .isGreaterThan(0);
+      Flyway v98 = flyway(url, username, password, schema, "98");
+      assertThat(v98.migrate().migrationsExecuted).isEqualTo(2);
+      assertThat(v98.info().current().getVersion().getVersion()).isEqualTo("98");
+      assertThat(
+              List.of(v98.info().applied())
+                  .stream()
+                  .filter(info -> info.getVersion() != null)
+                  .filter(info -> List.of("97", "98").contains(info.getVersion().getVersion()))
+                  .map(info -> info.getDescription())
+                  .toList())
+          .containsExactly(
+              "secure business invitations", "add granular staffing coverage snapshots");
+      try (var connection = DriverManager.getConnection(url, username, password);
+          var statement = connection.createStatement()) {
+        statement.execute("set search_path to " + schema);
+        assertCount(statement, "staffing_plan_version_requirement_coverage", 0);
+        assertCount(statement, "staffing_plan_version_day_coverage", 0);
+      }
+    } finally {
+      clean(url, username, password, schema);
+    }
+  }
+
+  @Test
   void existingV90StaffingDataBackfillsWeeklyPlansAndLegacyVersionWithoutChangingRows()
       throws Exception {
     String schema = "flyway_v90_staffing_" + UUID.randomUUID().toString().replace("-", "");
@@ -218,8 +294,8 @@ class ProductionMigrationSafetyTest {
       }
 
       Flyway latest = flyway(url, username, password, schema, null);
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(7);
-      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("97");
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(8);
+      assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("98");
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {
@@ -237,6 +313,10 @@ class ProductionMigrationSafetyTest {
         assertCount(statement, "staffing_plan_version_acknowledgements", 0);
         assertCount(statement, "staffing_plan_publication_operations", 0);
         assertCount(statement, "staffing_plan_draft_mutation_operations", 0);
+        assertCount(statement, "staffing_plan_version_requirement_coverage", 0);
+        assertCount(statement, "staffing_plan_version_day_coverage", 0);
+        assertQueryCount(statement,
+            "select count(*) from staffing_plan_versions where checksum_format_version=1", 1);
         assertQueryCount(statement,
             "select count(*) from staffing_requirements where plan_day_id is null", 0);
         assertQueryCount(statement,
@@ -657,13 +737,13 @@ class ProductionMigrationSafetyTest {
       insertV90StaffingFixture(url, username, password, normalSchema, false);
       assertThat(flywayAtTimezone(url, username, password, normalSchema, null, "UTC")
           .migrate().migrationsExecuted)
-          .isEqualTo(7);
+          .isEqualTo(8);
 
       flywayAtTimezone(url, username, password, reversedSchema, "90", "Europe/Berlin").migrate();
       insertV90StaffingFixture(url, username, password, reversedSchema, true);
       assertThat(flywayAtTimezone(url, username, password, reversedSchema, null, "Europe/Berlin")
           .migrate().migrationsExecuted)
-          .isEqualTo(7);
+          .isEqualTo(8);
 
       try (var connection = DriverManager.getConnection(url, username, password);
           var statement = connection.createStatement()) {

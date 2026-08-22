@@ -226,7 +226,8 @@ public class StaffingPlanQueryService {
         select id, version_number, source_draft_revision, coverage_required,
           coverage_raw_assigned, coverage_effective_assigned, coverage_covered,
           coverage_missing, coverage_overstaffed, coverage_percentage, coverage_basis,
-          warning_count, checksum, publication_kind, source_draft_complete, publication_note,
+          warning_count, checksum, checksum_format_version, publication_kind,
+          source_draft_complete, publication_note,
           published_by_display_name, published_at, timezone, week_start
         from staffing_plan_versions
         where organization_id=:organization and unit_id=:unit and plan_id=:plan
@@ -294,14 +295,44 @@ public class StaffingPlanQueryService {
         """, versionParam, (rs, row) -> new VersionAcknowledgementResponse(
         rs.getString("issue_key"), rs.getString("severity"),
         rs.getObject("acknowledged_at", OffsetDateTime.class)));
+    List<VersionRequirementCoverageResponse> requirementCoverage = jdbc.query("""
+        select c.source_requirement_id, c.work_date, r.work_type_code, r.work_type_name,
+          c.required, c.raw_assigned, c.effective_assigned, c.covered, c.missing,
+          c.overstaffed, c.percentage, c.open_positions
+        from staffing_plan_version_requirement_coverage c
+        join staffing_plan_version_requirements r
+          on r.id=c.version_requirement_id and r.version_id=c.version_id
+        where c.version_id=:version
+        order by c.work_date, r.work_type_code, c.source_requirement_id
+        """, versionParam, (rs, row) -> new VersionRequirementCoverageResponse(
+        rs.getObject("source_requirement_id", UUID.class),
+        rs.getObject("work_date", LocalDate.class), rs.getString("work_type_code"),
+        rs.getString("work_type_name"), rs.getInt("required"), rs.getInt("raw_assigned"),
+        rs.getInt("effective_assigned"), rs.getInt("covered"), rs.getInt("missing"),
+        rs.getInt("overstaffed"), rs.getBigDecimal("percentage"),
+        rs.getInt("open_positions")));
+    List<VersionDayCoverageResponse> dayCoverage = jdbc.query("""
+        select work_date, required, raw_assigned, effective_assigned, covered, missing,
+          overstaffed, percentage, open_positions
+        from staffing_plan_version_day_coverage
+        where version_id=:version order by work_date
+        """, versionParam, (rs, row) -> new VersionDayCoverageResponse(
+        rs.getObject("work_date", LocalDate.class), rs.getInt("required"),
+        rs.getInt("raw_assigned"), rs.getInt("effective_assigned"), rs.getInt("covered"),
+        rs.getInt("missing"), rs.getInt("overstaffed"), rs.getBigDecimal("percentage"),
+        rs.getInt("open_positions")));
+    boolean granularCoverageAvailable = version.checksumFormatVersion == 2
+        && requirementCoverage.size() == requirements.size() && dayCoverage.size() == 7;
     VersionDetailResponse response = new VersionDetailResponse(version.id, planId, organizationId,
         authorized.plan.unitId, version.versionNumber, version.sourceDraftRevision,
         version.required, version.rawAssigned, version.effectiveAssigned, version.covered,
         version.missing, version.overstaffed, version.percentage, version.coverageBasis,
-        version.warningCount, version.checksum, version.publicationKind,
-        version.sourceDraftComplete, version.publisherDisplayName,
-        version.publishedAt, version.timezone, version.weekStart, days, requirements, assignments,
-        memberDays, acknowledgements);
+        version.warningCount, version.checksum, version.checksumFormatVersion,
+        granularCoverageAvailable, version.publicationKind,
+        version.sourceDraftComplete, version.publishedAt, version.timezone, version.weekStart,
+        days, requirements, assignments,
+        memberDays, acknowledgements, granularCoverageAvailable ? requirementCoverage : List.of(),
+        granularCoverageAvailable ? dayCoverage : List.of());
     return new QueryResult<>(response, etag, true, false);
   }
 
@@ -647,6 +678,7 @@ public class StaffingPlanQueryService {
         integer(rs, "coverage_covered"), integer(rs, "coverage_missing"),
         integer(rs, "coverage_overstaffed"), rs.getBigDecimal("coverage_percentage"),
         rs.getString("coverage_basis"), rs.getInt("warning_count"), rs.getString("checksum"),
+        rs.getInt("checksum_format_version"),
         rs.getString("publication_kind"), rs.getBoolean("source_draft_complete"),
         rs.getString("publication_note"), rs.getString("published_by_display_name"),
         rs.getObject("published_at", OffsetDateTime.class), rs.getString("timezone"),
@@ -708,7 +740,8 @@ public class StaffingPlanQueryService {
   private record VersionRow(UUID id, int versionNumber, long sourceDraftRevision,
       Integer required, Integer rawAssigned, Integer effectiveAssigned, Integer covered,
       Integer missing, Integer overstaffed, BigDecimal percentage, String coverageBasis,
-      int warningCount, String checksum, String publicationKind, boolean sourceDraftComplete,
+      int warningCount, String checksum, int checksumFormatVersion, String publicationKind,
+      boolean sourceDraftComplete,
       String publicationNote, String publisherDisplayName, OffsetDateTime publishedAt,
       String timezone, LocalDate weekStart) {}
 

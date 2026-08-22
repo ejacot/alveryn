@@ -71,7 +71,7 @@ class StaffingPlanCoverageIntegrationTest {
     assertThat(result.requirement(first).covered()).isEqualTo(2);
     assertThat(result.requirement(first).overstaffed()).isEqualTo(1);
     assertThat(result.requirement(second).missing()).isEqualTo(1);
-    assertThat(result.dayCoverage()).singleElement().satisfies(day -> {
+    assertThat(result.dayCoverage()).hasSize(7).first().satisfies(day -> {
       assertThat(day.required()).isEqualTo(4);
       assertThat(day.covered()).isEqualTo(3);
       assertThat(day.openPositions()).isEqualTo(1);
@@ -395,7 +395,7 @@ class StaffingPlanCoverageIntegrationTest {
     assertThat(after.percentage()).isEqualByComparingTo("100.00");
     assertThat(after.requirement(spa).effectiveAssigned()).isEqualTo(2);
     assertThat(after.requirement(spa).covered()).isEqualTo(2);
-    assertThat(after.dayCoverage()).singleElement().satisfies(day -> {
+    assertThat(after.dayCoverage()).hasSize(7).first().satisfies(day -> {
       assertThat(day.required()).isEqualTo(16);
       assertThat(day.covered()).isEqualTo(16);
       assertThat(day.openPositions()).isZero();

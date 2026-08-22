@@ -236,6 +236,120 @@ class StaffingPlanQueryIntegrationTest {
   }
 
   @Test
+  void atomicVersionDetailExposesOnlyImmutableGranularCoverage() throws Exception {
+    Fixture fixture = fixture(1, true);
+    publishAtomic(fixture.organizationId, fixture.unitId, fixture.planId, "2026-08-10",
+        "granular-version-detail");
+
+    var result = mvc.perform(get(
+            "/api/organizations/{org}/staffing/plans/{plan}/versions/1",
+            fixture.organizationId, fixture.planId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.checksumFormatVersion").value(2))
+        .andExpect(jsonPath("$.data.granularCoverageAvailable").value(true))
+        .andExpect(jsonPath("$.data.publicationKind").value("ATOMIC_WEEKLY"))
+        .andExpect(jsonPath("$.data.coverageBasis").value("CANONICAL_REQUIREMENT_V1"))
+        .andExpect(jsonPath("$.data.requirementCoverage.length()").value(1))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].sourceRequirementId")
+            .value(fixture.requirementId))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].required").value(1))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].rawAssigned").value(1))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].effectiveAssigned").value(1))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].covered").value(1))
+        .andExpect(jsonPath("$.data.requirementCoverage[0].missing").value(0))
+        .andExpect(jsonPath("$.data.dayCoverage.length()").value(7))
+        .andExpect(jsonPath("$.data.dayCoverage[0].date").value("2026-08-10"))
+        .andExpect(jsonPath("$.data.dayCoverage[6].date").value("2026-08-16"))
+        .andReturn();
+    String etag = result.getResponse().getHeader(HttpHeaders.ETAG);
+    String immutableBody = result.getResponse().getContentAsString();
+
+    jdbc.update("update staffing_requirements set required_workers=9 where id=?::uuid",
+        fixture.requirementId);
+    jdbc.update("update staffing_assignments set assignment_status='CANCELLED' where id=?::uuid",
+        fixture.assignmentId);
+    mvc.perform(get("/api/organizations/{org}/staffing/plans/{plan}/versions/1",
+            fixture.organizationId, fixture.planId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(resultAfter -> assertThat(resultAfter.getResponse().getContentAsString())
+            .isEqualTo(immutableBody));
+    mvc.perform(get("/api/organizations/{org}/staffing/plans/{plan}/versions/1",
+            fixture.organizationId, fixture.planId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner))
+            .header(HttpHeaders.IF_NONE_MATCH, "W/" + etag))
+        .andExpect(status().isNotModified())
+        .andExpect(resultAfter -> assertThat(resultAfter.getResponse().getContentAsByteArray())
+            .isEmpty());
+  }
+
+  @Test
+  void atomicVersionDetailAddsExactlyTwoConstantBatchQueriesAtLargeScale() throws Exception {
+    Fixture small = fixture(1, true);
+    publishAtomic(small.organizationId, small.unitId, small.planId, "2026-08-10",
+        "small-version-query-bound");
+    clearAllQueries();
+    mvc.perform(get("/api/organizations/{org}/staffing/plans/{plan}/versions/1",
+            small.organizationId, small.planId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.requirementCoverage.length()").value(1));
+    QueryCounts smallQueries = queryCounts();
+    assertThat(granularCoverageQueries()).isEqualTo(2);
+
+    Fixture large = fixture(1, true);
+    UUID organizationId = UUID.fromString(large.organizationId);
+    UUID unitId = UUID.fromString(large.unitId);
+    UUID planId = UUID.fromString(large.planId);
+    UUID workTypeId = UUID.fromString(large.workTypeId);
+    UUID planDayId = jdbc.queryForObject(
+        "select id from staffing_plan_days where plan_id=?", UUID.class, planId);
+    UUID ownerMembership = jdbc.queryForObject("""
+        select id from organization_memberships
+        where organization_id=? and membership_role='OWNER'
+        """, UUID.class, organizationId);
+    for (int index = 1; index < 72; index++) {
+      UUID requirementId = UUID.randomUUID();
+      UUID membershipId = UUID.randomUUID();
+      jdbc.update("""
+          insert into organization_memberships(id,organization_id,first_name,last_name,
+            membership_role,membership_status,joined_at,created_at,updated_at)
+          values(?,?,?,?,'EMPLOYEE','ACTIVE',current_timestamp,current_timestamp,current_timestamp)
+          """, membershipId, organizationId, "Version worker", Integer.toString(index));
+      jdbc.update("""
+          insert into staffing_requirements(id,plan_day_id,organization_id,unit_id,work_type_id,
+            work_date,start_time,end_time,required_workers,publication_status,
+            created_by_membership_id,created_at,updated_at)
+          values(?,?,?,?,?,'2026-08-10','12:00','20:30',1,'DRAFT',?,
+            current_timestamp,current_timestamp)
+          """, requirementId, planDayId, organizationId, unitId, workTypeId, ownerMembership);
+      jdbc.update("""
+          insert into staffing_assignments(id,requirement_id,membership_id,assignment_status,
+            assigned_by_membership_id,created_at,updated_at)
+          values(?,?,?,'ASSIGNED',?,current_timestamp,current_timestamp)
+          """, UUID.randomUUID(), requirementId, membershipId, ownerMembership);
+    }
+    publishAtomic(large.organizationId, large.unitId, large.planId, "2026-08-10",
+        "large-version-query-bound");
+    clearAllQueries();
+    mvc.perform(get("/api/organizations/{org}/staffing/plans/{plan}/versions/1",
+            large.organizationId, large.planId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.requirementCoverage.length()").value(72))
+        .andExpect(jsonPath("$.data.assignments.length()").value(72));
+    QueryCounts largeQueries = queryCounts();
+
+    assertThat(granularCoverageQueries()).isEqualTo(2);
+    assertThat(largeQueries.named()).isEqualTo(smallQueries.named());
+    assertThat(largeQueries.hibernate()).isEqualTo(smallQueries.hibernate());
+    assertThat(largeQueries.total()).isEqualTo(smallQueries.total());
+    assertThat(largeQueries.named()).isLessThanOrEqualTo(9);
+    assertThat(largeQueries.total()).isLessThanOrEqualTo(15);
+  }
+
+  @Test
   void versionsAreImmutableSnapshotReadsWithStableConditionalEtag() throws Exception {
     Fixture fixture = fixture(1, true);
     UUID versionId = UUID.randomUUID();
@@ -378,11 +492,15 @@ class StaffingPlanQueryIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.requirements[0].workTypeCode").value("PF"))
         .andExpect(jsonPath("$.data.assignments[0].memberDisplayName").value("Ana Query"))
+        .andExpect(jsonPath("$.data.checksumFormatVersion").value(1))
+        .andExpect(jsonPath("$.data.granularCoverageAvailable").value(false))
+        .andExpect(jsonPath("$.data.requirementCoverage").isEmpty())
+        .andExpect(jsonPath("$.data.dayCoverage").isEmpty())
         .andReturn();
     QueryCounts versionDetailQueries = queryCounts();
-    assertThat(versionDetailQueries.named()).isLessThanOrEqualTo(7);
+    assertThat(versionDetailQueries.named()).isLessThanOrEqualTo(9);
     assertThat(versionDetailQueries.hibernate()).isLessThanOrEqualTo(6);
-    assertThat(versionDetailQueries.total()).isLessThanOrEqualTo(13);
+    assertThat(versionDetailQueries.total()).isLessThanOrEqualTo(15);
     String etag = result.getResponse().getHeader(HttpHeaders.ETAG);
     assertThat(etag).isEqualTo("\"plan-version-" + versionId + "-" + checksum + "\"");
     String originalSnapshot = result.getResponse().getContentAsString();
@@ -842,6 +960,15 @@ class StaffingPlanQueryIntegrationTest {
   private long observedQueries() {
     return mockingDetails(observedQueryJdbc).getInvocations().stream()
         .filter(value -> value.getMethod().getName().equals("query")).count();
+  }
+
+  private long granularCoverageQueries() {
+    return mockingDetails(observedQueryJdbc).getInvocations().stream()
+        .filter(value -> value.getMethod().getName().equals("query"))
+        .map(value -> value.getArgument(0, String.class))
+        .filter(sql -> sql.contains("staffing_plan_version_requirement_coverage")
+            || sql.contains("staffing_plan_version_day_coverage"))
+        .count();
   }
 
   private void clearAllQueries() {
