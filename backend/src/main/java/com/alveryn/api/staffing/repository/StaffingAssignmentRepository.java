@@ -55,4 +55,23 @@ public interface StaffingAssignmentRepository extends JpaRepository<StaffingAssi
       @Param("membershipId") UUID membershipId,
       @Param("from") java.time.LocalDate from,
       @Param("to") java.time.LocalDate to);
+
+  @Query("""
+      select assignment from StaffingAssignment assignment
+      join fetch assignment.requirement requirement
+      join fetch requirement.unit
+      join fetch requirement.workType
+      join fetch assignment.membership membership
+      left join fetch membership.user
+      where requirement.organization.id = :organizationId
+        and membership.id = :membershipId
+        and assignment.status = 'ASSIGNED'
+        and requirement.date between :from and :to
+      order by requirement.date asc, requirement.startTime asc, assignment.createdAt asc
+      """)
+  List<StaffingAssignment> findAssignedForMemberReport(
+      @Param("organizationId") UUID organizationId,
+      @Param("membershipId") UUID membershipId,
+      @Param("from") java.time.LocalDate from,
+      @Param("to") java.time.LocalDate to);
 }

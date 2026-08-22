@@ -21,7 +21,7 @@ import type {
   WeeklySchedulePayload
 } from "../types/schedule";
 import type { EmploymentRestDay } from "../types/rest-day";
-import type { BusinessAbsenceRequest, BusinessWorkType, Organization, OrganizationMember, OrganizationUnit, PersonalBusinessSchedule, StaffingAssignmentResult, StaffingChangeEvent, StaffingDayEntry, StaffingRequirement } from "../types/business";
+import type { BusinessAbsenceRequest, BusinessWorkType, Organization, OrganizationMember, OrganizationUnit, PersonalBusinessSchedule, StaffingAssignmentResult, StaffingChangeEvent, StaffingDayEntry, StaffingRequirement, TeamMemberHours } from "../types/business";
 import type { WorkProject, WorkProjectPayload } from "../types/work-project";
 import type {
   DataImportAnalysisResponse,
@@ -1095,6 +1095,7 @@ export async function saveMyStaffingResult(assignmentId: string, payload: { actu
 export async function checkInBusinessAssignment(assignmentId:string){const response=await http.post<ApiResponse<StaffingAssignmentResult>>(`/api/my/business-schedule/assignments/${assignmentId}/check-in`);return response.data.data;}
 export async function checkOutBusinessAssignment(assignmentId:string){const response=await http.post<ApiResponse<StaffingAssignmentResult>>(`/api/my/business-schedule/assignments/${assignmentId}/check-out`);return response.data.data;}
 export async function listPendingStaffingResults(organizationId: string) { const response = await http.get<ApiResponse<StaffingAssignmentResult[]>>(`/api/organizations/${organizationId}/staffing/results/pending`); return response.data.data; }
+export async function getTeamMemberHours(organizationId:string,membershipId:string,from:string,to:string){const response=await http.get<ApiResponse<TeamMemberHours>>(`/api/organizations/${organizationId}/staffing/members/${membershipId}/hours`,{params:{from,to}});return response.data.data;}
 export async function approveStaffingResult(organizationId: string, resultId: string, payload: { actualStartTime: string | null; actualEndTime: string | null; breakMinutes: number; completedQuantity: number | null; notes: string | null }) { const response = await http.put<ApiResponse<StaffingAssignmentResult>>(`/api/organizations/${organizationId}/staffing/results/${resultId}/approve`, payload); return response.data.data; }
 export async function listMyBusinessAbsenceRequests(){const response=await http.get<ApiResponse<BusinessAbsenceRequest[]>>("/api/my/business-schedule/absence-requests");return response.data.data;}
 export async function createMyBusinessAbsenceRequest(payload:{organizationId:string;type:BusinessAbsenceRequest["type"];startDate:string;endDate:string;notes:string|null}){const response=await http.post<ApiResponse<BusinessAbsenceRequest>>("/api/my/business-schedule/absence-requests",payload);return response.data.data;}

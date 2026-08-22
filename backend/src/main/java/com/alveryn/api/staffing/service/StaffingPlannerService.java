@@ -10,6 +10,7 @@ import com.alveryn.api.staffing.dto.StaffingDtos.*;
 import com.alveryn.api.staffing.entity.*;
 import com.alveryn.api.staffing.repository.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 import jakarta.persistence.EntityManager;
@@ -307,6 +308,56 @@ public class StaffingPlannerService {
     access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
     return assignmentResults.findAllByAssignmentRequirementOrganizationIdAndApprovalStatusOrderBySubmittedAtAsc(organizationId, "SUBMITTED").stream().map(this::resultResponse).toList();
   }
+  @Transactional(readOnly = true)
+  public TeamMemberHoursResponse memberHours(UUID organizationId, UUID membershipId, LocalDate from,
+      LocalDate to) {
+    if (to.isBefore(from) || to.isAfter(from.plusDays(366))) {
+      throw new IllegalArgumentException("invalid hours range");
+    }
+    access.require(organizationId, OrganizationPermission.VIEW_TEAM_HOURS);
+    var member = memberships.findByIdAndOrganizationId(membershipId, organizationId)
+        .orElseThrow(() -> new NotFoundException("Organization member", membershipId));
+    var allowedUnits = access.unitAccessFilter(organizationId, OrganizationPermission.VIEW_TEAM_HOURS);
+    var memberAssignments = assignments.findAssignedForMemberReport(organizationId, membershipId, from, to);
+    var assignmentsForMember = memberAssignments.stream()
+        .filter(value -> allowedUnits.test(value.getRequirement().getUnit())).toList();
+    if ((assignmentsForMember.isEmpty() && !memberAssignments.isEmpty())
+        || (assignmentsForMember.isEmpty() && member.getStatus() != MembershipStatus.ACTIVE)) {
+      throw new NotFoundException("Organization member", membershipId);
+    }
+    var resultsByAssignment = assignmentsForMember.isEmpty() ? Map.<UUID, StaffingAssignmentResult>of()
+        : assignmentResults.findAllForAssignments(assignmentsForMember.stream()
+            .map(StaffingAssignment::getId).toList()).stream()
+            .collect(java.util.stream.Collectors.toMap(value -> value.getAssignment().getId(), value -> value));
+    Map<LocalDate, List<StaffingAssignment>> byDate = assignmentsForMember.stream()
+        .collect(java.util.stream.Collectors.groupingBy(value -> value.getRequirement().getDate(), TreeMap::new,
+            java.util.stream.Collectors.toList()));
+    List<TeamHoursDayResponse> days = byDate.entrySet().stream().map(entry -> {
+      int planned = entry.getValue().stream().mapToInt(this::plannedMinutes).sum();
+      List<StaffingAssignmentResult> results = entry.getValue().stream()
+          .map(value -> resultsByAssignment.get(value.getId())).filter(Objects::nonNull).toList();
+      int worked = results.stream().map(this::calculatedMinutes).filter(Objects::nonNull)
+          .mapToInt(Integer::intValue).sum();
+      int open = (int) results.stream().filter(value -> value.getCheckedInAt() != null
+          && value.getCheckedOutAt() == null).count();
+      int incomplete = (int) entry.getValue().stream().filter(value -> {
+        StaffingAssignmentResult result = resultsByAssignment.get(value.getId());
+        return result == null || (result.getCheckedInAt() == null
+            && (result.getActualStartTime() == null || result.getActualEndTime() == null));
+      }).count();
+      int corrected = (int) results.stream().filter(value -> "APPROVED".equals(value.getApprovalStatus())).count();
+      int completed = (int) results.stream().filter(value -> calculatedMinutes(value) != null).count();
+      return new TeamHoursDayResponse(entry.getKey(), planned, worked, completed, open, incomplete, corrected);
+    }).toList();
+    int planned = days.stream().mapToInt(TeamHoursDayResponse::plannedMinutes).sum();
+    int worked = days.stream().mapToInt(TeamHoursDayResponse::workedMinutes).sum();
+    return new TeamMemberHoursResponse(member.getId(), memberName(member), from, to,
+        (int) days.stream().filter(value -> value.workedMinutes() > 0).count(), planned, worked, days,
+        periods(days, value -> value.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
+            value -> value.plusDays(6)),
+        periods(days, value -> value.withDayOfMonth(1),
+            value -> value.plusMonths(1).minusDays(1)));
+  }
   @Transactional
   public AssignmentResultResponse approveResult(UUID organizationId, UUID resultId, ResultReviewRequest request) {
     var manager = access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
@@ -549,6 +600,23 @@ public class StaffingPlannerService {
     long minutes=java.time.Duration.between(value.getActualStartTime(),value.getActualEndTime()).toMinutes();
     if(minutes<0)minutes+=24*60;
     return (int)Math.max(0,minutes-value.getBreakMinutes());
+  }
+  private int plannedMinutes(StaffingAssignment value) {
+    LocalTime start = value.getStartTime() == null ? value.getRequirement().getStartTime() : value.getStartTime();
+    LocalTime end = value.getEndTime() == null ? value.getRequirement().getEndTime() : value.getEndTime();
+    if (start == null || end == null) return 0;
+    long minutes = java.time.Duration.between(start, end).toMinutes();
+    if (minutes < 0) minutes += 24 * 60;
+    return (int) Math.max(0, minutes - value.getRequirement().getWorkType().getDefaultBreakMinutes());
+  }
+  private List<TeamHoursPeriodResponse> periods(List<TeamHoursDayResponse> days,
+      java.util.function.Function<LocalDate, LocalDate> start,
+      java.util.function.Function<LocalDate, LocalDate> end) {
+    return days.stream().collect(java.util.stream.Collectors.groupingBy(value -> start.apply(value.date()),
+        TreeMap::new, java.util.stream.Collectors.toList())).entrySet().stream()
+        .map(entry -> new TeamHoursPeriodResponse(entry.getKey(), end.apply(entry.getKey()),
+            entry.getValue().stream().mapToInt(TeamHoursDayResponse::plannedMinutes).sum(),
+            entry.getValue().stream().mapToInt(TeamHoursDayResponse::workedMinutes).sum())).toList();
   }
   private StaffingAssignment ownPublishedAssignment(UUID assignmentId) {
     return assignments.findById(assignmentId)
