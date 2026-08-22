@@ -34,6 +34,7 @@ describe("preview routes", () => {
     expect(hasRoutePath("/business/:organizationId/plan/demand", routes)).toBe(true);
     expect(hasRoutePath("/business/:organizationId/plan/schedule", routes)).toBe(true);
     expect(hasRoutePath("/business/:organizationId/plan/review", routes)).toBe(true);
+    expect(hasRoutePath("/business/:organizationId/plan/:planId/versions/:versionNumber/print", routes)).toBe(true);
   });
 
   it("includes the public OAuth callback route", () => {

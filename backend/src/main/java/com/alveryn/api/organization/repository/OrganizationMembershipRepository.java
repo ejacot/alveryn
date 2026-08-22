@@ -14,4 +14,5 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
   Optional<OrganizationMembership> findByIdAndOrganizationId(UUID id, UUID organizationId);
   List<OrganizationMembership> findAllByInvitedEmailIgnoreCaseAndStatus(String email,
       com.alveryn.api.organization.entity.MembershipStatus status);
+  Optional<OrganizationMembership> findByInvitationTokenHash(String invitationTokenHash);
 }

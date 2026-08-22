@@ -142,7 +142,14 @@ public class StaffingPlanPublicationService {
     List<StaffingPlanCoverageService.PlanningIssue> acknowledgedIssues = issues.stream()
         .filter(issue -> acknowledgedKeys.contains(issue.issueKey())).toList();
     writer.acknowledgements(versionId, acknowledgedIssues, publisher.getId(), publisherName, now);
+    writer.snapshotRequirementCoverage(versionId, command.organizationId(), command.unitId(),
+        plan.getWeekStart(), coverage, now);
+    faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_REQUIREMENT_COVERAGE);
+    writer.snapshotDayCoverage(versionId, command.organizationId(), command.unitId(),
+        plan.getWeekStart(), coverage, now);
+    faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_DAY_COVERAGE);
     String checksum = writer.calculateAndStoreChecksum(versionId);
+    faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_CHECKSUM);
     String sourceAfter = writer.sourceFingerprint(command.organizationId(), command.unitId(),
         command.planId());
     if (!sourceBefore.equals(sourceAfter)) {
@@ -153,6 +160,7 @@ public class StaffingPlanPublicationService {
     StaffingPlanVersion versionReference = entityManager.getReference(StaffingPlanVersion.class, versionId);
     plan.recordPublication(versionReference, command.expectedDraftRevision(), now);
     plans.saveAndFlush(plan);
+    faultProbe.check(StaffingPlanPublicationFaultProbe.Stage.AFTER_LATEST_VERSION_POINTER);
     audit.save(new StaffingChangeEvent(plan.getOrganization(), publisher, "WEEKLY_PLAN_PUBLISHED",
         "STAFFING_PLAN", plan.getId(), plan.getWeekStart(),
         "Published weekly staffing plan v" + versionNumber));

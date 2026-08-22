@@ -64,4 +64,28 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("settings-master-pane-content")).toBeInTheDocument();
     expect(screen.queryByLabelText("Primary navigation")).not.toBeInTheDocument();
   });
+
+  it.each([
+    "/business/org-1/overview",
+    "/business/org-1/people",
+    "/business/org-1/roles",
+    "/business/org-1/locations",
+    "/business/org-1/work-types",
+  ])("gives every business product route the full-screen shell: %s", (path) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { container } = render(
+      <MemoryRouter initialEntries={[path]}>
+        <QueryClientProvider client={queryClient}>
+          <AppLayout />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector("main.business-planning-route-shell")).not.toBeNull();
+    expect(screen.queryByLabelText("Primary navigation")).not.toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+  });
 });

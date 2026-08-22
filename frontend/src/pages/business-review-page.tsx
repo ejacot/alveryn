@@ -29,7 +29,6 @@ import {
 import { getApiError } from "../api/api-errors";
 import { listOrganizations, listOrganizationUnits } from "../api/endpoints";
 import { BusinessPlanningShell } from "../components/business-planning/business-planning-shell";
-import { ImmutablePlanPrintPreview } from "../components/business-planning/immutable-plan-print";
 import type {
   ApiEntityResult,
   StaffingIssue,
@@ -84,7 +83,6 @@ export function BusinessReviewPage() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [published, setPublished] = useState<StaffingPublishResult | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-  const [printDetail, setPrintDetail] = useState<StaffingVersionDetail | null>(null);
   const [olderPages, setOlderPages] = useState<VersionPage[]>([]);
   const [olderLoading, setOlderLoading] = useState(false);
   const contextRef = useRef("");
@@ -132,7 +130,6 @@ export function BusinessReviewPage() {
     setPublicationNote("");
     setPublished(null);
     setSelectedVersion(null);
-    setPrintDetail(null);
     setOlderPages([]);
     versionPageCache.current.clear();
     versionDetailCache.current.clear();
@@ -144,7 +141,10 @@ export function BusinessReviewPage() {
     enabled: Boolean(organization && unitId),
     retry: false,
   });
-  const plan = lookupQuery.data?.data.plan ?? null;
+  const lookedUpPlan = lookupQuery.data?.data.plan ?? null;
+  const plan = lookedUpPlan?.unitId === unitId && lookedUpPlan.weekStart === weekStart
+    ? lookedUpPlan
+    : null;
   const coverageQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, plan?.planId, "coverage"],
     queryFn: () => getStaffingCoverage(organizationId, plan!.planId),
@@ -396,16 +396,15 @@ export function BusinessReviewPage() {
       ) : null}
 
       <VersionDetailDialog
-        open={selectedVersion != null && printDetail == null}
+        open={selectedVersion != null}
         versionNumber={selectedVersion}
         detail={selectedDetailQuery.data?.data ?? null}
         previous={previousDetailQuery.data?.data ?? null}
         loading={selectedDetailQuery.isLoading}
         error={selectedDetailQuery.isError ? getApiError(selectedDetailQuery.error).message : null}
         onClose={() => setSelectedVersion(null)}
-        onPrint={setPrintDetail}
+        onPrint={(detail) => navigate(`/business/${organizationId}/plan/${detail.planId}/versions/${detail.versionNumber}/print?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`)}
       />
-      {printDetail ? <ImmutablePlanPrintPreview detail={printDetail} onClose={() => setPrintDetail(null)} /> : null}
     </BusinessPlanningShell>
   );
 }

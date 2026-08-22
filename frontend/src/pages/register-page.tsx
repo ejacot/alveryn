@@ -2,7 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { AuthCard } from "../components/auth/auth-card";
 import { AuthSubmitContent, PasswordVisibilityButton } from "../components/auth/auth-form-controls";
@@ -19,6 +19,7 @@ const PENDING_VERIFICATION_EMAIL_KEY = "alveryn.pendingVerificationEmail";
 export function RegisterPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const location = useLocation();
   const { registerWithPassword } = useAuth();
   const [serverError, setServerError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -26,7 +27,7 @@ export function RegisterPage() {
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
+      email: new URLSearchParams(location.search).get("email") ?? "",
       password: "",
       confirmPassword: ""
     }

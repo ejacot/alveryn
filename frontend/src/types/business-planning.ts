@@ -296,6 +296,24 @@ export type StaffingVersionAcknowledgement = {
   acknowledgedAt: string;
 };
 
+export type StaffingVersionCoverage = {
+  sourceRequirementId: string;
+  date: string;
+  workTypeCode: string;
+  workTypeName: string;
+  required: number;
+  rawAssigned: number;
+  effectiveAssigned: number;
+  covered: number;
+  missing: number;
+  overstaffed: number;
+  percentage: number;
+  openPositions: number;
+};
+
+export type StaffingVersionDayCoverage = Omit<StaffingVersionCoverage,
+  "sourceRequirementId" | "workTypeCode" | "workTypeName">;
+
 export type StaffingVersionDetail = {
   versionId: string;
   planId: string;
@@ -313,9 +331,10 @@ export type StaffingVersionDetail = {
   coverageBasis: string;
   warningCount: number;
   checksum: string;
+  checksumFormatVersion: number;
+  granularCoverageAvailable: boolean;
   publicationKind: string;
   sourceDraftComplete: boolean;
-  publisherDisplayName: string | null;
   publishedAt: string;
   timezone: string;
   weekStart: string;
@@ -324,6 +343,8 @@ export type StaffingVersionDetail = {
   assignments: StaffingVersionAssignment[];
   memberDays: StaffingVersionMemberDay[];
   acknowledgements: StaffingVersionAcknowledgement[];
+  requirementCoverage: StaffingVersionCoverage[];
+  dayCoverage: StaffingVersionDayCoverage[];
 };
 
 export type StaffingPublishInput = {

@@ -26,6 +26,7 @@ import type {
   BusinessCalculationMethod,
   BusinessWorkType,
 } from "../types/business";
+import { BusinessManagementShell } from "../components/business-planning/business-management-shell";
 type Mode = { key: string; method: BusinessCalculationMethod; icon: ReactNode };
 const modes: Mode[] = [
   {
@@ -50,6 +51,10 @@ const modes: Mode[] = [
   },
 ];
 export function BusinessWorkTypeEditorPage() {
+  return <BusinessManagementShell><BusinessWorkTypeEditorContent /></BusinessManagementShell>;
+}
+
+function BusinessWorkTypeEditorContent() {
   const { organizationId = "", workTypeId } = useParams();
   const [search] = useSearchParams();
   const navigate = useNavigate();
@@ -77,6 +82,8 @@ export function BusinessWorkTypeEditorPage() {
     [unitsPerHour, setUnitsPerHour] = useState(""),
     [rate, setRate] = useState(""),
     [currency, setCurrency] = useState("EUR"),
+    [defaultStartTime, setDefaultStartTime] = useState(""),
+    [defaultEndTime, setDefaultEndTime] = useState(""),
     [breakMinutes, setBreakMinutes] = useState("30");
   const [method, setMethod] = useState<BusinessCalculationMethod>(
       selectedMode?.method ?? "TIME_BASED",
@@ -102,6 +109,8 @@ export function BusinessWorkTypeEditorPage() {
     setUnitsPerHour(v.unitsPerHour?.toString() ?? "");
     setRate(v.ratePerUnit?.toString() ?? "");
     setCurrency(v.currency ?? "EUR");
+    setDefaultStartTime(v.defaultStartTime?.slice(0, 5) ?? "");
+    setDefaultEndTime(v.defaultEndTime?.slice(0, 5) ?? "");
     setBreakMinutes(String(v.defaultBreakMinutes));
     setTeamwork(v.teamworkEnabled);
     setExtraPay(v.extraPayEnabled);
@@ -121,6 +130,8 @@ export function BusinessWorkTypeEditorPage() {
     setUnitsPerHour("");
     setRate("");
     setCurrency("EUR");
+    setDefaultStartTime("");
+    setDefaultEndTime("");
     setBreakMinutes("30");
     setAdvanced(false);
     setTeamwork(false);
@@ -146,8 +157,8 @@ export function BusinessWorkTypeEditorPage() {
     code: code.trim().toUpperCase() || generatedCode(name),
     name: name.trim(),
     color,
-    defaultStartTime: null,
-    defaultEndTime: null,
+    defaultStartTime: defaultStartTime || null,
+    defaultEndTime: defaultEndTime || null,
     defaultBreakMinutes:
       effectiveMethod === "TIME_BASED" ? Number(breakMinutes || 0) : 0,
     calculationMethod: effectiveMethod,
@@ -286,13 +297,29 @@ export function BusinessWorkTypeEditorPage() {
           <SettingsSection title={t(`workTypes.methods.${effectiveMethod}`)}>
             <div className="space-y-4">
               {effectiveMethod === "TIME_BASED" ? (
-                <Input
-                  label={t("workTypeEditor.defaultBreak")}
-                  type="number"
-                  min="0"
-                  value={breakMinutes}
-                  onChange={(e) => setBreakMinutes(e.target.value)}
-                />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label={t("workTypeEditor.defaultStart")}
+                      type="time"
+                      value={defaultStartTime}
+                      onChange={(e) => setDefaultStartTime(e.target.value)}
+                    />
+                    <Input
+                      label={t("workTypeEditor.defaultEnd")}
+                      type="time"
+                      value={defaultEndTime}
+                      onChange={(e) => setDefaultEndTime(e.target.value)}
+                    />
+                  </div>
+                  <Input
+                    label={t("workTypeEditor.defaultBreak")}
+                    type="number"
+                    min="0"
+                    value={breakMinutes}
+                    onChange={(e) => setBreakMinutes(e.target.value)}
+                  />
+                </div>
               ) : null}
               {effectiveMethod === "UNITS_PER_HOUR_BASED" ? (
                 <Input
@@ -427,7 +454,10 @@ export function BusinessWorkTypeEditorPage() {
             (effectiveMethod === "UNITS_PER_HOUR_BASED" &&
               !isCategory &&
               !Number(unitsPerHour)) ||
-            (effectiveMethod === "UNIT_BASED" && !isCategory && !Number(rate))
+            (effectiveMethod === "UNIT_BASED" && !isCategory && !Number(rate)) ||
+            (effectiveMethod === "TIME_BASED" &&
+              !isCategory &&
+              Boolean(defaultStartTime) !== Boolean(defaultEndTime))
           }
           onDelete={workTypeId ? () => setConfirmDeactivate(true) : undefined}
           deleteLabel={

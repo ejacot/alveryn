@@ -34,6 +34,12 @@ public class OrganizationMembership extends BaseEntity {
   @Column(name = "ended_at")
   private OffsetDateTime endedAt;
 
+  @Column(name = "invitation_token_hash", length = 64)
+  private String invitationTokenHash;
+
+  @Column(name = "invitation_expires_at")
+  private OffsetDateTime invitationExpiresAt;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "membership_role", nullable = false, length = 20)
   private MembershipRole role;
@@ -75,6 +81,27 @@ public class OrganizationMembership extends BaseEntity {
     this.status = MembershipStatus.ACTIVE;
     this.joinedAt = OffsetDateTime.now();
     this.endedAt = null;
+    clearInvitation();
+  }
+
+  public void issueInvitation(String tokenHash, OffsetDateTime expiresAt) {
+    if (status != MembershipStatus.INVITED || invitedEmail == null) {
+      throw new IllegalStateException("only pending email invitations can be issued");
+    }
+    this.invitationTokenHash = Objects.requireNonNull(tokenHash);
+    this.invitationExpiresAt = Objects.requireNonNull(expiresAt);
+  }
+
+  public boolean invitationIsValid(OffsetDateTime now) {
+    return status == MembershipStatus.INVITED && invitationTokenHash != null
+        && invitationExpiresAt != null && invitationExpiresAt.isAfter(now);
+  }
+
+  public void declineInvitation() { suspend(); }
+
+  private void clearInvitation() {
+    this.invitationTokenHash = null;
+    this.invitationExpiresAt = null;
   }
 
   public void suspend() {
@@ -82,12 +109,24 @@ public class OrganizationMembership extends BaseEntity {
     if (status == MembershipStatus.SUSPENDED) return;
     this.status = MembershipStatus.SUSPENDED;
     this.endedAt = OffsetDateTime.now();
+    clearInvitation();
   }
 
   public void reactivate() {
     if (status != MembershipStatus.SUSPENDED) return;
     this.status = user == null ? MembershipStatus.INVITED : MembershipStatus.ACTIVE;
     this.endedAt = null;
+  }
+
+  public void updateDetails(String firstName, String lastName, String email) {
+    String nextFirstName = clean(firstName);
+    String nextLastName = clean(lastName);
+    if (nextFirstName == null && nextLastName == null) {
+      throw new IllegalArgumentException("first name or last name is required");
+    }
+    this.firstName = nextFirstName;
+    this.lastName = nextLastName;
+    if (user == null) this.invitedEmail = clean(email);
   }
 
   private static String clean(String value) {

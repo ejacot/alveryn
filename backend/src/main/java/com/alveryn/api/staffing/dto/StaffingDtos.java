@@ -43,6 +43,13 @@ public final class StaffingDtos {
       LocalTime actualStartTime, LocalTime actualEndTime, int breakMinutes, BigDecimal completedQuantity, Integer calculatedMinutes,
       String notes, String approvalStatus, OffsetDateTime submittedAt, OffsetDateTime reviewedAt,
       OffsetDateTime checkedInAt, OffsetDateTime checkedOutAt, String timeCaptureSource) {}
+  public record TeamHoursDayResponse(LocalDate date, Integer plannedMinutes, Integer workedMinutes,
+      int completedSessions, int openSessions, int incompleteSessions, int correctedSessions) {}
+  public record TeamHoursPeriodResponse(LocalDate startDate, LocalDate endDate, int plannedMinutes,
+      int workedMinutes) {}
+  public record TeamMemberHoursResponse(UUID membershipId, String memberName, LocalDate from, LocalDate to,
+      int daysWorked, int plannedMinutes, int workedMinutes, List<TeamHoursDayResponse> days,
+      List<TeamHoursPeriodResponse> weeks, List<TeamHoursPeriodResponse> months) {}
   public record AssignmentResponse(UUID id, UUID membershipId, String memberName, LocalTime startTime,
       LocalTime endTime, boolean hasConflict, List<UUID> conflictingAssignmentIds, boolean viewed,
       AssignmentResultResponse result) {}

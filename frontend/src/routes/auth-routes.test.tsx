@@ -87,6 +87,38 @@ describe("auth routes", () => {
     expect(await screen.findByText("Onboarding")).toBeInTheDocument();
   });
 
+  it("sends invited Business users from guest routes directly to Business", async () => {
+    renderWithAuth(
+      <Routes>
+        <Route element={<GuestRoute />}>
+          <Route path="/login" element={<div>Login</div>} />
+        </Route>
+        <Route path="/business" element={<div>Business</div>} />
+      </Routes>,
+      {
+        route: "/login",
+        authValue: {
+          ...baseAuthValue,
+          isAuthenticated: true,
+          user: {
+            account: {
+              id: "1",
+              email: "invited@example.com",
+              emailVerified: true,
+              status: "ACTIVE",
+              lastLoginAt: null
+            },
+            profile: null,
+            preferences: null,
+            hasBusinessWorkspace: true
+          }
+        }
+      }
+    );
+
+    expect(await screen.findByText("Business")).toBeInTheDocument();
+  });
+
   it("redirects authenticated users into tracking setup before onboarding", async () => {
     renderWithAuth(
       <Routes>
@@ -117,6 +149,46 @@ describe("auth routes", () => {
     );
 
     expect(await screen.findByText("Tracking setup")).toBeInTheDocument();
+  });
+
+  it("lets invited Business users bypass Personal setup", async () => {
+    const invitedBusinessUser: AuthContextValue = {
+      ...baseAuthValue,
+      isAuthenticated: true,
+      user: {
+        account: {
+          id: "1",
+          email: "invited@example.com",
+          emailVerified: true,
+          status: "ACTIVE",
+          lastLoginAt: null
+        },
+        profile: null,
+        preferences: null,
+        hasBusinessWorkspace: true
+      }
+    };
+
+    const routes = (
+      <Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
+          <Route path="/onboarding" element={<div>Onboarding</div>} />
+          <Route path="/tracking-setup" element={<div>Tracking setup</div>} />
+          <Route path="/business" element={<div>Business</div>} />
+        </Route>
+      </Routes>
+    );
+
+    const { unmount } = renderWithAuth(routes, {
+      route: APP_HOME_PATH,
+      authValue: invitedBusinessUser
+    });
+    expect(await screen.findByText("Business")).toBeInTheDocument();
+
+    unmount();
+    renderWithAuth(routes, { route: "/business", authValue: invitedBusinessUser });
+    expect(await screen.findByText("Business")).toBeInTheDocument();
   });
 
   it("continues into profile onboarding after tracking setup", async () => {

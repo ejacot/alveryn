@@ -14,9 +14,9 @@ class BusinessInvitationEmailServiceTest{
  @Test void sendsLocalizedInvitationWithAccountCreationLink()throws Exception{
   JavaMailSender sender=mock(JavaMailSender.class);MimeMessage message=new MimeMessage(Session.getInstance(new Properties()));when(sender.createMimeMessage()).thenReturn(message);
   var service=new BusinessInvitationEmailService(sender);ReflectionTestUtils.setField(service,"mailFrom","no-reply@alveryn.com");ReflectionTestUtils.setField(service,"baseUrl","https://alveryn.com");
-  service.send("maria+work@example.com","Hotel Berlin","ro",false);verify(sender).send(message);
+  service.send("maria+work@example.com","Hotel Berlin","ro",false,"secure-token");verify(sender).send(message);
   var output=new ByteArrayOutputStream();message.writeTo(output);String source=output.toString(StandardCharsets.UTF_8);
   assertThat(message.getSubject()).isEqualTo("Invitație în Hotel Berlin");
-  assertThat(source).contains("maria%2Bwork%40example.com").contains("/register").contains("ALVERYN");
+  assertThat(source).contains("/business-invitation/secure-token").contains("ALVERYN");
  }
 }

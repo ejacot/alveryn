@@ -1,19 +1,26 @@
 import {
   BarChart3,
+  Building2,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   Languages,
+  Menu,
   Moon,
   Settings2,
   Sun,
+  MapPinned,
+  ShieldCheck,
   UsersRound,
+  X,
 } from "lucide-react";
-import { useLayoutEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { applyAppLanguage, i18n } from "../../i18n";
+import { getOrganizationAccess } from "../../api/endpoints";
 import {
   getNativeLanguageName,
   normalizeLanguage,
@@ -39,6 +46,8 @@ type Props = {
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onCurrentWeek: () => void;
+  showWeekControls?: boolean;
+  sectionLabel?: string;
 };
 
 export function BusinessPlanningShell({
@@ -54,12 +63,29 @@ export function BusinessPlanningShell({
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
+  showWeekControls = true,
+  sectionLabel,
 }: Props) {
   const { t } = useTranslation("business");
   const navigate = useNavigate();
   const locale = normalizeLanguage(i18n.resolvedLanguage);
   const weekLabel = formatWeek(weekStart, weekEnd, locale);
   const planningSearch = `?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`;
+  const access = useQuery({
+    queryKey: ["organizations", organizationId, "access"],
+    queryFn: () => getOrganizationAccess(organizationId),
+  });
+  const permissions = access.data?.permissions ?? [];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [mobileMenuOpen]);
 
   return (
     <div className="business-planning">
@@ -101,7 +127,7 @@ export function BusinessPlanningShell({
           </select>
         </label>
 
-        <div className="business-planning__week-switcher" aria-label={t("planning.week.label")}>
+        {showWeekControls ? <div className="business-planning__week-switcher" aria-label={t("planning.week.label")}>
           <button type="button" onClick={onPreviousWeek} aria-label={t("planning.week.previous")}>
             <ChevronLeft aria-hidden="true" />
           </button>
@@ -112,11 +138,20 @@ export function BusinessPlanningShell({
           <button type="button" onClick={onNextWeek} aria-label={t("planning.week.next")}>
             <ChevronRight aria-hidden="true" />
           </button>
-        </div>
+        </div> : <div className="business-planning__section-label">{sectionLabel}</div>}
 
         <div className="business-planning__tools">
           <BusinessLanguageSelector />
           <BusinessThemeToggle />
+          <button
+            type="button"
+            className="business-planning__tool business-planning__mobile-menu-trigger"
+            aria-label={t("management.mobileOpen")}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu aria-hidden="true" />
+          </button>
         </div>
       </header>
 
@@ -136,16 +171,42 @@ export function BusinessPlanningShell({
           </NavLink>
         </nav>
         <div className="business-planning__rail-secondary">
-          <Link to="/business">
+          <NavLink to={`/business/${organizationId}/overview`}>
+            <Building2 aria-hidden="true" />
+            <span>{t("management.overview")}</span>
+          </NavLink>
+          {permissions.includes("MANAGE_MEMBERS") ? <NavLink to={`/business/${organizationId}/people`}>
             <UsersRound aria-hidden="true" />
             <span>{t("planning.navigation.team")}</span>
-          </Link>
-          <Link to={`/business/${organizationId}/work-types`}>
+          </NavLink> : null}
+          {permissions.includes("MANAGE_ROLES") ? <NavLink to={`/business/${organizationId}/roles`}>
+            <ShieldCheck aria-hidden="true" />
+            <span>{t("tabs.roles")}</span>
+          </NavLink> : null}
+          {permissions.includes("MANAGE_TEAMS") ? <NavLink to={`/business/${organizationId}/locations`}>
+            <MapPinned aria-hidden="true" />
+            <span>{t("tabs.teams")}</span>
+          </NavLink> : null}
+          {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink to={`/business/${organizationId}/work-types`}>
             <Settings2 aria-hidden="true" />
             <span>{t("planning.navigation.workTypes")}</span>
-          </Link>
+          </NavLink> : null}
         </div>
       </aside>
+
+      {mobileMenuOpen ? <div className="business-planning__mobile-menu">
+        <button type="button" className="business-planning__mobile-menu-backdrop" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)} />
+        <aside role="dialog" aria-modal="true" aria-label={t("management.section")}>
+          <header><span>{t("management.section")}</span><button type="button" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)}><X aria-hidden="true" /></button></header>
+          <nav>
+            <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>{t("management.overview")}</span></NavLink>
+            {permissions.includes("MANAGE_MEMBERS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/people`}><UsersRound aria-hidden="true" /><span>{t("planning.navigation.team")}</span></NavLink> : null}
+            {permissions.includes("MANAGE_ROLES") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/roles`}><ShieldCheck aria-hidden="true" /><span>{t("tabs.roles")}</span></NavLink> : null}
+            {permissions.includes("MANAGE_TEAMS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/locations`}><MapPinned aria-hidden="true" /><span>{t("tabs.teams")}</span></NavLink> : null}
+            {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/work-types`}><Settings2 aria-hidden="true" /><span>{t("planning.navigation.workTypes")}</span></NavLink> : null}
+          </nav>
+        </aside>
+      </div> : null}
 
       <main className="business-planning__main">{children}</main>
     </div>

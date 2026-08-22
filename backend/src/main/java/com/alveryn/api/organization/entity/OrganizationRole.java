@@ -35,4 +35,14 @@ public class OrganizationRole extends BaseEntity {
     this.name = name.trim();
     this.permissions = permissions.stream().map(Enum::name).distinct().sorted().toList();
   }
+
+  public void update(String name, Collection<OrganizationPermission> permissions) {
+    if (systemRole) throw new IllegalArgumentException("system roles cannot be edited");
+    if (name == null || name.isBlank()) throw new IllegalArgumentException("role name is required");
+    if (permissions == null || permissions.isEmpty()) {
+      throw new IllegalArgumentException("role permissions are required");
+    }
+    this.name = name.trim();
+    this.permissions = permissions.stream().map(Enum::name).distinct().sorted().toList();
+  }
 }

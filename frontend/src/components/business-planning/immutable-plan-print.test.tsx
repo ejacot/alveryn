@@ -5,6 +5,7 @@ import {
   buildImmutablePlanPrintModel,
   ImmutablePlanPrintDocument,
   ImmutablePlanPrintPreview,
+  StaffingSummaryPrintDocument,
   openImmutablePlanPrint,
 } from "./immutable-plan-print";
 
@@ -23,12 +24,13 @@ function publishedVersion(): StaffingVersionDetail {
     missing: 0,
     overstaffed: 0,
     percentage: 100,
-    coverageBasis: "CANONICAL_V94",
+    coverageBasis: "CANONICAL_REQUIREMENT_V1",
     warningCount: 0,
     checksum: "a0c32a24e13c49b9c51e7b79cf96c1fc83fe0000000000000000000000000000",
+    checksumFormatVersion: 2,
+    granularCoverageAvailable: true,
     publicationKind: "ATOMIC_WEEKLY",
     sourceDraftComplete: true,
-    publisherDisplayName: "Mara Manager",
     publishedAt: "2026-08-14T17:04:00Z",
     timezone: "Europe/Berlin",
     weekStart: "2026-08-10",
@@ -49,6 +51,8 @@ function publishedVersion(): StaffingVersionDetail {
       { sourceDayEntryId: "day-mihai", membershipId: "member-mihai", memberDisplayName: "Mihai Ionescu", date: "2026-08-11", status: "VACATION", source: "MANUAL" },
     ],
     acknowledgements: [],
+    requirementCoverage: [{ sourceRequirementId: "req-room", date: "2026-08-10", workTypeCode: "ROOM", workTypeName: "Room cleaning", required: 16, rawAssigned: 16, effectiveAssigned: 16, covered: 16, missing: 0, overstaffed: 0, percentage: 100, openPositions: 0 }],
+    dayCoverage: Array.from({ length: 7 }, (_, index) => ({ date: `2026-08-${String(10 + index).padStart(2, "0")}`, required: index === 0 ? 16 : 0, rawAssigned: index === 0 ? 16 : 0, effectiveAssigned: index === 0 ? 16 : 0, covered: index === 0 ? 16 : 0, missing: 0, overstaffed: 0, percentage: 100, openPositions: 0 })),
   };
 }
 
@@ -90,6 +94,17 @@ describe("immutable published plan print", () => {
 
     expect(screen.getByText("Canonical coverage was not recorded for this legacy snapshot.")).toBeInTheDocument();
     expect(screen.queryByText("100%")).not.toBeInTheDocument();
+  });
+
+  it("renders canonical staffing summary rows directly from granular snapshots", () => {
+    const detail = publishedVersion();
+    detail.requirements = [detail.requirements[0]];
+    render(<StaffingSummaryPrintDocument detail={detail} locale="en" />);
+    const summary = screen.getByRole("article", { name: "Staffing summary version 4" });
+    expect(within(summary).getByText("Daily coverage")).toBeInTheDocument();
+    expect(within(summary).getByText("Requirement coverage")).toBeInTheDocument();
+    expect(within(summary).getAllByText("ROOM · Room cleaning · 09:00–16:30")).toHaveLength(1);
+    expect(summary.textContent).not.toContain("member-ana");
   });
 
   it("opens the browser print dialog without generating or uploading a document", () => {

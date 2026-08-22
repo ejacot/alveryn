@@ -278,7 +278,8 @@ class AuthIntegrationTest {
     mockMvc
         .perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.account.email").value("jwt@example.com"));
+        .andExpect(jsonPath("$.data.account.email").value("jwt@example.com"))
+        .andExpect(jsonPath("$.data.hasBusinessWorkspace").value(false));
 
     mockMvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
 

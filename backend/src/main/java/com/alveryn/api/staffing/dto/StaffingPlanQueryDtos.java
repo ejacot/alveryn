@@ -149,15 +149,27 @@ public final class StaffingPlanQueryDtos {
   public record VersionAcknowledgementResponse(String issueKey, String severity,
       OffsetDateTime acknowledgedAt) {}
 
+  public record VersionRequirementCoverageResponse(UUID sourceRequirementId, LocalDate date,
+      String workTypeCode, String workTypeName, int required, int rawAssigned,
+      int effectiveAssigned, int covered, int missing, int overstaffed,
+      BigDecimal percentage, int openPositions) {}
+
+  public record VersionDayCoverageResponse(LocalDate date, int required, int rawAssigned,
+      int effectiveAssigned, int covered, int missing, int overstaffed,
+      BigDecimal percentage, int openPositions) {}
+
   public record VersionDetailResponse(UUID versionId, UUID planId, UUID organizationId,
       UUID unitId, int versionNumber, long sourceDraftRevision, Integer required,
       Integer rawAssigned, Integer effectiveAssigned, Integer covered, Integer missing,
       Integer overstaffed, BigDecimal percentage, String coverageBasis, int warningCount,
-      String checksum, String publicationKind, boolean sourceDraftComplete,
-      String publisherDisplayName, OffsetDateTime publishedAt,
+      String checksum, int checksumFormatVersion, boolean granularCoverageAvailable,
+      String publicationKind, boolean sourceDraftComplete,
+      OffsetDateTime publishedAt,
       String timezone, LocalDate weekStart, List<VersionDayResponse> days,
       List<VersionRequirementResponse> requirements,
       List<VersionAssignmentResponse> assignments,
       List<VersionMemberDayResponse> memberDays,
-      List<VersionAcknowledgementResponse> acknowledgements) {}
+      List<VersionAcknowledgementResponse> acknowledgements,
+      List<VersionRequirementCoverageResponse> requirementCoverage,
+      List<VersionDayCoverageResponse> dayCoverage) {}
 }
