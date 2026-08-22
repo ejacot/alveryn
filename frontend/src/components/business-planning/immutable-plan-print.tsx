@@ -56,13 +56,13 @@ export function buildImmutablePlanPrintModel(detail: StaffingVersionDetail): Imm
   };
 
   detail.assignments
-    .filter((assignment) => assignment.status === "ASSIGNED" && days.includes(assignment.date))
+    .filter((assignment) => assignment.status !== "CANCELLED" && days.includes(assignment.date))
     .forEach((assignment) => {
       cell(member(assignment.membershipId, assignment.memberDisplayName), assignment.date)
         .assignments.push(assignment);
     });
   detail.memberDays
-    .filter((entry) => days.includes(entry.date))
+    .filter((entry) => days.includes(entry.date) && !["REQUESTED_FREE", "PENDING"].includes(entry.status))
     .forEach((entry) => {
       cell(member(entry.membershipId, entry.memberDisplayName), entry.date).statuses.push(entry);
     });
@@ -88,7 +88,10 @@ export function buildImmutablePlanPrintModel(detail: StaffingVersionDetail): Imm
   const unitName = detail.requirements.find((item) => item.unitName)?.unitName
     ?? detail.assignments.find((item) => item.unitName)?.unitName
     ?? null;
-  const hasCanonicalCoverage = detail.coverageBasis.startsWith("CANONICAL")
+  const hasCanonicalCoverage = detail.checksumFormatVersion === 2
+    && detail.granularCoverageAvailable
+    && detail.coverageBasis === "CANONICAL_REQUIREMENT_V1"
+    && detail.publicationKind === "ATOMIC_WEEKLY"
     && detail.required != null
     && detail.covered != null
     && detail.missing != null
@@ -261,7 +264,6 @@ export function ImmutablePlanPrintDocument({
           <span><b>F</b>{t("planning.print.status.REST_DAY")}</span>
           <span><b>U</b>{t("planning.print.status.VACATION")}</span>
           <span><b>S</b>{t("planning.print.status.SICK")}</span>
-          <span><b>REQ</b>{t("planning.print.status.REQUESTED_FREE")}</span>
         </div>
         <div>
           <strong>{t("planning.print.workTypes")}</strong>
@@ -277,6 +279,58 @@ export function ImmutablePlanPrintDocument({
   );
 }
 
+export function StaffingSummaryPrintDocument({
+  detail,
+  locale,
+}: {
+  detail: StaffingVersionDetail;
+  locale: string;
+}) {
+  const { t } = useTranslation("business");
+  const model = useMemo(() => buildImmutablePlanPrintModel(detail), [detail]);
+  const canonical = model.hasCanonicalCoverage
+    && detail.requirementCoverage.length === detail.requirements.length
+    && detail.dayCoverage.length === 7;
+  const requirementById = new Map(detail.requirements
+    .filter((item) => item.sourceRequirementId)
+    .map((item) => [item.sourceRequirementId!, item]));
+  const weekEnd = model.days.at(-1) ?? detail.weekStart;
+  return (
+    <article className="business-published-print-root business-staffing-summary" aria-label={`Staffing summary version ${detail.versionNumber}`}>
+      <header className="business-published-print__header">
+        <div><span>ALVERYN · BUSINESS</span><h1>{model.unitName ?? t("planning.print.locationUnavailable")}</h1><p>Staffing summary · {formatWeek(detail.weekStart, weekEnd, locale)}</p></div>
+        <div className="business-published-print__version"><strong>VERSION {detail.versionNumber}</strong><small>{detail.publicationKind}</small></div>
+      </header>
+      {!canonical ? <p className="business-published-print__coverage-unavailable">Canonical coverage is unavailable for this legacy snapshot.</p> : (
+        <>
+          <section className="business-published-print__coverage" aria-label="Weekly staffing totals">
+            <div><span>Coverage</span><strong>{formatPercent(detail.percentage!)}%</strong></div>
+            <div><span>Required</span><strong>{detail.required}</strong></div>
+            <div><span>Missing / open</span><strong>{detail.missing}</strong></div>
+            <div><span>Overstaffed</span><strong>{detail.overstaffed}</strong></div>
+          </section>
+          <CoverageTable caption="Daily coverage" rows={detail.dayCoverage.map((row) => ({ ...row, label: `${formatWeekday(row.date, locale)} ${formatDayMonth(row.date, locale)}`, rooms: model.roomsByDate.get(row.date) }))} />
+          <CoverageTable caption="Requirement coverage" rows={detail.requirementCoverage.map((row) => {
+            const requirement = requirementById.get(row.sourceRequirementId);
+            return { ...row, label: `${row.workTypeCode} · ${row.workTypeName} · ${formatInterval(requirement?.startTime ?? null, requirement?.endTime ?? null)}`, rooms: requirement?.requiredQuantity ?? null };
+          })} />
+        </>
+      )}
+      <footer className="business-published-print__footer"><span>{t("planning.print.immutableNotice")}</span><code>{detail.checksum}</code></footer>
+    </article>
+  );
+}
+
+type CoverageRow = {
+  label: string; required: number; rawAssigned: number; effectiveAssigned: number;
+  covered: number; missing: number; overstaffed: number; percentage: number;
+  openPositions: number; rooms?: number | null;
+};
+
+function CoverageTable({ caption, rows }: { caption: string; rows: CoverageRow[] }) {
+  return <table className="business-coverage-print__table"><caption>{caption}</caption><thead><tr><th>Item</th><th>Required</th><th>Raw</th><th>Effective</th><th>Covered</th><th>Missing</th><th>Open</th><th>Over</th><th>Coverage</th><th>Rooms</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.label}:${index}`}><th>{row.label}</th><td>{row.required}</td><td>{row.rawAssigned}</td><td>{row.effectiveAssigned}</td><td>{row.covered}</td><td>{row.missing}</td><td>{row.openPositions}</td><td>{row.overstaffed}</td><td>{formatPercent(row.percentage)}%</td><td>{row.rooms ?? "—"}</td></tr>)}</tbody></table>;
+}
+
 function PrintScheduleCell({ value }: { value: PrintCell | undefined }) {
   const { t } = useTranslation("business");
   if (!value || (value.assignments.length === 0 && value.statuses.length === 0)) return <td />;
@@ -289,7 +343,7 @@ function PrintScheduleCell({ value }: { value: PrintCell | undefined }) {
       ))}
       {value.assignments.map((assignment, index) => (
         <span className="business-published-print__assignment" key={assignment.sourceAssignmentId ?? `${assignment.workTypeCode}:${index}`}>
-          <b>{assignment.workTypeCode}</b>
+          <b>{assignment.status === "ASSIGNED" ? assignment.workTypeCode : `⚠ ${assignment.workTypeCode}`}</b>
           <small>{formatInterval(assignment.startTime, assignment.endTime)}</small>
         </span>
       ))}

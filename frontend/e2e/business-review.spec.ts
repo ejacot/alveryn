@@ -62,8 +62,8 @@ test.describe("authenticated Business Review and Publish", () => {
 
     const requestsBeforePrint = state.requests.length;
     await dialog.getByRole("button", { name: "Review and print this version" }).click();
-    const printPreview = page.getByRole("dialog", { name: "Print the published plan" });
-    await expect(printPreview).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/business/${organizationId}/plan/${planId}/versions/3/print`));
+    const printPreview = page.locator(".immutable-plan-route");
     await expect(printPreview.getByRole("article", { name: "Published weekly plan version 3" })).toBeVisible();
     await expect(printPreview.getByText("Hotel München")).toBeVisible();
     await expect(printPreview.getByText("VERSION 3")).toBeVisible();
@@ -81,11 +81,21 @@ test.describe("authenticated Business Review and Publish", () => {
         landscape: true,
         printBackground: true,
       });
+      await page.pdf({
+        path: `${process.env.ALVERYN_D3_ARTIFACT_DIR}/employee-plan-multipage-40-plus.pdf`,
+        format: "A4", landscape: true, printBackground: true,
+      });
     }
     await page.emulateMedia({ media: "screen" });
-    await printPreview.getByRole("button", { name: "Close preview" }).click();
-
-    await page.getByRole("button", { name: "Close version detail" }).click();
+    await printPreview.getByRole("button", { name: "Staffing summary" }).click();
+    await expect(printPreview.getByRole("article", { name: "Staffing summary version 3" })).toBeVisible();
+    await capture(page, "staffing-summary-desktop.png");
+    if (process.env.ALVERYN_D3_ARTIFACT_DIR) {
+      await page.emulateMedia({ media: "print" });
+      await page.pdf({ path: `${process.env.ALVERYN_D3_ARTIFACT_DIR}/staffing-summary.pdf`, format: "A4", landscape: true, printBackground: true });
+      await page.emulateMedia({ media: "screen" });
+    }
+    await printPreview.getByRole("link", { name: "Close preview" }).click();
     state.revision += 1;
     await page.reload();
     await expect(page.getByText("Unpublished changes").first()).toBeVisible();
@@ -156,10 +166,10 @@ test.describe("authenticated Business Review and Publish", () => {
       const versionDialog = page.getByRole("dialog", { name: "Immutable version v3" });
       await versionDialog.getByRole("button", { name: "Review and print this version" }).click();
 
-      const printPreview = page.getByRole("dialog", { name: "Print the published plan" });
-      await expect(printPreview).toBeVisible();
+      const printPreview = page.locator(".immutable-plan-route");
+      await expect(page).toHaveURL(new RegExp(`/versions/3/print`));
       await expect(printPreview.getByRole("button", { name: "Print / Save PDF" })).toBeVisible();
-      await expect(printPreview.getByRole("button", { name: "Close preview" })).toBeVisible();
+      await expect(printPreview.getByRole("link", { name: "Close preview" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("data-theme", viewport.theme);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
       await captureViewport(page, `review-${viewport.width}-${viewport.theme}-print.png`);
@@ -298,7 +308,7 @@ function planHeader(state: ReviewMockState) {
       sourceDraftRevision: state.revision,
       publishedAt: "2026-08-14T13:00:00Z",
       publicationKind: "ATOMIC_WEEKLY",
-      coverageBasis: "CANONICAL_V94",
+      coverageBasis: "CANONICAL_REQUIREMENT_V1",
       checksum: "checksum-v3",
     } : {
       versionId: "version-2",
@@ -306,7 +316,7 @@ function planHeader(state: ReviewMockState) {
       sourceDraftRevision: 7,
       publishedAt: "2026-08-13T12:00:00Z",
       publicationKind: "ATOMIC_WEEKLY",
-      coverageBasis: "CANONICAL_V94",
+      coverageBasis: "CANONICAL_REQUIREMENT_V1",
       checksum: "checksum-v2",
     },
     publishedRevision,
@@ -400,7 +410,7 @@ function versionSummary(versionNumber: number, latest: boolean) {
     versionId: `version-${versionNumber}`, versionNumber, sourceDraftRevision: versionNumber === 3 ? 8 : 7,
     required: versionNumber === 3 ? 99 : 98, rawAssigned: 98, effectiveAssigned: 98,
     covered: 98, missing: versionNumber === 3 ? 1 : 0, overstaffed: 0,
-    percentage: versionNumber === 3 ? 98.99 : 100, coverageBasis: "CANONICAL_V94",
+    percentage: versionNumber === 3 ? 98.99 : 100, coverageBasis: "CANONICAL_REQUIREMENT_V1",
     warningCount: versionNumber === 3 ? 1 : 0, checksum: `checksum-v${versionNumber}`,
     publicationKind: "ATOMIC_WEEKLY", sourceDraftComplete: true,
     publisherDisplayName: "Eusebiu Jacot", publishedAt: versionNumber === 3 ? "2026-08-14T13:00:00Z" : "2026-08-13T12:00:00Z", latest,
@@ -409,17 +419,21 @@ function versionSummary(versionNumber: number, latest: boolean) {
 
 function versionDetail(versionNumber: number) {
   const latest = versionNumber === 3;
+  const requirements = printRequirements(latest);
   return {
     ...versionSummary(versionNumber, latest), planId, organizationId, unitId,
+    checksumFormatVersion: 2, granularCoverageAvailable: true,
     timezone: "Europe/Berlin", weekStart,
     days: [50, 40, 40, 30, 30, 50, 10].map((rooms, index) => ({ sourcePlanDayId: `day-${index}`, date: isoDay(index), roomsContext: rooms, source: "MANUAL" })),
-    requirements: printRequirements(latest),
+    requirements,
     assignments: printAssignments(latest),
     memberDays: [
       { sourceDayEntryId: "member-day-elena", membershipId: "member-elena", memberDisplayName: "Elena Pop", date: "2026-08-12", status: "VACATION", source: "MANUAL" },
       { sourceDayEntryId: "member-day-ioana", membershipId: "member-ioana", memberDisplayName: "Ioana Pavel", date: "2026-08-15", status: "REST_DAY", source: "MANUAL" },
       { sourceDayEntryId: "member-day-mihai", membershipId: "member-mihai", memberDisplayName: "Mihai Ionescu", date: "2026-08-13", status: "SICK", source: "MANUAL" },
     ], acknowledgements: latest ? [{ issueKey: warningIssue().issueKey, severity: "WARNING", acknowledgedAt: "2026-08-14T13:00:00Z" }] : [],
+    requirementCoverage: requirements.map((item) => ({ sourceRequirementId: item.sourceRequirementId, date: item.date, workTypeCode: item.workTypeCode, workTypeName: item.workTypeName, required: item.requiredWorkers, rawAssigned: item.requiredWorkers, effectiveAssigned: item.requiredWorkers, covered: item.requiredWorkers, missing: 0, overstaffed: 0, percentage: 100, openPositions: 0 })),
+    dayCoverage: Array.from({ length: 7 }, (_, index) => ({ date: isoDay(index), required: 0, rawAssigned: 0, effectiveAssigned: 0, covered: 0, missing: 0, overstaffed: 0, percentage: 100, openPositions: 0 })),
   };
 }
 
@@ -468,6 +482,38 @@ function printAssignments(latest: boolean) {
     workTypeCode: "SPA S", workTypeName: "Spa Spät", startTime: "12:00:00", endTime: "20:30:00",
     status: "ASSIGNED", checkInMode: null, checkedInAt: null, checkedOutAt: null,
   });
+  if (latest) {
+    for (let index = 0; index < 42; index += 1) {
+      const day = index % 7;
+      assignments.push({
+        sourceAssignmentId: `assignment-multipage-${index}`,
+        sourceRequirementId: `requirement-room-${day}`,
+        membershipId: `member-multipage-${index}`,
+        memberDisplayName: index === 0
+          ? "Alexandru Constantin Ionescu-Popescu — Published Snapshot Employee"
+          : `Published Employee ${String(index + 1).padStart(2, "0")}`,
+        membershipStatus: "ACTIVE", date: isoDay(day), unitId, unitName: "Hotel München",
+        workTypeId: "room", workTypeCode: "ROOM", workTypeName: "Room cleaning",
+        startTime: day >= 5 ? "10:00:00" : "09:00:00", endTime: "16:30:00",
+        status: index === 1 ? "CONFLICT" : "ASSIGNED", checkInMode: null,
+        checkedInAt: null, checkedOutAt: null,
+      });
+    }
+    assignments.push({
+      sourceAssignmentId: "assignment-multipage-second", sourceRequirementId: "requirement-pf-mon",
+      membershipId: "member-multipage-0", memberDisplayName: "Alexandru Constantin Ionescu-Popescu — Published Snapshot Employee",
+      membershipStatus: "ACTIVE", date: isoDay(0), unitId, unitName: "Hotel München", workTypeId: "pf",
+      workTypeCode: "PF", workTypeName: "Public Früh", startTime: "05:00:00", endTime: "13:30:00",
+      status: "ASSIGNED", checkInMode: null, checkedInAt: null, checkedOutAt: null,
+    });
+    assignments.push({
+      sourceAssignmentId: "assignment-cancelled-proof", sourceRequirementId: "requirement-room-0",
+      membershipId: "member-cancelled", memberDisplayName: "Cancelled Must Stay Hidden", membershipStatus: "ACTIVE",
+      date: isoDay(0), unitId, unitName: "Hotel München", workTypeId: "room", workTypeCode: "ROOM",
+      workTypeName: "Room cleaning", startTime: "09:00:00", endTime: "16:30:00", status: "CANCELLED",
+      checkInMode: null, checkedInAt: null, checkedOutAt: null,
+    });
+  }
   return assignments;
 }
 

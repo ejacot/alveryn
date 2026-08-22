@@ -187,6 +187,9 @@ const BusinessSchedulePage = lazy(() =>
 const BusinessReviewPage = lazy(() =>
   import("../pages/business-review-page").then((module) => ({ default: module.BusinessReviewPage }))
 );
+const BusinessPlanPrintPage = lazy(() =>
+  import("../pages/business-plan-print-page").then((module) => ({ default: module.BusinessPlanPrintPage }))
+);
 const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
 const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
 const BusinessPeoplePage=lazy(()=>import("../pages/business-people-page").then(module=>({default:module.BusinessPeoplePage})));
@@ -246,6 +249,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       element: <ProtectedRoute />,
       errorElement: <RouteErrorPage />,
       children: [
+        { path: "/business/:organizationId/plan/:planId/versions/:versionNumber/print", element: withSuspense(<BusinessPlanPrintPage />) },
         {
           element: <AppLayout />,
           children: [

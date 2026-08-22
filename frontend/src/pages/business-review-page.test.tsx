@@ -205,12 +205,13 @@ function version(versionNumber: number): StaffingVersionDetail {
     missing: current ? 0 : 1,
     overstaffed: 0,
     percentage: current ? 100 : 99,
-    coverageBasis: "CANONICAL_V94",
+    coverageBasis: "CANONICAL_REQUIREMENT_V1",
     warningCount: current ? 0 : 1,
     checksum: `checksum-${versionNumber}`,
+    checksumFormatVersion: 2,
+    granularCoverageAvailable: true,
     publicationKind: "ATOMIC_WEEKLY",
     sourceDraftComplete: true,
-    publisherDisplayName: "Eusebiu Jacot",
     publishedAt: current ? "2026-08-14T12:00:00Z" : "2026-08-13T12:00:00Z",
     timezone: "Europe/Berlin",
     weekStart: "2026-08-10",
@@ -252,6 +253,8 @@ function version(versionNumber: number): StaffingVersionDetail {
     }] : [],
     memberDays: [],
     acknowledgements: [],
+    requirementCoverage: [],
+    dayCoverage: [],
   };
 }
 
@@ -268,6 +271,7 @@ function renderPage() {
           <Route path="/business/:organizationId/plan/review" element={<BusinessReviewPage />} />
           <Route path="/business/:organizationId/plan/demand" element={<p>Demand destination</p>} />
           <Route path="/business/:organizationId/plan/schedule" element={<p>Schedule destination</p>} />
+          <Route path="/business/:organizationId/plan/:planId/versions/:versionNumber/print" element={<p>Dedicated print destination</p>} />
         </Routes>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -439,15 +443,8 @@ describe("BusinessReviewPage", () => {
     expect(mocks.getVersion).toHaveBeenCalledWith("org-1", "plan-1", 1, undefined);
 
     await user.click(within(dialog).getByRole("button", { name: "Review and print this version" }));
-    const printPreview = await screen.findByRole("dialog", { name: "Print the published plan" });
-    expect(within(printPreview).getByRole("article", { name: "Published weekly plan version 2" })).toBeInTheDocument();
-    expect(within(printPreview).getByText("Hotel München")).toBeInTheDocument();
+    expect(await screen.findByText("Dedicated print destination")).toBeInTheDocument();
     expect(mocks.getVersion).toHaveBeenCalledTimes(2);
-    await user.click(within(printPreview).getByRole("button", { name: "Close preview" }));
-
-    const reopenedDialog = await screen.findByRole("dialog", { name: "Immutable version v2" });
-    await user.click(within(reopenedDialog).getByRole("button", { name: "Close version detail" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("does not offer another publish when the draft already matches the latest version", async () => {
