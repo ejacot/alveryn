@@ -278,7 +278,7 @@ class StaffingPlannerIntegrationTest {
     assertPlanRevision(orgId, team, "2026-08-10", 10);
     mvc.perform(post("/api/organizations/{org}/members/{member}/reactivate", orgId, member)
             .header(HttpHeaders.AUTHORIZATION, token()))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("INVITED"));
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"));
     assertPlanRevision(orgId, team, "2026-08-10", 11);
 
     mvc.perform(put("/api/organizations/{org}/staffing/requirements/{req}", orgId, requirement)

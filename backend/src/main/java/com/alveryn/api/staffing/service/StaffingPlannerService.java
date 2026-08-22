@@ -310,8 +310,8 @@ public class StaffingPlannerService {
   }
   @Transactional(readOnly = true)
   public TeamMemberHoursResponse memberHours(UUID organizationId, UUID membershipId, LocalDate from,
-      LocalDate to) {
-    if (to.isBefore(from) || to.isAfter(from.plusDays(366))) {
+      LocalDate to, int offset, int limit) {
+    if (to.isBefore(from) || to.isAfter(from.plusDays(366)) || offset < 0 || limit < 1 || limit > 100) {
       throw new IllegalArgumentException("invalid hours range");
     }
     access.require(organizationId, OrganizationPermission.VIEW_TEAM_HOURS);
@@ -351,7 +351,7 @@ public class StaffingPlannerService {
     }).toList();
     int planned = days.stream().mapToInt(TeamHoursDayResponse::plannedMinutes).sum();
     int worked = days.stream().mapToInt(TeamHoursDayResponse::workedMinutes).sum();
-    var sessions = assignmentsForMember.stream().map(assignment -> {
+    var allSessions = assignmentsForMember.stream().map(assignment -> {
       var result = resultsByAssignment.get(assignment.getId());
       String state = result == null ? "INCOMPLETE"
           : result.getCheckedInAt() != null && result.getCheckedOutAt() == null ? "OPEN"
@@ -362,13 +362,19 @@ public class StaffingPlannerService {
           assignment.getStartTime(), assignment.getEndTime(), result == null ? null : result.getActualStartTime(),
           result == null ? null : result.getActualEndTime(), result == null ? 0 : result.getBreakMinutes(),
           result == null ? null : calculatedMinutes(result), state);
-    }).toList();
+    }).sorted(Comparator.comparing(TeamHoursSessionResponse::date).reversed()).toList();
+    var sessions = allSessions.stream().skip(offset).limit(limit).toList();
+    var absences = assignmentsForMember.isEmpty() ? List.<TeamHoursAbsenceResponse>of()
+        : dayEntries.findAllByOrganizationIdAndMembershipIdAndDateBetweenOrderByDateAsc(
+            organizationId, membershipId, from, to).stream()
+            .filter(value -> "VACATION".equals(value.getType()) || "SICK".equals(value.getType()))
+            .map(value -> new TeamHoursAbsenceResponse(value.getDate(), value.getType(), value.getNotes())).toList();
     return new TeamMemberHoursResponse(member.getId(), memberName(member), from, to,
         (int) days.stream().filter(value -> value.workedMinutes() > 0).count(), planned, worked, days,
         periods(days, value -> value.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
             value -> value.plusDays(6)),
         periods(days, value -> value.withDayOfMonth(1),
-            value -> value.plusMonths(1).minusDays(1)), sessions);
+            value -> value.plusMonths(1).minusDays(1)), sessions, allSessions.size(), offset, absences);
   }
   @Transactional
   public AssignmentResultResponse approveResult(UUID organizationId, UUID resultId, ResultReviewRequest request) {
