@@ -407,6 +407,24 @@ public class StaffingPlanQueryService {
     Map<UUID, AssignmentBuilder> assignments = new LinkedHashMap<>();
     Map<UUID, MemberBuilder> members = new LinkedHashMap<>();
     jdbc.query("""
+        select id,
+          coalesce(nullif(btrim(concat_ws(' ',first_name,last_name)),''),
+            'Member ' || left(id::text,8)) display_name,
+          membership_status
+        from organization_memberships
+        where organization_id=:organization
+        order by lower(coalesce(nullif(btrim(concat_ws(' ',first_name,last_name)),''),
+          'Member ' || left(id::text,8))),id
+        """, params("organization", plan.organizationId), (RowCallbackHandler) rs -> {
+          try {
+            UUID membershipId = rs.getObject("id", UUID.class);
+            members.put(membershipId, new MemberBuilder(membershipId,
+                rs.getString("display_name"), rs.getString("membership_status")));
+          } catch (SQLException exception) {
+            throw new IllegalStateException("Could not read organization members", exception);
+          }
+        });
+    jdbc.query("""
         select a.id assignment_id, r.id requirement_id, a.membership_id,
           coalesce(nullif(btrim(concat_ws(' ',m.first_name,m.last_name)),''),
             'Member ' || left(m.id::text,8)) member_display_name,
@@ -440,8 +458,7 @@ public class StaffingPlanQueryService {
                 rs.getObject("effective_end", LocalTime.class),
                 rs.getBoolean("interval_override"), effective, issueKeys)));
             members.computeIfAbsent(membershipId, ignored -> new MemberBuilder(membershipId,
-                memberDisplayName, membershipStatus))
-                .assignmentIds.add(id);
+                memberDisplayName, membershipStatus)).assignmentIds.add(id);
           } catch (SQLException exception) {
             throw new IllegalStateException("Could not read staffing assignments", exception);
           }
