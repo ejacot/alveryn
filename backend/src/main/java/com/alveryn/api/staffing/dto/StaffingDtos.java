@@ -47,9 +47,14 @@ public final class StaffingDtos {
       int completedSessions, int openSessions, int incompleteSessions, int correctedSessions) {}
   public record TeamHoursPeriodResponse(LocalDate startDate, LocalDate endDate, int plannedMinutes,
       int workedMinutes) {}
+  /** Chronological manager-only history. Deliberately contains no technical identifiers. */
+  public record TeamHoursSessionResponse(LocalDate date, String unitName, String workTypeName,
+      LocalTime plannedStartTime, LocalTime plannedEndTime, LocalTime actualStartTime,
+      LocalTime actualEndTime, int breakMinutes, Integer netMinutes, String state) {}
   public record TeamMemberHoursResponse(UUID membershipId, String memberName, LocalDate from, LocalDate to,
       int daysWorked, int plannedMinutes, int workedMinutes, List<TeamHoursDayResponse> days,
-      List<TeamHoursPeriodResponse> weeks, List<TeamHoursPeriodResponse> months) {}
+      List<TeamHoursPeriodResponse> weeks, List<TeamHoursPeriodResponse> months,
+      List<TeamHoursSessionResponse> sessions) {}
   public record AssignmentResponse(UUID id, UUID membershipId, String memberName, LocalTime startTime,
       LocalTime endTime, boolean hasConflict, List<UUID> conflictingAssignmentIds, boolean viewed,
       AssignmentResultResponse result) {}

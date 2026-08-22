@@ -107,6 +107,7 @@ class BusinessOrganizationIntegrationTest {
             .content("{\"firstName\":\"Maria\",\"lastName\":\"Test\",\"email\":\"WORKER@example.com\"}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.status").value("ACTIVE"))
+        .andExpect(jsonPath("$.data.accessState").value("CLAIMED"))
         .andExpect(jsonPath("$.data.userId").value(employee.getId().toString()));
     mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
@@ -134,7 +135,7 @@ class BusinessOrganizationIntegrationTest {
   }
 
   @Test
-  void invitedMemberExplicitlyAcceptsSecureInvitation() throws Exception {
+  void managedMemberKeepsItsIdentityWhenItLaterClaimsAnInvitation() throws Exception {
     UserAccount owner = user("claim-owner@example.com");
     UserAccount employee = users.saveAndFlush(new UserAccount("later@example.com", "hash"));
     String organizationId = id(mockMvc.perform(post("/api/organizations")
@@ -143,8 +144,9 @@ class BusinessOrganizationIntegrationTest {
         .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
     String memberId = id(mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"firstName\":\"Ion\",\"lastName\":\"Test\",\"email\":\"later@example.com\"}"))
-        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("INVITED"))
+            .content("{\"firstName\":\"Ion\",\"lastName\":\"Test\"}"))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.status").value("ACTIVE"))
+        .andExpect(jsonPath("$.data.accessState").value("MANAGED"))
         .andReturn().getResponse().getContentAsString());
     String unitId = id(mockMvc.perform(post("/api/organizations/{id}/units", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
@@ -172,6 +174,12 @@ class BusinessOrganizationIntegrationTest {
         "select draft_revision from staffing_plans where organization_id=?::uuid and unit_id=?::uuid",
         Long.class, organizationId, unitId);
 
+    mockMvc.perform(put("/api/organizations/{id}/members/{memberId}", organizationId, memberId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"firstName\":\"Ion\",\"lastName\":\"Test\",\"email\":\"later@example.com\"}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(memberId))
+        .andExpect(jsonPath("$.data.accessState").value("INVITED"));
+
     authService.issueVerifiedSession(employee);
     mockMvc.perform(get("/api/organizations").header(HttpHeaders.AUTHORIZATION, token(employee)))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(0));
@@ -183,6 +191,9 @@ class BusinessOrganizationIntegrationTest {
     mockMvc.perform(post("/api/business-invitations/{token}/accept", invitationToken)
             .header(HttpHeaders.AUTHORIZATION, token(employee)))
         .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"));
+    org.junit.jupiter.api.Assertions.assertEquals(memberId, jdbc.queryForObject(
+        "select id::text from organization_memberships where organization_id=?::uuid and user_id=?",
+        String.class, organizationId, employee.getId()));
 
     long revisionAfterClaim = jdbc.queryForObject(
         "select draft_revision from staffing_plans where organization_id=?::uuid and unit_id=?::uuid",
@@ -217,7 +228,8 @@ class BusinessOrganizationIntegrationTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"firstName\":\"Test\",\"lastName\":\"Worker\",\"email\":null}"))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.data.status").value("INVITED"))
+        .andExpect(jsonPath("$.data.status").value("ACTIVE"))
+        .andExpect(jsonPath("$.data.accessState").value("MANAGED"))
         .andExpect(jsonPath("$.data.userId").doesNotExist())
         .andReturn().getResponse().getContentAsString());
 

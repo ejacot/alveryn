@@ -143,7 +143,8 @@ public class BusinessOrganizationService {
           .ifPresent(member::claim);
     }
     var saved=memberships.save(member);
-    if(saved.getStatus()==MembershipStatus.INVITED && request.email()!=null&&!request.email().isBlank()) issueInvitation(saved, request.language());
+    if(saved.getAccessState()==com.alveryn.api.organization.entity.MembershipAccessState.INVITED
+        && request.email()!=null&&!request.email().isBlank()) issueInvitation(saved, request.language());
     return memberResponse(saved);
   }
 
@@ -287,7 +288,8 @@ public class BusinessOrganizationService {
     var user = membership.getUser();
     return new OrganizationMemberResponse(membership.getId(), user == null ? null : user.getId(),
         membership.getFirstName(), membership.getLastName(),
-        user == null ? membership.getInvitedEmail() : user.getEmail(), membership.getStatus());
+        user == null ? membership.getInvitedEmail() : user.getEmail(), membership.getStatus(),
+        membership.getAccessState());
   }
 
   private OrganizationRoleResponse roleResponse(OrganizationRole role) {

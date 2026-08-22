@@ -48,6 +48,10 @@ public class OrganizationMembership extends BaseEntity {
   @Column(name = "membership_status", nullable = false, length = 20)
   private MembershipStatus status;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "access_state", nullable = false, length = 20)
+  private MembershipAccessState accessState;
+
   @Column(name = "joined_at")
   private OffsetDateTime joinedAt;
 
@@ -56,6 +60,7 @@ public class OrganizationMembership extends BaseEntity {
     this.user = Objects.requireNonNull(user, "user is required");
     this.role = Objects.requireNonNull(role, "role is required");
     this.status = MembershipStatus.ACTIVE;
+    this.accessState = MembershipAccessState.CLAIMED;
     this.joinedAt = OffsetDateTime.now();
   }
 
@@ -69,7 +74,9 @@ public class OrganizationMembership extends BaseEntity {
     }
     this.invitedEmail = clean(invitedEmail);
     this.role = MembershipRole.EMPLOYEE;
-    this.status = MembershipStatus.INVITED;
+    this.status = this.invitedEmail == null ? MembershipStatus.ACTIVE : MembershipStatus.INVITED;
+    this.accessState = this.invitedEmail == null ? MembershipAccessState.MANAGED
+        : MembershipAccessState.INVITED;
   }
 
   public void claim(UserAccount user) {
@@ -78,6 +85,7 @@ public class OrganizationMembership extends BaseEntity {
     }
     this.user = Objects.requireNonNull(user, "user is required");
     this.invitedEmail = null;
+    this.accessState = MembershipAccessState.CLAIMED;
     this.status = MembershipStatus.ACTIVE;
     this.joinedAt = OffsetDateTime.now();
     this.endedAt = null;
@@ -85,7 +93,8 @@ public class OrganizationMembership extends BaseEntity {
   }
 
   public void issueInvitation(String tokenHash, OffsetDateTime expiresAt) {
-    if (status != MembershipStatus.INVITED || invitedEmail == null) {
+    if (status == MembershipStatus.SUSPENDED || accessState != MembershipAccessState.INVITED
+        || invitedEmail == null) {
       throw new IllegalStateException("only pending email invitations can be issued");
     }
     this.invitationTokenHash = Objects.requireNonNull(tokenHash);
@@ -93,7 +102,8 @@ public class OrganizationMembership extends BaseEntity {
   }
 
   public boolean invitationIsValid(OffsetDateTime now) {
-    return status == MembershipStatus.INVITED && invitationTokenHash != null
+    return status != MembershipStatus.SUSPENDED && accessState == MembershipAccessState.INVITED
+        && invitationTokenHash != null
         && invitationExpiresAt != null && invitationExpiresAt.isAfter(now);
   }
 
@@ -114,7 +124,8 @@ public class OrganizationMembership extends BaseEntity {
 
   public void reactivate() {
     if (status != MembershipStatus.SUSPENDED) return;
-    this.status = user == null ? MembershipStatus.INVITED : MembershipStatus.ACTIVE;
+    this.status = accessState == MembershipAccessState.INVITED
+        ? MembershipStatus.INVITED : MembershipStatus.ACTIVE;
     this.endedAt = null;
   }
 
@@ -126,7 +137,15 @@ public class OrganizationMembership extends BaseEntity {
     }
     this.firstName = nextFirstName;
     this.lastName = nextLastName;
-    if (user == null) this.invitedEmail = clean(email);
+    if (user == null) {
+      this.invitedEmail = clean(email);
+      if (this.invitedEmail == null) {
+        this.accessState = MembershipAccessState.MANAGED;
+        clearInvitation();
+      } else if (this.accessState == MembershipAccessState.MANAGED) {
+        this.accessState = MembershipAccessState.INVITED;
+      }
+    }
   }
 
   private static String clean(String value) {

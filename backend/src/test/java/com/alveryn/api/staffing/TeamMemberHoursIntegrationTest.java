@@ -31,7 +31,7 @@ class TeamMemberHoursIntegrationTest {
     String unit=create("/api/organizations/"+org+"/units", "{\"name\":\"Berlin\",\"type\":\"LOCATION\",\"checkInMode\":\"OPTIONAL\"}");
     String member=create("/api/organizations/"+org+"/members", "{\"firstName\":\"Ana\",\"lastName\":\"Worker\"}");
     UserAccount employee=verified("hours-employee@example.com");
-    jdbc.update("update organization_memberships set membership_status='ACTIVE', user_id=? where id=?::uuid", employee.getId(), member);
+    jdbc.update("update organization_memberships set membership_status='ACTIVE', access_state='CLAIMED', user_id=? where id=?::uuid", employee.getId(), member);
     String type=create("/api/organizations/"+org+"/staffing/work-types", "{\"unitId\":\""+unit+"\",\"code\":\"NIGHT\",\"name\":\"Night\",\"color\":\"#10B981\",\"defaultStartTime\":\"22:00\",\"defaultEndTime\":\"02:00\",\"defaultBreakMinutes\":30}");
     String requirement=create("/api/organizations/"+org+"/staffing/requirements", "{\"unitId\":\""+unit+"\",\"workTypeId\":\""+type+"\",\"date\":\"2026-08-30\",\"startTime\":\"22:00\",\"endTime\":\"02:00\",\"requiredWorkers\":1}");
     String assignment=id(mvc.perform(post("/api/organizations/{org}/staffing/requirements/{requirement}/assignments",org,requirement).header(HttpHeaders.AUTHORIZATION,token(owner)).contentType(MediaType.APPLICATION_JSON).content("{\"membershipId\":\""+member+"\"}")) .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "assignments[0].id");
@@ -54,11 +54,11 @@ class TeamMemberHoursIntegrationTest {
     String req=create("/api/organizations/"+org+"/staffing/requirements", "{\"unitId\":\""+unitB+"\",\"workTypeId\":\""+type+"\",\"date\":\"2026-08-10\",\"requiredWorkers\":1}");
     mvc.perform(post("/api/organizations/{org}/staffing/requirements/{req}/assignments",org,req).header(HttpHeaders.AUTHORIZATION,token(owner)).contentType(MediaType.APPLICATION_JSON).content("{\"membershipId\":\""+target+"\"}")).andExpect(status().isCreated());
     UserAccount viewer=verified("unit-viewer@example.com"); String viewerMembership=create("/api/organizations/"+org+"/members", "{\"firstName\":\"Viewer\",\"lastName\":\"A\"}");
-    jdbc.update("update organization_memberships set membership_status='ACTIVE', user_id=? where id=?::uuid",viewer.getId(),viewerMembership);
+    jdbc.update("update organization_memberships set membership_status='ACTIVE', access_state='CLAIMED', user_id=? where id=?::uuid",viewer.getId(),viewerMembership);
     UUID role=UUID.randomUUID(); jdbc.update("insert into organization_roles(id,organization_id,name,permissions,system_role,created_at,updated_at) values(?,?::uuid,'Hours',array['VIEW_TEAM_HOURS'],false,current_timestamp,current_timestamp)",role,org);
     jdbc.update("insert into organization_role_assignments(id,membership_id,role_id,unit_id,include_descendants,created_at,updated_at) values(?,?::uuid,?,?::uuid,true,current_timestamp,current_timestamp)",UUID.randomUUID(),viewerMembership,role,unitA);
     mvc.perform(get("/api/organizations/{org}/staffing/members/{member}/hours",org,target).param("from","2026-08-10").param("to","2026-08-10").header(HttpHeaders.AUTHORIZATION,token(viewer))).andExpect(status().isNotFound());
-    jdbc.update("update organization_memberships set membership_status='INVITED' where id=?::uuid",viewerMembership);
+    jdbc.update("update organization_memberships set access_state='INVITED' where id=?::uuid",viewerMembership);
     mvc.perform(get("/api/organizations/{org}/staffing/members/{member}/hours",org,target).param("from","2026-08-10").param("to","2026-08-10").header(HttpHeaders.AUTHORIZATION,token(viewer))).andExpect(status().isNotFound());
     jdbc.update("update organization_memberships set membership_status='SUSPENDED' where id=?::uuid",viewerMembership);
     mvc.perform(get("/api/organizations/{org}/staffing/members/{member}/hours",org,target).param("from","2026-08-10").param("to","2026-08-10").header(HttpHeaders.AUTHORIZATION,token(viewer))).andExpect(status().isNotFound());

@@ -351,12 +351,24 @@ public class StaffingPlannerService {
     }).toList();
     int planned = days.stream().mapToInt(TeamHoursDayResponse::plannedMinutes).sum();
     int worked = days.stream().mapToInt(TeamHoursDayResponse::workedMinutes).sum();
+    var sessions = assignmentsForMember.stream().map(assignment -> {
+      var result = resultsByAssignment.get(assignment.getId());
+      String state = result == null ? "INCOMPLETE"
+          : result.getCheckedInAt() != null && result.getCheckedOutAt() == null ? "OPEN"
+          : "APPROVED".equals(result.getApprovalStatus()) ? "CORRECTED"
+          : calculatedMinutes(result) == null ? "INCOMPLETE" : "COMPLETED";
+      return new TeamHoursSessionResponse(assignment.getRequirement().getDate(),
+          assignment.getRequirement().getUnit().getName(), assignment.getRequirement().getWorkType().getName(),
+          assignment.getStartTime(), assignment.getEndTime(), result == null ? null : result.getActualStartTime(),
+          result == null ? null : result.getActualEndTime(), result == null ? 0 : result.getBreakMinutes(),
+          result == null ? null : calculatedMinutes(result), state);
+    }).toList();
     return new TeamMemberHoursResponse(member.getId(), memberName(member), from, to,
         (int) days.stream().filter(value -> value.workedMinutes() > 0).count(), planned, worked, days,
         periods(days, value -> value.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
             value -> value.plusDays(6)),
         periods(days, value -> value.withDayOfMonth(1),
-            value -> value.plusMonths(1).minusDays(1)));
+            value -> value.plusMonths(1).minusDays(1)), sessions);
   }
   @Transactional
   public AssignmentResultResponse approveResult(UUID organizationId, UUID resultId, ResultReviewRequest request) {

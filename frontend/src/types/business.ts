@@ -23,6 +23,7 @@ export type OrganizationMember = {
   lastName: string | null;
   email: string | null;
   status: "INVITED" | "ACTIVE" | "SUSPENDED";
+  accessState?: "MANAGED" | "INVITED" | "CLAIMED";
 };
 
 export type BusinessCalculationMethod="TIME_BASED"|"UNIT_BASED"|"UNITS_PER_HOUR_BASED"|"FIXED_PRICE_BASED";
@@ -30,7 +31,8 @@ export type BusinessWorkType = { id:string;unitId:string|null;parentId:string|nu
 export type StaffingAssignmentResult = { id: string; assignmentId: string; organizationId: string; organizationName: string; memberName: string; date: string; workTypeName: string; workTypeCode: string; unitName: string; actualStartTime: string | null; actualEndTime: string | null; breakMinutes: number; completedQuantity: number | null; calculatedMinutes?:number|null; notes: string | null; approvalStatus: "DRAFT" | "SUBMITTED" | "APPROVED"; submittedAt: string | null; reviewedAt: string | null; checkedInAt: string | null; checkedOutAt: string | null; timeCaptureSource: "MANUAL" | "CHECK_IN" };
 export type TeamHoursDay = { date:string;plannedMinutes:number;workedMinutes:number;completedSessions:number;openSessions:number;incompleteSessions:number;correctedSessions:number };
 export type TeamHoursPeriod = { startDate:string;endDate:string;plannedMinutes:number;workedMinutes:number };
-export type TeamMemberHours = { membershipId:string;memberName:string;from:string;to:string;daysWorked:number;plannedMinutes:number;workedMinutes:number;days:TeamHoursDay[];weeks:TeamHoursPeriod[];months:TeamHoursPeriod[] };
+export type TeamHoursSession = {date:string;unitName:string;workTypeName:string;plannedStartTime:string|null;plannedEndTime:string|null;actualStartTime:string|null;actualEndTime:string|null;breakMinutes:number;netMinutes:number|null;state:"OPEN"|"INCOMPLETE"|"CORRECTED"|"COMPLETED"};
+export type TeamMemberHours = { membershipId:string;memberName:string;from:string;to:string;daysWorked:number;plannedMinutes:number;workedMinutes:number;days:TeamHoursDay[];weeks:TeamHoursPeriod[];months:TeamHoursPeriod[];sessions?:TeamHoursSession[] };
 export type StaffingAssignment = { id: string; membershipId: string; memberName: string; startTime: string | null; endTime: string | null; hasConflict: boolean; conflictingAssignmentIds: string[]; viewed: boolean; result: StaffingAssignmentResult | null };
 export type StaffingRequirement = { id: string; unitId: string; unitName: string; workTypeId: string; code: string; workTypeName: string; color: string; date: string; startTime: string | null; endTime: string | null; requiredWorkers: number; assignedWorkers: number; coverageDifference: number; coverageStatus: "UNDERSTAFFED" | "COVERED" | "OVERSTAFFED"; publicationStatus: "DRAFT" | "PUBLISHED"; checkInMode: "DISABLED" | "OPTIONAL" | "REQUIRED"; assignments: StaffingAssignment[] };
 export type StaffingDayEntry = { id: string; membershipId: string; date: string; type: "REST_DAY" | "VACATION" | "SICK"; notes: string | null; hasWorkConflict: boolean };
