@@ -58,7 +58,7 @@ public class BusinessInvitationService {
   }
   private BusinessInvitationResponse response(OrganizationMembership member) {
     String status = member.invitationIsValid(OffsetDateTime.now(clock)) ? "PENDING"
-        : member.getStatus() == com.alveryn.api.organization.entity.MembershipStatus.INVITED
+        : member.getAccessState() == com.alveryn.api.organization.entity.MembershipAccessState.INVITED
             ? "EXPIRED" : member.getStatus().name();
     return new BusinessInvitationResponse(member.getOrganization().getName(), member.getInvitedEmail(),
         member.getInvitationExpiresAt(), status);

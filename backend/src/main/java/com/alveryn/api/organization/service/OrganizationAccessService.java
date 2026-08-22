@@ -103,7 +103,8 @@ public class OrganizationAccessService {
 
   private OrganizationMembership activeMembership(UUID organizationId) {
     return memberships.findByOrganizationIdAndUserId(organizationId, currentUser.requireUserId())
-        .filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
+        .filter(value -> value.getStatus() == MembershipStatus.ACTIVE
+            && value.getAccessState() == MembershipAccessState.CLAIMED)
         .orElseThrow(() -> new NotFoundException("Organization", organizationId));
   }
 
