@@ -35,6 +35,13 @@ public class Organization extends BaseEntity {
     this.timezone = validTimezone(timezone);
   }
 
+  public Organization(String name, String timezone) {
+    this.personalOwner = null;
+    this.name = required(name, "name");
+    this.organizationType = OrganizationType.BUSINESS;
+    this.timezone = validTimezone(timezone);
+  }
+
   private static String required(String value, String field) {
     if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " is required");
     return value.trim();

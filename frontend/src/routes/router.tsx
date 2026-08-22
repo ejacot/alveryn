@@ -159,6 +159,11 @@ const PreviewDashboardPage = lazy(() =>
     default: module.PreviewDashboardPage
   }))
 );
+const BusinessPlanningPrototypePage = lazy(() =>
+  import("../pages/business-planning-prototype-page").then((module) => ({
+    default: module.BusinessPlanningPrototypePage
+  }))
+);
 const OnboardingPage = lazy(() =>
   import("../pages/onboarding-page").then((module) => ({
     default: module.OnboardingPage
@@ -169,6 +174,29 @@ const TrackingSetupPage = lazy(() =>
     default: module.TrackingSetupPage
   }))
 );
+const BusinessPage = lazy(() =>
+  import("../pages/business-page").then((module) => ({ default: module.BusinessPage }))
+);
+const BusinessInvitationPage = lazy(() => import("../pages/business-invitation-page").then((module) => ({ default: module.BusinessInvitationPage })));
+const BusinessDemandPage = lazy(() =>
+  import("../pages/business-demand-page").then((module) => ({ default: module.BusinessDemandPage }))
+);
+const BusinessSchedulePage = lazy(() =>
+  import("../pages/business-schedule-page").then((module) => ({ default: module.BusinessSchedulePage }))
+);
+const BusinessReviewPage = lazy(() =>
+  import("../pages/business-review-page").then((module) => ({ default: module.BusinessReviewPage }))
+);
+const BusinessPlanPrintPage = lazy(() =>
+  import("../pages/business-plan-print-page").then((module) => ({ default: module.BusinessPlanPrintPage }))
+);
+const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
+const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
+const BusinessPeoplePage=lazy(()=>import("../pages/business-people-page").then(module=>({default:module.BusinessPeoplePage})));
+const BusinessRolesPage=lazy(()=>import("../pages/business-roles-page").then(module=>({default:module.BusinessRolesPage})));
+const BusinessLocationsPage=lazy(()=>import("../pages/business-locations-page").then(module=>({default:module.BusinessLocationsPage})));
+const BusinessOverviewPage=lazy(()=>import("../pages/business-overview-page").then(module=>({default:module.BusinessOverviewPage})));
+const SchedulePage = lazy(() => import("../pages/schedule-page").then((module) => ({ default: module.SchedulePage })));
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
 }
@@ -185,6 +213,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       element: withSuspense(<WelcomePage />),
       errorElement: <RouteErrorPage />
     },
+    { path: "/business-invitation/:token", element: withSuspense(<BusinessInvitationPage />), errorElement: <RouteErrorPage /> },
     ...(["dashboard", "calendar", "statistics"] as const).map((product) => ({
       path: `/welcome/${product}`,
       element: withSuspense(<WelcomeProductPage product={product} />),
@@ -220,6 +249,7 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
       element: <ProtectedRoute />,
       errorElement: <RouteErrorPage />,
       children: [
+        { path: "/business/:organizationId/plan/:planId/versions/:versionNumber/print", element: withSuspense(<BusinessPlanPrintPage />) },
         {
           element: <AppLayout />,
           children: [
@@ -228,6 +258,18 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/records/new", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/records/:recordId", element: withSuspense(<WorkRecordEditorPage />) },
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
+            { path: "/business", element: withSuspense(<BusinessPage />) },
+            { path: "/business/:organizationId/plan/demand", element: withSuspense(<BusinessDemandPage />) },
+            { path: "/business/:organizationId/plan/schedule", element: withSuspense(<BusinessSchedulePage />) },
+            { path: "/business/:organizationId/plan/review", element: withSuspense(<BusinessReviewPage />) },
+            { path: "/business/:organizationId/work-types", element: withSuspense(<BusinessWorkTypesPage />) },
+            { path: "/business/:organizationId/work-types/new", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/business/:organizationId/work-types/:workTypeId", element: withSuspense(<BusinessWorkTypeEditorPage />) },
+            { path: "/business/:organizationId/people", element: withSuspense(<BusinessPeoplePage />) },
+            { path: "/business/:organizationId/roles", element: withSuspense(<BusinessRolesPage />) },
+            { path: "/business/:organizationId/locations", element: withSuspense(<BusinessLocationsPage />) },
+            { path: "/business/:organizationId/overview", element: withSuspense(<BusinessOverviewPage />) },
+            { path: "/schedule", element: withSuspense(<SchedulePage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },
             { path: "/settings/preferences", element: withSuspense(<SettingsPreferencesPage />) },
@@ -262,12 +304,21 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
   ];
 
   if (enablePreviewRoutes) {
-    routes.splice(1, 0, {
-      path: "/preview/dashboard",
-      element: <AppLayout />,
-      errorElement: <RouteErrorPage />,
-      children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
-    });
+    routes.splice(
+      1,
+      0,
+      {
+        path: "/preview/dashboard",
+        element: <AppLayout />,
+        errorElement: <RouteErrorPage />,
+        children: [{ index: true, element: withSuspense(<PreviewDashboardPage />) }]
+      },
+      {
+        path: "/preview/business-planning",
+        element: withSuspense(<BusinessPlanningPrototypePage />),
+        errorElement: <RouteErrorPage />
+      }
+    );
   }
 
   routes.push({

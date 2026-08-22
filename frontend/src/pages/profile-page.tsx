@@ -213,6 +213,13 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
           icon={<BriefcaseBusiness className="h-[18px] w-[18px]" />}
           iconClassName="bg-[#10b981]/[0.08] text-[#34d399]"
         />
+        <div className="mx-5 h-px bg-white/[0.06]" />
+        <SettingsRow
+          to="/business"
+          label={t("common:nav.business")}
+          icon={<BriefcaseBusiness className="h-[18px] w-[18px]" />}
+          iconClassName="bg-sky-400/[0.09] text-sky-200/80"
+        />
       </SettingsGroup> : null}
 
       {showPreferences ? <SettingsGroup

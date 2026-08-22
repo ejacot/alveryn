@@ -23,6 +23,14 @@ export function ProtectedRoute() {
     (user?.preferences?.trackingSetupVersionCompleted ?? 0) >=
     REQUIRED_TRACKING_SETUP_VERSION;
   const isTrackingSetupRoute = location.pathname.startsWith("/tracking-setup");
+  const canEnterBusinessDirectly =
+    user?.hasBusinessWorkspace === true && !onboardingCompleted;
+
+  if (canEnterBusinessDirectly) {
+    const isPersonalSetupRoute =
+      location.pathname === APP_HOME_PATH || isOnboardingRoute || isTrackingSetupRoute;
+    return isPersonalSetupRoute ? <Navigate to="/business" replace /> : <Outlet />;
+  }
 
   if (!trackingSetupCompleted && !isTrackingSetupRoute) {
     return <Navigate to="/tracking-setup" replace />;

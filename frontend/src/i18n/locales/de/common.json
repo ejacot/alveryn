@@ -38,7 +38,13 @@
     "addEntry": "Eintrag",
     "statistics": "Einblicke",
     "settings": "Einstellungen",
+    "business": "Business", "schedule": "Dienstplan",
     "primaryNavigation": "Primäre Navigation"
+  },
+  "workspace": {
+    "label": "Aktiver Kontobereich",
+    "personal": "Persönlich",
+    "business": "Business"
   },
   "statistics": {
     "eyebrow": "Statistik",

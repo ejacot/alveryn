@@ -38,7 +38,13 @@
     "addEntry": "Adaugă",
     "statistics": "Analiză",
     "settings": "Setări",
+    "business": "Business", "schedule": "Program",
     "primaryNavigation": "Navigare principală"
+  },
+  "workspace": {
+    "label": "Context activ al contului",
+    "personal": "Personal",
+    "business": "Business"
   },
   "statistics": {
     "eyebrow": "Statistici",

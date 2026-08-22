@@ -3,6 +3,9 @@ spring:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/alveryn?currentSchema=alveryn_test}
     username: ${DB_USERNAME:alveryn}
     password: ${DB_PASSWORD:change-me}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
   jpa:
     hibernate:
       ddl-auto: validate

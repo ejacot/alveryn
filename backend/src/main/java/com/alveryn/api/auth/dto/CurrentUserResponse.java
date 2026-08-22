@@ -10,4 +10,5 @@ public record CurrentUserResponse(
     UserAccountDto account,
     UserProfileResponse profile,
     UserPreferencesResponse preferences,
-    boolean founder) {}
+    boolean founder,
+    boolean hasBusinessWorkspace) {}
