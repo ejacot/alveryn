@@ -430,7 +430,7 @@ export function MemberWeekAssignmentPicker({
               </label>
               <fieldset className="assignment-inspector__week-days">
                 <legend>{t("planning.demand.days")}</legend>
-                {choices.map(({ day, requirement, disabled }) => (
+                {choices.map(({ day, disabled }) => (
                   <label key={day.date} data-disabled={disabled || undefined}>
                     <input
                       type="checkbox"

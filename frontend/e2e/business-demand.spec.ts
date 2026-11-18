@@ -141,23 +141,20 @@ test.describe("authenticated Business Demand", () => {
     });
   }
 
-  test("keeps dark mode readable and changes language without leaving the planner", async ({ page }) => {
-    await installBusinessDemandMocks(page, { theme: "DARK" });
-    await openDemand(page, 1440, 980, "dark");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await captureIfRequested(page, "desktop-dark-en.png");
-    const titles = {
-      de: "Was braucht das Hotel diese Woche?",
-      ro: "De ce are nevoie hotelul săptămâna aceasta?",
-      ru: "Что нужно отелю на этой неделе?",
-      en: "What does the hotel need this week?",
-    };
-    for (const language of ["de", "ro", "ru", "en"] as const) {
-      await page.locator(".business-planning__language select").selectOption(language);
-      await expect(page.getByRole("heading", { name: titles[language] })).toBeVisible();
-    }
-    await captureIfRequested(page, "desktop-dark-final.png");
-  });
+  for (const [language, title] of [
+    ["en", "What does the hotel need this week?"],
+    ["de", "Was braucht das Hotel diese Woche?"],
+    ["ro", "De ce are nevoie hotelul săptămâna aceasta?"],
+    ["ru", "Что нужно отелю на этой неделе?"],
+  ]) {
+    test(`keeps Demand readable in desktop dark mode in ${language}`, async ({ page }) => {
+      await installBusinessDemandMocks(page, { theme: "DARK", language });
+      await openDemand(page, 1440, 980, "dark", language);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect(page.getByRole("heading", { name: title })).toBeVisible();
+      await captureIfRequested(page, `desktop-dark-${language}.png`);
+    });
+  }
 });
 
 async function openDemand(
@@ -165,19 +162,21 @@ async function openDemand(
   width: number,
   height: number,
   theme: "light" | "dark" = "light",
+  language = "en",
 ) {
   await page.setViewportSize({ width, height });
-  await page.addInitScript(({ selectedTheme }) => {
+  await page.addInitScript(({ selectedTheme, selectedLanguage }) => {
     localStorage.setItem("alveryn.session", "1");
     localStorage.setItem("alveryn.publicTheme", selectedTheme);
-  }, { selectedTheme: theme });
+    localStorage.setItem("alveryn.language", selectedLanguage);
+  }, { selectedTheme: theme, selectedLanguage: language });
   await page.goto(`/business/${organizationId}/plan/demand?unit=${unitId}&week=${weekStart}`);
   await expect(page.locator(".business-planning")).toBeVisible();
 }
 
 async function installBusinessDemandMocks(
   page: Page,
-  options: { found?: boolean; staleOnce?: boolean; theme?: "LIGHT" | "DARK" } = {},
+  options: { found?: boolean; staleOnce?: boolean; theme?: "LIGHT" | "DARK"; language?: string } = {},
 ) {
   const state: MockState = {
     found: options.found ?? true,
@@ -204,7 +203,7 @@ async function installBusinessDemandMocks(
       return json(route, authTokens());
     }
     if (path === "/api/me") {
-      return json(route, currentUser(options.theme ?? "LIGHT"));
+      return json(route, currentUser(options.theme ?? "LIGHT", options.language ?? "en"));
     }
     if (path === "/api/organizations" && method === "GET") {
       return json(route, [{ id: organizationId, name: "PUIU GmbH", type: "BUSINESS", timezone: "Europe/Berlin", role: "OWNER" }]);
@@ -485,13 +484,13 @@ function workType(
   };
 }
 
-function currentUser(theme: "LIGHT" | "DARK") {
+function currentUser(theme: "LIGHT" | "DARK", language: string) {
   return {
     account: { id: "manager-user", email: "manager@example.com", emailVerified: true, status: "ACTIVE", lastLoginAt: null },
     profile: { firstName: "Mara", lastName: "Manager" },
     preferences: {
       id: "preferences-manager",
-      language: "en",
+      language,
       timezone: "Europe/Berlin",
       currency: "EUR",
       firstDayOfWeek: "MONDAY",

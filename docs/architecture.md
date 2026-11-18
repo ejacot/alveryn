@@ -10,7 +10,7 @@ Work types are personal user data, not global enums. A work type can be a simple
 
 Daily analytics include dated work sessions only. Project-total records describe the whole project and are deliberately excluded from a particular day's hours and earnings. Calendar classification distinguishes worked, absent, and explicit rest days; an unclassified past day remains unknown rather than silently becoming a rest day.
 
-Organizations and versioned scheduling tables form an expansion boundary for future coordinated work. The current product UI remains personal-first, and each account is backfilled into a personal organization. This preserves a migration path without making business workflow concepts part of everyday personal tracking.
+The application supports Personal and Business workspaces under one account. Personal workspaces own individual tracking data. Business organizations use memberships and permissions for team management, staffing demand, schedule assignments, and publishing versioned weekly plans.
 
 The committed V2 development migration originally mixed BIGINT and UUID and could not execute. With no production data, V2 is explicitly rebased as an all-UUID development baseline and local databases must be recreated from V1/V2.
 

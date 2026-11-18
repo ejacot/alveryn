@@ -3,11 +3,11 @@ import { useLocation } from "react-router-dom";
 
 export function RouteScrollReset() {
   const location = useLocation();
+  const restoreScrollY = (location.state as { restoreScrollY?: unknown } | null)?.restoreScrollY;
 
   useLayoutEffect(() => {
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
-    const restoreScrollY = (location.state as { restoreScrollY?: unknown } | null)?.restoreScrollY;
     const shouldRestore = typeof restoreScrollY === "number" && Number.isFinite(restoreScrollY) && restoreScrollY >= 0;
 
     const reset = () => {
@@ -29,7 +29,7 @@ export function RouteScrollReset() {
       window.cancelAnimationFrame(frame);
       window.history.scrollRestoration = previousRestoration;
     };
-  }, [location.key]);
+  }, [location.key, restoreScrollY]);
 
   return null;
 }

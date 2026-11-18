@@ -7,5 +7,7 @@ frontend/dist-admin/
 frontend/*.tsbuildinfo
 frontend/playwright-report/
 frontend/test-results/
+/artifacts/
+/marketing/tiktok/launch-pack-*/*.mp4
 backups/
 *.log
