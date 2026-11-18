@@ -1,5 +1,7 @@
 # Alveryn Business — documentația implementării curente
 
+> **Document istoric.** Descrie o ramură din 13 august 2026. Business este acum integrat în `main`, iar starea ramurilor și limitările de mai jos reflectă data analizei.
+
 > Document tehnic și funcțional pentru analiză externă
 > Stare analizată: 13 august 2026
 > Repository: `ejacot/alveryn`

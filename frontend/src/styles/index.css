@@ -1843,11 +1843,6 @@ html[data-theme="light"] .calendar-day-selected .calendar-day-earnings-label {
   color: #ffffff !important;
 }
 
-.welcome-calendar-preview {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: #080a09;
-}
-
 .welcome-page-shell {
   background: #000000 !important;
   color: #f5f5f5;
@@ -1857,84 +1852,6 @@ html[data-theme="light"] .calendar-day-selected .calendar-day-earnings-label {
   background: #ffffff !important;
   color: #111312 !important;
   color-scheme: light;
-}
-
-.welcome-calendar-preview [class*="text-white/3"] {
-  color: rgba(255, 255, 255, 0.58) !important;
-}
-
-.welcome-calendar-preview [class*="text-white/4"] {
-  color: rgba(255, 255, 255, 0.66) !important;
-}
-
-.welcome-statistics-scene svg {
-  max-height: 17rem;
-}
-
-.welcome-connected-mobile {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  background: #090b0a !important;
-  color: #f5f7f6 !important;
-  color-scheme: dark;
-}
-
-.welcome-connected-caption {
-  color: rgba(255, 255, 255, 0.72) !important;
-}
-
-.welcome-connected-stage {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  background: #121513 !important;
-  color: rgba(255, 255, 255, 0.82) !important;
-}
-
-.welcome-connected-stage strong {
-  color: #ffffff !important;
-}
-
-.welcome-connected-stage.is-active {
-  border-color: #34d399 !important;
-  background: #10271f !important;
-  color: #d1fae5 !important;
-}
-
-.welcome-connected-progress {
-  background: rgba(255, 255, 255, 0.14) !important;
-}
-
-html[data-theme="light"] .welcome-connected-mobile {
-  border-color: rgb(226 232 240) !important;
-  background: #ffffff !important;
-  color: #111312 !important;
-  color-scheme: light;
-}
-
-html[data-theme="light"] .welcome-connected-caption {
-  color: rgb(100 116 139) !important;
-}
-
-html[data-theme="light"] .welcome-connected-stage {
-  border-color: rgb(226 232 240) !important;
-  background: #ffffff !important;
-  color: rgb(51 65 85) !important;
-}
-
-html[data-theme="light"] .welcome-connected-stage strong {
-  color: rgb(51 65 85) !important;
-}
-
-html[data-theme="light"] .welcome-connected-stage.is-active {
-  border-color: #10b981 !important;
-  background: #ecfdf5 !important;
-  color: #065f46 !important;
-}
-
-html[data-theme="light"] .welcome-connected-stage.is-active strong {
-  color: #065f46 !important;
-}
-
-html[data-theme="light"] .welcome-connected-progress {
-  background: rgb(241 245 249) !important;
 }
 
 /* Theme changes are atomic: colour never trails behind the section surface. */
@@ -2003,69 +1920,6 @@ html[data-theme="light"] .welcome-connected-progress {
   color: rgba(255, 255, 255, 0.42) !important;
 }
 
-.welcome-calendar-preview [role="gridcell"] span:not(.calendar-day-marker) {
-  opacity: 1;
-}
-
-.welcome-calendar-preview [role="gridcell"] .calendar-day-activity-label {
-  color: rgba(110, 231, 183, 0.9) !important;
-}
-
-.welcome-calendar-preview [role="gridcell"] .calendar-day-earnings-label {
-  color: rgba(255, 255, 255, 0.64) !important;
-}
-
-.welcome-calendar-preview
-  [role="gridcell"]
-  > span:first-child:not(.calendar-day-selected):not(.calendar-day-today) {
-  color: rgba(255, 255, 255, 0.78) !important;
-}
-
-html[data-theme="light"] .welcome-calendar-preview {
-  border-color: rgba(15, 23, 42, 0.08);
-  background: #ffffff;
-}
-
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  > span:first-child:not(.calendar-day-selected):not(.calendar-day-today) {
-  color: rgba(24, 24, 27, 0.72) !important;
-}
-
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  .calendar-day-activity-label {
-  color: rgba(24, 24, 27, 0.68) !important;
-}
-
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  .calendar-day-earnings-label {
-  color: #047857 !important;
-}
-
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  .calendar-day-selected,
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  .calendar-day-selected
-  ~ div
-  .calendar-day-activity-label,
-html[data-theme="light"]
-  .welcome-calendar-preview
-  [role="gridcell"]
-  .calendar-day-selected
-  ~ div
-  .calendar-day-earnings-label {
-  color: #ffffff !important;
-}
-
 html[data-theme="light"] .welcome-page-shell {
   background: #f7f9f8 !important;
   color: #101513;
@@ -2122,53 +1976,10 @@ html[data-theme="light"] .welcome-hero-trust {
   color: rgb(100 116 139) !important;
 }
 
-.welcome-calendar-preview > section {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  width: 100%;
-}
-
-.welcome-calendar-preview .calendar-month-summary {
-  border-radius: 24px !important;
-  border-bottom-width: 1px !important;
-  padding: 1rem !important;
-  box-shadow: none !important;
-}
-
-.welcome-calendar-preview .calendar-month-summary [class*="text-[clamp"] {
-  font-size: clamp(1.75rem, 4vw, 2.2rem) !important;
-}
-
-.welcome-calendar-preview > section > div:nth-child(3) {
-  flex: 1;
-}
-
-.welcome-calendar-preview > section > div:nth-child(3) > div {
-  height: 100%;
-  grid-auto-rows: 1fr;
-}
-
-.welcome-calendar-preview > section > div:nth-child(3) > [role="grid"] {
-  bottom: 0;
-}
-
-.welcome-calendar-preview [role="gridcell"] {
-  min-height: 0 !important;
-}
-
-.welcome-selected-day-marker {
-  color: var(--welcome-marker-color);
-}
-
 .welcome-phone-open-label {
   background: rgba(255, 255, 255, 0.94) !important;
   color: #0f172a !important;
   backdrop-filter: blur(14px);
-}
-
-html[data-theme="light"] .welcome-selected-day-marker {
-  color: color-mix(in srgb, var(--welcome-marker-color) 72%, #181818);
 }
 
 html[data-theme="light"] input::placeholder,

@@ -45,13 +45,12 @@ Deterministic parsing remains the foundation for structured spreadsheets and tex
 - Production API health: <https://api.alveryn.com/actuator/health>
 - Deployment notes: [docs/deployment.md](docs/deployment.md)
 - Architecture notes: [docs/architecture.md](docs/architecture.md)
-- API notes: [docs/api.md](docs/api.md)
 - Release process: [docs/releasing.md](docs/releasing.md)
 
 ## Versioning and releases
 
 Alveryn uses Semantic Versioning with `VERSION` as the canonical version shared
-by the frontend and backend. Development is integrated through `develop`,
+by the frontend and backend. Changes are developed on separate branches,
 production is deployed from `main`, and official versions are published as
 immutable `v*` Git tags and GitHub Releases. See the
 [release guide](docs/releasing.md) and [changelog](CHANGELOG.md).

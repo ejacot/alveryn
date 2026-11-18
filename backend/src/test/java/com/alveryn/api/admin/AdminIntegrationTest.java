@@ -13,6 +13,8 @@ import com.alveryn.api.user.repository.UserPreferencesRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
@@ -82,12 +84,13 @@ class AdminIntegrationTest {
     org.assertj.core.api.Assertions.assertThat(exports).isEqualTo(1);
   }
 
-  @Test
-  void anonymousAcquisitionEventsArePublicAndDeduplicatedPerDay() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"LANDING_VIEW", "DEMO_STARTED", "REGISTRATION_STARTED"})
+  void anonymousAcquisitionEventsArePublicAndDeduplicatedPerDay(String eventType) throws Exception {
     String visitorId = "2afab16a-9e26-4dc0-9951-85ba16f624ee";
     String event = """
-        {"eventType":"LANDING_VIEW","anonymousId":"%s"}
-        """.formatted(visitorId);
+        {"eventType":"%s","anonymousId":"%s"}
+        """.formatted(eventType, visitorId);
 
     mvc.perform(post("/api/analytics/public-event")
             .contentType(MediaType.APPLICATION_JSON)
@@ -99,9 +102,10 @@ class AdminIntegrationTest {
         .andExpect(status().isCreated());
 
     Integer views = jdbc.queryForObject(
-        "SELECT COUNT(*) FROM product_events WHERE anonymous_id = ?::uuid AND event_type = 'LANDING_VIEW'",
+        "SELECT COUNT(*) FROM product_events WHERE anonymous_id = ?::uuid AND event_type = ?",
         Integer.class,
-        visitorId);
+        visitorId,
+        eventType);
     org.assertj.core.api.Assertions.assertThat(views).isEqualTo(1);
   }
 
