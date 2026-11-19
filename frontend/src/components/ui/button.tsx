@@ -17,6 +17,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       whileTap={{ scale: 0.985 }}
       whileHover={{ y: -1 }}
       type={type}
+      data-button-variant={variant}
       className={cn(
         "inline-flex min-h-12 items-center justify-center rounded-full px-5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:opacity-50",
         variant === "primary" &&

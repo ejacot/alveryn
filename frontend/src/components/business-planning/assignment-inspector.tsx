@@ -25,7 +25,7 @@ type CandidateProps = {
   returnFocus: HTMLElement | null;
   onClose: () => void;
   onRetry: () => void;
-  onAssign: (candidate: StaffingAssignmentCandidate) => void;
+  onAssign: (candidate: StaffingAssignmentCandidate, continueToNext?: boolean) => void;
 };
 
 export function AssignmentCandidateInspector({
@@ -57,7 +57,7 @@ export function AssignmentCandidateInspector({
     setQuery("");
     const frame = requestAnimationFrame(() => panelRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [open, preferredMembershipId, requirement?.requirementId]);
+  }, [open, preferredMembershipId, requirement?.requirementId, data?.draftRevision]);
 
   useEffect(() => {
     if (!preferredMembershipId || !data?.candidates.some((candidate) =>
@@ -186,6 +186,12 @@ export function AssignmentCandidateInspector({
                       ? t("planning.schedule.confirmReplacement")
                       : t("planning.schedule.assignPerson", { name: selected.displayName })}
                 </button>
+                {!replacingAssignment && <button
+                  type="button"
+                  className="assignment-inspector__next"
+                  disabled={!canConfirm || busy}
+                  onClick={() => selected && onAssign(selected, true)}
+                >{t("planFlow.nextOpen")}</button>}
               </section>
             ) : null}
 

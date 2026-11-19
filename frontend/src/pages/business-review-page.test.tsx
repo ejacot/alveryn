@@ -313,6 +313,18 @@ describe("BusinessReviewPage", () => {
     mocks.publish.mockResolvedValue(entity(result, '"version-3"', 201));
   });
 
+  it("filters review issues without losing acknowledgement state", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const checkbox = await screen.findByRole("checkbox", { name: /reviewed and acknowledge/i });
+    await user.click(checkbox);
+    await user.click(screen.getByRole("button", { name: "Blocking 0" }));
+    expect(screen.queryByRole("checkbox", { name: /reviewed and acknowledge/i })).not.toBeInTheDocument();
+    expect(screen.getByText("No issues in this category.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Warnings 1" }));
+    expect(screen.getByRole("checkbox", { name: /reviewed and acknowledge/i })).toBeChecked();
+  });
+
   it("uses canonical review values and sends only the current acknowledgement set", async () => {
     const user = userEvent.setup();
     mocks.findPlan.mockReset();
@@ -327,6 +339,7 @@ describe("BusinessReviewPage", () => {
     expect(screen.getByRole("button", { name: "Review and acknowledge 1 warning" })).toBeEnabled();
     await user.click(screen.getByRole("checkbox", { name: /reviewed and acknowledge/ }));
     await waitFor(() => expectReviewState("READY_TO_PUBLISH"));
+    await user.click(screen.getByText("Publication note (optional)", { selector: "summary" }));
     await user.type(screen.getByLabelText("Publication note (optional)"), "  Hotel confirmed  ");
     await user.click(screen.getByRole("button", { name: "Publish week" }));
 

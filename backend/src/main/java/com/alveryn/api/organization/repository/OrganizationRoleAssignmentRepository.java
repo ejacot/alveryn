@@ -11,6 +11,8 @@ public interface OrganizationRoleAssignmentRepository
     extends JpaRepository<OrganizationRoleAssignment, UUID> {
   List<OrganizationRoleAssignment> findAllByMembershipOrganizationIdOrderByCreatedAtAsc(UUID organizationId);
   List<OrganizationRoleAssignment> findAllByMembershipId(UUID membershipId);
+  java.util.Optional<OrganizationRoleAssignment> findByMembershipIdAndRoleIdAndUnitId(
+      UUID membershipId, UUID roleId, UUID unitId);
   java.util.Optional<OrganizationRoleAssignment> findByIdAndMembershipOrganizationId(
       UUID id, UUID organizationId);
   List<OrganizationRoleAssignment> findAllByRoleId(UUID roleId);

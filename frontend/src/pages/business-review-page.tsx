@@ -9,7 +9,6 @@ import {
   History,
   Info,
   LoaderCircle,
-  LockKeyhole,
   Printer,
   RefreshCw,
   Send,
@@ -19,10 +18,12 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { BusinessLocationRequired } from "../components/business-planning/business-location-required";
 import {
   findStaffingPlan,
   getStaffingCoverage,
   getStaffingReview,
+  getStaffingSchedule,
   getStaffingVersion,
   getStaffingVersions,
   publishStaffingPlan,
@@ -30,6 +31,7 @@ import {
 import { getApiError } from "../api/api-errors";
 import { listOrganizations, listOrganizationUnits } from "../api/endpoints";
 import { BusinessPlanningShell } from "../components/business-planning/business-planning-shell";
+import { planContextSearch } from "../features/business/plan-context";
 import type {
   ApiEntityResult,
   StaffingIssue,
@@ -44,6 +46,7 @@ import "../styles/business-planning.css";
 import "../styles/business-review.css";
 
 type Notice = { type: "success" | "error" | "info"; message: string };
+type IssueFilter = "all" | "blocking" | "warnings" | "requests";
 type VersionPage = ApiEntityResult<StaffingVersions>;
 type VersionDetailResult = ApiEntityResult<StaffingVersionDetail>;
 type ReviewStateKind =
@@ -86,6 +89,7 @@ export function BusinessReviewPage() {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [olderPages, setOlderPages] = useState<VersionPage[]>([]);
   const [olderLoading, setOlderLoading] = useState(false);
+  const [issueFilter, setIssueFilter] = useState<IssueFilter>("all");
   const contextRef = useRef("");
   const operationKeys = useRef(new Map<string, string>());
   const versionPageCache = useRef(new Map<string, VersionPage>());
@@ -130,6 +134,7 @@ export function BusinessReviewPage() {
     contextRef.current = contextKey;
     setAcknowledged(new Set());
     setPublicationNote("");
+    setIssueFilter("all");
     setPublished(null);
     setSelectedVersion(null);
     setOlderPages([]);
@@ -159,6 +164,36 @@ export function BusinessReviewPage() {
     enabled: Boolean(plan),
     retry: false,
   });
+  const lastVersion = plan?.latestPublishedVersion?.versionNumber;
+  const compareDraft = Boolean(plan?.hasUnpublishedChanges && lastVersion);
+  const draftSchedule = useQuery({
+    queryKey: ["staffing-plan", organizationId, plan?.planId, "schedule"],
+    queryFn: () => getStaffingSchedule(organizationId, plan!.planId),
+    enabled: Boolean(plan),
+    retry: false,
+  });
+  const publishedSnapshot = useQuery({
+    queryKey: ["staffing-plan", organizationId, plan?.planId, "version", lastVersion],
+    queryFn: () => getStaffingVersion(organizationId, plan!.planId, lastVersion!),
+    enabled: compareDraft,
+    retry: false,
+  });
+  const draftAssignments = draftSchedule.data?.data?.days.flatMap((day) => day.requirements.flatMap(
+    (requirement) => requirement.assignments.filter(({ status }) => status === "ASSIGNED").map((assignment) => ({
+      id: assignment.assignmentId,
+      value: JSON.stringify([requirement.date, assignment.requirementId, assignment.membershipId,
+        assignment.startTime ?? requirement.startTime, assignment.endTime ?? requirement.endTime]),
+    })),
+  ));
+  const publishedAssignments = publishedSnapshot.data?.data?.assignments.filter(({ status, sourceAssignmentId }) =>
+    status === "ASSIGNED" && Boolean(sourceAssignmentId)
+  ).map((assignment) => ({
+    id: assignment.sourceAssignmentId!,
+    value: JSON.stringify([assignment.date, assignment.sourceRequirementId, assignment.membershipId, assignment.startTime, assignment.endTime]),
+  }));
+  const draftDiff = compareDraft && publishedAssignments && draftAssignments
+    ? compareSnapshots(publishedAssignments, draftAssignments, ({ id }) => id, ({ value }) => value)
+    : null;
   const firstVersionsQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, plan?.planId, "versions", "first"],
     queryFn: () => loadVersionPage(
@@ -297,9 +332,10 @@ export function BusinessReviewPage() {
   };
 
   const focusFirstPublishRequirement = () => {
+    setIssueFilter("all");
     const target = firstActionableIssueRef.current ?? firstBlockerRef.current;
     if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "center" }));
     const acknowledgement = target.querySelector<HTMLInputElement>("input:not(:checked)");
     window.setTimeout(() => (acknowledgement ?? target).focus(), 250);
   };
@@ -325,7 +361,7 @@ export function BusinessReviewPage() {
   if (organizationsQuery.isLoading) return <BusinessRouteSkeleton />;
   if (!organization) return <BusinessState title={t("planning.states.notFoundTitle")} description={t("planning.states.notFoundDescription")} />;
   if (unitsQuery.isLoading) return <BusinessRouteSkeleton />;
-  if (activeUnits.length === 0) return <BusinessState title={t("planning.states.noUnitTitle")} description={t("planning.states.noUnitDescription")} />;
+  if (activeUnits.length === 0) return <BusinessLocationRequired />;
 
   const loading = lookupQuery.isLoading || Boolean(plan && (coverageQuery.isLoading || reviewQuery.isLoading));
   const loadError = lookupQuery.error ?? coverageQuery.error ?? reviewQuery.error ?? firstVersionsQuery.error;
@@ -338,17 +374,13 @@ export function BusinessReviewPage() {
       unitId={unitId}
       weekStart={weekStart}
       weekEnd={weekEnd}
+      plan={plan}
       onOrganizationChange={(id) => navigate(`/business/${id}/plan/review?unit=${unitId}&week=${weekStart}`)}
       onUnitChange={(id) => updateSearchContext(id, weekStart)}
       onPreviousWeek={() => updateSearchContext(unitId, addDays(weekStart, -7))}
       onNextWeek={() => updateSearchContext(unitId, addDays(weekStart, 7))}
       onCurrentWeek={() => updateSearchContext(unitId, mondayIso(new Date()))}
     >
-      <section className="business-review__intro">
-        <div><p>{t("planning.review.eyebrow")}</p><h1>{t("planning.review.title")}</h1><span>{t("planning.review.description")}</span></div>
-        {plan && reviewState ? <PlanPublicationState state={reviewState} /> : null}
-      </section>
-
       {notice ? (
         <div className={`business-review__notice is-${notice.type}`} role={notice.type === "error" ? "alert" : "status"}>
           {notice.type === "success" ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
@@ -364,13 +396,16 @@ export function BusinessReviewPage() {
       {plan && review && coverage && reviewState ? (
         <div className="business-review">
           <div className="business-review__content">
-            <CoverageOverview review={review} state={reviewState} />
+            <CoverageOverview review={review} state={reviewState} plannedPeople={draftSchedule.data?.data ? new Set(draftSchedule.data.data.days.flatMap((day) => day.requirements.flatMap((requirement) => requirement.assignments.filter((assignment) => assignment.status === "ASSIGNED").map((assignment) => assignment.membershipId)))).size : null} />
             <section className="business-review__publish-scope">
               <div><span>{t("planning.review.whatPublishes")}</span><strong>{plan.unitName} · {formatWeekRange(plan.weekStart, plan.weekEnd, i18n.resolvedLanguage ?? i18n.language)}</strong></div>
               <p>{t("planning.review.whatPublishesHint", { revision: review.draftRevision })}</p>
               <div><b>{coverage.requirements.length}</b><span>{t("planning.review.demandSnapshot")}</span><b>{coverage.totals.rawAssigned}</b><span>{t("planning.review.assignmentSnapshot")}</span></div>
             </section>
             <IssueReview
+              filter={issueFilter}
+              onFilterChange={setIssueFilter}
+              approvalsHref={`/business/${organizationId}/approvals`}
               groups={review.groups}
               review={review}
               state={reviewState}
@@ -379,9 +414,19 @@ export function BusinessReviewPage() {
               firstActionableIssueRef={firstActionableIssueRef}
               onToggle={(key) => setAcknowledged((current) => toggleSet(current, key))}
               onAcknowledgeAll={() => setAcknowledged(new Set(review.requiredAcknowledgementKeys))}
-              demandHref={`/business/${organizationId}/plan/demand?unit=${unitId}&week=${weekStart}`}
-              scheduleHref={`/business/${organizationId}/plan/schedule?unit=${unitId}&week=${weekStart}`}
+              demandHref={`/business/${organizationId}/plan/demand${planContextSearch(unitId, weekStart, searchParams.get("day") ?? undefined)}`}
+              scheduleHref={`/business/${organizationId}/plan/schedule${planContextSearch(unitId, weekStart, searchParams.get("day") ?? undefined)}`}
             />
+            {draftDiff && (
+              <section className="business-review__publish-scope business-draft-diff">
+                <h2>{t("planFlow.changes")}</h2>
+                <p>{draftDiff.added || draftDiff.changed || draftDiff.removed ?
+                  (["added", "changed", "removed"] as const).map((key) => {
+                    const translation = { added: "shiftsAdded", changed: "shiftsChanged", removed: "shiftsRemoved" } as const;
+                    return t(`planFlow.${translation[key]}`, { count: draftDiff[key] });
+                  }).join(" · ") : t("planFlow.noChanges")}</p>
+              </section>
+            )}
             <VersionHistory
               versions={versions}
               loading={firstVersionsQuery.isLoading}
@@ -394,17 +439,16 @@ export function BusinessReviewPage() {
 
           <PublishRail
             plan={plan}
-            review={review}
             state={reviewState}
-            notice={notice}
             publicationNote={publicationNote}
             publishing={publishing}
             published={published}
             onNoteChange={setPublicationNote}
             onPublish={() => void handlePublish()}
             onResolve={() => focusFirstPublishRequirement()}
-            onOpenPublished={(version) => setSelectedVersion(version)}
+            onOpenPublished={() => navigate(`/business/${organizationId}/plan${planContextSearch(unitId, weekStart)}`)}
           />
+
         </div>
       ) : null}
 
@@ -432,14 +476,12 @@ function PlanPublicationState({ state }: { state: ReviewUiState }) {
   );
 }
 
-function CoverageOverview({ review, state }: { review: StaffingReview; state: ReviewUiState }) {
+function CoverageOverview({ review, state, plannedPeople }: { review: StaffingReview; state: ReviewUiState; plannedPeople: number | null }) {
   const { t } = useTranslation("business");
   const values = [
-    ["required", review.coverage.required],
-    ["rawAssigned", review.coverage.rawAssigned],
-    ["effectiveAssigned", review.coverage.effectiveAssigned],
+    ["people", plannedPeople ?? "—"],
     ["missing", review.coverage.missing],
-    ["overstaffed", review.coverage.overstaffed],
+    ["conflicts", state.blockingCount],
   ] as const;
   return (
     <section className="business-review__coverage" aria-label={t("planning.coverage.title")}>
@@ -450,17 +492,20 @@ function CoverageOverview({ review, state }: { review: StaffingReview; state: Re
         <i><b style={{ width: `${Math.min(100, Number(review.coverage.percentage))}%` }} /></i>
       </div>
       <div className="business-review__coverage-values">
-        {values.map(([key, value]) => <div key={key} className={key === "missing" && value > 0 ? "is-alert" : ""}><span>{t(key === "required" ? "planning.coverage.required" : `planning.review.${key}`)}</span><strong>{value}</strong></div>)}
+        {values.map(([key, value]) => <div key={key} className={(key === "missing" || key === "conflicts") && Number(value) > 0 ? "is-alert" : ""}><span>{t(key === "missing" ? "planning.review.missing" : `publicationLayout.${key}`)}</span><strong>{value}</strong></div>)}
       </div>
       <div className={`business-review__readiness is-${state.kind.toLowerCase()}`} data-review-state={state.kind}>
         <ReviewStateIcon state={state} />
-        <div><strong>{reviewStateLabel(t, state)}</strong><span>{review.warningCount} {t("planning.review.groups.WARNING").toLocaleLowerCase()}</span></div>
+        <PlanPublicationState state={state} />
       </div>
     </section>
   );
 }
 
 function IssueReview({
+  filter,
+  onFilterChange,
+  approvalsHref,
   groups,
   review,
   state,
@@ -472,6 +517,9 @@ function IssueReview({
   demandHref,
   scheduleHref,
 }: {
+  filter: IssueFilter;
+  onFilterChange: (filter: IssueFilter) => void;
+  approvalsHref: string;
   groups: StaffingIssueGroup[];
   review: StaffingReview;
   state: ReviewUiState;
@@ -485,6 +533,17 @@ function IssueReview({
 }) {
   const { t, i18n } = useTranslation("business");
   const grouped = new Map(groups.map((group) => [group.severity, group]));
+  const matchesFilter = (issue: StaffingIssue) => filter === "all"
+    || (filter === "blocking" && issue.publishBlocking)
+    || (filter === "warnings" && (issue.severity === "WARNING" || issue.severity === "UNCONFIRMED_CHANGE"))
+    || (filter === "requests" && issue.severity === "PENDING_REQUEST");
+  const issues = flattenIssues(review);
+  const counts = {
+    all: issues.length,
+    blocking: issues.filter((issue) => issue.publishBlocking).length,
+    warnings: issues.filter((issue) => issue.severity === "WARNING" || issue.severity === "UNCONFIRMED_CHANGE").length,
+    requests: issues.filter((issue) => issue.severity === "PENDING_REQUEST").length,
+  };
   const firstBlockerKey = groups
     .find((group) => group.severity === "BLOCKING_CONFLICT")
     ?.issues.at(0)?.issueKey;
@@ -493,25 +552,27 @@ function IssueReview({
   return (
     <section className="business-review__issues" aria-label={t("planning.review.title")} data-review-state={state.kind}>
       <header>
-        <div><span>{reviewStateLabel(t, state)}</span><h2>{t("planning.review.title")}</h2></div>
+        <div><h2>{t("publicationLayout.checks")}</h2></div>
         {review.requiredAcknowledgementKeys.length > 1 && state.kind !== "PUBLISHED_CURRENT" && state.kind !== "PUBLISHING" ? <button type="button" onClick={onAcknowledgeAll}><Check aria-hidden="true" />{t("planning.review.acknowledgeAll")}</button> : null}
       </header>
+      <div className="business-plan-filters business-review__filters" role="group" aria-label={t("publicationLayout.checks")}>
+        {(["all", "blocking", "warnings", "requests"] as const).map((value) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => onFilterChange(value)}>{t(`publicationLayout.${value}`)} <span>{counts[value]}</span></button>)}
+      </div>
       {SEVERITY_ORDER.map((severity) => {
         const group = grouped.get(severity);
         if (!group || group.issues.length === 0) return null;
         return (
-          <section className={`business-review__issue-group is-${severity.toLowerCase()}`} key={severity} aria-labelledby={`issue-group-${severity}`}>
+          <section hidden={!group.issues.some(matchesFilter)} className={`business-review__issue-group is-${severity.toLowerCase()}`} key={severity} aria-labelledby={`issue-group-${severity}`}>
             <header><SeverityIcon severity={severity} /><h3 id={`issue-group-${severity}`}>{t(`planning.review.groups.${severity}`)}</h3><span>{group.count}</span></header>
             <div>
               {group.issues.map((issue) => {
                 const isFirstBlocker = issue.issueKey === firstBlockerKey;
                 const isFirstActionable = issue.issueKey === firstActionableKey;
-                const goesToSchedule = Boolean(issue.assignmentId) || ["INVITATION_PENDING", "INTERVAL_OVERRIDE", "DUPLICATE_ASSIGNMENT", "INCOMPATIBLE_OVERLAP", "PENDING_REQUEST", "SUSPENDED_MEMBER"].includes(issue.code);
-                const destination = goesToSchedule
-                  ? scheduleHref
-                  : demandHref;
+                const goesToSchedule = Boolean(issue.assignmentId) || ["UNDERCOVERAGE", "INVITATION_PENDING", "INTERVAL_OVERRIDE", "DUPLICATE_ASSIGNMENT", "INCOMPATIBLE_OVERLAP", "PENDING_REQUEST", "SUSPENDED_MEMBER"].includes(issue.code);
+                const isRequest = issue.severity === "PENDING_REQUEST";
+                const destination = isRequest ? approvalsHref : issueDestination(goesToSchedule ? scheduleHref : demandHref, issue);
                 return (
-                  <article key={issue.issueKey} tabIndex={isFirstBlocker || isFirstActionable ? -1 : undefined} ref={isFirstBlocker || isFirstActionable ? (node) => {
+                  <article hidden={!matchesFilter(issue)} key={issue.issueKey} tabIndex={isFirstBlocker || isFirstActionable ? -1 : undefined} ref={isFirstBlocker || isFirstActionable ? (node) => {
                     if (isFirstBlocker) firstBlockerRef.current = node;
                     if (isFirstActionable) firstActionableIssueRef.current = node;
                   } : undefined}>
@@ -520,7 +581,8 @@ function IssueReview({
                       <span className="business-review__published-issue"><Check aria-hidden="true" />{t("planning.review.includedInPublished")}</span>
                     ) : issue.acknowledgementRequired ? (
                       <label><input type="checkbox" checked={acknowledged.has(issue.issueKey)} disabled={state.kind === "PUBLISHING"} onChange={() => onToggle(issue.issueKey)} /><span>{t("planning.review.acknowledge")}</span></label>
-                    ) : <Link to={destination}>{goesToSchedule ? t("planning.review.goSchedule") : t("planning.review.goDemand")}<ArrowRight aria-hidden="true" /></Link>}
+                    ) : null}
+                    <Link to={destination}>{isRequest ? t("publicationLayout.openRequest") : goesToSchedule ? t("planning.review.goSchedule") : t("planning.review.goDemand")}<ArrowRight aria-hidden="true" /></Link>
                   </article>
                 );
               })}
@@ -529,15 +591,14 @@ function IssueReview({
         );
       })}
       {flattenIssues(review).length === 0 ? <div className="business-review__no-issues"><ReviewStateIcon state={state} /><strong>{reviewStateLabel(t, state)}</strong></div> : null}
+      {issues.length > 0 && !issues.some(matchesFilter) && <p className="business-review__empty-filter" role="status">{t("publicationLayout.empty")}</p>}
     </section>
   );
 }
 
 function PublishRail({
   plan,
-  review,
   state,
-  notice,
   publicationNote,
   publishing,
   published,
@@ -547,9 +608,7 @@ function PublishRail({
   onOpenPublished,
 }: {
   plan: StaffingPlan;
-  review: StaffingReview;
   state: ReviewUiState;
-  notice: Notice | null;
   publicationNote: string;
   publishing: boolean;
   published: StaffingPublishResult | null;
@@ -558,43 +617,30 @@ function PublishRail({
   onResolve: () => void;
   onOpenPublished: (version: number) => void;
 }) {
-  const { t, i18n } = useTranslation("business");
+  const { t } = useTranslation("business");
   const currentVersion = published?.versionNumber ?? state.latestVersionNumber;
   if (state.kind === "PUBLISHED_CURRENT" && currentVersion != null) {
-    const publishedAt = published?.publishedAt ?? plan.latestPublishedVersion?.publishedAt;
-    const checksum = published?.checksum ?? plan.latestPublishedVersion?.checksum;
     return (
       <aside className="business-review__publish-rail is-success" role="status" aria-live="polite" data-review-state={state.kind}>
         <CheckCircle2 aria-hidden="true" />
-        <span>{reviewStateLabel(t, state)}</span>
         <h2>{published ? t("planning.review.publishedTitle", { version: currentVersion }) : t("planning.review.currentTitle")}</h2>
         <p>{published ? t("planning.review.publishedCoverage", { covered: published.canonicalCoverage.covered, required: published.canonicalCoverage.required }) : t("planning.review.currentHint")}</p>
-        {publishedAt ? <small>{t("planning.review.publishedAt", { date: formatDateTime(publishedAt, i18n.resolvedLanguage ?? i18n.language) })}</small> : null}
-        {checksum ? <code>{checksum.slice(0, 12)}</code> : null}
-        <button type="button" onClick={() => onOpenPublished(currentVersion)}>{t("planning.review.openVersion")}<ArrowRight aria-hidden="true" /></button>
+        <button type="button" onClick={() => onOpenPublished(currentVersion)}>{t("publishedPlan.view")}<ArrowRight aria-hidden="true" /></button>
         <Link to={`../schedule?unit=${plan.unitId}&week=${plan.weekStart}`}>{t("planning.review.continueDraft")}</Link>
       </aside>
     );
   }
-  const actionableIssues = flattenIssues(review)
-    .filter((issue) => issue.publishBlocking || issue.acknowledgementRequired);
   const needsResolution = state.kind === "BLOCKED" || state.kind === "ACKNOWLEDGEMENT_REQUIRED" || state.kind === "UNPUBLISHED_CHANGES";
   return (
     <aside className="business-review__publish-rail" aria-busy={publishing} data-review-state={state.kind}>
-      <LockKeyhole aria-hidden="true" />
-      <span>{reviewStateLabel(t, state)}</span>
-      <h2>{t("planning.review.publishTitle")}</h2>
-      <p>{t("planning.review.publishHint")}</p>
-      {notice ? <div className={`business-review__publish-notice is-${notice.type}`} role={notice.type === "error" ? "alert" : "status"}>{notice.message}</div> : null}
-      <dl><div><dt>{t("planning.coverage.covered")}</dt><dd>{review.coverage.covered}/{review.coverage.required}</dd></div><div><dt>{t("planning.review.groups.WARNING")}</dt><dd>{review.warningCount}</dd></div><div><dt>{t("planning.review.openPositions")}</dt><dd>{review.coverage.openPositions}</dd></div></dl>
-      <label><span>{t("planning.review.publicationNote")}</span><textarea maxLength={1000} value={publicationNote} disabled={state.kind === "PUBLISHING"} onChange={(event) => onNoteChange(event.target.value)} placeholder={t("planning.review.publicationNotePlaceholder")} /></label>
-      {needsResolution && actionableIssues.length > 0 ? (
-        <div className="business-review__publish-requirements" role="status">
-          <strong>{reviewStateHelp(t, state)}</strong>
-          <ul>{actionableIssues.slice(0, 3).map((issue) => <li key={issue.issueKey}>{issueMessage(t, issue)}</li>)}</ul>
-          {actionableIssues.length > 3 ? <small>+{actionableIssues.length - 3}</small> : null}
-        </div>
-      ) : null}
+      <div className="business-review__publish-heading"><Send aria-hidden="true" /><h2>{t("navigation.publish")}</h2></div>
+      <p className="business-review__publish-verdict">{!plan.capabilities.publish ? t("planning.review.readOnly") : needsResolution ? reviewStateHelp(t, state) : reviewStateLabel(t, state)}</p>
+      <details className="business-review__optional-note">
+        <summary>{t("planning.review.publicationNote")}<ChevronDown aria-hidden="true" /></summary>
+        <label><span className="sr-only">{t("planning.review.publicationNote")}</span><textarea maxLength={1000} value={publicationNote} disabled={state.kind === "PUBLISHING"} onChange={(event) => onNoteChange(event.target.value)} placeholder={t("planning.review.publicationNotePlaceholder")} /></label>
+      </details>
+      <div className="business-review__final-actions">
+      <Link to={`../schedule?unit=${plan.unitId}&week=${plan.weekStart}`}>{t("publicationLayout.back")}</Link>
       <button className="business-review__publish-action" type="button" disabled={publishing || (!state.canPublish && !needsResolution)} onClick={state.canPublish ? onPublish : onResolve}>
         {publishing ? <LoaderCircle className="is-spinning" aria-hidden="true" /> : needsResolution ? <AlertTriangle aria-hidden="true" /> : <Send aria-hidden="true" />}
         {publishing
@@ -603,7 +649,7 @@ function PublishRail({
             ? t("planning.review.publish")
             : reviewStateLabel(t, state)}
       </button>
-      {!plan.capabilities.publish ? <p className="business-review__publish-help">{t("planning.review.readOnly")}</p> : state.kind !== "READY_TO_PUBLISH" && state.kind !== "PUBLISHING" ? <p className="business-review__publish-help">{reviewStateHelp(t, state)}</p> : null}
+      </div>
     </aside>
   );
 }
@@ -811,6 +857,15 @@ function snapshotGroups<T>(items: T[], key: (item: T) => string, value: (item: T
     groups.set(itemKey, [...(groups.get(itemKey) ?? []), value(item)].sort());
   });
   return groups;
+}
+
+function issueDestination(href: string, issue: StaffingIssue) {
+  const [path, query] = href.split("?");
+  const search = new URLSearchParams(query);
+  if (issue.date) search.set("day", issue.date);
+  if (issue.requirementId) search.set("requirement", issue.requirementId);
+  if (issue.assignmentId) search.set("assignment", issue.assignmentId);
+  return `${path}?${search.toString()}`;
 }
 
 function issueMessage(t: ReturnType<typeof useTranslation>["t"], issue: StaffingIssue) {

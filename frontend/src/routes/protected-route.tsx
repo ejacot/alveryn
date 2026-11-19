@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
-import { APP_HOME_PATH } from "./app-paths";
+import { APP_HOME_PATH, businessOverviewPath } from "./app-paths";
 
 const REQUIRED_TRACKING_SETUP_VERSION = 1;
 
@@ -15,6 +15,15 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  const managedOrganizations = user?.managedBusinessOrganizationIds ?? [];
+  if (managedOrganizations.length) {
+    const routeOrganization = location.pathname.match(/^\/business\/([^/]+)\//)?.[1];
+    if (!routeOrganization || !managedOrganizations.includes(routeOrganization)) {
+      return <Navigate to={businessOverviewPath(managedOrganizations[0])} replace />;
+    }
+    return <Outlet />;
   }
 
   const onboardingCompleted = user?.preferences?.onboardingCompleted === true;

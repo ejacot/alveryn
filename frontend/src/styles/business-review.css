@@ -36,7 +36,7 @@
 .business-review__notice button { display: grid; min-width: 44px; min-height: 44px; place-items: center; justify-self: end; }
 .business-review__loading { display: flex; min-height: 300px; align-items: center; justify-content: center; gap: 10px; border: 1px solid var(--bp-line); background: var(--bp-surface); color: var(--bp-muted); font-size: 0.8rem; }
 
-.business-review { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); align-items: start; gap: 22px; }
+.business-review { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 22px; max-width: 1520px; margin: 0 auto; }
 .business-review__content { min-width: 0; }
 .business-review__coverage { display: grid; grid-template-columns: 240px minmax(0, 1fr) 260px; border: 1px solid var(--bp-line-strong); background: var(--bp-surface-strong); }
 .business-review__coverage-primary { min-height: 152px; border-right: 1px solid var(--bp-line); padding: 22px; }
@@ -255,3 +255,60 @@
 @media (prefers-reduced-motion: reduce) {
   .business-review__coverage-primary b { transition: none; }
 }
+
+.business-review__coverage { grid-template-columns: minmax(130px, .7fr) minmax(0, 2fr) minmax(200px, 1fr); }
+.business-review__coverage-primary, .business-review__readiness { min-height: 110px; padding: 14px; }
+.business-review__coverage-values { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.business-review__coverage-values > div { border-bottom: 0; min-height: 90px; }
+.business-review__coverage-values > div:last-child { grid-column: auto; }
+.business-review__coverage-values > div:nth-child(n) { border-bottom: 0; }
+.business-review__readiness .business-review__plan-state { min-width: 0; text-align: left; border: 0; padding: 0; background: transparent; }
+.business-review__publish-scope { padding: 14px 18px; }
+.business-review__publish-scope > p { display: none; }
+.business-review__publish-scope.business-draft-diff > p { display: block; }
+.business-review__issues { margin-top: 20px; }
+.business-review__issues > header { border: 1px solid var(--bp-line-strong); background: var(--bp-surface); padding: 14px 18px; }
+.business-review__issues > header h2 { margin: 0; font-size: .95rem; letter-spacing: normal; }
+.business-review__filters { margin: 0; padding: 10px 18px; border: 1px solid var(--bp-line-strong); border-top: 0; background: var(--bp-surface); }
+.business-review__filters button span { margin-left: 6px; font-variant-numeric: tabular-nums; opacity: .7; }
+.business-review__issue-group[hidden], .business-review__issue-group article[hidden] { display: none; }
+.business-review__empty-filter { padding: 18px; color: var(--bp-muted); }
+.business-review__publish-rail, .business-review__publish-rail.is-success { position: sticky; top: 98px; max-height: calc(100dvh - 118px); overflow-y: auto; min-height: 0; padding: 18px; }
+.business-review__publish-rail h2 { margin: 0; font-size: 1rem; letter-spacing: normal; }
+.business-review__publish-rail > label { max-width: 760px; }
+.business-review__final-actions { display: flex; flex-direction: column-reverse; align-items: stretch; gap: 12px; margin-top: 18px; }
+.business-review__final-actions > a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--bp-line-strong); font-size: .75rem; font-weight: 750; }
+.business-review__final-actions .business-review__publish-action { width: auto; min-width: 220px; margin: 0; padding: 0 18px; }
+.business-review__publish-rail.is-success > svg { margin-bottom: 12px; }
+.business-review__publish-rail.is-success button { align-self: flex-end; padding: 0 18px; margin-top: 16px; }
+.business-review__versions { margin-top: 4px; }
+.business-review { grid-template-columns: minmax(0, 1fr) 320px; }
+.business-review__coverage { grid-template-columns: minmax(110px, .7fr) minmax(0, 2fr); }
+.business-review__readiness { grid-column: 1 / -1; border-top: 1px solid var(--bp-line); }
+.business-review__final-actions .business-review__publish-action { position: static; box-shadow: none; }
+@media (max-width: 900px) {
+  .business-review { grid-template-columns: minmax(0, 1fr); }
+  .business-review__publish-rail, .business-review__publish-rail.is-success { position: static; max-height: none; overflow-y: visible; }
+  .business-review__coverage { grid-template-columns: minmax(110px, .7fr) minmax(0, 2fr); }
+  .business-review__readiness { grid-column: 1 / -1; border-top: 1px solid var(--bp-line); }
+}
+@media (max-width: 580px) {
+  .business-review__coverage { grid-template-columns: 1fr; }
+  .business-review__coverage-values > div { padding: 12px 8px; }
+  .business-review__coverage-values span { line-height: 1.4; }
+  .business-review__final-actions { flex-direction: column-reverse; align-items: stretch; }
+  .business-review__final-actions > a { justify-content: center; }
+  .business-review__final-actions .business-review__publish-action { width: 100%; min-width: 0; }
+}
+
+.business-review__publish-heading { display: flex; align-items: center; gap: 10px; }
+.business-review__publish-heading > svg { width: 18px; height: 18px; color: var(--bp-green); }
+.business-review__publish-rail > .business-review__publish-verdict { margin: 14px 0 0; font-size: .76rem; line-height: 1.6; }
+.business-review__optional-note { margin-top: 18px; border-block: 1px solid var(--bp-line); }
+.business-review__optional-note summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; list-style: none; color: var(--bp-muted); cursor: pointer; font-size: .72rem; font-weight: 650; }
+.business-review__optional-note summary::-webkit-details-marker { display: none; }
+.business-review__optional-note summary svg { width: 14px; height: 14px; transition: transform .15s; }
+.business-review__optional-note[open] summary svg { transform: rotate(180deg); }
+.business-review__optional-note textarea { margin-bottom: 12px; }
+.business-review__publish-rail .business-review__final-actions > a { border: 0; color: var(--bp-muted); font-size: .7rem; }
+.business-review__publish-rail .business-review__final-actions { gap: 4px; }

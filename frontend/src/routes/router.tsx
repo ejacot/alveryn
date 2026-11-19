@@ -193,9 +193,13 @@ const BusinessPlanPrintPage = lazy(() =>
 const BusinessWorkTypesPage=lazy(()=>import("../pages/business-work-types-page").then(module=>({default:module.BusinessWorkTypesPage})));
 const BusinessWorkTypeEditorPage=lazy(()=>import("../pages/business-work-type-editor-page").then(module=>({default:module.BusinessWorkTypeEditorPage})));
 const BusinessPeoplePage=lazy(()=>import("../pages/business-people-page").then(module=>({default:module.BusinessPeoplePage})));
+const BusinessEmployeePage = lazy(() => import("../pages/business-employee-page").then((module) => ({ default: module.BusinessEmployeePage })));
 const BusinessRolesPage=lazy(()=>import("../pages/business-roles-page").then(module=>({default:module.BusinessRolesPage})));
 const BusinessLocationsPage=lazy(()=>import("../pages/business-locations-page").then(module=>({default:module.BusinessLocationsPage})));
 const BusinessOverviewPage=lazy(()=>import("../pages/business-overview-page").then(module=>({default:module.BusinessOverviewPage})));
+const BusinessPublishedPlanPage = lazy(() => import("../pages/business-published-plan-page").then((module) => ({ default: module.BusinessPublishedPlanPage })));
+const BusinessSettingsPage = lazy(() => import("../pages/business-settings-page").then((module) => ({ default: module.BusinessSettingsPage })));
+const BusinessApprovalsPage = lazy(() => import("../pages/business-approvals-page").then((module) => ({ default: module.BusinessApprovalsPage })));
 const SchedulePage = lazy(() => import("../pages/schedule-page").then((module) => ({ default: module.SchedulePage })));
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
@@ -260,15 +264,19 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/statistics", element: withSuspense(<StatisticsPage />) },
             { path: "/business", element: withSuspense(<BusinessPage />) },
             { path: "/business/:organizationId/plan/demand", element: withSuspense(<BusinessDemandPage />) },
+            { path: "/business/:organizationId/plan", element: withSuspense(<BusinessPublishedPlanPage />) },
             { path: "/business/:organizationId/plan/schedule", element: withSuspense(<BusinessSchedulePage />) },
             { path: "/business/:organizationId/plan/review", element: withSuspense(<BusinessReviewPage />) },
             { path: "/business/:organizationId/work-types", element: withSuspense(<BusinessWorkTypesPage />) },
             { path: "/business/:organizationId/work-types/new", element: withSuspense(<BusinessWorkTypeEditorPage />) },
             { path: "/business/:organizationId/work-types/:workTypeId", element: withSuspense(<BusinessWorkTypeEditorPage />) },
             { path: "/business/:organizationId/people", element: withSuspense(<BusinessPeoplePage />) },
+            { path: "/business/:organizationId/people/:membershipId", element: withSuspense(<BusinessEmployeePage />) },
             { path: "/business/:organizationId/roles", element: withSuspense(<BusinessRolesPage />) },
             { path: "/business/:organizationId/locations", element: withSuspense(<BusinessLocationsPage />) },
             { path: "/business/:organizationId/overview", element: withSuspense(<BusinessOverviewPage />) },
+            { path: "/business/:organizationId/settings", element: withSuspense(<BusinessSettingsPage />) },
+            { path: "/business/:organizationId/approvals", element: withSuspense(<BusinessApprovalsPage />) },
             { path: "/schedule", element: withSuspense(<SchedulePage />) },
             { path: "/profile", element: withSuspense(<ProfilePage />) },
             { path: "/settings/profile", element: withSuspense(<SettingsProfilePage />) },

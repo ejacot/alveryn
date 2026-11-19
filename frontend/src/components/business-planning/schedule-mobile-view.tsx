@@ -35,7 +35,7 @@ export function ScheduleMobileView({
   if (!day) return null;
   const open = day.requirements.filter((requirement) => requirement.coverage.openPositions > 0);
   const assignments = day.requirements.flatMap((requirement) => requirement.assignments
-    .filter((assignment) => assignment.status === "ASSIGNED")
+    .filter((assignment) => assignment.status === "ASSIGNED" && schedule.members.some((member) => member.membershipId === assignment.membershipId))
     .map((assignment) => ({ assignment, requirement })));
   const statuses = schedule.members.flatMap((member) => member.dayStatuses
     .filter((entry) => entry.date === day.date)

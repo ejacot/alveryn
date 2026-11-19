@@ -504,6 +504,7 @@ function BusinessWorkTypeEditorContent() {
         />
       </form>
       <SettingsConfirmDialog
+        className="business-action-dialog"
         open={confirmDeactivate}
         title={t("workTypes.deleteConfirmTitle", {
           defaultValue: "Delete work type?",

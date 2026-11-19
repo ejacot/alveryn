@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
-import { APP_HOME_PATH } from "../routes/app-paths";
+import { authenticatedHomePath } from "../routes/app-paths";
 import { CalendarCardImage, DashboardCardImage, PublicFooter, PublicHeader, RegistrationLink, StatisticsCardImage, useStoredPublicTheme } from "./welcome-page";
 
 export type WelcomeProduct = "dashboard" | "calendar" | "statistics";
@@ -20,7 +20,7 @@ export function WelcomeProductPage({ product }: { product: WelcomeProduct }) {
   useStoredPublicTheme();
 
   if (isHydrating) return <ScreenMessage title={t("loading")} />;
-  if (isAuthenticated) return <Navigate to={user?.preferences?.onboardingCompleted ? APP_HOME_PATH : "/onboarding"} replace />;
+  if (isAuthenticated) return <Navigate to={authenticatedHomePath(user)} replace />;
 
   const namespace = product === "dashboard" ? "dashboardTour" : product === "calendar" ? "calendarTour" : "statisticsTour";
   const cards = productCards[product];

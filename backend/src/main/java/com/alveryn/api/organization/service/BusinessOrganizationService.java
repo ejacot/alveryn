@@ -43,7 +43,8 @@ public class BusinessOrganizationService {
 
   @Transactional(readOnly = true)
   public OrganizationAccessResponse access(UUID organizationId) {
-    return new OrganizationAccessResponse(access.permissions(organizationId));
+    return new OrganizationAccessResponse(access.permissions(organizationId),
+        access.canAccess(organizationId, null, OrganizationPermission.MANAGE_ABSENCES));
   }
 
   @Transactional
@@ -60,7 +61,11 @@ public class BusinessOrganizationService {
     access.require(organizationId, OrganizationPermission.MANAGE_TEAMS,
         OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE,
         OrganizationPermission.MANAGE_ROLES);
+    var visibleUnits = access.unitAccessFilter(organizationId, OrganizationPermission.MANAGE_TEAMS,
+        OrganizationPermission.VIEW_SCHEDULE, OrganizationPermission.MANAGE_SCHEDULE,
+        OrganizationPermission.MANAGE_ROLES);
     return units.findAllByOrganizationIdOrderByDisplayOrderAscNameAsc(organizationId).stream()
+        .filter(visibleUnits)
         .map(this::response).toList();
   }
 
@@ -83,6 +88,7 @@ public class BusinessOrganizationService {
   public OrganizationUnitResponse updateUnit(UUID organizationId, UUID unitId,
       CreateOrganizationUnitRequest request) {
     access.require(organizationId, OrganizationPermission.MANAGE_TEAMS);
+    entityManager.find(Organization.class, organizationId, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
     var unit = units.findByIdAndOrganizationId(unitId, organizationId)
         .orElseThrow(() -> new NotFoundException("Organization unit", unitId));
     var parent = request.parentId() == null ? null
@@ -256,13 +262,21 @@ public class BusinessOrganizationService {
     access.require(organizationId, OrganizationPermission.MANAGE_ROLES);
     var member = memberships.findByIdAndOrganizationId(request.membershipId(), organizationId)
         .orElseThrow(() -> new NotFoundException("Organization member", request.membershipId()));
+    entityManager.lock(member, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
     var role = roles.findByIdAndOrganizationId(request.roleId(), organizationId)
         .orElseThrow(() -> new NotFoundException("Organization role", request.roleId()));
     var unit = request.unitId() == null ? null
         : units.findByIdAndOrganizationId(request.unitId(), organizationId)
             .orElseThrow(() -> new NotFoundException("Organization unit", request.unitId()));
+    var existing = roleAssignments.findByMembershipIdAndRoleIdAndUnitId(member.getId(), role.getId(),
+        unit == null ? null : unit.getId());
+    boolean includeDescendants = request.includeDescendants() == null || request.includeDescendants();
+    if (existing.isPresent()) {
+      existing.get().updateDescendants(includeDescendants);
+      return roleAssignmentResponse(existing.get());
+    }
     return roleAssignmentResponse(roleAssignments.save(new OrganizationRoleAssignment(
-        member, role, unit, request.includeDescendants() == null || request.includeDescendants())));
+        member, role, unit, includeDescendants)));
   }
 
   @Transactional
@@ -289,7 +303,7 @@ public class BusinessOrganizationService {
     return new OrganizationMemberResponse(membership.getId(), user == null ? null : user.getId(),
         membership.getFirstName(), membership.getLastName(),
         user == null ? membership.getInvitedEmail() : user.getEmail(), membership.getStatus(),
-        membership.getAccessState());
+        membership.getAccessState(), membership.getRole());
   }
 
   private OrganizationRoleResponse roleResponse(OrganizationRole role) {

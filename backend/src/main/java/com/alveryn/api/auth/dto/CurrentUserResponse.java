@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import com.alveryn.api.user.dto.UserAccountDto;
 import com.alveryn.api.user.dto.UserPreferencesResponse;
 import com.alveryn.api.user.dto.UserProfileResponse;
+import java.util.List;
+import java.util.UUID;
 
 @Schema(description = "Authenticated current user response")
 public record CurrentUserResponse(
@@ -11,4 +13,5 @@ public record CurrentUserResponse(
     UserProfileResponse profile,
     UserPreferencesResponse preferences,
     boolean founder,
-    boolean hasBusinessWorkspace) {}
+    boolean hasBusinessWorkspace,
+    List<UUID> managedBusinessOrganizationIds) {}

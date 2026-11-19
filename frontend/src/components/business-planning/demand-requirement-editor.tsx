@@ -78,6 +78,7 @@ export function DemandRequirementEditor({
             <input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
           </label>
         </div>
+        <p>{t("plannerTools.breakMinutes")}: {requirement.breakMinutes}</p>
         <label>
           <span>{t("planning.demand.requiredPeople")}</span>
           <input

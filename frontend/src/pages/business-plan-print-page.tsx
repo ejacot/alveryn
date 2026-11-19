@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { getApiError } from "../api/api-errors";
 import { getStaffingVersion } from "../api/business-planning";
+import { planContextSearch } from "../features/business/plan-context";
 import {
   ImmutablePlanPrintDocument,
   StaffingSummaryPrintDocument,
@@ -35,7 +36,8 @@ export function BusinessPlanPrintPage() {
     && detail.versionNumber === version
     && detail.unitId === unitId
     && detail.weekStart === weekStart;
-  const reviewHref = `/business/${organizationId}/plan/review?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`;
+  const returnPath = searchParams.get("returnTo") === "published" ? "/plan" : "/plan/review";
+  const returnHref = `/business/${organizationId}${returnPath}${planContextSearch(unitId, weekStart, searchParams.get("day") ?? undefined)}`;
 
   if (query.isLoading) return <main className="immutable-plan-route__state" role="status">{t("planning.review.loading")}</main>;
   if (query.isError || !contextMatches) {
@@ -53,7 +55,7 @@ export function BusinessPlanPrintPage() {
           <p>{t("planning.print.previewHint")}</p>
         </div>
         <div className="immutable-plan-print__actions">
-          <Link to={reviewHref}><ArrowLeft aria-hidden="true" />{t("planning.print.close")}</Link>
+          <Link to={returnHref}><ArrowLeft aria-hidden="true" />{t("planning.print.close")}</Link>
           <button type="button" aria-pressed={documentKind === "employee"} onClick={() => setDocumentKind("employee")}>Employee plan</button>
           <button type="button" aria-pressed={documentKind === "summary"} onClick={() => setDocumentKind("summary")}>Staffing summary</button>
           <button type="button" className="is-primary" onClick={openImmutablePlanPrint}><Printer aria-hidden="true" />{t("planning.print.print")}</button>

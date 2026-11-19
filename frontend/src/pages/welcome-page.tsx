@@ -14,7 +14,7 @@ import {
   storeLanguagePreference,
   SUPPORTED_LANGUAGES,
 } from "../i18n/language";
-import { APP_HOME_PATH } from "../routes/app-paths";
+import { APP_HOME_PATH, authenticatedHomePath } from "../routes/app-paths";
 import { applyAppTheme } from "../utils/theme";
 import { WelcomePrecisionStory } from "../features/welcome/welcome-precision-story";
 
@@ -37,9 +37,7 @@ export function WelcomePage() {
   if (isAuthenticated) {
     return (
       <Navigate
-        to={
-          user?.preferences?.onboardingCompleted ? APP_HOME_PATH : "/onboarding"
-        }
+        to={authenticatedHomePath(user)}
         replace
       />
     );

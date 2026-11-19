@@ -41,6 +41,40 @@ const baseAuthValue: AuthContextValue = {
 };
 
 describe("auth routes", () => {
+  it.each(["/login", APP_HOME_PATH, "/statistics", "/business/employee-org/overview"])(
+    "opens the managed organization from %s even when Personal setup is complete",
+    async (route) => {
+      renderWithAuth(
+        <Routes>
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={<div>Login</div>} />
+          </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route path={APP_HOME_PATH} element={<div>Dashboard</div>} />
+            <Route path="/statistics" element={<div>Statistics</div>} />
+            <Route path="/business/employee-org/overview" element={<div>Employee organization</div>} />
+            <Route path="/business/managed-org/overview" element={<div>Managed organization</div>} />
+          </Route>
+        </Routes>,
+        {
+          route,
+          authValue: {
+            ...baseAuthValue,
+            isAuthenticated: true,
+            user: {
+              account: { id: "1", email: "manager@example.com", emailVerified: true, status: "ACTIVE", lastLoginAt: null },
+              profile: null,
+              preferences: { onboardingCompleted: true, trackingSetupVersionCompleted: 1 } as NonNullable<NonNullable<AuthContextValue["user"]>["preferences"]>,
+              hasBusinessWorkspace: true,
+              managedBusinessOrganizationIds: ["managed-org"]
+            }
+          }
+        }
+      );
+      expect(await screen.findByText("Managed organization")).toBeInTheDocument();
+    }
+  );
+
   it("redirects guests away from protected routes", async () => {
     renderWithAuth(
       <Routes>

@@ -324,7 +324,10 @@ public class StaffingPlannerService {
   @Transactional(readOnly = true)
   public List<AssignmentResultResponse> pendingResults(UUID organizationId) {
     access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
-    return assignmentResults.findAllByAssignmentRequirementOrganizationIdAndApprovalStatusOrderBySubmittedAtAsc(organizationId, "SUBMITTED").stream().map(this::resultResponse).toList();
+    var allowedUnits = access.unitAccessFilter(organizationId, OrganizationPermission.APPROVE_ACTUALS);
+    return assignmentResults.findAllByAssignmentRequirementOrganizationIdAndApprovalStatusOrderBySubmittedAtAsc(organizationId, "SUBMITTED")
+        .stream().filter(result -> allowedUnits.test(result.getAssignment().getRequirement().getUnit()))
+        .map(this::resultResponse).toList();
   }
   @Transactional(readOnly = true)
   public TeamMemberHoursResponse memberHours(UUID organizationId, UUID membershipId, LocalDate from,
@@ -396,10 +399,12 @@ public class StaffingPlannerService {
   }
   @Transactional
   public AssignmentResultResponse approveResult(UUID organizationId, UUID resultId, ResultReviewRequest request) {
-    var manager = access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
+    access.require(organizationId, OrganizationPermission.APPROVE_ACTUALS);
     var result = assignmentResults.findById(resultId)
         .filter(value -> value.getAssignment().getRequirement().getOrganization().getId().equals(organizationId))
         .orElseThrow(() -> new NotFoundException("Staffing assignment result", resultId));
+    var manager = access.requireForUnit(organizationId, result.getAssignment().getRequirement().getUnit(),
+        OrganizationPermission.APPROVE_ACTUALS);
     if (!"SUBMITTED".equals(result.getApprovalStatus())) throw new IllegalArgumentException("only submitted results can be approved");
     result.approve(manager, request.actualStartTime(), request.actualEndTime(), request.breakMinutes() == null ? 30 : request.breakMinutes(), request.completedQuantity(), request.notes());
     audit(manager, "RESULT_APPROVED", "ASSIGNMENT_RESULT", result.getId(), result.getAssignment().getRequirement().getDate(), memberName(result.getAssignment().getMembership()));
@@ -423,10 +428,10 @@ public class StaffingPlannerService {
   @Transactional(readOnly=true)
   public List<AbsenceRequestResponse> myAbsenceRequests(){return absenceRequests.findAllByMembershipUserIdOrderByCreatedAtDesc(currentUser.requireUserId()).stream().map(this::absenceResponse).toList();}
   @Transactional(readOnly=true)
-  public List<AbsenceRequestResponse> pendingAbsenceRequests(UUID organizationId){access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);return absenceRequests.findAllByOrganizationIdAndStatusOrderByCreatedAtAsc(organizationId,"PENDING").stream().map(this::absenceResponse).toList();}
+  public List<AbsenceRequestResponse> pendingAbsenceRequests(UUID organizationId){access.requireForUnit(organizationId,null,OrganizationPermission.MANAGE_ABSENCES);return absenceRequests.findAllByOrganizationIdAndStatusOrderByCreatedAtAsc(organizationId,"PENDING").stream().map(this::absenceResponse).toList();}
   @Transactional
   public AbsenceRequestResponse decideAbsenceRequest(UUID organizationId,UUID requestId,AbsenceDecisionRequest request){
-    var manager=access.require(organizationId,OrganizationPermission.MANAGE_ABSENCES);
+    var manager=access.requireForUnit(organizationId,null,OrganizationPermission.MANAGE_ABSENCES);
     var observed=absenceRequest(organizationId,requestId);
     var scopes=mutations.memberDateScopes(organizationId, observed.getMembership().getId(),
         observed.getStartDate(), observed.getEndDate());

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Clock3, Copy, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Settings2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BusinessWorkType } from "../../types/business";
@@ -13,33 +13,39 @@ type Props = {
   days: StaffingDemandDay[];
   workTypes: BusinessWorkType[];
   canManage: boolean;
-  copying: boolean;
   busyCells: Set<string>;
+  selectedDay?: string;
+  onDayChange?: (date: string, requirement?: string) => void;
   onCommit: (workType: BusinessWorkType, day: StaffingDemandDay, value: number) => void;
   onEdit: (requirement: StaffingDemandRequirement) => void;
   onEditWorkType: (workType: BusinessWorkType) => void;
   onApplyWorkType: (workType: BusinessWorkType) => void;
-  onCopyPreviousWeek: () => void;
 };
 
 export function DemandMobileView({
   days,
   workTypes,
   canManage,
-  copying,
   busyCells,
+  selectedDay,
+  onDayChange,
   onCommit,
   onEdit,
   onEditWorkType,
   onApplyWorkType,
-  onCopyPreviousWeek,
 }: Props) {
   const { t, i18n } = useTranslation("business");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [revealedWorkTypeId, setRevealedWorkTypeId] = useState<string | null>(null);
-  const index = Math.min(selectedIndex, Math.max(0, days.length - 1));
+  const selected = days.findIndex(({ date }) => date === selectedDay);
+  const index = selected >= 0 ? selected : Math.min(selectedIndex, Math.max(0, days.length - 1));
   const day = days[index];
   if (!day) return null;
+  const choose = (indexToSelect: number) => {
+    setSelectedIndex(indexToSelect);
+    const next = days[indexToSelect];
+    if (next) onDayChange?.(next.date);
+  };
 
   return (
     <section className="demand-mobile" aria-labelledby="demand-mobile-title" onPointerDownCapture={(event) => {
@@ -52,7 +58,7 @@ export function DemandMobileView({
             role="tab"
             aria-selected={itemIndex === index}
             key={item.date}
-            onClick={() => setSelectedIndex(itemIndex)}
+            onClick={() => choose(itemIndex)}
           >
             <span>{weekday(item.date, i18n.language)}</span>
             <strong>{new Date(`${item.date}T12:00:00`).getDate()}</strong>
@@ -64,7 +70,7 @@ export function DemandMobileView({
       <header className="demand-mobile__summary">
         <button
           type="button"
-          onClick={() => setSelectedIndex(Math.max(0, index - 1))}
+          onClick={() => choose(Math.max(0, index - 1))}
           disabled={index === 0}
           aria-label={t("planning.week.previousDay")}
         >
@@ -82,28 +88,13 @@ export function DemandMobileView({
         </div>
         <button
           type="button"
-          onClick={() => setSelectedIndex(Math.min(days.length - 1, index + 1))}
+          onClick={() => choose(Math.min(days.length - 1, index + 1))}
           disabled={index === days.length - 1}
           aria-label={t("planning.week.nextDay")}
         >
           <ChevronRight aria-hidden="true" />
         </button>
       </header>
-
-      <div className="demand-mobile__context">
-        <span>{t("planning.demand.rooms")}</span>
-        <strong>{day.roomsContext ?? "—"}</strong>
-        {day.notes ? <p>{day.notes}</p> : null}
-        <button
-          type="button"
-          className="demand-mobile__copy"
-          disabled={!canManage || copying}
-          onClick={onCopyPreviousWeek}
-        >
-          <Copy aria-hidden="true" />
-          {copying ? t("planning.demand.copying") : t("planning.demand.copyPrevious")}
-        </button>
-      </div>
 
       <div className="demand-mobile__requirements">
         {workTypes.map((workType, workTypeIndex) => {

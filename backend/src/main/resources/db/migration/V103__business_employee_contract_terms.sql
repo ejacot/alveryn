@@ -1,0 +1,23 @@
+CREATE TABLE business_employee_terms (
+    id UUID PRIMARY KEY,
+    membership_id UUID NOT NULL REFERENCES organization_memberships(id) ON DELETE CASCADE,
+    valid_from DATE NOT NULL,
+    job_title VARCHAR(120),
+    employment_type VARCHAR(30) NOT NULL,
+    employment_start DATE NOT NULL,
+    employment_end DATE,
+    primary_unit_id UUID REFERENCES organization_units(id),
+    weekly_minutes INTEGER NOT NULL CHECK (weekly_minutes BETWEEN 0 AND 10080),
+    working_days VARCHAR(20) NOT NULL,
+    compensation_type VARCHAR(30) NOT NULL,
+    gross_amount NUMERIC(14,4) NOT NULL CHECK (gross_amount >= 0),
+    currency VARCHAR(3) NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
+    unit_label VARCHAR(100),
+    created_by UUID NOT NULL REFERENCES organization_memberships(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_business_employee_terms_date UNIQUE (membership_id, valid_from),
+    CONSTRAINT ck_business_employee_terms_dates CHECK (employment_end IS NULL OR employment_end >= employment_start),
+    CONSTRAINT ck_business_employee_terms_type CHECK (employment_type IN ('FULL_TIME','PART_TIME','MINI_JOB','FREELANCE','CONTRACTOR','OTHER')),
+    CONSTRAINT ck_business_employee_terms_pay CHECK (compensation_type IN ('HOURLY','FIXED_SALARY','PER_UNIT')),
+    CONSTRAINT ck_business_employee_terms_unit CHECK (compensation_type <> 'PER_UNIT' OR (unit_label IS NOT NULL AND length(trim(unit_label)) > 0))
+);

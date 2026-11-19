@@ -24,6 +24,37 @@ export type OrganizationMember = {
   email: string | null;
   status: "INVITED" | "ACTIVE" | "SUSPENDED";
   accessState?: "MANAGED" | "INVITED" | "CLAIMED";
+  role?: "OWNER" | "ADMIN" | "MANAGER" | "EMPLOYEE";
+};
+
+export type BusinessEmployeeTermInput = {
+  validFrom: string;
+  jobTitle: string | null;
+  employmentType: "FULL_TIME" | "PART_TIME" | "MINI_JOB" | "FREELANCE" | "CONTRACTOR" | "OTHER";
+  employmentStart: string;
+  employmentEnd: string | null;
+  primaryUnitId: string | null;
+  weeklyMinutes: number;
+  workingDays: string[];
+  compensationType: "HOURLY" | "FIXED_SALARY" | "PER_UNIT";
+  grossAmount: number;
+  currency: string;
+  unitLabel: string | null;
+};
+export type BusinessEmployeeTerm = BusinessEmployeeTermInput & {
+  id: string;
+  validTo: string | null;
+  primaryUnitName: string | null;
+  createdAt: string;
+};
+export type BusinessEmployeeProfile = {
+  terms: BusinessEmployeeTerm[];
+  currentTerms: BusinessEmployeeTerm | null;
+  contractualMinutes: number | null;
+  approvedMinutes: number | null;
+  from: string;
+  to: string;
+  absences: { id: string; from: string; to: string; type: string; status: string; notes: string | null }[];
 };
 
 export type BusinessCalculationMethod="TIME_BASED"|"UNIT_BASED"|"UNITS_PER_HOUR_BASED"|"FIXED_PRICE_BASED";

@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Pencil, Plus, UserCheck, UserMinus, UsersRound, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
-import { createOrganizationMember, getTeamMemberHours, listOrganizationMembers, reactivateOrganizationMember, resendBusinessInvitation, suspendOrganizationMember, updateOrganizationMember } from "../api/endpoints";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { createOrganizationMember, listOrganizationMembers } from "../api/endpoints";
 import { getApiError } from "../api/api-errors";
 import { BusinessManagementShell } from "../components/business-planning/business-management-shell";
 import { Input } from "../components/ui/input";
@@ -13,42 +13,63 @@ import "../styles/business-people.css";
 type Period = "week" | "month";
 
 export function BusinessPeoplePage() {
-  const { organizationId = "" } = useParams(); const { t, i18n } = useTranslation("business"); const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null), [editorOpen, setEditorOpen] = useState(false), [firstName, setFirstName] = useState(""), [lastName, setLastName] = useState(""), [email, setEmail] = useState(""), [error, setError] = useState(""), [period, setPeriod] = useState<Period>("month"), [range, setRange] = useState(() => rangeFor("month")), [offset, setOffset] = useState(0), [dialogHeight, setDialogHeight] = useState<number | null>(null);
-  const firstNameInput = useRef<HTMLInputElement>(null), lastNameInput = useRef<HTMLInputElement>(null), emailInput = useRef<HTMLInputElement>(null);
-  const members = useQuery({ queryKey: ["organizations", organizationId, "members"], queryFn: () => listOrganizationMembers(organizationId) });
-  const selected = members.data?.find((member) => member.id === selectedId) ?? null;
-  const hours = useQuery({ queryKey: ["organizations", organizationId, "members", selectedId, "hours", range.from, range.to, offset], queryFn: () => getTeamMemberHours(organizationId, selectedId!, range.from, range.to, offset), enabled: Boolean(selectedId && editorOpen), retry: false });
-  useEffect(() => { if (!selected) return; setFirstName(selected.firstName ?? ""); setLastName(selected.lastName ?? ""); setEmail(selected.email ?? ""); }, [selected]);
-  useEffect(() => { setRange(rangeFor(period)); setOffset(0); }, [period]);
-  useEffect(() => {
-    if (!editorOpen || !window.visualViewport) { setDialogHeight(null); return; }
-    const viewport = window.visualViewport;
-    const update = () => setDialogHeight(Math.round(viewport.height));
-    update(); viewport.addEventListener("resize", update); viewport.addEventListener("scroll", update);
-    return () => { viewport.removeEventListener("resize", update); viewport.removeEventListener("scroll", update); };
-  }, [editorOpen]);
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["organizations", organizationId, "members"] });
-  const closeEditor = () => { setEditorOpen(false); setError(""); };
-  const save = useMutation({ mutationFn: () => selected ? updateOrganizationMember(organizationId, selected.id, { firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() || null }) : createOrganizationMember(organizationId, { firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() || null, language: i18n.language }), onSuccess: async (value) => { setSelectedId(value.id); setError(""); await refresh(); setEditorOpen(false); }, onError: (cause) => setError(getApiError(cause).message) });
-  const status = useMutation({ mutationFn: () => selected!.status === "SUSPENDED" ? reactivateOrganizationMember(organizationId, selected!.id) : suspendOrganizationMember(organizationId, selected!.id), onSuccess: refresh, onError: (cause) => setError(getApiError(cause).message) });
-  const resend = useMutation({ mutationFn: () => resendBusinessInvitation(organizationId, selected!.id, i18n.language), onError: (cause) => setError(getApiError(cause).message) });
-  const beginCreate = () => { setSelectedId(null); setFirstName(""); setLastName(""); setEmail(""); setError(""); setEditorOpen(true); };
-  const openMember = (id: string) => { setSelectedId(id); setOffset(0); setError(""); setEditorOpen(true); };
-  const revealField = (element: HTMLElement) => requestAnimationFrame(() => element.scrollIntoView({ block: "center", behavior: "smooth" }));
-  const moveOnEnter = (event: React.KeyboardEvent<HTMLInputElement>, next: HTMLInputElement | null) => { if (event.key !== "Enter") return; event.preventDefault(); next?.focus(); };
-  const saveFromKeyboard = (event: React.KeyboardEvent<HTMLInputElement>) => { if (event.key !== "Enter") return; event.preventDefault(); if ((firstName.trim() || lastName.trim()) && !save.isPending) save.mutate(); };
+  const { organizationId = "" } = useParams();
+  const { t, i18n } = useTranslation(["business", "common"]);
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
+  const members = useQuery({
+    queryKey: ["organizations", organizationId, "members"],
+    queryFn: () => listOrganizationMembers(organizationId),
+  });
+  const save = useMutation({
+    mutationFn: (form: FormData) => createOrganizationMember(organizationId, {
+      firstName: String(form.get("firstName") ?? "").trim(),
+      lastName: String(form.get("lastName") ?? "").trim(),
+      email: String(form.get("email") ?? "").trim() || null,
+      language: i18n.language,
+    }),
+    onSuccess: async (member) => {
+      await client.invalidateQueries({ queryKey: ["organizations", organizationId, "members"] });
+      navigate(`/business/${organizationId}/people/${member.id}`);
+    },
+  });
   return <BusinessManagementShell><div className="business-admin business-people">
-    <header className="business-admin__header"><div><p>{t("management.people.eyebrow")}</p><h1>{t("members.title")}</h1><span>{t("management.people.description")}</span></div><button type="button" onClick={beginCreate}><Plus />{t("members.add")}</button></header>
-    <section className="business-admin__panel business-people__list-panel"><div className="business-admin__panel-title"><UsersRound /><div><h2>{t("members.title")}</h2><p>{t("management.people.count", { count: (members.data ?? []).length })}</p></div></div><div className="business-admin__list">{(members.data ?? []).map((member) => { const name = [member.firstName, member.lastName].filter(Boolean).join(" ") || member.email || t("members.noEmail"); const accessState = member.accessState ?? (member.userId ? "CLAIMED" : member.email ? "INVITED" : "MANAGED"); return <button key={member.id} type="button" className="business-admin__row business-admin__row-button" onClick={() => openMember(member.id)}><span className="business-admin__avatar">{name.slice(0, 2).toUpperCase()}</span><span><strong>{name}</strong><small>{member.email || t("members.noEmail")}</small></span><span className={`business-admin__status is-${member.status.toLowerCase()}`}>{member.status === "SUSPENDED" ? t(`memberStatus.${member.status}`) : accessState === "MANAGED" ? "Managed employee" : accessState === "INVITED" ? "Invitation pending" : "Active account"}</span><Pencil className="business-admin__edit-icon" /></button>; })}{!members.isLoading && !members.data?.length ? <p className="business-people__empty">No people yet. Add the first employee to start planning.</p> : null}</div></section>
-    {editorOpen ? <div className="business-employee-dialog" style={dialogHeight ? { height: dialogHeight, bottom: "auto" } : undefined}><button className="business-employee-dialog__backdrop" type="button" onClick={closeEditor} aria-label={t("planning.close")} /><aside className="business-admin__panel business-admin__form business-employee-dialog__panel" role="dialog" aria-modal="true" aria-label={selected ? "Employee profile" : t("members.add")}><header><div><p>{t(selected ? "management.people.edit" : "management.people.new")}</p><h2>{selected ? [selected.firstName, selected.lastName].filter(Boolean).join(" ") || t("members.noEmail") : t("members.add")}</h2></div><button type="button" onClick={closeEditor} aria-label={t("planning.close")}><X /></button></header>{error ? <p className="business-admin__error" role="alert">{error}</p> : null}<Input ref={firstNameInput} label={t("members.firstName")} value={firstName} onFocus={(event) => revealField(event.currentTarget)} onKeyDown={(event) => moveOnEnter(event, lastNameInput.current)} onChange={(event) => setFirstName(event.target.value)} /><Input ref={lastNameInput} label={t("members.lastName")} value={lastName} onFocus={(event) => revealField(event.currentTarget)} onKeyDown={(event) => moveOnEnter(event, emailInput.current)} onChange={(event) => setLastName(event.target.value)} /><Input ref={emailInput} label={t("members.email")} type="email" value={email} disabled={Boolean(selected?.userId)} onFocus={(event) => revealField(event.currentTarget)} onKeyDown={saveFromKeyboard} onChange={(event) => setEmail(event.target.value)} /><button className="business-admin__primary" disabled={(!firstName.trim() && !lastName.trim()) || save.isPending} onClick={() => save.mutate()}>{selected ? t("save") : t("members.action")}</button>{selected && (selected.accessState ?? (selected.userId ? "CLAIMED" : selected.email ? "INVITED" : "MANAGED")) === "INVITED" && selected.email ? <button className="business-admin__secondary" disabled={resend.isPending} onClick={() => resend.mutate()}><Mail />{t("management.people.resend")}</button> : null}{selected ? <button className="business-admin__secondary" disabled={status.isPending} onClick={() => status.mutate()}>{selected.status === "SUSPENDED" ? <UserCheck /> : <UserMinus />}{selected.status === "SUSPENDED" ? t("members.reactivate") : t("members.suspend")}</button> : null}{selected ? <><div className="business-people__range"><Input label="From" type="date" value={range.from} onFocus={(event) => revealField(event.currentTarget)} onChange={(event) => { setRange(value => ({ ...value, from: event.target.value })); setOffset(0); }} /><Input label="To" type="date" value={range.to} onFocus={(event) => revealField(event.currentTarget)} onChange={(event) => { setRange(value => ({ ...value, to: event.target.value })); setOffset(0); }} /></div><TeamHours hours={hours.data} loading={hours.isLoading} error={hours.error ? getApiError(hours.error).message : ""} period={period} onPeriod={setPeriod} onPrevious={() => setOffset(value => Math.max(0, value - 100))} onNext={() => setOffset(value => value + 100)} /></> : null}</aside></div> : null}
-    {error && !editorOpen ? <p className="business-admin__error" role="alert">{error}</p> : null}
+    <header className="business-admin__header">
+      <div><h1>{t("members.title")}</h1><span>{t("management.people.description")}</span></div>
+      <button type="button" onClick={() => { setCreating(true); save.reset(); }}><Plus />{t("members.add")}</button>
+    </header>
+    {creating && <form className="business-summary-panel employee-profile__form" onSubmit={(event) => { event.preventDefault(); save.mutate(new FormData(event.currentTarget)); }}>
+      <Input label={t("members.firstName")} name="firstName" maxLength={100} />
+      <Input label={t("members.lastName")} name="lastName" maxLength={100} />
+      <Input label={t("members.email")} name="email" type="email" />
+      {save.isError && <p role="alert">{getApiError(save.error).message}</p>}
+      <div className="business-approval-actions">
+        <button type="submit" className="business-admin__primary" disabled={save.isPending}>{t("members.action")}</button>
+        <button type="button" className="business-admin__secondary" disabled={save.isPending} onClick={() => setCreating(false)}>{t("employee.cancel")}</button>
+      </div>
+    </form>}
+    {members.isPending && <p role="status">{t("common:messages.loading")}</p>}
+    {members.isError && <p role="alert">{getApiError(members.error).message}</p>}
+    <section className="business-admin__panel business-people__list-panel">
+      <div className="business-admin__list">
+        {(members.data ?? []).map((member) => {
+          const name = [member.firstName, member.lastName].filter(Boolean).join(" ") || member.email || t("members.noEmail");
+          return <Link className="business-admin__row business-admin__row-button" key={member.id} to={`/business/${organizationId}/people/${member.id}`}>
+            <span className="business-admin__avatar">{name.slice(0, 2).toUpperCase()}</span>
+            <span><strong>{name}</strong><small>{member.email || t("members.noEmail")}</small></span>
+            <span>{t(`memberStatus.${member.status}`)}</span>
+            <span>{t(`employee.${member.userId ? "claimed" : member.accessState === "INVITED" ? "invited" : "managed"}`)}</span>
+          </Link>;
+        })}
+      </div>
+    </section>
   </div></BusinessManagementShell>;
 }
 
-export function TeamHours({hours,loading,error,period,onPeriod,onPrevious,onNext}:{hours:TeamMemberHours|undefined;loading:boolean;error:string;period:Period;onPeriod:(value:Period)=>void;onPrevious?:()=>void;onNext?:()=>void}){
+export function TeamHours({hours,loading,error,period,onPeriod,onPrevious,onNext,hidePeriodControls=false}:{hours:TeamMemberHours|undefined;loading:boolean;error:string;period:Period;onPeriod:(value:Period)=>void;onPrevious?:()=>void;onNext?:()=>void;hidePeriodControls?:boolean}){
   return <section aria-label="Team hours" className="team-hours">
-    <header className="team-hours__header"><div><span>Employee detail</span><h3>Hours & history</h3><p>Server-calculated records and totals.</p></div><div className="team-hours__periods"><button type="button" aria-pressed={period==="week"} onClick={()=>onPeriod("week")}>Week</button><button type="button" aria-pressed={period==="month"} onClick={()=>onPeriod("month")}>Month</button></div></header>
+    <header className="team-hours__header"><div><span>Employee detail</span><h3>Hours & history</h3><p>Server-calculated records and totals.</p></div>{!hidePeriodControls && <div className="team-hours__periods"><button type="button" aria-pressed={period==="week"} onClick={()=>onPeriod("week")}>Week</button><button type="button" aria-pressed={period==="month"} onClick={()=>onPeriod("month")}>Month</button></div>}</header>
     {loading?<p className="team-hours__state">Loading time summary…</p>:null}
     {error?<p className="team-hours__state is-error" role="alert">{error}</p>:null}
     {!loading&&!error&&!hours?<p className="team-hours__state">No time data is available.</p>:null}
@@ -59,6 +80,4 @@ export function TeamHours({hours,loading,error,period,onPeriod,onPrevious,onNext
     </>:null}
   </section>;
 }
-function rangeFor(period:Period){const now=new Date();const today=localDate(now);if(period==="month")return {from:`${today.slice(0,8)}01`,to:today};const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));return {from:localDate(monday),to:today};}
-function localDate(value:Date){return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,"0")}-${String(value.getDate()).padStart(2,"0")}`;}
 function formatMinutes(minutes:number){return `${Math.floor(minutes/60)}h ${minutes%60}m`;}
