@@ -6,7 +6,6 @@ import {
   CalendarClock,
   CircleHelp,
   FileDown,
-  FileUp,
   Globe2,
   Info,
   LogOut,
@@ -99,7 +98,6 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
   );
   const showData = matchesSearch(
     t("settings:dataDocuments"),
-    t("settings:dataImport.menuLabel"),
     t("settings:pdfExport.menuLabel")
   );
   const showSupport = matchesSearch(t("settings:support"), t("settings:about"), t("settings:help"));
@@ -266,14 +264,6 @@ export function ProfilePage({ embedded = false }: ProfilePageProps) {
       </SettingsGroup> : null}
 
       {showData ? <SettingsGroup title={t("settings:dataDocuments")} icon={<ShieldCheck className="h-3.5 w-3.5" />}>
-        <SettingsRow
-          to="/settings/import-data"
-          label={t("settings:dataImport.menuLabel")}
-          description={t("settings:dataImport.menuDescription")}
-          icon={<FileUp className="h-[18px] w-[18px]" />}
-          iconClassName="bg-emerald-400/[0.09] text-emerald-200/80"
-        />
-        <div className="mx-5 h-px bg-white/[0.06]" />
         <SettingsRow
           to="/settings/export-pdf"
           label={t("settings:pdfExport.menuLabel")}

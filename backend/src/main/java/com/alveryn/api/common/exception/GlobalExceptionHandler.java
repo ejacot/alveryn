@@ -19,7 +19,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.security.access.AccessDeniedException;
@@ -96,15 +97,9 @@ public class GlobalExceptionHandler {
         errors);
   }
 
-  @ExceptionHandler(MaxUploadSizeExceededException.class)
-  ResponseEntity<ApiErrorResponse> handleMaxUploadSize(
-      MaxUploadSizeExceededException e, HttpServletRequest r) {
-    return response(
-        HttpStatus.PAYLOAD_TOO_LARGE,
-        "File exceeds the 15 MB upload limit",
-        "FILE_TOO_LARGE",
-        r,
-        List.of());
+  @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+  ResponseEntity<ApiErrorResponse> handleMissingEndpoint(Exception e, HttpServletRequest r) {
+    return response(HttpStatus.NOT_FOUND, "Resource not found", "NOT_FOUND", r, List.of());
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)

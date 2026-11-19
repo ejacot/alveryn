@@ -8,7 +8,7 @@
 
 Alveryn is a privacy-minded work, activity, and earnings tracker for people who need a precise view of hours, unit-based work, projects, rates, absences, rest days, payroll periods, and gross earnings.
 
-The product combines a mobile-first PWA, a Spring Boot API, PostgreSQL, deterministic document analysis, and optional task-focused AI assistance. Production infrastructure is defined for Render.
+The product combines a mobile-first PWA, a Spring Boot API, and PostgreSQL. Production infrastructure is defined for Render.
 
 ## Product
 
@@ -16,26 +16,16 @@ The product combines a mobile-first PWA, a Spring Boot API, PostgreSQL, determin
 - Organize multi-day projects with project totals and day-specific work sessions.
 - Model personal work types, rates, calculation methods, formula groups, and salary periods.
 - Classify calendar days as worked, absent, or rest days without distorting statistics.
-- Import existing records from XLSX, TXT, PDF, JPG, PNG, or WEBP through a review-first workflow.
-- Detect work types, aliases, absences, rest days, surcharges, periods, and ambiguous entries before writing data.
-- Compare a monthly payslip with Alveryn, preserve the uploaded evidence, and save reconciliation differences.
 - Export detailed employer-ready PDF reports with per-activity time or unit breakdowns.
 - Review dashboard, calendar, advanced statistics, and settings through responsive phone, tablet, and desktop layouts.
 - Support registration, email verification, onboarding, JWT auth, refresh cookies, and production email delivery.
 - Run as an installable PWA with an accessible premium visual system in dark and light themes.
 - Use the interface in English, German, Romanian, or Russian.
 
-## Import safety model
-
-Imports are staged rather than written directly to work records. Alveryn analyzes the source, asks only for unresolved meaning, lets the user map or create work types and absence types, presents a final preview, skips known duplicates, and requires explicit confirmation before execution.
-
-Deterministic parsing remains the foundation for structured spreadsheets and text. Optional AI assistance is narrowly scoped to interpreting unclear user explanations and extracting rows from visual documents. AI does not silently apply corrections or bypass the confirmation workflow. Original source documents and saved payroll reconciliation documents can be reopened for later verification.
-
 ## Stack
 
 - Backend: Java 21, Spring Boot, Spring Security, Hibernate, Flyway, PostgreSQL, MapStruct.
 - Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, TailwindCSS, Framer Motion.
-- Document processing: Apache POI, PDFBox, optional Groq-compatible text and vision models.
 - Testing and CI: Maven, Vitest, Playwright, GitHub Actions, PostgreSQL service containers, production Docker build verification.
 - Deployment: Render Blueprint, managed PostgreSQL, static frontend, Dockerized API.
 
@@ -123,27 +113,6 @@ Optional backend variables:
 - `LOGIN_MAX_FAILED_ATTEMPTS`
 - `LOGIN_LOCK_DURATION`
 - `FRONTEND_VERIFICATION_URL`
-- `IMPORT_AI_ENABLED`
-- `GROQ_API_KEY`
-- `GROQ_BASE_URL`
-- `GROQ_MODEL`
-- `GROQ_VISION_MODEL`
-- `GROQ_TIMEOUT`
-- `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE`
-- `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE`
-
-### Optional import intelligence
-
-The normal application and deterministic XLSX/TXT import path do not require an AI provider. To enable conversational clarification and PDF/image work-log extraction locally, set:
-
-```dotenv
-IMPORT_AI_ENABLED=true
-GROQ_API_KEY=your-key
-GROQ_MODEL=openai/gpt-oss-20b
-GROQ_VISION_MODEL=qwen/qwen3.6-27b
-```
-
-Never commit a real provider key. Production secrets are configured directly in Render. Visual work-log imports accept up to 12 PDF pages per upload; the general import source limit is 10 MB.
 
 ## Verification
 
@@ -167,6 +136,6 @@ GitHub Actions additionally starts an isolated PostgreSQL 17 service and verifie
 
 ## Configuration
 
-The backend accepts the database, authentication, mail, OAuth, upload, and optional import-intelligence environment values documented above and in `.env.example`. `MAIL_FROM` can be a verified alias of the authenticated SMTP account and defaults to `MAIL_USERNAME`. `DB_URL` must be a JDBC URL such as `jdbc:postgresql://host:5432/alveryn`. `JWT_SECRET` is required outside the `local` profile and must be a sufficiently long secret value. Local defaults are provided for development only; deployment environments must supply their own secrets.
+The backend accepts the database, authentication, mail, and OAuth environment values documented above and in `.env.example`. `MAIL_FROM` can be a verified alias of the authenticated SMTP account and defaults to `MAIL_USERNAME`. `DB_URL` must be a JDBC URL such as `jdbc:postgresql://host:5432/alveryn`. `JWT_SECRET` is required outside the `local` profile and must be a sufficiently long secret value. Local defaults are provided for development only; deployment environments must supply their own secrets.
 
 GitHub Actions provisions an isolated PostgreSQL 17 service and needs no repository secrets. Render deployment is described by `render.yaml`; set `DB_URL` once to the managed database's internal JDBC URL (`jdbc:postgresql://host:5432/database`), while username and password are linked automatically. Render builds with `backend/` as Docker context, checks `/actuator/health`, and provides `PORT` to Spring Boot.

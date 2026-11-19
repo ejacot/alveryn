@@ -1800,15 +1800,6 @@ html[data-theme="light"] .calendar-month-summary {
     inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
-html[data-theme="light"] .calendar-payroll-panel {
-  border-color: rgba(4, 120, 87, 0.14) !important;
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.84),
-    rgba(238, 238, 238, 0.72)
-  ) !important;
-  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.1) !important;
-}
 
 .calendar-day-marker {
   color: var(--calendar-marker-color);
@@ -2527,7 +2518,6 @@ html[data-theme="light"] .calendar-day-today {
 .precision-flow-track { height: 330dvh; position: relative; }
 .precision-flow-stage {
   --pf-day: 1; --pf-calendar: 0; --pf-calendar-copy: 0; --pf-calendar-quiet: 1;
-  --pf-record: 0; --pf-document: 0; --pf-measure: 0; --pf-reveal: 0;
   --pf-cells: 0; --pf-detail: 1; --pf-x: 20px; --pf-y: 570px; --pf-w: calc(100vw - 40px); --pf-h: 104px; --pf-rotate: -2.5deg;
   position: sticky; top: 0; height: 100dvh; min-height: 680px; overflow: hidden; isolation: isolate;
   background: var(--pf-page); color: var(--pf-ink);
@@ -2540,12 +2530,10 @@ html[data-theme="light"] .calendar-day-today {
 .precision-flow-scene-copy > h2,
 .precision-flow-scene-copy > .pf-human { display: none; }
 .precision-flow-stage[data-phase="day"] .pf-copy-day,
-.precision-flow-stage[data-phase="calendar"] .pf-copy-calendar,
-.precision-flow-stage[data-phase="payslip"] .pf-copy-payslip,
-.precision-flow-stage[data-phase="difference"] .pf-copy-difference { display: block; }
+.precision-flow-stage[data-phase="calendar"] .pf-copy-calendar { display: block; }
 .precision-flow-stage[data-phase="transition"] .precision-flow-scene-copy { visibility: hidden; }
 
-.precision-flow-day,.precision-flow-calendar,.precision-flow-comparison { position: absolute; left: 20px; right: 20px; top: 210px; bottom: 50px; }
+.precision-flow-day,.precision-flow-calendar { position: absolute; left: 20px; right: 20px; top: 210px; bottom: 50px; }
 .precision-flow-day { opacity: var(--pf-day); transform: translateY(calc((1 - var(--pf-day))*-12px)); }
 .precision-flow-stage:not([data-phase="day"]) .precision-flow-day { visibility: hidden; }
 .pf-shift-title { display:flex; align-items:center; gap:12px; }
@@ -2569,7 +2557,6 @@ html[data-theme="light"] .calendar-day-today {
 .pf-cell{display:flex;aspect-ratio:1;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid var(--pf-line);font:500 10px/1 ui-monospace,monospace;color:var(--pf-muted)}
 .pf-cell.is-worked{background:color-mix(in srgb,var(--pf-green) calc(7% + var(--pf-cells)*5%),transparent);border-bottom-color:var(--pf-green);color:var(--pf-ink);transform:translateY(calc(var(--pf-cells)*-1px))}.pf-cell small{margin-top:4px;font-size:6px}.pf-cell.is-destination{border:1px dashed color-mix(in srgb,var(--pf-green) 50%,transparent)}
 .pf-month-foot{display:flex;justify-content:space-between;margin-top:18px;padding-top:13px;border-top:1px solid var(--pf-line);font:500 8px/1 ui-monospace,monospace;color:var(--pf-muted)}
-.precision-flow-stage[data-phase="payslip"] .pf-calendar-head,.precision-flow-stage[data-phase="difference"] .pf-calendar-head,.precision-flow-stage[data-phase="payslip"] .pf-month-foot,.precision-flow-stage[data-phase="difference"] .pf-month-foot{opacity:0}
 
 .precision-flow-object { position:absolute;z-index:7;left:var(--pf-x);top:var(--pf-y);width:var(--pf-w);height:var(--pf-h);padding:15px 17px;overflow:hidden;background:var(--pf-ink);color:var(--pf-page);border-bottom:2px solid var(--pf-green);transform:rotate(var(--pf-rotate));will-change:left,top,width,height,transform; }
 [data-theme="dark"] .precision-flow-object { background:#f0f3ee;color:#080a09; }
@@ -2577,12 +2564,6 @@ html[data-theme="light"] .calendar-day-today {
 .precision-flow-object strong{display:block;margin-top:8px;font:650 clamp(12px,calc(var(--pf-w)*.13),50px)/.9 ui-monospace,monospace;letter-spacing:-.07em;color:var(--pf-green);white-space:nowrap;opacity:var(--pf-detail)}
 .precision-flow-object span{position:absolute;right:50%;bottom:15px;transform:translateX(50%);font:650 14px/1 ui-monospace,monospace;opacity:calc(1 - var(--pf-detail))}.precision-flow-object::after{content:"€164";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font:600 6px/1 ui-monospace,monospace;color:var(--pf-green);opacity:calc(1 - var(--pf-detail))}
 
-.precision-flow-comparison{z-index:5;opacity:var(--pf-record)}
-.precision-flow-stage[data-phase="day"] .precision-flow-comparison,.precision-flow-stage[data-phase="transition"] .precision-flow-comparison,.precision-flow-stage[data-phase="calendar"] .precision-flow-comparison{visibility:hidden}
-.pf-record-value{position:absolute;top:14px;left:0;right:92px;padding-bottom:18px;border-bottom:1px solid var(--pf-line);opacity:var(--pf-record);transform:translateY(calc((1 - var(--pf-record))*8px))}.pf-record-value strong,.pf-received-document>strong{display:block;margin-top:8px;font:620 34px/1 ui-monospace,monospace;letter-spacing:-.055em}.pf-record-value span{display:block;margin-top:8px;color:var(--pf-muted);font-size:10px}
-.pf-received-document{position:absolute;top:180px;left:58px;right:-20px;padding:18px 20px 20px;background:var(--pf-document);border:1px solid var(--pf-line);opacity:var(--pf-document);transform:translateX(calc((1 - var(--pf-document))*100px)) rotate(calc((1 - var(--pf-document))*2deg))}.pf-document-head{display:flex;align-items:center;margin-bottom:28px;font:600 7px/1 ui-monospace,monospace;letter-spacing:.12em;color:var(--pf-muted)}.pf-document-head i{height:1px;flex:1;margin:0 9px;background:var(--pf-line)}.pf-document-lines{margin-top:18px}.pf-document-lines i{display:block;margin-top:8px;border-top:1px solid var(--pf-line)}
-.pf-delta-measure{position:absolute;left:18px;right:18px;top:116px;height:52px;opacity:var(--pf-measure);color:var(--pf-green)}.pf-delta-measure span{position:absolute;left:8px;right:8px;top:25px;height:1px;background:var(--pf-green)}.pf-delta-measure i{position:absolute;top:19px;width:13px;height:13px;border:1px solid var(--pf-green);border-radius:50%;background:var(--pf-page)}.pf-delta-measure i:first-child{left:0}.pf-delta-measure i:last-child{right:0}.pf-delta-measure b{position:absolute;left:50%;top:7px;transform:translateX(-50%);padding:0 7px;background:var(--pf-page);font:600 10px/1 ui-monospace,monospace;color:var(--pf-muted);white-space:nowrap}
-.pf-difference{position:absolute;left:0;right:74px;bottom:26px;padding:13px 0;border-block:1px solid var(--pf-line);opacity:var(--pf-reveal);transform:translateY(calc((1 - var(--pf-reveal))*8px))}.pf-difference strong{display:block;margin-top:7px;font:620 31px/1 ui-monospace,monospace;letter-spacing:-.055em}.pf-difference span{display:block;margin-top:7px;color:var(--pf-muted);font:400 9px/1.4 Georgia,"Times New Roman",serif}.precision-flow-stage[data-phase="payslip"] .pf-difference{visibility:hidden}
 .precision-flow-footer{position:absolute;z-index:8;left:20px;right:20px;bottom:17px;display:flex;align-items:center;gap:11px;font:600 8px/1 ui-monospace,monospace;letter-spacing:.14em;color:var(--pf-muted)}.precision-flow-footer i{height:1px;flex:1;background:var(--pf-line)}
 
 .precision-capabilities { position:relative; padding:58px 20px 62px; border-top:1px solid var(--pf-line); }
@@ -2597,11 +2578,11 @@ html[data-theme="light"] .calendar-day-today {
 
 @media (min-width:768px){
   .precision-flow-stage{max-width:1440px;margin:auto}.precision-flow-scene-copy{left:max(52px,calc((100% - 1280px)/2));right:auto;width:370px;top:22vh}.precision-flow-scene-copy h2{font-size:clamp(42px,4.1vw,62px);max-width:430px}.precision-flow-scene-copy .pf-human{font-size:15px;max-width:350px}
-  .precision-flow-day,.precision-flow-calendar,.precision-flow-comparison{left:51%;right:max(48px,calc((100% - 1280px)/2));top:12vh;bottom:60px}.precision-flow-day{top:25vh}.precision-flow-grid{left:40px;right:40px}.pf-record-value{right:170px}.pf-received-document{left:170px}.pf-difference{right:170px}.precision-flow-footer{left:40px;right:40px}
+  .precision-flow-day,.precision-flow-calendar{left:51%;right:max(48px,calc((100% - 1280px)/2));top:12vh;bottom:60px}.precision-flow-day{top:25vh}.precision-flow-grid{left:40px;right:40px}.precision-flow-footer{left:40px;right:40px}
 }
 @media(max-width:767px){
   .precision-welcome-hero{min-height:calc(100dvh - 56px)}.precision-hero-layout{padding:64px 0 110px}.precision-hero-copy h1{font-size:clamp(3.15rem,15vw,4.5rem)}.precision-hero-actions{align-items:stretch;flex-direction:column}.precision-primary-cta{width:100%}.precision-story-link{text-align:center}.precision-hero-proof{left:20px;right:20px;bottom:35px;width:auto}.precision-hero-proof strong{font-size:23px}
   .precision-flow-stage[data-phase="calendar"] .precision-flow-scene-copy h2{max-width:300px;font-size:32px}.precision-flow-stage[data-phase="calendar"] .precision-flow-calendar{top:232px}
   .precision-capabilities{padding:46px 20px 50px}.precision-capabilities-inner{grid-template-columns:1fr;gap:30px}.precision-capabilities h2{max-width:330px;font-size:2.25rem}.precision-capability-list span{padding:14px 0}.precision-final{min-height:auto;padding:58px 20px 66px}.precision-final-inner{grid-template-columns:1fr;align-items:start;gap:32px}.precision-final h2{font-size:3.25rem}.welcome-precision-footer>div{align-items:flex-start;flex-direction:column}
 }
-@media(prefers-reduced-motion:reduce){.precision-flow-track{height:300dvh}.precision-flow-day,.precision-flow-calendar,.precision-flow-comparison,.precision-flow-object,.pf-received-document,.pf-cell,.pf-difference{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.precision-flow-track{height:300dvh}.precision-flow-day,.precision-flow-calendar,.precision-flow-object,.pf-cell{transition:none!important}}
