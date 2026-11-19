@@ -1,5 +1,5 @@
 import { AlertTriangle, Clock3, UserRoundPlus } from "lucide-react";
-import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../../i18n";
 import { normalizeLanguage } from "../../i18n/language";
@@ -11,23 +11,29 @@ import type {
 } from "../../types/business-planning";
 
 type Props = {
+  headerActions?: ReactNode;
+  densityActions?: ReactNode;
   schedule: StaffingSchedule;
   workTypeColors: ReadonlyMap<string, string>;
   selectedRequirementId: string | null;
+  selectedDate?: string;
   canManage: boolean;
   onOpenRequirement: (requirement: StaffingScheduleRequirement, trigger: HTMLElement) => void;
   onOpenMemberDay: (member: StaffingScheduleMember, date: string, trigger: HTMLElement) => void;
   onOpenMemberWeek: (member: StaffingScheduleMember, trigger: HTMLElement) => void;
   onEditAssignment: (assignment: StaffingScheduleAssignment, trigger: HTMLElement) => void;
-  onReorderMembers: (membershipIds: string[]) => void;
+  onReorderMembers?: (membershipIds: string[]) => void;
 };
 
 type MemberSort = "first-name" | "last-name" | "date-added" | "work-type" | "manual";
 
 export function ScheduleGrid({
+  headerActions,
+  densityActions,
   schedule,
   workTypeColors,
   selectedRequirementId,
+  selectedDate,
   canManage,
   onOpenRequirement,
   onOpenMemberDay,
@@ -74,7 +80,7 @@ export function ScheduleGrid({
     memberPress.current = null;
   };
   const reorderMembers = (fromId: string, toId: string) => {
-    if (fromId === toId) return;
+    if (!onReorderMembers || fromId === toId) return;
     const ids = visibleMembers.map((member) => member.membershipId);
     const from = ids.indexOf(fromId); const to = ids.indexOf(toId);
     if (from < 0 || to < 0) return;
@@ -111,36 +117,34 @@ export function ScheduleGrid({
       <header className="schedule-grid__heading">
         <div>
           <h2 id="schedule-grid-title">{t("planning.schedule.gridTitle")}</h2>
-          <p>{draggingMemberId
+          {canManage && <p>{draggingMemberId
             ? "Employee selected — scroll normally, then tap a person to place them before that row."
-            : t("planning.schedule.gridHint")}</p>
+            : t("planning.schedule.gridHint")}</p>}
         </div>
+        {densityActions}
+      </header>
+      <div className="schedule-grid__toolbar">
         <div className="schedule-grid__tools">
+          {headerActions}
           <label className="schedule-grid__sort">
-            <span>Sort people</span>
-            <select aria-label="Sort employees" value={memberSort} onChange={(event) => { const next = event.target.value as MemberSort; setMemberSort(next); if (next !== "manual") setManualOrder(null); }}>
-              <option value="first-name">First name</option>
-              <option value="last-name">Last name</option>
-              <option value="date-added">Date added</option>
-              <option value="work-type">Work type</option>
-              <option value="manual">Custom order</option>
+            <span>{t("scheduleControls.sort")}</span>
+            <select aria-label={t("scheduleControls.sort")} value={memberSort} onChange={(event) => { const next = event.target.value as MemberSort; setMemberSort(next); if (next !== "manual") setManualOrder(null); }}>
+              <option value="first-name">{t("scheduleControls.firstName")}</option>
+              <option value="last-name">{t("scheduleControls.lastName")}</option>
+              <option value="date-added">{t("scheduleControls.dateAdded")}</option>
+              <option value="work-type">{t("scheduleControls.workType")}</option>
+              <option value="manual">{t("scheduleControls.manual")}</option>
             </select>
           </label>
-          <div className="schedule-grid__legend" aria-label={t("planning.schedule.legend")}>
-            <span data-status="VACATION">U · {t("planning.schedule.status.VACATION")}</span>
-            <span data-status="REST_DAY">F · {t("planning.schedule.status.REST_DAY")}</span>
-            <span data-status="SICK">S · {t("planning.schedule.status.SICK")}</span>
-            <span data-status="PENDING">? · {t("planning.schedule.status.PENDING")}</span>
-            <span data-status="CONFLICT">! · {t("planning.schedule.status.CONFLICT")}</span>
-          </div>
+
         </div>
-      </header>
+      </div>
       <div className="schedule-grid__scroller" role="region" aria-label={t("planning.schedule.gridTitle")}>
         <table>
           <ScheduleColumnGroup showWeeklyHours={showWeeklyHours} />
           <caption className="sr-only">{t("planning.schedule.tableCaption")}</caption>
           <thead>
-            <ScheduleHeader schedule={schedule} locale={locale} t={t} showWeeklyHours={showWeeklyHours} />
+            <ScheduleHeader schedule={schedule} selectedDate={selectedDate} locale={locale} t={t} showWeeklyHours={showWeeklyHours} />
           </thead>
           <tbody>
             <tr className="schedule-grid__open-row">
@@ -148,7 +152,7 @@ export function ScheduleGrid({
                 <UserRoundPlus aria-hidden="true" />
                 <span>
                   <strong>{t("planning.schedule.openPositions")}</strong>
-                  <small>{t("planning.schedule.selectPosition")}</small>
+                  {canManage && <small>{t("planning.schedule.selectPosition")}</small>}
                 </span>
               </th>
               {schedule.days.map((day) => {
@@ -193,6 +197,7 @@ export function ScheduleGrid({
                       defaultValue: "Assign work across the week for {{member}}",
                     })}
                     onPointerDown={(event) => {
+                      if (!onReorderMembers) return;
                       if (!canManage) return;
                       const timer = setTimeout(() => {
                         if (memberPress.current?.membershipId !== member.membershipId) return;
@@ -290,6 +295,13 @@ export function ScheduleGrid({
           </tbody>
         </table>
       </div>
+          <div className="schedule-grid__legend" aria-label={t("planning.schedule.legend")}>
+            <span data-status="VACATION">U · {t("planning.schedule.status.VACATION")}</span>
+            <span data-status="REST_DAY">F · {t("planning.schedule.status.REST_DAY")}</span>
+            <span data-status="SICK">S · {t("planning.schedule.status.SICK")}</span>
+            <span data-status="PENDING">? · {t("planning.schedule.status.PENDING")}</span>
+            <span data-status="CONFLICT">! · {t("planning.schedule.status.CONFLICT")}</span>
+          </div>
     </section>
   );
 }
@@ -337,17 +349,18 @@ function ScheduleColumnGroup({ showWeeklyHours }: { showWeeklyHours: boolean }) 
 
 function ScheduleHeader({
   schedule,
+  selectedDate,
   locale,
   t,
   showWeeklyHours,
-}: Pick<Props, "schedule"> & { locale: string; t: ReturnType<typeof useTranslation>["t"]; showWeeklyHours: boolean }) {
+}: Pick<Props, "schedule" | "selectedDate"> & { locale: string; t: ReturnType<typeof useTranslation>["t"]; showWeeklyHours: boolean }) {
   return (
     <tr>
       <th scope="col" className="schedule-grid__member-column">
         {t("planning.schedule.employee")}
       </th>
       {schedule.days.map((day) => (
-        <th key={day.date} scope="col">
+        <th key={day.date} scope="col" data-selected={day.date === selectedDate || undefined}>
           <span>{formatWeekday(day.date, locale)}</span>
           <strong>{formatDay(day.date, locale)}</strong>
           <small data-open={day.coverage.openPositions > 0 || undefined}>

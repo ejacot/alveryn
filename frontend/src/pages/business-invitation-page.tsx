@@ -4,6 +4,7 @@ import { acceptBusinessInvitation, declineBusinessInvitation, getBusinessInvitat
 import { Button } from "../components/ui/button";
 import { ScreenMessage } from "../components/ui/screen-message";
 import { useAuth } from "../features/auth/use-auth";
+import "../styles/business-planning.css";
 
 export function BusinessInvitationPage() {
   const { token = "" } = useParams();
@@ -20,7 +21,7 @@ export function BusinessInvitationPage() {
   const data = invitation.data;
   if (data.status !== "PENDING") return <ScreenMessage title={data.status === "ACTIVE" ? "Invitation accepted" : data.status === "EXPIRED" ? "Invitation expired" : "Invitation declined"} />;
   const wrongAccount = isAuthenticated && user?.account.email.toLowerCase() !== data.invitedEmail?.toLowerCase();
-  return <main className="auth-page"><section className="auth-card"><p className="auth-eyebrow">ALVERYN BUSINESS</p><h1>Join {data.organizationName}</h1><p>You were invited as {data.invitedEmail}.</p>
+  return <main className="auth-page business-planning business-invitation"><section className="auth-card"><p className="auth-eyebrow">ALVERYN BUSINESS</p><h1>Join {data.organizationName}</h1><p>You were invited as {data.invitedEmail}.</p>
     {wrongAccount ? <p role="alert">Sign in with {data.invitedEmail} to accept this invitation.</p> : null}
     <div className="auth-form">
       {isAuthenticated ? <Button disabled={wrongAccount || accept.isPending} onClick={() => accept.mutate()}>Accept invitation</Button>

@@ -19,11 +19,11 @@ vi.mock("../../api/endpoints", () => ({
 describe("BusinessPlanningShell", () => {
   beforeEach(() => {
     getAccess.mockResolvedValue({
-      permissions: ["MANAGE_MEMBERS", "MANAGE_ROLES", "MANAGE_TEAMS", "MANAGE_SCHEDULE"],
+      permissions: ["MANAGE_MEMBERS", "MANAGE_ROLES", "MANAGE_TEAMS", "VIEW_SCHEDULE", "MANAGE_SCHEDULE"],
     });
   });
 
-  it("exposes every authorized management destination from the mobile menu", async () => {
+  it("groups management destinations under Settings in the mobile menu", async () => {
     const user = userEvent.setup();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -53,10 +53,10 @@ describe("BusinessPlanningShell", () => {
     const menu = within(dialog);
     expect(dialog).toBeInTheDocument();
     expect(menu.getByRole("link", { name: "Overview" })).toHaveAttribute("href", "/business/org-1/overview");
-    expect(await menu.findByRole("link", { name: "Team" })).toHaveAttribute("href", "/business/org-1/people");
-    expect(menu.getByRole("link", { name: "Roles" })).toHaveAttribute("href", "/business/org-1/roles");
-    expect(menu.getByRole("link", { name: "Structure" })).toHaveAttribute("href", "/business/org-1/locations");
-    expect(menu.getByRole("link", { name: "Work types" })).toHaveAttribute("href", "/business/org-1/work-types");
+    expect(await menu.findByRole("link", { name: "Settings" })).toHaveAttribute("href", "/business/org-1/settings");
+    expect(menu.getByRole("link", { name: "Plan" })).toBeInTheDocument();
+    expect(menu.getByRole("link", { name: "Planning" })).toBeInTheDocument();
+    expect(menu.queryByRole("link", { name: "Team" })).not.toBeInTheDocument();
 
     await user.click(menu.getByRole("button", { name: "Close" }));
     expect(dialog).not.toBeInTheDocument();

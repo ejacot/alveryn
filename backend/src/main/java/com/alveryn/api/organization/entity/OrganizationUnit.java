@@ -52,7 +52,12 @@ public class OrganizationUnit extends BaseEntity {
 
   public void changeDetails(OrganizationUnit parent, String name, OrganizationUnitType type,
       CheckInMode checkInMode, int displayOrder) {
-    if (parent == this) throw new IllegalArgumentException("unit cannot be its own parent");
+    var visited = new java.util.HashSet<OrganizationUnit>();
+    for (var ancestor = parent; ancestor != null; ancestor = ancestor.getParent()) {
+      if (ancestor == this || (getId() != null && getId().equals(ancestor.getId())) || !visited.add(ancestor)) {
+        throw new IllegalArgumentException("organizational units cannot form a cycle");
+      }
+    }
     if (parent != null && parent.getOrganization() != organization) {
       throw new IllegalArgumentException("parent must belong to the same organization");
     }

@@ -1,8 +1,10 @@
+import { filterScheduleMembers as filterSchedule } from "../features/business/filter-schedule-members";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { BusinessLocationRequired } from "../components/business-planning/business-location-required";
 import {
   batchStaffingAssignments,
   cancelStaffingAssignment,
@@ -22,6 +24,7 @@ import {
   MemberWeekAssignmentPicker,
 } from "../components/business-planning/assignment-inspector";
 import { BusinessPlanningShell } from "../components/business-planning/business-planning-shell";
+import { planContextSearch, planSelectedDay } from "../features/business/plan-context";
 import { ScheduleGrid } from "../components/business-planning/schedule-grid";
 import { ScheduleMobileView } from "../components/business-planning/schedule-mobile-view";
 import type {
@@ -56,7 +59,7 @@ export function BusinessSchedulePage() {
   const [memberWeekTarget, setMemberWeekTarget] = useState<StaffingScheduleMember | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [replacingAssignmentId, setReplacingAssignmentId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState("");
+  const [filter, setFilter] = useState<"all" | "open" | "conflicts">("all");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [mutationBusy, setMutationBusy] = useState(false);
   const [density, setDensity] = useState<"compact" | "comfortable">("comfortable");
@@ -95,6 +98,9 @@ export function BusinessSchedulePage() {
     : activeUnits[0]?.id ?? "";
   const weekStart = normalizeMonday(searchParams.get("week"));
   const weekEnd = addDays(weekStart, 6);
+  const selectedDate = planSelectedDay(searchParams, weekStart, weekEnd, organization?.timezone ?? "UTC");
+  const requestedRequirement = searchParams.get("requirement");
+  const requestedAssignment = searchParams.get("assignment");
   const contextKey = `${organizationId}:${unitId}:${weekStart}`;
 
   useEffect(() => {
@@ -115,9 +121,9 @@ export function BusinessSchedulePage() {
     setMemberWeekTarget(null);
     setSelectedAssignmentId(null);
     setReplacingAssignmentId(null);
-    setSelectedDate(weekStart);
+    setFilter("all");
     setNotice(null);
-  }, [contextKey, weekStart]);
+  }, [contextKey]);
 
   const lookupQuery = useQuery({
     queryKey: ["staffing-plan", organizationId, unitId, weekStart],
@@ -141,6 +147,40 @@ export function BusinessSchedulePage() {
   const selectedAssignmentRequirement = findAssignment(schedule, selectedAssignmentId)?.requirement ?? null;
   const replacingAssignment = findAssignment(schedule, replacingAssignmentId)?.assignment ?? null;
   const canManage = Boolean(plan?.capabilities.manage);
+  const linkedRequirement = findRequirement(schedule, requestedRequirement)?.requirementId;
+  const linkedAssignment = findAssignment(schedule, requestedAssignment)?.assignment.assignmentId;
+  useEffect(() => {
+    if (!canManage) return;
+    if (requestedAssignment) {
+      if (linkedAssignment) setSelectedAssignmentId(linkedAssignment);
+    } else if (linkedRequirement) setSelectedRequirementId(linkedRequirement);
+  }, [contextKey, canManage, requestedAssignment, linkedRequirement, linkedAssignment]);
+  const visibleSchedule = schedule && filterSchedule(schedule, filter);
+  const filterCounts = {
+    all: schedule?.members.length ?? 0,
+    open: schedule ? filterSchedule(schedule, "open").members.length : 0,
+    conflicts: schedule ? filterSchedule(schedule, "conflicts").members.length : 0,
+  };
+  const peopleFilters = (
+    <div className="business-plan-filters" role="group" aria-label={t("navigation.assign")}>
+      {(["all", "open", "conflicts"] as const).map((value) => (
+        <button type="button" key={value} aria-pressed={value === filter} onClick={() => setFilter(value)}>
+          {t(`scheduleControls.${value}`)} <span className="business-schedule__filter-count">{filterCounts[value]}</span>
+        </button>
+      ))}
+    </div>
+  );
+  const densityControls = (
+    <div className="business-schedule__density" role="group" aria-label={t("planning.schedule.density")}>
+      {(["compact", "comfortable"] as const).map((value) => (
+        <button type="button" key={value} aria-pressed={density === value} className={density === value ? "is-active" : ""} onClick={() => setDensity(value)}>{t(`planning.schedule.${value}`)}</button>
+      ))}
+    </div>
+  );
+
+  function focusPlan(date: string, requirement?: string, assignment?: string) {
+    setSearchParams(planContextSearch(unitId, weekStart, date, requirement, assignment), { replace: true });
+  }
 
   const candidatesQuery = useQuery({
     queryKey: [
@@ -156,7 +196,7 @@ export function BusinessSchedulePage() {
       plan!.planId,
       selectedRequirementId!,
     ),
-    enabled: Boolean(plan && schedule && selectedRequirementId && canManage),
+    enabled: Boolean(plan && selectedRequirement && canManage),
     retry: false,
   });
   const selectedMemberCandidate = selectedMemberId
@@ -165,10 +205,7 @@ export function BusinessSchedulePage() {
     : null;
 
   const updateSearchContext = (nextUnitId: string, nextWeekStart: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set("unit", nextUnitId);
-    next.set("week", nextWeekStart);
-    setSearchParams(next);
+    setSearchParams(planContextSearch(nextUnitId, nextWeekStart));
   };
 
   const refreshSchedule = async () => {
@@ -176,6 +213,7 @@ export function BusinessSchedulePage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["staffing-plan", organizationId, unitId, weekStart] }),
       queryClient.invalidateQueries({ queryKey: ["staffing-plan", organizationId, plan.planId, "assignment-candidates"] }),
+      queryClient.invalidateQueries({ queryKey: ["staffing-plan", organizationId, plan.planId, "review"] }),
     ]);
     const result = await scheduleQuery.refetch();
     return result.data?.data ?? null;
@@ -192,7 +230,7 @@ export function BusinessSchedulePage() {
     setNotice({ type: "error", message: error.message });
   };
 
-  const assignCandidate = async (candidate: StaffingAssignmentCandidate) => {
+  const assignCandidate = async (candidate: StaffingAssignmentCandidate, continueToNext = false) => {
     if (!plan || !schedule || !selectedRequirement || mutationBusy) return;
     const startContext = contextRef.current;
     const semanticKey = replacingAssignment
@@ -250,7 +288,9 @@ export function BusinessSchedulePage() {
         }),
         undo: created ? { assignmentId: created.assignmentId } : undefined,
       });
-      setSelectedRequirementId(null);
+      const nextRequirement = continueToNext && next ? nextOpenRequirement(next, requirementId) : null;
+      setSelectedRequirementId(nextRequirement?.requirementId ?? null);
+      if (nextRequirement) focusPlan(nextRequirement.date, nextRequirement.requirementId);
       setSelectedMemberId(null);
       setReplacingAssignmentId(null);
     } catch (cause) {
@@ -394,7 +434,7 @@ export function BusinessSchedulePage() {
   }
   if (unitsQuery.isLoading) return <BusinessRouteSkeleton />;
   if (activeUnits.length === 0) {
-    return <BusinessState title={t("planning.states.noUnitTitle")} description={t("planning.states.noUnitDescription")} />;
+    return <BusinessLocationRequired />;
   }
 
   return (
@@ -405,24 +445,13 @@ export function BusinessSchedulePage() {
       unitId={unitId}
       weekStart={weekStart}
       weekEnd={weekEnd}
+      plan={plan}
       onOrganizationChange={(id) => navigate(`/business/${id}/plan/schedule?unit=${unitId}&week=${weekStart}`)}
       onUnitChange={(id) => updateSearchContext(id, weekStart)}
       onPreviousWeek={() => updateSearchContext(unitId, addDays(weekStart, -7))}
       onNextWeek={() => updateSearchContext(unitId, addDays(weekStart, 7))}
       onCurrentWeek={() => updateSearchContext(unitId, mondayIso(new Date()))}
     >
-      <section className="business-schedule__intro">
-        <div>
-          <p>{t("planning.schedule.eyebrow")}</p>
-          <h1>{t("planning.schedule.title")}</h1>
-          <span>{t("planning.schedule.description")}</span>
-        </div>
-        <div className="business-schedule__density" role="group" aria-label={t("planning.schedule.density")}>
-          <button type="button" className={density === "compact" ? "is-active" : ""} onClick={() => setDensity("compact")}>{t("planning.schedule.compact")}</button>
-          <button type="button" className={density === "comfortable" ? "is-active" : ""} onClick={() => setDensity("comfortable")}>{t("planning.schedule.comfortable")}</button>
-        </div>
-      </section>
-
       {notice ? (
         <div className={`business-schedule__notice is-${notice.type}`} role={notice.type === "error" ? "alert" : "status"}>
           {notice.type === "success" ? <Check aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
@@ -453,9 +482,11 @@ export function BusinessSchedulePage() {
           action={<Link to={`/business/${organizationId}/plan/demand?unit=${unitId}&week=${weekStart}`}>{t("planning.schedule.openDemand")}</Link>}
         />
       ) : null}
-      {schedule ? (
+      {schedule && visibleSchedule ? (
         <div className={`business-schedule is-${density}`}>
           <ScheduleCoverage schedule={schedule} />
+
+          {filter !== "all" && visibleSchedule.members.length === 0 && <p role="status">{t("planFlow.emptyFilter")}</p>}
           {schedule.days.every((day) => day.requirements.length === 0) ? (
             <BusinessState
               compact
@@ -465,8 +496,15 @@ export function BusinessSchedulePage() {
             />
           ) : (
             <>
+              <div className="business-schedule__mobile-controls">
+                <div className="business-schedule__mobile-heading"><h2>{t("planning.schedule.gridTitle")}</h2>{densityControls}</div>
+                {peopleFilters}
+              </div>
               <ScheduleGrid
-                schedule={schedule}
+                densityActions={densityControls}
+                headerActions={peopleFilters}
+                schedule={visibleSchedule}
+                selectedDate={selectedDate}
                 workTypeColors={workTypeColors}
                 selectedRequirementId={selectedRequirementId}
                 canManage={canManage}
@@ -475,11 +513,13 @@ export function BusinessSchedulePage() {
                   setSelectedMemberId(null);
                   setReplacingAssignmentId(null);
                   setSelectedRequirementId(requirement.requirementId);
+                  focusPlan(requirement.date, requirement.requirementId);
                 }}
                 onOpenMemberDay={(member, date, trigger) => {
                   setCandidateReturnFocus(trigger);
                   setSelectedMemberId(member.membershipId);
                   setMemberDayTarget({ member, date });
+                  focusPlan(date);
                 }}
                 onOpenMemberWeek={(member, trigger) => {
                   setCandidateReturnFocus(trigger);
@@ -491,32 +531,40 @@ export function BusinessSchedulePage() {
                 onEditAssignment={(assignment, trigger) => {
                   setEditorReturnFocus(trigger);
                   setSelectedAssignmentId(assignment.assignmentId);
+                  const context = findAssignment(schedule, assignment.assignmentId);
+                  if (context) focusPlan(context.requirement.date, context.requirement.requirementId, assignment.assignmentId);
                 }}
-                onReorderMembers={(membershipIds) => {
+                onReorderMembers={filter === "all" ? (membershipIds) => {
                   void reorderStaffingMembers(organizationId, membershipIds)
                     .then(() => refreshSchedule())
                     .catch((cause) => void handleMutationError(cause, contextRef.current));
-                }}
+                } : undefined}
               />
               <ScheduleMobileView
-                schedule={schedule}
-                selectedDate={selectedDate || schedule.weekStart}
+                schedule={visibleSchedule}
+                selectedDate={selectedDate}
                 selectedRequirementId={selectedRequirementId}
                 canManage={canManage}
-                onDateChange={setSelectedDate}
+                onDateChange={(date) => focusPlan(date)}
                 onOpenRequirement={(requirement, trigger) => {
                   setCandidateReturnFocus(trigger);
                   setSelectedMemberId(null);
                   setReplacingAssignmentId(null);
                   setSelectedRequirementId(requirement.requirementId);
+                  focusPlan(requirement.date, requirement.requirementId);
                 }}
                 onEditAssignment={(assignment, trigger) => {
                   setEditorReturnFocus(trigger);
                   setSelectedAssignmentId(assignment.assignmentId);
+                  const context = findAssignment(schedule, assignment.assignmentId);
+                  if (context) focusPlan(context.requirement.date, context.requirement.requirementId, assignment.assignmentId);
                 }}
               />
             </>
           )}
+          <div className="business-plan-demand-actions business-demand__next">
+            <Link to={`/business/${organizationId}/plan/review${planContextSearch(unitId, weekStart, selectedDate)}`}>{t("scheduleControls.next")} <ArrowRight aria-hidden="true" /></Link>
+          </div>
           {!canManage ? <p className="business-schedule__readonly">{t("planning.states.readOnly")}</p> : null}
         </div>
       ) : null}
@@ -537,7 +585,7 @@ export function BusinessSchedulePage() {
           setReplacingAssignmentId(null);
         }}
         onRetry={() => void candidatesQuery.refetch()}
-        onAssign={(candidate) => void assignCandidate(candidate)}
+        onAssign={(candidate, next) => void assignCandidate(candidate, next)}
       />
       <MemberDayRequirementPicker
         open={Boolean(memberDayTarget)}
@@ -645,6 +693,13 @@ function BusinessState({
       <span>ALVERYN · BUSINESS</span><h1>{title}</h1><p>{description}</p>{action ? <div>{action}</div> : null}
     </main>
   );
+}
+
+function nextOpenRequirement(schedule: StaffingSchedule, current: string) {
+  const requirements = schedule.days.flatMap((day) => day.requirements);
+  const index = requirements.findIndex(({ requirementId }) => requirementId === current);
+  return [...requirements.slice(Math.max(0, index)), ...requirements.slice(0, Math.max(0, index))]
+    .find((requirement) => requirement.coverage.openPositions > 0);
 }
 
 function findRequirement(schedule: StaffingSchedule | null, requirementId: string | null) {

@@ -38,6 +38,61 @@ class BusinessOrganizationIntegrationTest {
   }
 
   @Test
+  void employeeContractsKeepHistoricalRatesAndRejectUnauthorizedOrOverlappingUpdates() throws Exception {
+    UserAccount owner = user("employee-contract-owner@example.com");
+    UserAccount outsider = user("employee-contract-outsider@example.com");
+    String organizationId = id(mockMvc.perform(post("/api/organizations")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Contract Hotel\",\"timezone\":\"Europe/Berlin\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    String membershipId = id(mockMvc.perform(post("/api/organizations/{id}/members", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"firstName\":\"Ana\",\"lastName\":\"Employee\"}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    String profilePath = "/api/organizations/" + organizationId + "/members/" + membershipId + "/profile";
+    String first = """
+        {"validFrom":"2026-01-01","jobTitle":"Reception","employmentType":"FULL_TIME",
+         "employmentStart":"2026-01-01","weeklyMinutes":2400,
+         "workingDays":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],
+         "compensationType":"HOURLY","grossAmount":15,"currency":"eur"}
+        """;
+    String second = first.replace("2026-01-01", "2026-04-01")
+        .replace("\"weeklyMinutes\":2400", "\"weeklyMinutes\":1920")
+        .replace("\"grossAmount\":15", "\"grossAmount\":16");
+
+    mockMvc.perform(get(profilePath).param("from", "2026-03-30").param("to", "2026-04-03")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.contractualMinutes").doesNotExist());
+    mockMvc.perform(post(profilePath + "/terms").header(HttpHeaders.AUTHORIZATION, token(owner))
+            .contentType(MediaType.APPLICATION_JSON).content(first))
+        .andExpect(status().isCreated()).andExpect(jsonPath("$.data.currency").value("EUR"));
+    mockMvc.perform(post(profilePath + "/terms").header(HttpHeaders.AUTHORIZATION, token(owner))
+            .contentType(MediaType.APPLICATION_JSON).content(second))
+        .andExpect(status().isCreated());
+    mockMvc.perform(get(profilePath).param("from", "2026-03-30").param("to", "2026-04-03")
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.terms.length()").value(2))
+        .andExpect(jsonPath("$.data.terms[1].grossAmount").value(15))
+        .andExpect(jsonPath("$.data.terms[1].validTo").value("2026-03-31"))
+        .andExpect(jsonPath("$.data.contractualMinutes").value(2112))
+        .andExpect(jsonPath("$.data.approvedMinutes").value(0));
+    mockMvc.perform(post(profilePath + "/terms").header(HttpHeaders.AUTHORIZATION, token(owner))
+            .contentType(MediaType.APPLICATION_JSON).content(second))
+        .andExpect(status().isConflict());
+    mockMvc.perform(get(profilePath).param("from", "2026-01-01").param("to", "2026-01-31")
+            .header(HttpHeaders.AUTHORIZATION, token(outsider)))
+        .andExpect(status().isNotFound());
+    mockMvc.perform(post(profilePath + "/terms").header(HttpHeaders.AUTHORIZATION, token(outsider))
+            .contentType(MediaType.APPLICATION_JSON).content(first))
+        .andExpect(status().isNotFound());
+    mockMvc.perform(post(profilePath + "/terms").header(HttpHeaders.AUTHORIZATION, token(owner))
+            .contentType(MediaType.APPLICATION_JSON).content(second.replace("2026-04-01", "2026-05-01")
+                .replace("\"HOURLY\"", "\"PER_UNIT\"")))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void ownerCreatesBusinessWorkspaceAndNestedTeams() throws Exception {
     UserAccount owner = user("business-owner@example.com");
     String organizationBody = mockMvc.perform(post("/api/organizations")
@@ -63,14 +118,22 @@ class BusinessOrganizationIntegrationTest {
         .andReturn().getResponse().getContentAsString();
     String departmentId = id(departmentBody);
 
-    mockMvc.perform(post("/api/organizations/{id}/units", organizationId)
+    String teamId = id(mockMvc.perform(post("/api/organizations/{id}/units", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner))
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 {"parentId":"%s","name":"Rooms","type":"TEAM","checkInMode":"DISABLED"}
                 """.formatted(departmentId)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.data.parentId").value(departmentId));
+        .andExpect(jsonPath("$.data.parentId").value(departmentId))
+        .andReturn().getResponse().getContentAsString());
+
+    mockMvc.perform(put("/api/organizations/{id}/units/{unit}", organizationId, departmentId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"parentId":"%s","name":"Housekeeping","type":"DEPARTMENT","checkInMode":"OPTIONAL"}
+                """.formatted(teamId)))
+        .andExpect(status().isBadRequest());
 
     mockMvc.perform(get("/api/organizations/{id}/units", organizationId)
             .header(HttpHeaders.AUTHORIZATION, token(owner)))
@@ -219,7 +282,35 @@ class BusinessOrganizationIntegrationTest {
         .andExpect(jsonPath("$.data[?(@.id == '" + organizationId + "')].role").value("EMPLOYEE"));
     mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, token(employee)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.hasBusinessWorkspace").value(true));
+        .andExpect(jsonPath("$.data.hasBusinessWorkspace").value(true))
+        .andExpect(jsonPath("$.data.managedBusinessOrganizationIds").isEmpty());
+    mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.managedBusinessOrganizationIds[0]").value(organizationId));
+
+    String plannerRoleId = id(mockMvc.perform(post("/api/organizations/{id}/roles", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Location planner\",\"permissions\":[\"MANAGE_SCHEDULE\"]}"))
+        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    mockMvc.perform(post("/api/organizations/{id}/role-assignments", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"membershipId":"%s","roleId":"%s","unitId":"%s","includeDescendants":false}
+                """.formatted(memberId, plannerRoleId, unitId)))
+        .andExpect(status().isCreated());
+    mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.managedBusinessOrganizationIds[0]").value(organizationId));
+    mockMvc.perform(get("/api/organizations/{id}/access", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.permissions",
+            org.hamcrest.Matchers.hasItems("MANAGE_SCHEDULE", "VIEW_SCHEDULE")));
+    mockMvc.perform(get("/api/organizations/{id}/units", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(employee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(1))
+        .andExpect(jsonPath("$.data[0].id").value(unitId));
   }
 
   @Test
@@ -265,6 +356,16 @@ class BusinessOrganizationIntegrationTest {
         .andExpect(jsonPath("$.data.membershipId").value(memberId))
         .andExpect(jsonPath("$.data.unitId").value(unitId))
         .andExpect(jsonPath("$.data.includeDescendants").value(true));
+    mockMvc.perform(post("/api/organizations/{id}/role-assignments", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)).contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {"membershipId":"%s","roleId":"%s","unitId":"%s","includeDescendants":false}
+                """.formatted(memberId, roleId, unitId)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.includeDescendants").value(false));
+    mockMvc.perform(get("/api/organizations/{id}/role-assignments", organizationId)
+            .header(HttpHeaders.AUTHORIZATION, token(owner)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
   }
 
   @Test

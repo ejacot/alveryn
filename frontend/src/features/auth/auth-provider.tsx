@@ -147,6 +147,18 @@ export function AuthProvider({ children }: Props) {
     };
   }, [ensureSessionReady, queryClient, refreshCurrentUser]);
 
+  useEffect(() => {
+    if (!user) return;
+    const refreshAccess = () => {
+      if (document.visibilityState === "hidden") return;
+      void refreshCurrentUser()
+        .then(() => queryClient.invalidateQueries({ queryKey: ["organizations"] }))
+        .catch(() => undefined);
+    };
+    window.addEventListener("focus", refreshAccess);
+    return () => window.removeEventListener("focus", refreshAccess);
+  }, [user, refreshCurrentUser, queryClient]);
+
   return (
     <AuthContext.Provider
       value={{

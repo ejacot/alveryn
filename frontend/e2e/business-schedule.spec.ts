@@ -16,6 +16,7 @@ const weekStart = "2026-08-10";
 type RequestLog = { method: string; path: string; headers: Record<string, string>; body: unknown };
 type MockState = {
   revision: number;
+  requiredWorkers: number;
   assignments: StaffingScheduleAssignment[];
   requests: RequestLog[];
   staleNext: boolean;
@@ -158,14 +159,34 @@ test.describe("authenticated Business Schedule", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await capture(page, "schedule-desktop-dark.png");
   });
+
+  test("restores the exact shift from the Plan link and filters the weekly grid", async ({ page }) => {
+    await installScheduleMocks(page, { requiredWorkers: 3 });
+    await openSchedule(page, 1440, 980, "light", "&day=2026-08-16&requirement=requirement-spa-sun");
+    const inspector = page.getByRole("dialog", { name: /Spa Spät/ });
+    await expect(inspector).toBeVisible();
+    await inspector.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByRole("button", { name: "Conflicts", exact: true }).click();
+    await expect(page.getByText("No shifts match this filter.")).toBeVisible();
+    await page.getByRole("button", { name: "Uncovered", exact: true }).click();
+    await expect(page.getByRole("button", { name: /Assign Spa Spät on Sunday/ })).toBeVisible();
+    const publish = page.getByRole("link", { name: "Publish", exact: true });
+    await expect(publish).toHaveAttribute("href", /day=2026-08-16&requirement=requirement-spa-sun$/);
+    await page.getByRole("button", { name: /Assign Spa Spät on Sunday/ }).click();
+    await inspector.getByRole("button", { name: /^Ana Dumitru/ }).click();
+    await inspector.getByRole("button", { name: "Assign and go to next" }).click();
+    await expect(page.getByText(/Ana Dumitru assigned/)).toBeVisible();
+    await expect(inspector).toBeVisible();
+  });
 });
 
 async function installScheduleMocks(
   page: Page,
-  options: { staleNext?: boolean; theme?: "LIGHT" | "DARK" } = {},
+  options: { staleNext?: boolean; theme?: "LIGHT" | "DARK"; requiredWorkers?: number } = {},
 ) {
   const state: MockState = {
     revision: 7,
+    requiredWorkers: options.requiredWorkers ?? 2,
     assignments: [assignment("assignment-mara", "member-mara", "Mara Ionescu")],
     requests: [],
     staleNext: options.staleNext ?? false,
@@ -242,11 +263,12 @@ async function installScheduleMocks(
 
 function buildSchedule(state: MockState): StaffingSchedule {
   const assigned = state.assignments.length;
+  const required = state.requiredWorkers;
   const requirement = {
     requirementId: "requirement-spa-sun", planDayId: "day-6", date: "2026-08-16",
     workTypeId: "spa-s", workTypeCode: "SPA S", workTypeName: "Spa Spät",
-    startTime: "12:00:00", endTime: "20:30:00", breakMinutes: 30, requiredWorkers: 2,
-    coverage: coverage(2, assigned), assignments: state.assignments, issueKeys: [],
+    startTime: "12:00:00", endTime: "20:30:00", breakMinutes: 30, requiredWorkers: required,
+    coverage: coverage(required, assigned), assignments: state.assignments, issueKeys: [],
   };
   const members = [
     member("member-mara", "Mara Ionescu", ["assignment-mara"]),
@@ -257,11 +279,11 @@ function buildSchedule(state: MockState): StaffingSchedule {
   ];
   return {
     planId, organizationId, unitId, weekStart, weekEnd: "2026-08-16", draftRevision: state.revision,
-    etag: etag(state.revision), coverage: coverage(2, assigned),
+    etag: etag(state.revision), coverage: coverage(required, assigned),
     days: Array.from({ length: 7 }, (_, index) => ({
       planDayId: `day-${index}`, date: addDate(weekStart, index), persisted: true,
       roomsContext: [50, 40, 40, 30, 30, 50, 10][index], source: "IMPORT",
-      coverage: index === 6 ? coverage(2, assigned) : coverage(0, 0),
+      coverage: index === 6 ? coverage(required, assigned) : coverage(0, 0),
       requirements: index === 6 ? [requirement] : [], issueKeys: [],
     })),
     members,
@@ -280,12 +302,12 @@ function buildCandidates(state: MockState) {
     requirement: {
       requirementId: "requirement-spa-sun", date: "2026-08-16", workTypeId: "spa-s",
       workTypeCode: "SPA S", workTypeName: "Spa Spät", startTime: "12:00:00",
-      endTime: "20:30:00", requiredWorkers: 2, coverage: coverage(2, state.assignments.length),
+      endTime: "20:30:00", requiredWorkers: state.requiredWorkers, coverage: coverage(state.requiredWorkers, state.assignments.length),
     },
     candidates,
     projection: {
-      membershipId: "member-ana", before: coverage(2, state.assignments.length),
-      after: coverage(2, state.assignments.length + 1), resolvesOpenPosition: true,
+      membershipId: "member-ana", before: coverage(state.requiredWorkers, state.assignments.length),
+      after: coverage(state.requiredWorkers, state.assignments.length + 1), resolvesOpenPosition: true,
     },
     limitations: ["SKILLS_NOT_CONFIGURED", "DECLARED_AVAILABILITY_NOT_CONFIGURED"],
     capabilities: { view: true, manage: true, publish: true },
@@ -348,13 +370,13 @@ function planHeader(revision: number) {
   };
 }
 
-async function openSchedule(page: Page, width: number, height: number, theme: "light" | "dark" = "light") {
+async function openSchedule(page: Page, width: number, height: number, theme: "light" | "dark" = "light", focus = "") {
   await page.setViewportSize({ width, height });
   await page.addInitScript(({ selectedTheme }) => {
     localStorage.setItem("alveryn.session", "1");
     localStorage.setItem("alveryn.publicTheme", selectedTheme);
   }, { selectedTheme: theme });
-  await page.goto(`/business/${organizationId}/plan/schedule?unit=${unitId}&week=${weekStart}`);
+  await page.goto(`/business/${organizationId}/plan/schedule?unit=${unitId}&week=${weekStart}${focus}`);
   await expect(page.locator(".business-schedule")).toBeVisible();
 }
 

@@ -1,4 +1,4 @@
-import { Clock3, Copy, Settings2 } from "lucide-react";
+import { Clock3, Settings2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BusinessWorkType } from "../../types/business";
@@ -12,8 +12,9 @@ type Props = {
   days: StaffingDemandDay[];
   workTypes: BusinessWorkType[];
   canManage: boolean;
-  copying: boolean;
   busyCells: Set<string>;
+  selectedDay?: string;
+  onDayChange?: (date: string, requirement?: string) => void;
   onCommit: (workType: BusinessWorkType, day: StaffingDemandDay, value: number) => void;
   onPaste: (
     workTypeIndex: number,
@@ -23,21 +24,20 @@ type Props = {
   onEdit: (requirement: StaffingDemandRequirement) => void;
   onApplyWorkType: (workType: BusinessWorkType, trigger: HTMLElement) => void;
   onEditWorkType: (workType: BusinessWorkType) => void;
-  onCopyPreviousWeek: () => void;
 };
 
 export function DemandMatrix({
   days,
   workTypes,
   canManage,
-  copying,
   busyCells,
+  selectedDay,
+  onDayChange,
   onCommit,
   onPaste,
   onEdit,
   onApplyWorkType,
   onEditWorkType,
-  onCopyPreviousWeek,
 }: Props) {
   const { t, i18n } = useTranslation("business");
   const [revealedWorkTypeId, setRevealedWorkTypeId] = useState<string | null>(null);
@@ -45,28 +45,13 @@ export function DemandMatrix({
   return (
     <section
       className="demand-matrix"
-      aria-labelledby="demand-matrix-title"
+      aria-label={t("planning.demand.matrixTitle")}
       onPointerDownCapture={(event) => {
         if (!(event.target as Element).closest(".demand-matrix__work-type-cell")) {
           setRevealedWorkTypeId(null);
         }
       }}
     >
-      <header className="demand-matrix__heading">
-        <div>
-          <h2 id="demand-matrix-title">{t("planning.demand.matrixTitle")}</h2>
-          <p>{t("planning.demand.keyboardHint")}</p>
-        </div>
-        <button
-          type="button"
-          className="demand-matrix__copy"
-          disabled={!canManage || copying}
-          onClick={onCopyPreviousWeek}
-        >
-          <Copy aria-hidden="true" />
-          {copying ? t("planning.demand.copying") : t("planning.demand.copyPrevious")}
-        </button>
-      </header>
 
       <div
         className="demand-matrix__scroller"
@@ -83,7 +68,7 @@ export function DemandMatrix({
                 {t("planning.demand.workType")}
               </th>
               {days.map((day) => (
-                <th scope="col" key={day.date}>
+                <th scope="col" key={day.date} data-selected={selectedDay === day.date || undefined}>
                   <span>{formatWeekday(day.date, i18n.language)}</span>
                   <strong>{formatDay(day.date, i18n.language)}</strong>
                   <small>{day.coverage.effectiveAssigned}/{day.coverage.required}</small>
@@ -92,18 +77,6 @@ export function DemandMatrix({
             </tr>
           </thead>
           <tbody>
-            <tr className="demand-matrix__context-row">
-              <th scope="row">
-                <span>{t("planning.demand.rooms")}</span>
-                <small>{t("planning.demand.readOnlyContext")}</small>
-              </th>
-              {days.map((day) => (
-                <td key={day.date}>
-                  <strong>{day.roomsContext ?? "—"}</strong>
-                  {day.notes ? <span title={day.notes}>●</span> : null}
-                </td>
-              ))}
-            </tr>
             {workTypes.map((workType, workTypeIndex) => (
               <tr key={workType.id}>
                 <th scope="row">
@@ -135,6 +108,8 @@ export function DemandMatrix({
                     <td
                       key={day.date}
                       className={value > 0 ? "has-demand" : undefined}
+                      data-selected={selectedDay === day.date || undefined}
+                      onFocusCapture={() => onDayChange?.(day.date, requirement?.requirementId)}
                       data-source={day.source ?? "MANUAL"}
                     >
                       <DemandCellInput

@@ -21,15 +21,17 @@ test.describe("authenticated Business Review and Publish", () => {
     const state = await installReviewMocks(page);
     await openReview(page, 1440, 980);
 
-    await expect(page.getByRole("heading", { level: 1, name: "Is every requirement covered?" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Publication · weekly review" })).toBeVisible();
     await expect(page.getByText("98 / 99")).toBeVisible();
     await expect(page.getByRole("button", { name: "Unpublished changes" })).toBeEnabled();
     await expect(page.getByText("Unpublished changes").first()).toBeVisible();
     await expectConsistentReviewState(page, "UNPUBLISHED_CHANGES");
+    await expect(page.getByText("Added: 1 · Changed: 1 · Removed: 1", { exact: true })).toBeVisible();
     await capture(page, "review-desktop-warning-light.png");
     await recordingBeat(page);
 
     await page.getByRole("checkbox", { name: /reviewed and acknowledge/ }).check();
+    await page.locator("summary").filter({ hasText: "Publication note (optional)" }).click();
     await page.getByLabel("Publication note (optional)").fill("Hotel confirmed the remaining position");
     await expectConsistentReviewState(page, "READY_TO_PUBLISH");
     await capture(page, "review-desktop-ready-light.png");
@@ -52,7 +54,7 @@ test.describe("authenticated Business Review and Publish", () => {
       publicationNote: "Hotel confirmed the remaining position",
     });
 
-    await page.getByRole("button", { name: "Open immutable version" }).click();
+    await page.getByRole("button", { name: "Open version v3" }).click();
     const dialog = page.getByRole("dialog", { name: "Immutable version v3" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Ana Dumitru")).toBeVisible();
@@ -116,7 +118,8 @@ test.describe("authenticated Business Review and Publish", () => {
     await expect(page.locator(".business-review__publish-action")).toHaveText("Resolve 1 blocking issue");
     await expect(page.getByRole("button", { name: "Publish week" })).toHaveCount(0);
     await expectConsistentReviewState(page, "BLOCKED");
-    await expect(page.getByRole("link", { name: "Open Schedule" })).toBeVisible();
+    const conflictLink = page.getByRole("region", { name: "Blocking conflicts" }).getByRole("link", { name: "Open Schedule" });
+    await expect(conflictLink).toHaveAttribute("href", /day=2026-08-16&requirement=requirement-spa-sun&assignment=assignment-ana$/);
     await capture(page, "review-desktop-blocked-light.png");
   });
 
@@ -206,10 +209,10 @@ test.describe("authenticated Business Review and Publish", () => {
   });
 
   for (const [language, title] of [
-    ["en", "Is every requirement covered?"],
-    ["de", "Ist jeder Bedarf abgedeckt?"],
-    ["ro", "Este acoperit fiecare necesar?"],
-    ["ru", "Закрыта ли каждая потребность?"],
+    ["en", "Publication · weekly review"],
+    ["de", "Veröffentlichung · Wochenprüfung"],
+    ["ro", "Publicare · verificarea săptămânii"],
+    ["ru", "Публикация · проверка недели"],
   ]) {
     test(`keeps the review readable in desktop dark mode in ${language}`, async ({ page }) => {
       const state = await installReviewMocks(page, { theme: "DARK", language });
@@ -266,6 +269,24 @@ async function installReviewMocks(page: Page, options: ReviewMockOptions = {}) {
     }
     if (path.endsWith(`/${planId}/coverage`) && method === "GET") return json(route, coverageResponse(options.blocker ?? false, state), 200, { ETag: planEtag(state.revision) });
     if (path.endsWith(`/${planId}/review`) && method === "GET") return json(route, reviewResponse(options.blocker ?? false, state), 200, { ETag: planEtag(state.revision) });
+    if (path.endsWith(`/${planId}/schedule`) && method === "GET") {
+      const published = printAssignments(false);
+      const draft = [
+        { ...published[0], startTime: "09:30:00" },
+        ...published.slice(2),
+        { ...published[1], sourceAssignmentId: "assignment-new" },
+      ];
+      return json(route, {
+        days: Array.from({ length: 7 }, (_, index) => {
+          const date = isoDay(index);
+          return { date, requirements: printRequirements(false).filter((item) => item.date === date).map((requirement) => ({
+            ...requirement,
+            assignments: draft.filter((item) => item.sourceRequirementId === requirement.sourceRequirementId)
+              .map((item) => ({ ...item, assignmentId: item.sourceAssignmentId, requirementId: item.sourceRequirementId })),
+          })) };
+        }),
+      });
+    }
     if (path.endsWith(`/${planId}/versions`) && method === "GET") return json(route, versionsResponse(state), 200, { ETag: '"versions-plan-kw33"' });
     if (path.match(/\/versions\/\d+$/) && method === "GET") {
       const versionNumber = Number(path.split("/").at(-1));

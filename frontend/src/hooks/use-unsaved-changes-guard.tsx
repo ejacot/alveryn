@@ -5,9 +5,10 @@ import { SettingsConfirmDialog } from "../components/settings/settings-confirm-d
 
 type Options = {
   isDirty: boolean;
+  dialogClassName?: string;
 };
 
-export function useUnsavedChangesGuard({ isDirty }: Options) {
+export function useUnsavedChangesGuard({ isDirty, dialogClassName }: Options) {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
@@ -63,6 +64,7 @@ export function useUnsavedChangesGuard({ isDirty }: Options) {
 
   const dialog = (
     <SettingsConfirmDialog
+      className={dialogClassName}
       open={open}
       title={t("unsaved.title")}
       description={t("unsaved.description")}

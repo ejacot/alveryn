@@ -14,6 +14,7 @@ export type CurrentUser = {
   preferences: UserPreferences | null;
   founder?: boolean;
   hasBusinessWorkspace?: boolean;
+  managedBusinessOrganizationIds?: string[];
 };
 
 export type AuthTokens = {

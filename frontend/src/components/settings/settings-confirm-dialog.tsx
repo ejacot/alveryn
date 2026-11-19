@@ -11,6 +11,7 @@ type Props = {
   pending?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  className?: string;
 };
 
 export function SettingsConfirmDialog({
@@ -20,7 +21,8 @@ export function SettingsConfirmDialog({
   confirmLabel,
   pending = false,
   onCancel,
-  onConfirm
+  onConfirm,
+  className = ""
 }: Props) {
   const { t } = useTranslation("common");
   const titleId = useId();
@@ -97,7 +99,7 @@ export function SettingsConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+        className={`relative z-10 w-full max-w-sm rounded-[32px] border border-white/[0.08] bg-[#090909]/95 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.55)] ${className}`}
       >
         <div className="space-y-3">
           <h2 id={titleId} className="text-[1.2rem] font-semibold tracking-[-0.05em] text-white">{title}</h2>

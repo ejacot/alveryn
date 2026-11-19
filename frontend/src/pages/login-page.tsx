@@ -13,7 +13,7 @@ import {
   type LoginValues
 } from "../features/auth/auth-schemas";
 import { useAuth } from "../features/auth/use-auth";
-import { APP_HOME_PATH } from "../routes/app-paths";
+import { APP_HOME_PATH, authenticatedHomePath } from "../routes/app-paths";
 
 export function LoginPage() {
   const { t } = useTranslation(["auth", "common"]);
@@ -43,10 +43,13 @@ export function LoginPage() {
   async function onSubmit(values: LoginValues) {
     try {
       setServerError("");
-      await loginWithPassword(values.email, values.password);
+      const user = await loginWithPassword(values.email, values.password);
       const next = (location.state as { from?: { pathname?: string } } | null)
         ?.from?.pathname;
-      navigate(next ?? APP_HOME_PATH, { replace: true });
+      const home = user?.managedBusinessOrganizationIds?.length
+        ? authenticatedHomePath(user)
+        : APP_HOME_PATH;
+      navigate(next ?? home, { replace: true });
     } catch {
       setServerError(t("auth:login.authenticationError"));
     }

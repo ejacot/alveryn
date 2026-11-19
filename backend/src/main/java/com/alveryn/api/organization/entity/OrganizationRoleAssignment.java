@@ -39,4 +39,8 @@ public class OrganizationRoleAssignment extends BaseEntity {
       throw new IllegalArgumentException("role assignment must stay inside one organization");
     }
   }
+
+  public void updateDescendants(boolean includeDescendants) {
+    this.includeDescendants = includeDescendants;
+  }
 }

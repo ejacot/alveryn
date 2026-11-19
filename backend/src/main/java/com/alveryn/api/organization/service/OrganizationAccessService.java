@@ -27,8 +27,7 @@ public class OrganizationAccessService {
     var membership = activeMembership(organizationId);
     var required = Arrays.asList(permissions);
     boolean allowed = isLegacyManager(membership) || assignments.findAllByMembershipId(membership.getId()).stream()
-        .flatMap(value -> value.getRole().getPermissions().stream())
-        .map(OrganizationPermission::valueOf)
+        .flatMap(value -> effectivePermissions(value.getRole()).stream())
         .anyMatch(required::contains);
     if (!allowed) throw new AccessDeniedException("Required organization permission is missing");
     return membership;
@@ -61,20 +60,21 @@ public class OrganizationAccessService {
     if (isLegacyManager(membership)) return ignored -> true;
     var required = Arrays.asList(permissions);
     var authorizedScopes = assignments.findAllForAccessCheck(membership.getId()).stream()
-        .filter(value -> value.getRole().getPermissions().stream()
-            .map(OrganizationPermission::valueOf).anyMatch(required::contains))
+        .filter(value -> effectivePermissions(value.getRole()).stream().anyMatch(required::contains))
         .toList();
     return target -> authorizedScopes.stream().anyMatch(value -> scopeContains(value, target));
   }
 
   @Transactional(readOnly = true)
   public Set<OrganizationPermission> permissions(UUID organizationId) {
-    var membership = activeMembership(organizationId);
+    return permissions(activeMembership(organizationId));
+  }
+
+  public Set<OrganizationPermission> permissions(OrganizationMembership membership) {
     if (isLegacyManager(membership)) return EnumSet.allOf(OrganizationPermission.class);
     var result = EnumSet.noneOf(OrganizationPermission.class);
     assignments.findAllByMembershipId(membership.getId()).stream()
-        .flatMap(value -> value.getRole().getPermissions().stream())
-        .map(OrganizationPermission::valueOf).forEach(result::add);
+        .flatMap(value -> effectivePermissions(value.getRole()).stream()).forEach(result::add);
     return result;
   }
 
@@ -83,16 +83,26 @@ public class OrganizationAccessService {
     if (isLegacyManager(membership)) return true;
     var required = Arrays.asList(permissions);
     return assignments.findAllByMembershipId(membership.getId()).stream()
-        .filter(value -> value.getRole().getPermissions().stream()
-            .map(OrganizationPermission::valueOf).anyMatch(required::contains))
+        .filter(value -> effectivePermissions(value.getRole()).stream().anyMatch(required::contains))
         .anyMatch(value -> scopeContains(value, target));
+  }
+
+  private Set<OrganizationPermission> effectivePermissions(OrganizationRole role) {
+    var result = EnumSet.noneOf(OrganizationPermission.class);
+    role.getPermissions().stream().map(OrganizationPermission::valueOf).forEach(result::add);
+    if (result.contains(OrganizationPermission.MANAGE_SCHEDULE)
+        || result.contains(OrganizationPermission.PUBLISH_SCHEDULE)) {
+      result.add(OrganizationPermission.VIEW_SCHEDULE);
+    }
+    return result;
   }
 
   private boolean scopeContains(OrganizationRoleAssignment assignment, OrganizationUnit target) {
     if (assignment.getUnit() == null) return true;
     if (target == null) return false;
     var current = target;
-    while (current != null) {
+    var visited = new java.util.HashSet<UUID>();
+    while (current != null && visited.add(current.getId())) {
       if (current.getId().equals(assignment.getUnit().getId())) {
         return current == target || assignment.isIncludeDescendants();
       }

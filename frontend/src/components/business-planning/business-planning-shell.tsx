@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   Building2,
   CalendarRange,
   ChevronLeft,
@@ -7,22 +6,24 @@ import {
   ClipboardList,
   Menu,
   Settings2,
-  MapPinned,
-  ShieldCheck,
-  UsersRound,
+  LogOut,
   X,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { i18n } from "../../i18n";
-import { getOrganizationAccess } from "../../api/endpoints";
+import { useBusinessApprovals } from "../../features/business/use-business-approvals";
+import { useQuery } from "@tanstack/react-query";
+import { planContextSearch, planSelectedDay } from "../../features/business/plan-context";
+import { getStaffingReview } from "../../api/business-planning";
+import type { StaffingPlanHeader } from "../../types/business-planning";
 import { normalizeLanguage } from "../../i18n/language";
 import type { Organization, OrganizationUnit } from "../../types/business";
 import { AppLogo } from "../branding/app-logo";
 import { APP_HOME_PATH } from "../../routes/app-paths";
 import { useOptionalWorkspace } from "../../contexts/workspace-context";
+import { AuthContext } from "../../features/auth/auth-context";
 
 type Props = {
   organizations: Organization[];
@@ -38,7 +39,9 @@ type Props = {
   onNextWeek: () => void;
   onCurrentWeek: () => void;
   showWeekControls?: boolean;
+  showUnitControls?: boolean;
   sectionLabel?: string;
+  plan?: StaffingPlanHeader | null;
 };
 
 export function BusinessPlanningShell({
@@ -55,20 +58,64 @@ export function BusinessPlanningShell({
   onNextWeek,
   onCurrentWeek,
   showWeekControls = true,
+  showUnitControls = showWeekControls,
   sectionLabel,
+  plan,
 }: Props) {
   const { t } = useTranslation("business");
   const navigate = useNavigate();
+  const location = useLocation();
   const workspace = useOptionalWorkspace();
+  const auth = useContext(AuthContext);
+  const managedOrganizations = auth?.user?.managedBusinessOrganizationIds ?? [];
+  const businessOnly = managedOrganizations.length > 0;
+  const organizationOptions = businessOnly
+    ? organizations.filter((organization) => managedOrganizations.includes(organization.id))
+    : organizations;
   const availableWorkspaces = workspace?.organizations ?? organizations;
   const locale = normalizeLanguage(i18n.resolvedLanguage);
   const weekLabel = formatWeek(weekStart, weekEnd, locale);
-  const planningSearch = `?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`;
-  const access = useQuery({
-    queryKey: ["organizations", organizationId, "access"],
-    queryFn: () => getOrganizationAccess(organizationId),
-  });
+  const search = new URLSearchParams(location.search);
+  const timezone = organizations.find(({ id }) => id === organizationId)?.timezone ?? "UTC";
+  const day = planSelectedDay(search, weekStart, weekEnd, timezone);
+  const planningSearch = planContextSearch(unitId, weekStart, day, search.get("requirement") ?? undefined, search.get("assignment") ?? undefined);
+  const review = useQuery({
+    queryKey: ["staffing-plan", organizationId, plan?.planId, "review"],
+    queryFn: () => getStaffingReview(organizationId, plan!.planId),
+    enabled: Boolean(plan?.capabilities.view),
+    retry: false,
+  }).data?.data;
+  const planSteps = [
+    { path: "demand", title: t("planning.navigation.demand"), detail: review && t("planFlow.required", { count: review.coverage.required }) },
+    { path: "schedule", title: t("navigation.assign"), detail: review && t("planFlow.coverage", review.coverage) },
+    { path: "review", title: t("navigation.publish"), detail: review && (
+      plan?.latestPublishedVersion && !plan.hasUnpublishedChanges ? t("published") :
+        review.blockingIssueCount ? t("planFlow.blockers", { count: review.blockingIssueCount }) :
+        review.warningCount ? t("planFlow.warnings", { count: review.warningCount }) :
+          review.publishable ? t("planFlow.ready") : undefined
+    ) },
+  ];
+  const { access, canApproveHours, canApproveAbsences, hours, absences } = useBusinessApprovals(organizationId);
   const permissions = access.data?.permissions ?? [];
+  const canPlan = permissions.includes("VIEW_SCHEDULE");
+  const pendingApprovals = (hours.data?.length ?? 0) + (absences.data?.length ?? 0);
+  const approvalsLabel = pendingApprovals ? `${t("plannerTools.reviews")} · ${pendingApprovals}` : t("plannerTools.reviews");
+  const canConfigure = permissions.some((permission) => [
+    "MANAGE_MEMBERS", "MANAGE_ROLES", "MANAGE_TEAMS", "MANAGE_SCHEDULE"
+  ].includes(permission));
+  const base = `/business/${organizationId}`;
+  const planning = location.pathname.startsWith(`${base}/plan/`);
+  const configuring = ["/settings", "/people", "/roles", "/locations", "/work-types"]
+    .some((path) => location.pathname === base + path || location.pathname.startsWith(base + path + "/"));
+  const navigation = [
+    { to: `${base}/overview`, text: t("navigation.overview"), Icon: Building2, active: location.pathname === `${base}/overview` },
+    ...(canPlan ? [
+      { to: `${base}/plan${planningSearch}`, text: t("navigation.plan"), Icon: CalendarRange, active: location.pathname === `${base}/plan` },
+      { to: `${base}/plan/schedule${planningSearch}`, text: t("publishedPlan.planning"), Icon: ClipboardList, active: planning },
+    ] : []),
+    ...(canApproveHours || canApproveAbsences ? [{ to: `${base}/approvals`, text: approvalsLabel, Icon: ClipboardList, active: location.pathname === `${base}/approvals` }] : []),
+    ...(canConfigure ? [{ to: `${base}/settings`, text: t("navigation.settings"), Icon: Settings2, active: configuring }] : []),
+  ];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -83,16 +130,16 @@ export function BusinessPlanningShell({
   return (
     <div className="business-planning">
       <div className="business-planning__grid" aria-hidden="true" />
-      <header className="business-planning__topbar">
+      <header className={`business-planning__topbar${showUnitControls ? "" : " business-planning__topbar--management"}`}>
         <Link to={`/business/${organizationId}/overview`} className="business-planning__brand" aria-label="Alveryn Business">
           <AppLogo wordmark />
           <span className="business-planning__mobile-page-title">Business</span>
         </Link>
 
         <label className="business-planning__workspace-control">
-          <span>{t("planning.workspace.label")}</span>
+          <span>{t("organizationSetup.company")}</span>
           <select
-            aria-label={t("planning.workspace.label")}
+            aria-label={t("organizationSetup.company")}
             value={`business:${organizationId}`}
             onChange={(event) => {
               if (event.target.value === "personal") {
@@ -106,8 +153,8 @@ export function BusinessPlanningShell({
               onOrganizationChange(nextOrganizationId);
             }}
           >
-            <option value="personal">{t("planning.workspace.personal")}</option>
-            {organizations.map((organization) => (
+            {!businessOnly && <option value="personal">{t("planning.workspace.personal")}</option>}
+            {organizationOptions.map((organization) => (
               <option key={organization.id} value={`business:${organization.id}`}>
                 {organization.name}
               </option>
@@ -115,7 +162,7 @@ export function BusinessPlanningShell({
           </select>
         </label>
 
-        <label className="business-planning__unit-control">
+        {showUnitControls && <label className="business-planning__unit-control">
           <span>{t("planning.unit")}</span>
           <select
             aria-label={t("planning.unit")}
@@ -126,7 +173,7 @@ export function BusinessPlanningShell({
               <option key={unit.id} value={unit.id}>{unit.name}</option>
             ))}
           </select>
-        </label>
+        </label>}
 
         {showWeekControls ? <div className="business-planning__week-switcher" aria-label={t("planning.week.label")}>
           <button type="button" onClick={onPreviousWeek} aria-label={t("planning.week.previous")}>
@@ -142,6 +189,13 @@ export function BusinessPlanningShell({
         </div> : <div className="business-planning__section-label">{sectionLabel}</div>}
 
         <div className="business-planning__tools">
+          {businessOnly && auth && <button
+            type="button"
+            className="business-planning__tool"
+            aria-label={t("logout", { ns: "settings" })}
+            title={t("logout", { ns: "settings" })}
+            onClick={() => void auth.logout()}
+          ><LogOut aria-hidden="true" /></button>}
           <button
             type="button"
             className="business-planning__tool business-planning__mobile-menu-trigger"
@@ -155,42 +209,13 @@ export function BusinessPlanningShell({
       </header>
 
       <aside className="business-planning__rail" aria-label={t("planning.navigation.label")}>
-        <nav>
-          <NavLink to={`/business/${organizationId}/plan/demand${planningSearch}`}>
-            <ClipboardList aria-hidden="true" />
-            <span>{t("planning.navigation.demand")}</span>
-          </NavLink>
-          <NavLink to={`/business/${organizationId}/plan/schedule${planningSearch}`}>
-            <CalendarRange aria-hidden="true" />
-            <span>{t("planning.navigation.schedule")}</span>
-          </NavLink>
-          <NavLink to={`/business/${organizationId}/plan/review${planningSearch}`}>
-            <BarChart3 aria-hidden="true" />
-            <span>{t("planning.navigation.review")}</span>
-          </NavLink>
+        <nav className="business-primary-nav">
+          {navigation.map(({ to, text, Icon, active }) => (
+            <Link key={to} to={to} aria-current={active ? "page" : undefined} className={`${active ? "active" : ""}${to.endsWith("/settings") ? " business-primary-nav__settings" : ""}`}>
+              <Icon aria-hidden="true" /><span>{text}</span>
+            </Link>
+          ))}
         </nav>
-        <div className="business-planning__rail-secondary">
-          <NavLink to={`/business/${organizationId}/overview`}>
-            <Building2 aria-hidden="true" />
-            <span>{t("management.overview")}</span>
-          </NavLink>
-          {permissions.includes("MANAGE_MEMBERS") ? <NavLink to={`/business/${organizationId}/people`}>
-            <UsersRound aria-hidden="true" />
-            <span>{t("planning.navigation.team")}</span>
-          </NavLink> : null}
-          {permissions.includes("MANAGE_ROLES") ? <NavLink to={`/business/${organizationId}/roles`}>
-            <ShieldCheck aria-hidden="true" />
-            <span>{t("tabs.roles")}</span>
-          </NavLink> : null}
-          {permissions.includes("MANAGE_TEAMS") ? <NavLink to={`/business/${organizationId}/locations`}>
-            <MapPinned aria-hidden="true" />
-            <span>{t("tabs.teams")}</span>
-          </NavLink> : null}
-          {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink to={`/business/${organizationId}/work-types`}>
-            <Settings2 aria-hidden="true" />
-            <span>{t("planning.navigation.workTypes")}</span>
-          </NavLink> : null}
-        </div>
       </aside>
 
       {mobileMenuOpen ? <div className="business-planning__mobile-menu">
@@ -198,16 +223,30 @@ export function BusinessPlanningShell({
         <aside role="dialog" aria-modal="true" aria-label={t("management.section")}>
           <header><span>{t("management.section")}</span><button type="button" aria-label={t("planning.close")} onClick={() => setMobileMenuOpen(false)}><X aria-hidden="true" /></button></header>
           <nav>
-            <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/overview`}><Building2 aria-hidden="true" /><span>{t("management.overview")}</span></NavLink>
-            {permissions.includes("MANAGE_MEMBERS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/people`}><UsersRound aria-hidden="true" /><span>{t("planning.navigation.team")}</span></NavLink> : null}
-            {permissions.includes("MANAGE_ROLES") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/roles`}><ShieldCheck aria-hidden="true" /><span>{t("tabs.roles")}</span></NavLink> : null}
-            {permissions.includes("MANAGE_TEAMS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/locations`}><MapPinned aria-hidden="true" /><span>{t("tabs.teams")}</span></NavLink> : null}
-            {permissions.some((value) => value === "MANAGE_SCHEDULE" || value === "MANAGE_SETTINGS") ? <NavLink onClick={() => setMobileMenuOpen(false)} to={`/business/${organizationId}/work-types`}><Settings2 aria-hidden="true" /><span>{t("planning.navigation.workTypes")}</span></NavLink> : null}
+            {navigation.map(({ to, text, Icon, active }) => (
+              <Link key={to} to={to} aria-current={active ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
+                <Icon aria-hidden="true" /><span>{text}</span>
+              </Link>
+            ))}
           </nav>
         </aside>
       </div> : null}
 
-      <main className="business-planning__main">{children}</main>
+      <main className="business-planning__main">
+        {planning && canPlan && (
+          <div className="business-plan-header">
+            <h1 className="business-demand__eyebrow">{t(location.pathname.endsWith("/plan/demand") ? "planning.demand.eyebrow" : location.pathname.endsWith("/plan/schedule") ? "planning.schedule.eyebrow" : "publicationLayout.eyebrow")}</h1>
+            <nav className="business-plan-steps" aria-label={t("publishedPlan.planning")}>
+              {planSteps.map(({ path, title, detail }) => (
+                <NavLink key={path} to={`${base}/plan/${path}${planningSearch}`} aria-label={title} aria-describedby={detail ? `plan-step-${path}` : undefined}>
+                  <strong>{title}</strong>{detail && <small id={`plan-step-${path}`}>{detail}</small>}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

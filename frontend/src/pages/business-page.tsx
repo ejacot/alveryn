@@ -8,7 +8,8 @@ import {
   UserMinus,
   UsersRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { AuthContext } from "../features/auth/auth-context";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import {
@@ -55,6 +56,7 @@ const permissions: OrganizationPermission[] = [
 export function BusinessPage() {
   const { t, i18n } = useTranslation("business");
   const queryClient = useQueryClient();
+  const auth = useContext(AuthContext);
   const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspace();
   const organizationsQuery = useQuery({
     queryKey: ["organizations"],
@@ -156,6 +158,7 @@ export function BusinessPage() {
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ["organizations"] });
       setActiveWorkspaceId(organization.id);
+      void auth?.refreshCurrentUser().catch(() => undefined);
     },
     onError: (cause) => setError(getApiError(cause).message),
   });

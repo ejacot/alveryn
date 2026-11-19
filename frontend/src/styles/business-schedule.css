@@ -1,3 +1,18 @@
+.business-schedule__table-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.business-schedule__table-controls .business-plan-filters { margin: 0; }
+.business-schedule__mobile-controls { display: none; }
+.schedule-grid__toolbar { padding: 10px 16px; border-bottom: 1px solid var(--bp-line); }
+.schedule-grid__toolbar .schedule-grid__tools { width: 100%; justify-content: space-between; }
+.schedule-grid__toolbar .business-plan-filters { margin: 0; }
+.business-schedule__filter-count { margin-left: 5px; font-variant-numeric: tabular-nums; opacity: .75; }
+.schedule-grid > .schedule-grid__legend { padding: 12px 16px; border-top: 1px solid var(--bp-line); justify-content: flex-start; }
+.business-schedule__mobile-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.business-schedule__mobile-heading h2 { margin: 0; font-size: .95rem; }
+.business-schedule__density { display: inline-flex; border: 1px solid var(--bp-line-strong); gap: 0; }
+.business-schedule__density button { border: 0; border-radius: 0; }
+@media (max-width: 780px) {
+  .business-schedule__mobile-controls { display: block; padding: 12px; border: 1px solid var(--bp-line-strong); background: var(--bp-surface); }
+}
 .business-schedule__intro {
   display: flex;
   max-width: 1520px;
@@ -412,7 +427,7 @@
 @media (max-width: 780px) {
   .business-schedule__intro { align-items: flex-start; flex-direction: column; gap: 14px; }
   .business-schedule__intro h1 { font-size: clamp(2rem, 10vw, 2.7rem); }
-  .business-schedule__density { display: none; }
+  .business-schedule__density { display: inline-flex; }
   .business-schedule__coverage { grid-template-columns: repeat(3, 1fr); }
   .business-schedule__coverage > div { min-height: 62px; padding: 10px; }
   .business-schedule__coverage-meter { grid-column: 1 / -1; border-top: 1px solid var(--bp-line); border-right: 0 !important; }
@@ -486,4 +501,8 @@
 @media (prefers-reduced-motion: reduce) {
   .business-schedule__coverage-meter b,
   .schedule-mobile__coverage em { transition: none; }
+}
+
+.business-published-grid .schedule-grid {
+  display: block;
 }

@@ -1019,7 +1019,7 @@ export async function listOrganizationUnits(organizationId: string) {
   );
   return response.data.data;
 }
-export async function getOrganizationAccess(organizationId:string){const response=await http.get<ApiResponse<{permissions:import("../types/business").OrganizationPermission[]}>>(`/api/organizations/${organizationId}/access`);return response.data.data;}
+export async function getOrganizationAccess(organizationId:string){const response=await http.get<ApiResponse<{permissions:import("../types/business").OrganizationPermission[];organizationWideAbsenceApproval?:boolean}>>(`/api/organizations/${organizationId}/access`);return response.data.data;}
 
 export async function createOrganizationUnit(organizationId: string, payload: {
   parentId: string | null;

@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRight, Check, LoaderCircle, RefreshCw } from "lucid
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { BusinessLocationRequired } from "../components/business-planning/business-location-required";
 import {
   batchStaffingDemand,
   createStaffingPlan,
@@ -20,6 +21,7 @@ import {
   listOrganizationUnits,
 } from "../api/endpoints";
 import { BusinessPlanningShell } from "../components/business-planning/business-planning-shell";
+import { planContextSearch, planSelectedDay } from "../features/business/plan-context";
 import { DemandActions } from "../components/business-planning/demand-actions";
 import { DemandMatrix } from "../components/business-planning/demand-matrix";
 import { DemandMobileView } from "../components/business-planning/demand-mobile-view";
@@ -55,6 +57,7 @@ export function BusinessDemandPage() {
   const [bulkAnchor, setBulkAnchor] = useState<DOMRect | null>(null);
   const operationKeys = useRef(new Map<string, string>());
   const restoredReturnScroll = useRef(false);
+  const handledLinkedRequirement = useRef<string | undefined>(undefined);
 
   const organizationsQuery = useQuery({
     queryKey: ["organizations"],
@@ -126,6 +129,28 @@ export function BusinessDemandPage() {
     retry: false,
   });
   const demand = demandQuery.data?.data ?? null;
+  const selectedDay = planSelectedDay(searchParams, weekStart, weekEnd, organization?.timezone ?? "UTC");
+  const selectedRequirement = searchParams.get("requirement") ?? undefined;
+  useEffect(() => {
+    if (!selectedRequirement || handledLinkedRequirement.current === selectedRequirement || !demand) return;
+    handledLinkedRequirement.current = selectedRequirement;
+    const requirement = demand.days.flatMap((day) => day.requirements)
+      .find(({ requirementId }) => requirementId === selectedRequirement);
+    if (requirement) setEditingRequirement(requirement);
+  }, [demand, selectedRequirement]);
+  const assignmentHref = `/business/${organizationId}/plan/schedule${planContextSearch(unitId, weekStart, selectedDay, selectedRequirement)}`;
+  const focusDay = (day: string, requirement?: string) => {
+    handledLinkedRequirement.current = requirement;
+    if (searchParams.get("day") === day && selectedRequirement === requirement) return;
+    setSearchParams(planContextSearch(unitId, weekStart, day, requirement), { replace: true });
+  };
+  const editRequirement = (requirement: StaffingDemandRequirement) => {
+    const day = demand?.days.find((value) => value.requirements.some(({ requirementId }) =>
+      requirementId === requirement.requirementId
+    ));
+    focusDay(day?.date ?? selectedDay, requirement.requirementId);
+    setEditingRequirement(requirement);
+  };
   const canManage = Boolean(plan?.capabilities.manage);
   const returnScrollY = (location.state as { restoreScrollY?: unknown } | null)?.restoreScrollY;
 
@@ -150,10 +175,7 @@ export function BusinessDemandPage() {
     setEditingRequirement(null);
     setBulkOpen(false);
     setBulkWorkTypeFixed(false);
-    const next = new URLSearchParams(searchParams);
-    next.set("unit", nextUnitId);
-    next.set("week", nextWeekStart);
-    setSearchParams(next);
+    setSearchParams(planContextSearch(nextUnitId, nextWeekStart));
   };
 
   const refreshCurrent = async () => {
@@ -161,6 +183,9 @@ export function BusinessDemandPage() {
       queryClient.invalidateQueries({
         queryKey: ["staffing-plan", organizationId, unitId, weekStart],
       }),
+      plan?.planId ? queryClient.invalidateQueries({
+        queryKey: ["staffing-plan", organizationId, plan.planId, "review"],
+      }) : Promise.resolve(),
       plan?.planId
         ? queryClient.invalidateQueries({
             queryKey: ["staffing-plan", organizationId, plan.planId, "demand"],
@@ -451,13 +476,7 @@ export function BusinessDemandPage() {
     return <BusinessRouteSkeleton />;
   }
   if (activeUnits.length === 0) {
-    return (
-      <BusinessState
-        title={t("planning.states.noUnitTitle")}
-        description={t("planning.states.noUnitDescription")}
-        action={<Link to="/business">{t("planning.states.configureUnit")}</Link>}
-      />
-    );
+    return <BusinessLocationRequired />;
   }
 
   return (
@@ -468,38 +487,13 @@ export function BusinessDemandPage() {
       unitId={unitId}
       weekStart={weekStart}
       weekEnd={weekEnd}
+      plan={plan}
       onOrganizationChange={(id) => navigate(`/business/${id}/plan/demand?week=${weekStart}`)}
       onUnitChange={(id) => updateSearchContext(id, weekStart)}
       onPreviousWeek={() => updateSearchContext(unitId, addDays(weekStart, -7))}
       onNextWeek={() => updateSearchContext(unitId, addDays(weekStart, 7))}
       onCurrentWeek={() => updateSearchContext(unitId, mondayIso(new Date()))}
     >
-      <section className="business-demand__intro">
-        <div>
-          <p>{t("planning.demand.eyebrow")}</p>
-          <h1>{t("planning.demand.title")}</h1>
-          <span>{t("planning.demand.description")}</span>
-        </div>
-        {demand ? (
-          <DemandActions
-            days={demand.days}
-            workTypes={workTypes}
-            disabled={!canManage || batchBusy}
-            copying={copying}
-            applying={batchBusy}
-            open={bulkOpen}
-            selectedWorkTypeId={bulkWorkTypeId}
-            fixedWorkType={bulkWorkTypeFixed}
-            showCopyAction={false}
-            showApplyAction={false}
-            anchorRect={bulkAnchor}
-            onOpenChange={changeBulkOpen}
-            onCopyPreviousWeek={() => void copyPreviousWeek()}
-            onApply={handleBulkApply}
-          />
-        ) : null}
-      </section>
-
       {notice ? (
         <div className={`business-demand__notice is-${notice.type}`} role={notice.type === "error" ? "alert" : "status"}>
           {notice.type === "success" ? <Check aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
@@ -561,37 +555,60 @@ export function BusinessDemandPage() {
             />
           ) : (
             <>
+              <header className="demand-matrix__heading business-demand__table-actions">
+                <div>
+                  <h2>{t("planning.demand.matrixTitle")}</h2>
+                  <p>{t("planning.demand.keyboardHint")}</p>
+                </div>
+          <DemandActions
+            days={demand.days}
+            workTypes={workTypes}
+            disabled={!canManage || batchBusy}
+            copying={copying}
+            applying={batchBusy}
+            open={bulkOpen}
+            selectedWorkTypeId={bulkWorkTypeId}
+            fixedWorkType={bulkWorkTypeFixed}
+            anchorRect={bulkAnchor}
+            onOpenChange={changeBulkOpen}
+            onCopyPreviousWeek={() => void copyPreviousWeek()}
+            onApply={handleBulkApply}
+          />
+              </header>
               <DemandMatrix
                 days={demand.days}
                 workTypes={workTypes}
                 canManage={canManage}
-                copying={copying}
                 busyCells={busyCells}
                 onCommit={(workType, day, value) => void commitCell(workType, day, value)}
                 onPaste={handlePaste}
-                onEdit={setEditingRequirement}
+                selectedDay={selectedDay}
+                onDayChange={focusDay}
+                onEdit={editRequirement}
                 onApplyWorkType={openBulkApply}
                 onEditWorkType={(workType) => navigate(
                   `/business/${organizationId}/work-types/${workType.id}?returnTo=${encodeURIComponent(`/business/${organizationId}/plan/demand?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`)}&returnScroll=${Math.round(window.scrollY)}`,
                 )}
-                onCopyPreviousWeek={() => void copyPreviousWeek()}
               />
               <DemandMobileView
                 days={demand.days}
                 workTypes={workTypes}
                 canManage={canManage}
-                copying={copying}
                 busyCells={busyCells}
                 onCommit={(workType, day, value) => void commitCell(workType, day, value)}
-                onEdit={setEditingRequirement}
+                selectedDay={selectedDay}
+                onDayChange={focusDay}
+                onEdit={editRequirement}
                 onApplyWorkType={openBulkApply}
                 onEditWorkType={(workType) => navigate(
                   `/business/${organizationId}/work-types/${workType.id}?returnTo=${encodeURIComponent(`/business/${organizationId}/plan/demand?unit=${encodeURIComponent(unitId)}&week=${encodeURIComponent(weekStart)}`)}&returnScroll=${Math.round(window.scrollY)}`,
                 )}
-                onCopyPreviousWeek={() => void copyPreviousWeek()}
               />
             </>
           )}
+          <div className="business-plan-demand-actions business-demand__next">
+            <Link to={assignmentHref}>{t("planFlow.toAssign")} <ArrowRight aria-hidden="true" /></Link>
+          </div>
         </>
       ) : null}
 

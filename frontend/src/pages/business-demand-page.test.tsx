@@ -193,7 +193,7 @@ describe("BusinessDemandPage", () => {
     const scheduleKey = ["staffing-plan", "org-1", "plan-1", "schedule"];
     const invalidateQueries = vi.spyOn(client, "invalidateQueries");
 
-    expect(await screen.findByRole("heading", { name: "What does the hotel need this week?" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Demand · seven-day view" })).toBeInTheDocument();
     const inputs = await screen.findAllByRole("spinbutton", {
       name: /People required for Room cleaning on Monday/,
     });

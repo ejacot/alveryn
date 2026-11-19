@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { listOrganizations, listOrganizationUnits } from "../../api/endpoints";
 import { BusinessPlanningShell } from "./business-planning-shell";
+import { addPlanDays, planToday, planWeekStart } from "../../features/business/plan-context";
 import "../../styles/business-planning.css";
 
-export function BusinessManagementShell({ children }: { children: ReactNode }) {
+export function BusinessManagementShell({ children, showUnitControls = false }: { children: ReactNode; showUnitControls?: boolean }) {
   const { t } = useTranslation("business");
   const { organizationId = "" } = useParams();
   const navigate = useNavigate();
@@ -23,9 +24,10 @@ export function BusinessManagementShell({ children }: { children: ReactNode }) {
   const unitId = activeUnits.some((item) => item.id === searchParams.get("unit"))
     ? searchParams.get("unit")!
     : activeUnits[0]?.id ?? "";
-  const weekStart = monday(new Date());
-  const weekEnd = addDays(weekStart, 6);
-  const suffix = location.pathname.split(`/business/${organizationId}`)[1] || "/people";
+  const timezone = businessOrganizations.find(({ id }) => id === organizationId)?.timezone ?? "UTC";
+  const weekStart = planWeekStart(planToday(timezone));
+  const weekEnd = addPlanDays(weekStart, 6);
+  const currentSection = location.pathname.slice(`/business/${organizationId}`.length).split("/")[1] || "overview";
 
   return (
     <BusinessPlanningShell
@@ -35,28 +37,16 @@ export function BusinessManagementShell({ children }: { children: ReactNode }) {
       unitId={unitId}
       weekStart={weekStart}
       weekEnd={weekEnd}
-      onOrganizationChange={(next) => navigate(`/business/${next}${suffix}`)}
+      onOrganizationChange={(next) => navigate(`/business/${next}/${currentSection}`)}
       onUnitChange={(next) => navigate({ search: `?unit=${encodeURIComponent(next)}` })}
       onPreviousWeek={() => undefined}
       onNextWeek={() => undefined}
       onCurrentWeek={() => undefined}
       showWeekControls={false}
+      showUnitControls={showUnitControls && activeUnits.length > 1}
       sectionLabel={t("management.section")}
     >
       {children}
     </BusinessPlanningShell>
   );
-}
-
-function monday(date: Date) {
-  const copy = new Date(date);
-  const day = copy.getDay() || 7;
-  copy.setDate(copy.getDate() - day + 1);
-  return copy.toISOString().slice(0, 10);
-}
-
-function addDays(date: string, days: number) {
-  const value = new Date(`${date}T12:00:00`);
-  value.setDate(value.getDate() + days);
-  return value.toISOString().slice(0, 10);
 }
