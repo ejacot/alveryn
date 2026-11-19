@@ -41,7 +41,7 @@ test.describe("authenticated Business Demand", () => {
     await openDemand(page, 1440, 980);
 
     await expect(page.getByRole("heading", { name: "What does the hotel need this week?" })).toBeVisible();
-    await expect(page.getByLabel("Company")).toHaveValue(`business:${organizationId}`);
+    await expect(page.getByLabel("Workspace")).toHaveValue(`business:${organizationId}`);
     await expect(page.getByLabel("Location")).toHaveValue(unitId);
     await captureIfRequested(page, "desktop-light-initial.png");
     await recordingPause(page);

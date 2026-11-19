@@ -68,8 +68,8 @@ export function BusinessPlanningShell({
   const workspace = useOptionalWorkspace();
   const auth = useContext(AuthContext);
   const managedOrganizations = auth?.user?.managedBusinessOrganizationIds ?? [];
-  const businessOnly = managedOrganizations.length > 0;
-  const organizationOptions = businessOnly
+  const businessOnly = managedOrganizations.length > 0 && auth?.user?.preferences?.onboardingCompleted !== true;
+  const organizationOptions = managedOrganizations.length > 0
     ? organizations.filter((organization) => managedOrganizations.includes(organization.id))
     : organizations;
   const availableWorkspaces = workspace?.organizations ?? organizations;
@@ -137,9 +137,9 @@ export function BusinessPlanningShell({
         </Link>
 
         <label className="business-planning__workspace-control">
-          <span>{t("organizationSetup.company")}</span>
+          <span>{t(businessOnly ? "organizationSetup.company" : "planning.workspace.label")}</span>
           <select
-            aria-label={t("organizationSetup.company")}
+            aria-label={t(businessOnly ? "organizationSetup.company" : "planning.workspace.label")}
             value={`business:${organizationId}`}
             onChange={(event) => {
               if (event.target.value === "personal") {
@@ -189,7 +189,7 @@ export function BusinessPlanningShell({
         </div> : <div className="business-planning__section-label">{sectionLabel}</div>}
 
         <div className="business-planning__tools">
-          {businessOnly && auth && <button
+          {auth && <button
             type="button"
             className="business-planning__tool"
             aria-label={t("logout", { ns: "settings" })}

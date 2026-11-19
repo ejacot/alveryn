@@ -41,9 +41,16 @@ const baseAuthValue: AuthContextValue = {
 };
 
 describe("auth routes", () => {
-  it.each(["/login", APP_HOME_PATH, "/statistics", "/business/employee-org/overview"])(
-    "opens the managed organization from %s even when Personal setup is complete",
-    async (route) => {
+  it.each([
+    ["/login", "Managed organization", true],
+    [APP_HOME_PATH, "Dashboard", true],
+    ["/statistics", "Statistics", true],
+    ["/business/employee-org/overview", "Managed organization", true],
+    [APP_HOME_PATH, "Managed organization", false],
+    ["/statistics", "Managed organization", false],
+  ] as const)(
+    "opens %s as %s for a manager with Personal configured=%s",
+    async (route, expected, personalConfigured) => {
       renderWithAuth(
         <Routes>
           <Route element={<GuestRoute />}>
@@ -64,14 +71,14 @@ describe("auth routes", () => {
             user: {
               account: { id: "1", email: "manager@example.com", emailVerified: true, status: "ACTIVE", lastLoginAt: null },
               profile: null,
-              preferences: { onboardingCompleted: true, trackingSetupVersionCompleted: 1 } as NonNullable<NonNullable<AuthContextValue["user"]>["preferences"]>,
+              preferences: { onboardingCompleted: personalConfigured, trackingSetupVersionCompleted: 1 } as NonNullable<NonNullable<AuthContextValue["user"]>["preferences"]>,
               hasBusinessWorkspace: true,
               managedBusinessOrganizationIds: ["managed-org"]
             }
           }
         }
       );
-      expect(await screen.findByText("Managed organization")).toBeInTheDocument();
+      expect(await screen.findByText(expected)).toBeInTheDocument();
     }
   );
 
