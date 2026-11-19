@@ -23,7 +23,7 @@ test("opens Business directly for an owner with an existing Personal setup", asy
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
   await expect(page).toHaveURL(new RegExp(`${overview}$`));
-  await expect(page.getByRole("combobox", { name: "Company" }).getByRole("option")).toHaveText(["Business Entry Hotel"]);
+  await expect(page.getByRole("combobox", { name: "Workspace" }).getByRole("option")).toHaveText(["My personal record", "Business Entry Hotel"]);
 
   for (const [label, path] of [
     ["Team", "/people"],
@@ -60,8 +60,20 @@ test("opens Business directly for an owner with an existing Personal setup", asy
   await page.getByRole("dialog").getByRole("link", { name: "Overview" }).click();
   await expect(page).toHaveURL(new RegExp(`${overview}$`));
 
-  await page.goto("/statistics");
+  await page.getByRole("combobox", { name: "Workspace" }).selectOption("personal");
+  await expect(page).toHaveURL(/\/app$/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/app$/);
+  await page.getByRole("button", { name: "Open Business workspace" }).click();
   await expect(page).toHaveURL(new RegExp(`${overview}$`));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("combobox", { name: "Workspace" }).selectOption("personal");
+  await expect(page).toHaveURL(/\/app$/);
+  await page.getByRole("combobox", { name: "Workspace" }).selectOption(organization.id);
+  await expect(page).toHaveURL(new RegExp(`${overview}$`));
+  await page.goto("/statistics");
+  await expect(page).toHaveURL(/\/statistics$/);
+  await page.goto(overview);
   await page.getByRole("button", { name: /log out|sign out/i }).click();
   await expect(page).toHaveURL(/\/login$/);
 });

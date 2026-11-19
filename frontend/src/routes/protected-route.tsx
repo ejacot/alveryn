@@ -18,7 +18,8 @@ export function ProtectedRoute() {
   }
 
   const managedOrganizations = user?.managedBusinessOrganizationIds ?? [];
-  if (managedOrganizations.length) {
+  const onboardingCompleted = user?.preferences?.onboardingCompleted === true;
+  if (managedOrganizations.length && (location.pathname.startsWith("/business") || !onboardingCompleted)) {
     const routeOrganization = location.pathname.match(/^\/business\/([^/]+)\//)?.[1];
     if (!routeOrganization || !managedOrganizations.includes(routeOrganization)) {
       return <Navigate to={businessOverviewPath(managedOrganizations[0])} replace />;
@@ -26,7 +27,6 @@ export function ProtectedRoute() {
     return <Outlet />;
   }
 
-  const onboardingCompleted = user?.preferences?.onboardingCompleted === true;
   const isOnboardingRoute = location.pathname.startsWith("/onboarding");
   const trackingSetupCompleted =
     (user?.preferences?.trackingSetupVersionCompleted ?? 0) >=
