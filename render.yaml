@@ -95,7 +95,7 @@ services:
       - key: FOUNDER_EMAIL
         value: eusebiujacot@gmail.com
       - key: CORS_ALLOWED_ORIGINS
-        value: https://alveryn.com,https://www.alveryn.com,https://alveryn-admin.onrender.com
+        value: https://alveryn.com,https://www.alveryn.com,https://alveryn-admin.onrender.com,https://alveryn-frontend.onrender.com
       - key: FRONTEND_VERIFICATION_URL
         value: https://alveryn.com/verify-email
       - key: GOOGLE_OAUTH_FRONTEND_SUCCESS_URL
