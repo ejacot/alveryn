@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 const WORKED_DAYS = new Set([
@@ -13,7 +13,7 @@ const range = (progress: number, start: number, end: number) =>
 const mix = (start: number, end: number, progress: number) =>
   start + (end - start) * progress;
 
-type StoryPhase = "day" | "transition" | "calendar" | "payslip" | "difference";
+type StoryPhase = "day" | "transition" | "calendar";
 
 export function WelcomePrecisionStory() {
   const { t } = useTranslation("welcome");
@@ -42,28 +42,17 @@ export function WelcomePrecisionStory() {
       let progress = clamp(-rect.top / travel);
       if (reduced.matches) progress = progress < 0.3 ? 0 : progress < 0.7 ? 0.59 : 1;
 
+      progress *= 0.6;
       const dayExit = range(progress, 0.08, 0.17);
       const calendarReveal = range(progress, 0.18, 0.25);
       const flight = range(progress, 0.27, 0.43);
       const lock = range(progress, 0.43, 0.47);
       const provenanceHold = 1 - range(progress, 0.51, 0.55);
       const calendarCopy = range(progress, 0.48, 0.54);
-      const calendarQuiet = range(progress, 0.61, 0.67);
-      const recordReveal = range(progress, 0.65, 0.7);
-      const documentReveal = range(progress, 0.7, 0.78);
-      const valuesAlign = range(progress, 0.78, 0.84);
-      const measureReveal = range(progress, 0.84, 0.9);
-      const differenceReveal = range(progress, 0.91, 0.98);
-
       set("--pf-day", 1 - dayExit);
       set("--pf-calendar", calendarReveal);
       set("--pf-calendar-copy", calendarCopy);
-      set("--pf-calendar-quiet", 1 - calendarQuiet * 0.88);
-      set("--pf-record", recordReveal);
-      set("--pf-document", documentReveal);
-      set("--pf-align", valuesAlign);
-      set("--pf-measure", measureReveal);
-      set("--pf-reveal", differenceReveal);
+      set("--pf-calendar-quiet", 1);
       set("--pf-cells", lock);
       set("--pf-detail", Math.max(provenanceHold, 1 - lock));
 
@@ -90,9 +79,7 @@ export function WelcomePrecisionStory() {
 
       let phase: StoryPhase = "day";
       if (progress >= 0.17 && progress < 0.48) phase = "transition";
-      else if (progress >= 0.48 && progress < 0.64) phase = "calendar";
-      else if (progress >= 0.64 && progress < 0.9) phase = "payslip";
-      else if (progress >= 0.9) phase = "difference";
+      else if (progress >= 0.48) phase = "calendar";
       if (phaseRef.current !== phase) {
         phaseRef.current = phase;
         stage.dataset.phase = phase;
@@ -129,9 +116,6 @@ export function WelcomePrecisionStory() {
           <p className="pf-copy-day pf-human">{t("motionIntegration.story.dayBody")}</p>
           <h2 className="pf-copy-calendar">{t("motionIntegration.story.calendarTitle")}</h2>
           <p className="pf-copy-calendar pf-human">{t("motionIntegration.story.calendarBody")}</p>
-          <h2 className="pf-copy-payslip">{t("motionIntegration.story.payslipTitle")}</h2>
-          <p className="pf-copy-payslip pf-human">{t("motionIntegration.story.payslipBody")}</p>
-          <h2 className="pf-copy-difference">{t("motionIntegration.story.differenceTitle")}</h2>
         </div>
 
         <div className="precision-flow-day" aria-label={t("motionIntegration.story.dayAria")}>
@@ -165,30 +149,9 @@ export function WelcomePrecisionStory() {
           <div className="pf-month-foot"><span>19 {t("motionIntegration.story.days")}</span><span>168h</span><span>24 m²</span><span>2 {t("motionIntegration.story.absences")}</span></div>
         </div>
 
-        <div className="precision-flow-comparison" aria-label={t("motionIntegration.story.comparisonAria")}>
-          <div className="pf-record-value"><small>{t("motionIntegration.story.yourRecord")}</small><strong>€2,894.00</strong><span>{t("motionIntegration.story.includesDay")}</span></div>
-          <div className="pf-delta-measure" aria-hidden="true"><i /><span /><b>€2,894 − €2,734</b><i /></div>
-          <div className="pf-received-document"><div className="pf-document-head"><span>{t("motionIntegration.story.received")}</span><i /><span>{t("motionIntegration.story.august")}</span></div><small>{t("motionIntegration.story.payslipGross")}</small><strong>€2,734.00</strong><div className="pf-document-lines"><i /><i /><i /><i /></div></div>
-          <div className="pf-difference"><small>{t("motionIntegration.story.possibleDifference")}</small><strong>Δ €160.00</strong><span>{t("motionIntegration.story.disclaimer")}</span></div>
-        </div>
-
         <div className="precision-flow-object" aria-hidden="true"><small>{t("motionIntegration.story.dayEstimate")}</small><strong>€164.00</strong><span>11</span></div>
         <div className="precision-flow-footer" aria-hidden="true"><span>ALVERYN</span><i /><span>DAY 11 RECORD</span></div>
       </div>
     </section>
   );
 }
-
-export const precisionFlowInitialStyle = {
-  "--pf-day": 1,
-  "--pf-calendar": 0,
-  "--pf-calendar-copy": 0,
-  "--pf-calendar-quiet": 1,
-  "--pf-record": 0,
-  "--pf-document": 0,
-  "--pf-align": 0,
-  "--pf-measure": 0,
-  "--pf-reveal": 0,
-  "--pf-cells": 0,
-  "--pf-detail": 1,
-} as CSSProperties;

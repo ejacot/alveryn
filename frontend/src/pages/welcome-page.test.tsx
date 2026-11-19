@@ -64,16 +64,13 @@ describe("WelcomePage", () => {
     renderPage();
     expect(screen.getByText("€164.00")).toBeInTheDocument();
     expect(screen.getByText("€2,730.00")).toBeInTheDocument();
-    expect(screen.getByText("€2,894.00")).toBeInTheDocument();
-    expect(screen.getByText("€2,734.00")).toBeInTheDocument();
-    expect(screen.getByText("Δ €160.00")).toBeInTheDocument();
     expect(screen.getAllByText("11").length).toBeGreaterThan(0);
   });
 
   it("contains no form or backend-connected product demo", () => {
     const { container } = renderPage();
     expect(container.querySelector("form")).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/How one Alveryn record/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/How a daily work record/i)).toBeInTheDocument();
     expect(recordMarketingEvent).toHaveBeenCalledTimes(1);
     expect(recordMarketingEvent).toHaveBeenCalledWith("LANDING_VIEW");
   });

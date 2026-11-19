@@ -16,10 +16,10 @@ test.describe("Precision Flow public Welcome", () => {
     const scrollRoot = page.locator("[data-testid=welcome-scroll]");
     const story = page.locator("#product-story");
     const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
-    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.61);
+    await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.99);
     await expect(page.getByText("€2,894.00").first()).toBeVisible();
     await scrollRoot.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
-    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
     expect(writes).toEqual([]);
   });
@@ -32,8 +32,8 @@ test.describe("Precision Flow public Welcome", () => {
     const story = page.locator("#product-story");
     const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
     await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.95);
-    await expect(page.getByText("Δ €160.00")).toBeVisible();
-    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.6);
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
+    await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + (bounds.height - 812) * 0.9);
     await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
     await page.emulateMedia({ colorScheme: "light" });
     await page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); });
@@ -57,6 +57,6 @@ test.describe("Precision Flow public Welcome", () => {
     const story = page.locator("#product-story");
     const bounds = await story.evaluate((element) => ({ top: (element as HTMLElement).offsetTop, height: (element as HTMLElement).offsetHeight }));
     await root.evaluate((element, y) => { element.scrollTop = y; }, bounds.top + bounds.height - 812);
-    await expect(page.getByText("Δ €160.00")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The day joins the month." })).toBeVisible();
   });
 });

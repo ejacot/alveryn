@@ -19,34 +19,6 @@
     "nextMonth": "Следующий месяц",
     "monthlyActivity": "Активность за месяц"
   },
-  "payroll": {
-    "eyebrow": "Зарплата · {{month}}",
-    "status": {
-      "confirmed": "Подтверждено",
-      "matches": "Совпадает",
-      "differences_one": "{{count}} отличие",
-      "differences_few": "{{count}} отличия",
-      "differences_many": "{{count}} отличий",
-      "differences_other": "{{count}} отличия"
-    },
-    "title": { "matches": "Данные за месяц совпадают", "review": "Проверьте отличия", "scan": "Сканировать расчётный лист" },
-    "description": { "matches": "Данные Alveryn совпадают с документом работодателя", "grossDifference": "Разница брутто: {{difference}}", "scan": "Сфотографируйте или загрузите документ работодателя" },
-    "result": {
-      "label": "Результат",
-      "everythingMatches": "Всё совпадает",
-      "found_one": "Найдено {{count}} отличие",
-      "found_few": "Найдено {{count}} отличия",
-      "found_many": "Найдено {{count}} отличий",
-      "found_other": "Найдено {{count}} отличия",
-      "agree": "Учтённая работа совпадает с расчётным листом работодателя.",
-      "review": "Проверьте выделенные категории перед подтверждением."
-    },
-    "actions": { "collapse": "Свернуть сравнение", "open": "Открыть сравнение", "scanAria": "Сканировать или загрузить расчётный лист", "scan": "Сканировать", "opening": "Открывается…", "openDocument": "Открыть документ", "reading": "Чтение…", "replaceDocument": "Заменить документ", "editValues": "Исправить", "doneEditing": "Готово", "saving": "Сохранение…", "saved": "Сохранено ✓", "save": "Сохранить сравнение" },
-    "categories": { "workedHours": "Рабочие часы", "workedPay": "Обычная оплата", "paidAbsence": "Оплачиваемое отсутствие", "extraHours": "Часы с доплатой", "extraPay": "Доплата", "gross": "Брутто" },
-    "details": { "title": "Детали расчётного листа", "line": "Строка начисления", "noQuantity": "Количество не указано" },
-    "verification": { "review": "Перед сохранением сверьте неточные значения с документом.", "fragment": "Фрагмент документа", "confidence": "Точность сканирования {{value}}%", "editTitle": "Распознанные значения" },
-    "errors": { "noValues": "За выбранный месяц в расчётном листе не найдены данные", "documentUnavailable": "Расчётный документ недоступен" }
-  },
   "jobDays_one": "{{count}} день",
   "jobDays_few": "{{count}} дня",
   "jobDays_many": "{{count}} дней",

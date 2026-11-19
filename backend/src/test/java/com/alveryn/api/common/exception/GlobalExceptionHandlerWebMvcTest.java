@@ -11,7 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerWebMvcTest {
   private MockMvc mockMvc;
@@ -43,12 +44,12 @@ class GlobalExceptionHandlerWebMvcTest {
   }
 
   @Test
-  void oversizedUploadsUseAHelpfulPayloadTooLargeResponse() throws Exception {
+  void missingResourcesReturnNotFoundInsteadOfServerError() throws Exception {
     mockMvc
-        .perform(get("/test/upload-too-large"))
-        .andExpect(status().isPayloadTooLarge())
-        .andExpect(jsonPath("$.message").value("File exceeds the 15 MB upload limit"))
-        .andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
+        .perform(get("/test/missing-resource"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.message").value("Resource not found"))
+        .andExpect(jsonPath("$.code").value("NOT_FOUND"));
   }
 
   @RestController
@@ -63,9 +64,9 @@ class GlobalExceptionHandlerWebMvcTest {
       throw new IllegalStateException("boom");
     }
 
-    @GetMapping("/test/upload-too-large")
-    void uploadTooLarge() {
-      throw new MaxUploadSizeExceededException(15L * 1024 * 1024);
+    @GetMapping("/test/missing-resource")
+    void missingResource() throws NoResourceFoundException {
+      throw new NoResourceFoundException(HttpMethod.GET, "api/data-imports/analyze", "/api/data-imports/analyze");
     }
   }
 }

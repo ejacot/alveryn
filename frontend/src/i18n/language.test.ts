@@ -19,7 +19,6 @@ describe("Russian language support", () => {
 
     expect(i18n.t("nav.calendar", { ns: "common" })).toBe("Календарь");
     expect(i18n.t("weeklyHours.workEarnings", { ns: "dashboard" })).toBe("Доход за неделю");
-    expect(i18n.t("payroll.actions.scan", { ns: "calendar" })).toBe("Сканировать");
     expect(i18n.t("preferencesFields.language", { ns: "settings" })).toBe("Язык");
     expect(i18n.t("setup.actions.continue", { ns: "onboarding" })).toBe("Продолжить");
     expect(i18n.t("job.acceptSuggestion", { ns: "records" })).toBe("Да, сохранить");

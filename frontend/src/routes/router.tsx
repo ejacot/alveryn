@@ -119,11 +119,6 @@ const PdfExportPage = lazy(() =>
     default: module.PdfExportPage
   }))
 );
-const DataImportPage = lazy(() =>
-  import("../pages/data-import-page").then((module) => ({
-    default: module.DataImportPage
-  }))
-);
 const LoginPage = lazy(() =>
   import("../pages/login-page").then((module) => ({
     default: module.LoginPage
@@ -297,7 +292,6 @@ export function buildRoutes(enablePreviewRoutes = PREVIEW_ROUTES_ENABLED): Route
             { path: "/settings/about", element: withSuspense(<AboutAlverynPage />) },
             { path: "/settings/help", element: withSuspense(<HelpSupportPage />) },
             { path: "/settings/export-pdf", element: withSuspense(<PdfExportPage />) },
-            { path: "/settings/import-data", element: withSuspense(<DataImportPage />) }
           ]
         },
         {
